@@ -53,6 +53,7 @@ more potential for breakage, more code to audit, and longer install times
 
 The Pkg resolver reports multiple packages restricted by compat
 constraints from upgrading:
+
 ```
 Packages marked with ⌅ are restricted by compatibility constraints
 from upgrading.
@@ -66,6 +67,7 @@ symptom of rapid development without coordinated release management.
 ### [accessibility] Verbose but informative output
 
 Loading case39 produces detailed validation warnings:
+
 ```
 Invalid range: ThermalStandard gen-2 active_power 6.77 exceeds
 active_power_limits.max 6.46

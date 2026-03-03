@@ -1,11 +1,11 @@
 function fail_count = test_gate(data_dir)
-% test_gate -- Gate tests for MATPOWER: load, parse, solve.
-%
-% Args:
-%   data_dir : path to shared data/networks/ directory
-%
-% Returns:
-%   fail_count : 0 if all tests pass, 1 if any test fails
+    % test_gate -- Gate tests for MATPOWER: load, parse, solve.
+    %
+    % Args:
+    %   data_dir : path to shared data/networks/ directory
+    %
+    % Returns:
+    %   fail_count : 0 if all tests pass, 1 if any test fails
 
     fail_count = 0;
 
@@ -16,7 +16,7 @@ function fail_count = test_gate(data_dir)
     catch e
         fprintf('  [FAIL] test_load_matpower: %s\n', e.message);
         fail_count = 1;
-        return;
+        return
     end
 
     % --- Test 2: Parse case39 ---
@@ -33,7 +33,7 @@ function fail_count = test_gate(data_dir)
     catch e
         fprintf('  [FAIL] test_parse_case39: %s\n', e.message);
         fail_count = 1;
-        return;
+        return
     end
 
     % --- Test 3: Solve DC power flow ---
@@ -49,8 +49,10 @@ function fail_count = test_gate(data_dir)
         pf = results.branch(:, 14);
         assert(any(pf ~= 0), 'All branch power flows are zero -- trivial solution');
 
-        fprintf('  [PASS] test_dc_power_flow: converged, %d non-zero angles, %d non-zero flows\n', ...
-                sum(va ~= 0), sum(pf ~= 0));
+        n_angles = sum(va ~= 0);
+        n_flows = sum(pf ~= 0);
+        fmt = '  [PASS] test_dc_power_flow: converged, %d non-zero angles, %d non-zero flows\n';
+        fprintf(fmt, n_angles, n_flows);
     catch e
         fprintf('  [FAIL] test_dc_power_flow: %s\n', e.message);
         fail_count = 1;
