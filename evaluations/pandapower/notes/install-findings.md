@@ -45,6 +45,7 @@ tutorials will hit an `AttributeError`.
 ### [maturity] Warning about transformer detection
 
 Loading case39 emits:
+
 ```
 There are 11 branches which are considered as trafos — due to ratio
 unequal 0 or 1 — but connect same voltage levels.

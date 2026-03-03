@@ -41,10 +41,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image name
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/devcontainer" >> "$GITHUB_OUTPUT"
+
       - name: Build and push devcontainer image
         uses: devcontainers/ci@v0.3
         with:
-          imageName: ghcr.io/${{ github.repository }}/devcontainer
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer:latest
+          imageName: ${{ steps.meta.outputs.image }}
+          cacheFrom: ${{ steps.meta.outputs.image }}:latest
           push: always
           imageTag: latest,${{ github.sha }}

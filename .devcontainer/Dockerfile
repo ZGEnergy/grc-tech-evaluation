@@ -21,6 +21,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # === Layer 3: Julia 1.10 installation (rarely changes) ===
+# Julia 1.10 is the current LTS release. Pinned here rather than using the
+# julialang devcontainer feature, which installs via juliaup and can silently
+# resolve to a newer major version (e.g. 1.12), breaking Manifest.toml compat.
 ARG JULIA_VERSION=1.10.7
 RUN curl -fsSL \
         "https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
