@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   packages: read
+  pull-requests: read
 
 jobs:
   paths-filter:
@@ -65,13 +66,13 @@ jobs:
         include:
           - tool: pypsa
             filter: pypsa
-            command: cd evaluations/pypsa && uv run pytest -v
+            command: cd evaluations/pypsa && uv run python -m pytest -v
           - tool: pandapower
             filter: pandapower
-            command: cd evaluations/pandapower && uv run pytest -v
+            command: cd evaluations/pandapower && uv run python -m pytest -v
           - tool: gridcal
             filter: gridcal
-            command: cd evaluations/gridcal && uv run pytest -v
+            command: cd evaluations/gridcal && uv run python -m pytest -v
           - tool: powermodels
             filter: powermodels
             command: cd evaluations/powermodels && julia --project=. test/runtests.jl
