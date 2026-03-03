@@ -1,0 +1,112 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+
+    outputs:
+      pypsa: ${{ steps.filter.outputs.pypsa }}
+      pandapower: ${{ steps.filter.outputs.pandapower }}
+      gridcal: ${{ steps.filter.outputs.gridcal }}
+      powermodels: ${{ steps.filter.outputs.powermodels }}
+      powersimulations: ${{ steps.filter.outputs.powersimulations }}
+      matpower: ${{ steps.filter.outputs.matpower }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            pypsa:
+              - 'evaluations/pypsa/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            pandapower:
+              - 'evaluations/pandapower/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            gridcal:
+              - 'evaluations/gridcal/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            powermodels:
+              - 'evaluations/powermodels/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            powersimulations:
+              - 'evaluations/powersimulations/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            matpower:
+              - 'evaluations/matpower/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+
+  test:
+    needs: paths-filter
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: pypsa
+            filter: pypsa
+            command: cd evaluations/pypsa && uv run pytest -v
+          - tool: pandapower
+            filter: pandapower
+            command: cd evaluations/pandapower && uv run pytest -v
+          - tool: gridcal
+            filter: gridcal
+            command: cd evaluations/gridcal && uv run pytest -v
+          - tool: powermodels
+            filter: powermodels
+            command: cd evaluations/powermodels && julia --project=. test/runtests.jl
+          - tool: powersimulations
+            filter: powersimulations
+            command: cd evaluations/powersimulations && julia --project=. test/runtests.jl
+          - tool: matpower
+            filter: matpower
+            command: cd evaluations/matpower && octave --no-gui test/run_tests.m
+
+    name: test (${{ matrix.tool }})
+
+    if: >-
+      needs.paths-filter.outputs.pypsa == 'true' ||
+      needs.paths-filter.outputs.pandapower == 'true' ||
+      needs.paths-filter.outputs.gridcal == 'true' ||
+      needs.paths-filter.outputs.powermodels == 'true' ||
+      needs.paths-filter.outputs.powersimulations == 'true' ||
+      needs.paths-filter.outputs.matpower == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        if: needs.paths-filter.outputs[matrix.filter] == 'true'
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer:latest
+          push: never
+          runCmd: ${{ matrix.command }}
