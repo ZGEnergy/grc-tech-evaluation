@@ -3,7 +3,7 @@ name = "grc-eval-gridcal"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "GridCalEngine",
+    "veragridengine",
 ]
 
 [build-system]

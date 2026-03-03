@@ -2,9 +2,13 @@
 %
 % Usage: octave verify_install.m
 
-% Add MATPOWER to path
-addpath(fullfile(pwd, 'matpower-8.1', 'lib'));
-addpath(fullfile(pwd, 'matpower-8.1', 'data'));
+% Add MATPOWER and its sub-packages to path
+mp_root = fullfile(pwd, 'matpower8.1');
+addpath(fullfile(mp_root, 'lib'));
+addpath(fullfile(mp_root, 'data'));
+addpath(fullfile(mp_root, 'mips', 'lib'));
+addpath(fullfile(mp_root, 'mp-opt-model', 'lib'));
+addpath(fullfile(mp_root, 'mptest', 'lib'));
 
 % Load IEEE 39-bus case from shared data directory
 mpc = loadcase(fullfile('..', '..', 'data', 'networks', 'case39.m'));

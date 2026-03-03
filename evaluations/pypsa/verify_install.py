@@ -5,17 +5,24 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pandapower as pp
-import pandapower.converter as pc
 import pypsa
+from matpowercaseframes import CaseFrames
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "networks"
 
-# Load case39.m via pandapower, then convert to PyPSA
-net_pp = pp.converter.from_mpc(str(DATA_DIR / "case39.m"))
-net = pc.to_pypsa(net_pp)
+# Load case39.m via matpowercaseframes → pypower ppc dict
+cf = CaseFrames(str(DATA_DIR / "case39.m"))
+ppc = {
+    "version": "2",
+    "baseMVA": cf.baseMVA,
+    "bus": cf.bus.values,
+    "gen": cf.gen.values,
+    "branch": cf.branch.values,
+}
 
-# Run DC power flow
+# Import into PyPSA and run DC power flow
+net = pypsa.Network()
+net.import_from_pypower_ppc(ppc)
 net.lpf()
 
 print(f"PyPSA version: {pypsa.__version__}")

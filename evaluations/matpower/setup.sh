@@ -3,9 +3,9 @@
 set -euo pipefail
 
 MATPOWER_VERSION="8.1"
-MATPOWER_URL="https://github.com/MATPOWER/matpower/releases/download/${MATPOWER_VERSION}/matpower-${MATPOWER_VERSION}.tar.gz"
-MATPOWER_SHA256="553fe603b1f5d4e5be0e94dd0ee8c22c1e0bfb27f236fc24d9e6b09b4cd0db88"
-DEST_DIR="matpower-${MATPOWER_VERSION}"
+MATPOWER_URL="https://github.com/MATPOWER/matpower/releases/download/${MATPOWER_VERSION}/matpower${MATPOWER_VERSION}.zip"
+MATPOWER_SHA256="7f13b1441669a64e312d14a60e564cd91977ff1676ff77d25538e94ff313dd56"
+DEST_DIR="matpower${MATPOWER_VERSION}"
 
 if [ -d "$DEST_DIR" ]; then
     echo "MATPOWER ${MATPOWER_VERSION} already extracted at ${DEST_DIR}/"
@@ -13,13 +13,13 @@ if [ -d "$DEST_DIR" ]; then
 fi
 
 echo "Downloading MATPOWER ${MATPOWER_VERSION}..."
-curl -L -o "matpower-${MATPOWER_VERSION}.tar.gz" "$MATPOWER_URL"
+curl -L -o "matpower${MATPOWER_VERSION}.zip" "$MATPOWER_URL"
 
 echo "Verifying checksum..."
-echo "${MATPOWER_SHA256}  matpower-${MATPOWER_VERSION}.tar.gz" | sha256sum -c -
+echo "${MATPOWER_SHA256}  matpower${MATPOWER_VERSION}.zip" | sha256sum -c -
 
 echo "Extracting..."
-tar xzf "matpower-${MATPOWER_VERSION}.tar.gz"
-rm "matpower-${MATPOWER_VERSION}.tar.gz"
+unzip -q "matpower${MATPOWER_VERSION}.zip"
+rm "matpower${MATPOWER_VERSION}.zip"
 
 echo "MATPOWER ${MATPOWER_VERSION} installed to ${DEST_DIR}/"

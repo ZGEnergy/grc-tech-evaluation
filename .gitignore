@@ -11,7 +11,8 @@ build/
 # Julia (Manifest.toml committed for reproducibility)
 
 # MATPOWER (downloaded, not checked in)
-evaluations/matpower/matpower-*/
+evaluations/matpower/matpower*/
+!evaluations/matpower/matpower/
 
 # IDE
 .idea/
