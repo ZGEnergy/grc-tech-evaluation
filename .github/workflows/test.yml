@@ -104,10 +104,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image name
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/devcontainer" >> "$GITHUB_OUTPUT"
+
       - name: Run tests
         if: needs.paths-filter.outputs[matrix.filter] == 'true'
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer:latest
+          cacheFrom: ${{ steps.meta.outputs.image }}:latest
           push: never
           runCmd: ${{ matrix.command }}

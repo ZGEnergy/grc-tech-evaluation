@@ -23,10 +23,10 @@ run_tool() {
     printf "%-20s" "${tool}..."
     if "$@"; then
         echo "PASS"
-        ((passed++))
+        ((passed++)) || true
     else
         echo "FAIL"
-        ((failed++))
+        ((failed++)) || true
         exit 1
     fi
 }
