@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 
 import pandapower as pp
+from pandapower.converter.matpower.from_mpc import from_mpc
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "networks"
 
 # Load case39.m directly
-net = pp.converter.from_mpc(str(DATA_DIR / "case39.m"))
+net = from_mpc(str(DATA_DIR / "case39.m"))
 
 # Run DC power flow
 pp.rundcpp(net)
