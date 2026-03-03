@@ -14,7 +14,7 @@ RUN apt-get update \
         python3-venv \
         python3-pip \
         octave \
-        liboctave-dev \
+        octave-dev \
         unzip \
         curl \
         ca-certificates \
