@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+
+# Julia (Manifest.toml committed for reproducibility)
+
+# MATPOWER (downloaded, not checked in)
+evaluations/matpower/matpower-*/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Coverage & caches
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# direnv
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
