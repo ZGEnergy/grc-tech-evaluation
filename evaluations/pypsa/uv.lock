@@ -616,6 +616,11 @@ dependencies = [
     { name = "pypsa" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "highspy" },
@@ -623,6 +628,9 @@ requires-dist = [
     { name = "pandapower" },
     { name = "pypsa" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
 
 [[package]]
 name = "highspy"
@@ -672,6 +680,15 @@ source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-re
 sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/idna/idna-3.11.tar.gz", hash = "sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902" }
 wheels = [
     { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/idna/idna-3.11-py3-none-any.whl", hash = "sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea" },
+]
+
+[[package]]
+name = "iniconfig"
+version = "2.3.0"
+source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
+sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/iniconfig/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/iniconfig/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12" },
 ]
 
 [[package]]
@@ -1344,6 +1361,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pluggy"
+version = "1.6.0"
+source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
+sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pluggy/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pluggy/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746" },
+]
+
+[[package]]
 name = "polars"
 version = "1.38.1"
 source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
@@ -1528,6 +1554,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pygments"
+version = "2.19.2"
+source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
+sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pygments/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pygments/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b" },
+]
+
+[[package]]
 name = "pyogrio"
 version = "0.12.1"
 source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
@@ -1661,6 +1696,22 @@ dependencies = [
 sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pypsa/pypsa-1.1.2.tar.gz", hash = "sha256:5d8ac5e1416b095326c3cf687708dc2d78f5b34d7ea9811d9c48286a02296d7d" }
 wheels = [
     { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pypsa/pypsa-1.1.2-py3-none-any.whl", hash = "sha256:5b48e6cfe14127c354d3e20fb1383e10dfdb28e23be588e95e179319bf632ad6" },
+]
+
+[[package]]
+name = "pytest"
+version = "9.0.2"
+source = { registry = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "iniconfig" },
+    { name = "packaging" },
+    { name = "pluggy" },
+    { name = "pygments" },
+]
+sdist = { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pytest/pytest-9.0.2.tar.gz", hash = "sha256:75186651a92bd89611d1d9fc20f0b4345fd827c41ccd5c299a868a05d70edf11" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/pytest/pytest-9.0.2-py3-none-any.whl", hash = "sha256:711ffd45bf766d5264d487b917733b453d917afd2b0ad65223959f59089f875b" },
 ]
 
 [[package]]
