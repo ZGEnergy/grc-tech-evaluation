@@ -1,0 +1,6 @@
+# .progress.yaml
+tool: pypsa
+completed_states: [CONFIGURE, GATE, EVALUATE, SYNTHESIZE]
+current_state: DONE
+scale_cap: MEDIUM
+timestamp: "2026-03-04T22:30:00Z"

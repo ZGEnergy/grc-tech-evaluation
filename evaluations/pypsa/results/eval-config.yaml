@@ -1,0 +1,787 @@
+# eval-config.yaml — PyPSA Phase 1 Evaluation Configuration
+# Generated from: Phase1_Evaluation_Rubric_v1.md + Phase1_Test_Protocol_v2.md
+# Tool: pypsa
+
+tool: pypsa
+language: python
+package_manager: uv
+companion_packages:
+  - linopy
+  - atlite
+  - powerplantmatching
+
+# ---------------------------------------------------------------------------
+# Network Tiers
+# ---------------------------------------------------------------------------
+networks:
+  TINY:
+    name: "IEEE 39-bus (New England)"
+    buses: 39
+    branches: 46
+    generators: 10
+    file: "data/networks/case39.m"
+    format: "MATPOWER .m"
+    purpose: "Functional verification — confirm every problem type is expressible"
+
+  SMALL:
+    name: "ACTIVSg 2k"
+    buses: "~2000"  # verify from .m file
+    branches: "verify from .m file"
+    generators: "verify from .m file"
+    file: "data/networks/case_ACTIVSg2000.m"
+    format: "MATPOWER .m"
+    purpose: "Intermediate scale check — verify functional results hold beyond toy size"
+
+  MEDIUM:
+    name: "ACTIVSg 10k"
+    buses: "~10000"  # verify from .m file
+    branches: "verify from .m file"
+    generators: "verify from .m file"
+    file: "data/networks/case_ACTIVSg10k.m"
+    format: "MATPOWER .m"
+    purpose: "Scalability benchmark — Suite C grades assessed here"
+
+# ---------------------------------------------------------------------------
+# Reference Counts (for gate validation)
+# ---------------------------------------------------------------------------
+reference_counts:
+  TINY:
+    buses: 39
+    branches: 46
+    generators: 10
+  SMALL:
+    buses: "verify from .m file"
+    branches: "verify from .m file"
+    generators: "verify from .m file"
+  MEDIUM:
+    buses: "verify from .m file"
+    branches: "verify from .m file"
+    generators: "verify from .m file"
+
+# ---------------------------------------------------------------------------
+# Hardware Baseline
+# ---------------------------------------------------------------------------
+hardware_baseline:
+  ram_gb: 128
+  cores: 16
+  gpu: none
+  os: "Ubuntu 24.04 LTS"
+
+# ---------------------------------------------------------------------------
+# Solver Stack
+# ---------------------------------------------------------------------------
+solvers:
+  - name: HiGHS
+    problem_types: [LP, MILP, QP]
+    role: "Primary solver for all linear and mixed-integer problems"
+  - name: SCIP
+    problem_types: [LP, MILP]
+    role: "Secondary MILP solver for comparison"
+  - name: Ipopt
+    problem_types: [NLP]
+    role: "Primary solver for nonlinear problems (AC PF/OPF)"
+  - name: GLPK
+    problem_types: [LP, MILP]
+    role: "Lightweight baseline for comparison"
+
+# ---------------------------------------------------------------------------
+# Dimensions
+# ---------------------------------------------------------------------------
+dimensions:
+  - name: gate
+    criterion_number: null
+    suite: G
+    archetype: gate-evaluator
+    weight_rank: 0  # must pass before anything else
+
+  - name: expressiveness
+    criterion_number: 1
+    suite: A
+    archetype: code-evaluator
+    weight_rank: 1
+    emits:
+      - api-friction
+      - doc-gaps
+      - workaround-needed
+      - solver-issues
+    consumes: []
+
+  - name: extensibility
+    criterion_number: 2
+    suite: B
+    archetype: code-evaluator
+    weight_rank: 2
+    emits:
+      - api-friction
+      - doc-gaps
+      - workaround-needed
+      - solver-issues
+    consumes: []
+
+  - name: scalability
+    criterion_number: 4
+    suite: C
+    archetype: code-evaluator
+    weight_rank: 3
+    emits:
+      - solver-issues
+    consumes:
+      - solver-issues
+
+  - name: accessibility
+    criterion_number: 3
+    suite: D
+    archetype: audit-evaluator
+    weight_rank: 4
+    emits: []
+    consumes:
+      - api-friction
+      - doc-gaps
+
+  - name: maturity
+    criterion_number: 5
+    suite: E
+    archetype: audit-evaluator
+    weight_rank: 5
+    emits: []
+    consumes:
+      - doc-gaps
+
+  - name: supply_chain
+    criterion_number: 6
+    suite: F
+    archetype: audit-evaluator
+    weight_rank: 0  # gate criterion — evaluated independently
+    emits:
+      - license-flags
+    consumes: []
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+tests:
+  # --- Gate Tests -----------------------------------------------------------
+  - id: G-1
+    dimension: gate
+    description: "Ingest IEEE 39-bus reference network and verify bus/branch/gen counts"
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: >
+      Tool loads IEEE 39-bus without error. Bus count, branch count, and
+      generator count match expected values (39 buses, 46 branches, 10 generators).
+    solver: N/A
+    recorded_metrics: [pass/fail, format_conversion_needed, data_loss_check]
+    depends_on: []
+
+  - id: G-2
+    dimension: gate
+    description: "Ingest ACTIVSg 2k reference network and verify counts"
+    functional_network: SMALL
+    grade_network: N/A
+    pass_condition: >
+      Same verification on ACTIVSg 2k — bus/branch/gen counts match expected values.
+    solver: N/A
+    recorded_metrics: [pass/fail, format_conversion_needed, data_loss_check]
+    depends_on: [G-1]
+
+  - id: G-3
+    dimension: gate
+    description: "Ingest ACTIVSg 10k reference network and verify counts"
+    functional_network: MEDIUM
+    grade_network: N/A
+    pass_condition: >
+      Same verification on ACTIVSg 10k — bus/branch/gen counts match expected values.
+    solver: N/A
+    recorded_metrics: [pass/fail, format_conversion_needed, data_loss_check]
+    depends_on: [G-1]
+
+  # --- Suite A: Problem Expressiveness --------------------------------------
+  - id: A-1
+    dimension: expressiveness
+    description: "Solve DC Power Flow"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Converges. Nodal injections, line flows, and voltage angles accessible
+      as structured output (DataFrame, dict, or named array — not raw solver vector).
+    solver: "N/A (direct solve)"
+    recorded_metrics: [pass/fail, wall_clock, LOC, output_format, workaround_class]
+    depends_on: [G-1]
+
+  - id: A-2
+    dimension: expressiveness
+    description: "Solve AC Power Flow (Newton-Raphson)"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Converges. Bus voltage magnitudes and angles, line P/Q flows, and losses
+      accessible as structured output.
+    solver: Ipopt
+    recorded_metrics: [pass/fail, wall_clock, LOC, output_format, workaround_class]
+    depends_on: [G-1]
+
+  - id: A-3
+    dimension: expressiveness
+    description: "Solve DC OPF with gen costs and line flow limits"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Converges. Optimal dispatch and LMPs/shadow prices extractable from solution.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, wall_clock, LOC, output_format, workaround_class]
+    depends_on: [G-1]
+
+  - id: A-4
+    dimension: expressiveness
+    description: "Take DC OPF dispatch from A-3, run full ACPF on that dispatch"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Achievable within the same model context (no export to file and reimport).
+      Voltage violations and thermal limit violations identifiable from results.
+    solver: Ipopt
+    recorded_metrics: [pass/fail, wall_clock, LOC, workaround_class]
+    depends_on: [A-3]
+
+  - id: A-5
+    dimension: expressiveness
+    description: "Solve 24-hour SCUC as MILP with min up/down times, startup costs, ramp rates, reserve requirements"
+    functional_network: TINY
+    grade_network: SMALL
+    pass_condition: >
+      Solves to feasibility (MIP gap <= 1%). Commitment schedule extractable
+      as a time-indexed binary matrix. Built-in constraint types vs.
+      user-assembled noted.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, wall_clock, MIP_gap, LOC, constraint_types_builtin_vs_assembled, workaround_class]
+    depends_on: [G-1]
+
+  - id: A-6
+    dimension: expressiveness
+    description: "Fix commitment from A-5, solve economic dispatch as LP/QP (SCED)"
+    functional_network: TINY
+    grade_network: SMALL
+    pass_condition: >
+      Solves. Dispatch schedule extractable. UC and ED are cleanly separable
+      as a two-stage workflow.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, wall_clock, LOC, workaround_class]
+    depends_on: [A-5]
+
+  - id: A-7
+    dimension: expressiveness
+    description: >
+      N-M contingency sweep: enumerate branches within graph distance x of a
+      chosen bus, sweep contingencies with escalating order up to m simultaneous
+      outages with pruning of branches causing total load loss.
+      TINY: x=3, m=3. MEDIUM: x=5, m=4.
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Completes without full model reconstruction per contingency case.
+      Load loss per contingency case collected. Pruning logic is expressible
+      without fighting the tool. Combinatorial enumeration and graph-distance
+      scoping are achievable via the tool's API or a clean graph library bridge.
+    solver: "N/A (direct solve)"
+    recorded_metrics: [pass/fail, wall_clock, LOC, cases_evaluated_per_order, pruning_ratio, workaround_class]
+    depends_on: [G-1]
+
+  - id: A-8
+    dimension: expressiveness
+    description: >
+      Solve multi-period (24hr, hourly) DC OPF or SCUC with stochastic load
+      and renewable generation scenarios. Stochastic structure must be part of
+      the optimization formulation (scenario tree, two-stage stochastic program),
+      not independent deterministic solves in a loop.
+    functional_network: TINY
+    grade_network: SMALL
+    pass_condition: >
+      Tool natively supports scenario-indexed timeseries for load, wind, and
+      solar — the stochastic structure is part of the optimization formulation
+      (e.g., scenario tree, two-stage stochastic program), not just independent
+      deterministic solves in a loop.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, wall_clock, LOC, stochastic_formulation_type, workaround_class]
+    depends_on: [G-1]
+
+  # --- Suite B: Extensibility -----------------------------------------------
+  - id: B-1
+    dimension: extensibility
+    description: "Add a flow gate limit (sum of flows on specified lines <= threshold) to DC OPF from A-3"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Achievable through a documented API or extension mechanism.
+      No source patching or forking required.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, LOC, API_or_method, workaround_class]
+    depends_on: [A-3]
+
+  - id: B-2
+    dimension: extensibility
+    description: "From a chosen bus, run BFS to depth 3. Return all buses and branches within that subgraph."
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Works via native graph primitives or clean, documented export to
+      NetworkX (Python) or Graphs.jl (Julia).
+    solver: N/A
+    recorded_metrics: [pass/fail, LOC, API_or_method, workaround_class]
+    depends_on: [G-1]
+
+  - id: B-3
+    dimension: extensibility
+    description: "Solve N-1 DCPF contingencies. Collect max line loading across all cases."
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Runs in a loop without re-parsing or re-instantiating the base model from
+      file each iteration. Base model is modified in-place or cloned efficiently.
+    solver: "N/A (direct solve)"
+    recorded_metrics: [pass/fail, LOC, wall_clock, API_or_method, workaround_class]
+    depends_on: [G-1]
+
+  - id: B-4
+    dimension: extensibility
+    description: >
+      Generate 50 scenarios by sampling load and renewable generation timeseries
+      from a distribution (correlated perturbations from multivariate normal).
+      Solve 24hr multi-period DCPF for each scenario. Collect results.
+    functional_network: TINY
+    grade_network: SMALL
+    pass_condition: >
+      Tool accepts timeseries inputs programmatically (not from config files
+      only). Scenario loop is expressible without excessive per-scenario
+      overhead. Results are collectable in a structured format.
+    solver: "HiGHS"
+    recorded_metrics: [pass/fail, LOC, wall_clock, per_scenario_overhead, workaround_class]
+    depends_on: [G-1]
+
+  - id: B-5
+    dimension: extensibility
+    description: "Export DCPF results from A-1 to a pandas DataFrame and write to CSV"
+    functional_network: TINY
+    grade_network: MEDIUM
+    pass_condition: >
+      Trivial — fewer than 5 lines of code beyond the solve.
+      No custom serialization logic required.
+    solver: N/A
+    recorded_metrics: [pass/fail, LOC]
+    depends_on: [A-1]
+
+  - id: B-6
+    dimension: extensibility
+    description: >
+      Qualitative assessment: read the source code for the DCPF solve path.
+      Trace from API call to solver invocation.
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >
+      Document: number of abstraction layers, whether network model / problem
+      formulation / solver interface / results are separated, whether internal
+      interfaces are documented.
+    solver: N/A
+    recorded_metrics: [abstraction_layers, separation_of_concerns, internal_docs]
+    depends_on: []
+
+  # --- Suite C: Scalability -------------------------------------------------
+  - id: C-1
+    dimension: scalability
+    description: "DCPF at scale"
+    functional_network: N/A
+    grade_network: MEDIUM
+    pass_condition: "No pre-defined threshold — record and compare across tools."
+    solver: "N/A (direct solve)"
+    recorded_metrics: [wall_clock, peak_memory, cpu_utilization, parallelism_controls]
+    depends_on: [A-1, G-3]
+
+  - id: C-2
+    dimension: scalability
+    description: "ACPF at scale"
+    functional_network: N/A
+    grade_network: MEDIUM
+    pass_condition: "No pre-defined threshold — record and compare across tools."
+    solver: Ipopt
+    recorded_metrics: [wall_clock, peak_memory, iterations, cpu_utilization, parallelism_controls]
+    depends_on: [A-2, G-3]
+
+  - id: C-3
+    dimension: scalability
+    description: "DC OPF at scale with multiple solvers"
+    functional_network: N/A
+    grade_network: MEDIUM
+    pass_condition: "No pre-defined threshold — record and compare across tools. Verify objective value consistency across solvers."
+    solver: "HiGHS, GLPK"
+    recorded_metrics: [wall_clock_per_solver, peak_memory, objective_value, cpu_utilization, parallelism_controls]
+    depends_on: [A-3, G-3]
+
+  - id: C-4
+    dimension: scalability
+    description: "SCUC 24hr at scale"
+    functional_network: N/A
+    grade_network: SMALL
+    pass_condition: "No pre-defined threshold — record and compare across tools."
+    solver: "HiGHS, SCIP"
+    recorded_metrics: [wall_clock_per_solver, MIP_gap, peak_memory, cpu_utilization, parallelism_controls]
+    depends_on: [A-5, G-2]
+
+  - id: C-5
+    dimension: scalability
+    description: "N-M contingency sweep (x=5, m=4) at scale"
+    functional_network: N/A
+    grade_network: MEDIUM
+    pass_condition: "No pre-defined threshold — record and compare across tools."
+    solver: "N/A (direct solve)"
+    recorded_metrics: [total_time, per_case_average, peak_memory, cases_per_order, pruning_ratio, cpu_utilization, parallelism_controls]
+    depends_on: [A-7, G-3]
+
+  - id: C-6
+    dimension: scalability
+    description: "50-scenario stochastic DCPF at scale"
+    functional_network: N/A
+    grade_network: SMALL
+    pass_condition: "No pre-defined threshold — record and compare across tools."
+    solver: "HiGHS"
+    recorded_metrics: [total_time, per_scenario_average, peak_memory, cpu_utilization, parallelism_controls]
+    depends_on: [B-4, G-2]  # inferred — B-4 is the stochastic wrapping test
+
+  - id: C-7
+    dimension: scalability
+    description: "Solver swap — repeat DC OPF (C-3) with each available open-source solver"
+    functional_network: N/A
+    grade_network: MEDIUM
+    pass_condition: "Whether solver swap requires reformulation or just a parameter change."
+    solver: "HiGHS, GLPK, SCIP"
+    recorded_metrics: [reformulation_required, wall_clock_per_solver, cpu_utilization]
+    depends_on: [C-3]
+
+  # --- Suite D: Workforce Accessibility -------------------------------------
+  - id: D-1
+    dimension: accessibility
+    description: "Install-to-first-solve: clean install, run DCPF on TINY"
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: "Record wall-clock time from start to successful solve. Note issues encountered."
+    solver: N/A
+    recorded_metrics: [wall_clock_install_to_solve, issues_encountered, issue_severity]
+    depends_on: []
+
+  - id: D-2
+    dimension: accessibility
+    description: "Documentation audit: attempt each Suite A test using only official docs"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record which tests completable from docs alone vs. requiring source reading, issue searching, or guessing."
+    solver: N/A
+    recorded_metrics: [tests_completable_from_docs, source_reading_required, gaps_found]
+    depends_on: []
+
+  - id: D-3
+    dimension: accessibility
+    description: "Run every getting-started example and tutorial from official documentation on current release"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record how many run without modification, how many require fixes, how many are silently broken."
+    solver: N/A
+    recorded_metrics: [examples_total, examples_pass, examples_need_fixes, examples_broken]
+    depends_on: []
+
+  - id: D-4
+    dimension: accessibility
+    description: >
+      Introduce three deliberate errors: (a) infeasible OPF (line limit = 0),
+      (b) missing generator cost curve, (c) invalid bus type. Record diagnostics.
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: >
+      For each: does the tool surface a meaningful diagnostic, a cryptic solver
+      error, or fail silently?
+    solver: N/A
+    recorded_metrics: [error_a_diagnostic_quality, error_b_diagnostic_quality, error_c_diagnostic_quality]
+    depends_on: [G-1]
+
+  - id: D-5
+    dimension: accessibility
+    description: "Count lines of code required for each Suite A test across all tools"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "LOC comparison table. Lower is better for accessibility."
+    solver: N/A
+    recorded_metrics: [LOC_per_test]
+    depends_on: []
+
+  # --- Suite E: Maturity & Sustainability -----------------------------------
+  - id: E-1
+    dimension: maturity
+    description: "Release cadence — examine release history for last 24 months"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record number of releases, date of last release, versioning scheme."
+    solver: N/A
+    recorded_metrics: [release_count_24mo, last_release_date, versioning_scheme]
+    depends_on: []
+
+  - id: E-2
+    dimension: maturity
+    description: "Commit activity — examine commit history for last 12 months"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record total commits, unique committers, ratio of substantive to maintenance commits."
+    solver: N/A
+    recorded_metrics: [total_commits_12mo, unique_committers, substantive_vs_maintenance_ratio]
+    depends_on: []
+
+  - id: E-3
+    dimension: maturity
+    description: "Contributor concentration — top 3 contributors by commit volume over project lifetime"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record percentage from top contributor. Bus factor assessment."
+    solver: N/A
+    recorded_metrics: [top_contributor_pct, bus_factor]
+    depends_on: []
+
+  - id: E-4
+    dimension: maturity
+    description: "Funding model — research institutional backing"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record funding sources, grant dependency, institutional affiliation, durability assessment."
+    solver: N/A
+    recorded_metrics: [funding_sources, grant_dependency, institutional_affiliation, durability]
+    depends_on: []
+
+  - id: E-5
+    dimension: maturity
+    description: "Issue tracker health — sample last 20 closed + last 10 open issues"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record median time-to-close, acknowledged vs ignored ratio, response quality."
+    solver: N/A
+    recorded_metrics: [median_time_to_close, acknowledged_ratio, response_quality]
+    depends_on: []
+
+  - id: E-6
+    dimension: maturity
+    description: "CI/CD and test coverage — examine CI config and test suite"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record CI existence, test suite existence, approximate coverage, tests passing on current release."
+    solver: N/A
+    recorded_metrics: [ci_exists, test_suite_exists, coverage_estimate, tests_pass_current_release]
+    depends_on: []
+
+  - id: E-7
+    dimension: maturity
+    description: "Operational adoption — evidence of use by utilities, ISOs, government entities"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record documented deployments, case studies, credible references. Distinguish from academic-only."
+    solver: N/A
+    recorded_metrics: [operational_deployments, case_studies, academic_vs_operational]
+    depends_on: []
+
+  # --- Suite F: Supply Chain, Inspectability & Licensing Risk ---------------
+  - id: F-1
+    dimension: supply_chain
+    description: "Core license — identify license of the main package"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record license type. Flag if copyleft (requires legal review) or proprietary (disqualifying)."
+    solver: N/A
+    recorded_metrics: [license_type, copyleft_flag, proprietary_flag]
+    depends_on: []
+
+  - id: F-2
+    dimension: supply_chain
+    description: "Dependency tree enumeration — generate full dependency tree (pip freeze / uv pip freeze)"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record total dependency count, tree depth, any unresolvable or unpinned dependencies."
+    solver: N/A
+    recorded_metrics: [dependency_count, tree_depth, unpinned_deps, unresolvable_deps]
+    depends_on: []
+
+  - id: F-3
+    dimension: supply_chain
+    description: "Dependency license audit — check license of every direct and transitive runtime dependency"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Any proprietary, unknown, or problematic licenses flagged."
+    solver: N/A
+    recorded_metrics: [flagged_licenses]
+    depends_on: [F-2]
+
+  - id: F-4
+    dimension: supply_chain
+    description: "Compiled extension audit — identify compiled components (C, Cython, Fortran) in execution path"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "For each compiled component: is source available? Is it buildable from source?"
+    solver: N/A
+    recorded_metrics: [compiled_components, source_available, buildable_from_source]
+    depends_on: []
+
+  - id: F-5
+    dimension: supply_chain
+    description: "Code inspectability trace — trace execution path from API call to solver invocation"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Full module list. Any opaque steps flagged."
+    solver: N/A
+    recorded_metrics: [module_list, opaque_steps]
+    depends_on: []
+
+  - id: F-6
+    dimension: supply_chain
+    description: "Distribution integrity — check release versioning, signing, distribution channel"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record versioned releases (yes/no), signed artifacts (yes/no), distribution channel."
+    solver: N/A
+    recorded_metrics: [versioned_releases, signed_artifacts, distribution_channel]
+    depends_on: []
+
+  - id: F-7
+    dimension: supply_chain
+    description: "Air-gap installability — assess offline installation feasibility"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Can all packages be downloaded and installed offline? Any runtime network dependencies?"
+    solver: N/A
+    recorded_metrics: [offline_installable, runtime_network_deps]
+    depends_on: [F-2]
+
+  - id: F-8
+    dimension: supply_chain
+    description: "Solver dependency assessment — confirm all target use cases functional on open-source solvers alone"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Record which solvers tested, any use cases that fail or degrade without commercial solver."
+    solver: "HiGHS, SCIP, Ipopt, GLPK"
+    recorded_metrics: [solvers_tested, commercial_solver_required_for]
+    depends_on: []
+
+  - id: F-9
+    dimension: supply_chain
+    description: "Getting-started artifact integrity — are examples pinned to a specific release version?"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: "Check if examples reference unversioned downloads, main branch, or mutable URLs."
+    solver: N/A
+    recorded_metrics: [examples_pinned, unversioned_artifacts, mutable_urls]
+    depends_on: []
+
+# ---------------------------------------------------------------------------
+# Observation Tags — Cross-cutting routing
+# ---------------------------------------------------------------------------
+observation_tags:
+  api-friction:
+    emitted_by: [expressiveness, extensibility]
+    consumed_by: [accessibility]
+    description: "API design issues, unintuitive interfaces, excessive boilerplate"
+
+  doc-gaps:
+    emitted_by: [expressiveness, extensibility]
+    consumed_by: [accessibility, maturity]
+    description: "Documentation missing, outdated, or aspirationally ahead of implementation"
+
+  workaround-needed:
+    emitted_by: [expressiveness, extensibility]
+    consumed_by: []
+    description: "Test required a workaround (Stable/Fragile/Blocking)"
+
+  solver-issues:
+    emitted_by: [expressiveness, extensibility, scalability]
+    consumed_by: [scalability]
+    description: "Solver interface problems, missing solver support, solver lock-in"
+
+  license-flags:
+    emitted_by: [supply_chain]
+    consumed_by: []
+    description: "License concerns requiring legal review or disqualifying"
+
+# ---------------------------------------------------------------------------
+# Execution DAG
+# ---------------------------------------------------------------------------
+# Ordered steps respecting:
+#   1. Gate tests first
+#   2. TINY functional before SMALL/MEDIUM grade assessment
+#   3. Test dependencies (A-4 after A-3, A-6 after A-5, etc.)
+#   4. Audit dimensions can run in parallel with code dimensions
+#   5. Observation consumers run after producers complete
+#
+# Within each step, all listed items can run in parallel.
+
+execution_dag:
+  - step: 1
+    name: "Gate — Data Ingestion"
+    items:
+      - { dimension: gate, tier: TINY, tests: [G-1] }
+
+  - step: 2
+    name: "Gate — Scale Ingestion (parallel)"
+    items:
+      - { dimension: gate, tier: SMALL, tests: [G-2] }
+      - { dimension: gate, tier: MEDIUM, tests: [G-3] }
+
+  - step: 3
+    name: "Supply Chain Audit + Maturity Audit + Accessibility Audit (no-deps) + Functional TINY (independent)"
+    note: >
+      Audit dimensions have no runtime dependencies on code tests and can
+      begin as soon as the gate passes. Code-evaluator TINY tests that have
+      no inter-test dependencies also start here.
+    items:
+      # Audit dimensions (all audit tests are independent of code tests)
+      - { dimension: supply_chain, tier: N/A, tests: [F-1, F-2, F-4, F-5, F-6, F-8, F-9] }
+      - { dimension: maturity, tier: N/A, tests: [E-1, E-2, E-3, E-4, E-5, E-6, E-7] }
+      - { dimension: accessibility, tier: N/A, tests: [D-1, D-2, D-3, D-5] }
+      # TINY functional tests with no inter-test dependencies
+      - { dimension: expressiveness, tier: TINY, tests: [A-1, A-2, A-3, A-5, A-7, A-8] }
+      - { dimension: extensibility, tier: TINY, tests: [B-2, B-3, B-6] }
+
+  - step: 4
+    name: "Supply Chain Audit (dep on F-2) + TINY functional (dep on A-3, A-5)"
+    items:
+      - { dimension: supply_chain, tier: N/A, tests: [F-3, F-7] }
+      - { dimension: expressiveness, tier: TINY, tests: [A-4] }  # depends on A-3
+      - { dimension: expressiveness, tier: TINY, tests: [A-6] }  # depends on A-5
+      - { dimension: extensibility, tier: TINY, tests: [B-1] }   # depends on A-3
+      - { dimension: extensibility, tier: TINY, tests: [B-4] }   # no strict dep but logically after A-1
+      - { dimension: extensibility, tier: TINY, tests: [B-5] }   # depends on A-1
+      - { dimension: accessibility, tier: TINY, tests: [D-4] }   # depends on G-1
+
+  - step: 5
+    name: "Grade assessment — SMALL tier"
+    items:
+      - { dimension: expressiveness, tier: SMALL, tests: [A-5] }
+      - { dimension: expressiveness, tier: SMALL, tests: [A-8] }
+      - { dimension: extensibility, tier: SMALL, tests: [B-4] }
+
+  - step: 6
+    name: "Grade assessment — SMALL tier (dependent)"
+    items:
+      - { dimension: expressiveness, tier: SMALL, tests: [A-6] }  # depends on A-5 at SMALL
+
+  - step: 7
+    name: "Grade assessment — MEDIUM tier (independent)"
+    items:
+      - { dimension: expressiveness, tier: MEDIUM, tests: [A-1, A-2, A-3, A-7] }
+      - { dimension: extensibility, tier: MEDIUM, tests: [B-2, B-3, B-5] }
+
+  - step: 8
+    name: "Grade assessment — MEDIUM tier (dependent on A-3 at MEDIUM)"
+    items:
+      - { dimension: expressiveness, tier: MEDIUM, tests: [A-4] }
+      - { dimension: extensibility, tier: MEDIUM, tests: [B-1] }
+
+  - step: 9
+    name: "Scalability — MEDIUM tier"
+    items:
+      - { dimension: scalability, tier: MEDIUM, tests: [C-1, C-2, C-3, C-5] }
+
+  - step: 10
+    name: "Scalability — SMALL tier + MEDIUM dependent"
+    items:
+      - { dimension: scalability, tier: SMALL, tests: [C-4, C-6] }
+      - { dimension: scalability, tier: MEDIUM, tests: [C-7] }  # depends on C-3
