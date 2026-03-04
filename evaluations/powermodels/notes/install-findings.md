@@ -36,6 +36,7 @@ state). The result is a dictionary with clear keys (`termination_status`,
 ### [maturity] Informative warnings about data tightening
 
 The tool emits warnings about tightening angle limits on all 46 branches:
+
 ```
 this code only supports angmin values in -90 deg. to 90 deg.,
 tightening the value on branch 32 from -360.0 to -60.0 deg.

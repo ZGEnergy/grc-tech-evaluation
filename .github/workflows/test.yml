@@ -1,0 +1,178 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: read
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+
+    outputs:
+      pypsa: ${{ steps.filter.outputs.pypsa }}
+      pandapower: ${{ steps.filter.outputs.pandapower }}
+      gridcal: ${{ steps.filter.outputs.gridcal }}
+      powermodels: ${{ steps.filter.outputs.powermodels }}
+      powersimulations: ${{ steps.filter.outputs.powersimulations }}
+      matpower: ${{ steps.filter.outputs.matpower }}
+      devcontainer: ${{ steps.filter.outputs.devcontainer }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            devcontainer:
+              - '.devcontainer/**'
+              - '.dockerignore'
+              - 'evaluations/pypsa/pyproject.toml'
+              - 'evaluations/pypsa/uv.lock'
+              - 'evaluations/pandapower/pyproject.toml'
+              - 'evaluations/pandapower/uv.lock'
+              - 'evaluations/gridcal/pyproject.toml'
+              - 'evaluations/gridcal/uv.lock'
+              - 'evaluations/powermodels/Project.toml'
+              - 'evaluations/powermodels/Manifest.toml'
+              - 'evaluations/powersimulations/Project.toml'
+              - 'evaluations/powersimulations/Manifest.toml'
+              - 'evaluations/matpower/setup.sh'
+            pypsa:
+              - 'evaluations/pypsa/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            pandapower:
+              - 'evaluations/pandapower/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            gridcal:
+              - 'evaluations/gridcal/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            powermodels:
+              - 'evaluations/powermodels/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            powersimulations:
+              - 'evaluations/powersimulations/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+            matpower:
+              - 'evaluations/matpower/**'
+              - 'data/networks/**'
+              - '.devcontainer/**'
+
+  build:
+    needs: paths-filter
+    runs-on: ubuntu-latest
+
+    # Only build when devcontainer definition or dependency files changed.
+    if: needs.paths-filter.outputs.devcontainer == 'true'
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image }}:pr-${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image metadata
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/devcontainer" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push devcontainer image
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ${{ steps.meta.outputs.image }}
+          cacheFrom: ${{ steps.meta.outputs.image }}:latest
+          push: always
+          imageTag: pr-${{ github.event.pull_request.number }}
+
+  test:
+    needs: [paths-filter, build]
+    # Run even when the build job is skipped (no devcontainer changes).
+    if: >-
+      !failure() && !cancelled() && (
+        needs.paths-filter.outputs.pypsa == 'true' ||
+        needs.paths-filter.outputs.pandapower == 'true' ||
+        needs.paths-filter.outputs.gridcal == 'true' ||
+        needs.paths-filter.outputs.powermodels == 'true' ||
+        needs.paths-filter.outputs.powersimulations == 'true' ||
+        needs.paths-filter.outputs.matpower == 'true'
+      )
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: pypsa
+            filter: pypsa
+            command: cd /workspace/evaluations/pypsa && uv run python -m pytest -v
+          - tool: pandapower
+            filter: pandapower
+            command: cd /workspace/evaluations/pandapower && uv run python -m pytest -v
+          - tool: gridcal
+            filter: gridcal
+            command: cd /workspace/evaluations/gridcal && uv run python -m pytest -v
+          - tool: powermodels
+            filter: powermodels
+            command: cd /workspace/evaluations/powermodels && julia --project=. -e 'using Pkg; Pkg.instantiate()' && julia --project=. test/runtests.jl
+          - tool: powersimulations
+            filter: powersimulations
+            command: cd /workspace/evaluations/powersimulations && julia --project=. -e 'using Pkg; Pkg.instantiate()' && julia --project=. test/runtests.jl
+          - tool: matpower
+            filter: matpower
+            command: cd /workspace/evaluations/matpower && bash setup.sh && octave --no-gui test/run_tests.m
+
+    name: test (${{ matrix.tool }})
+
+    steps:
+      - name: Checkout repository
+        if: needs.paths-filter.outputs[matrix.filter] == 'true'
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        if: needs.paths-filter.outputs[matrix.filter] == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image
+        if: needs.paths-filter.outputs[matrix.filter] == 'true'
+        id: image
+        run: |
+          # Use freshly built PR image if build job ran; otherwise pull :latest from prebuild cache.
+          if [ -n "${{ needs.build.outputs.image-tag }}" ]; then
+            echo "ref=${{ needs.build.outputs.image-tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=ghcr.io/${GITHUB_REPOSITORY,,}/devcontainer:latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests
+        if: needs.paths-filter.outputs[matrix.filter] == 'true'
+        run: |
+          docker pull "${{ steps.image.outputs.ref }}"
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -e JULIA_DEPOT_PATH=/opt/julia-depot \
+            "${{ steps.image.outputs.ref }}" \
+            bash -c "${{ matrix.command }}"
