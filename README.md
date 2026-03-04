@@ -79,8 +79,6 @@ so the container is ready to use immediately:
 - **Julia 1.10.7** (pinned LTS) — Julia packages for `powermodels` and
   `powersimulations` are instantiated and precompiled during the build.
 - **GNU Octave** — MATPOWER 8.1 is downloaded by `setup.sh` during the build.
-- **JuliaFormatter** — installed in a shared `@format` environment for the
-  pre-commit hook.
 
 ### Verifying the Install
 
