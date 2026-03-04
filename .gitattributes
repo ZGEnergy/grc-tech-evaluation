@@ -1,2 +1,2 @@
 evaluations/matpower/matpower8.1/** linguist-vendored
-data/networks/*.m linguist-vendored
+data/networks/*.m linguist-vendored linguist-generated
