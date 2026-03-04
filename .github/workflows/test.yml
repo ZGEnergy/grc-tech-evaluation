@@ -139,7 +139,7 @@ jobs:
             command: cd /workspace/evaluations/powersimulations && julia --project=. -e 'using Pkg; Pkg.instantiate()' && julia --project=. test/runtests.jl
           - tool: matpower
             filter: matpower
-            command: cd /workspace/evaluations/matpower && octave --no-gui test/run_tests.m
+            command: cd /workspace/evaluations/matpower && bash setup.sh && octave --no-gui test/run_tests.m
 
     name: test (${{ matrix.tool }})
 
@@ -175,4 +175,4 @@ jobs:
             -v "${{ github.workspace }}:/workspace" \
             -e JULIA_DEPOT_PATH=/opt/julia-depot \
             "${{ steps.image.outputs.ref }}" \
-            bash -c '${{ matrix.command }}'
+            bash -c "${{ matrix.command }}"
