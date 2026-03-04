@@ -35,6 +35,20 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. verify_install.jl
 ```
 
+**Julia startup is slow by design.** `Pkg.instantiate()` compiles packages to native code on first run
+(can take many minutes). Subsequent runs reuse the precompiled cache but still pay a 5–15s load
+tax per invocation to deserialize it.
+
+For repeated evaluation runs, stay in the REPL and `include()` your script instead of re-launching:
+
+```julia
+# start once
+julia --project=.
+
+# then inside the REPL, re-run without restart overhead:
+julia> include("my_eval_script.jl")
+```
+
 ### MATPOWER (Octave)
 
 ```bash
