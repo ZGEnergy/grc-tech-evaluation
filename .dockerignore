@@ -1,0 +1,21 @@
+.git
+.github
+.devcontainer
+plans
+
+# Python virtualenvs (rebuilt inside the image)
+evaluations/**/.venv
+
+# Caches
+**/__pycache__
+**/.ruff_cache
+**/.pytest_cache
+**/.mypy_cache
+
+# MATPOWER download (setup.sh re-downloads inside the image)
+evaluations/matpower/matpower8.1
+
+# Editor / OS
+.vscode
+*.swp
+.DS_Store

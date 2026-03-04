@@ -52,9 +52,11 @@ or MATPOWER which parse `.m` files natively with zero extra dependencies.
 ### [accessibility] API is clean once data is loaded
 
 Once you have a `Network` object, the API is straightforward:
+
 ```python
 net.lpf()  # DC power flow (linear power flow)
 ```
+
 No options objects, no solver selection needed for DCPF. This is a positive
 signal for the core API design.
 
