@@ -75,10 +75,10 @@ jobs:
             command: cd evaluations/gridcal && uv run python -m pytest -v
           - tool: powermodels
             filter: powermodels
-            command: cd evaluations/powermodels && julia --project=. test/runtests.jl
+            command: cd evaluations/powermodels && julia --project=. -e 'using Pkg; Pkg.instantiate()' && julia --project=. test/runtests.jl
           - tool: powersimulations
             filter: powersimulations
-            command: cd evaluations/powersimulations && julia --project=. test/runtests.jl
+            command: cd evaluations/powersimulations && julia --project=. -e 'using Pkg; Pkg.instantiate()' && julia --project=. test/runtests.jl
           - tool: matpower
             filter: matpower
             command: cd evaluations/matpower && octave --no-gui test/run_tests.m
