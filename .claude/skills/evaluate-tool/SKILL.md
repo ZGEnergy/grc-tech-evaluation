@@ -20,6 +20,7 @@ allowed-tools:
   - TaskGet
   - WebSearch
   - WebFetch
+  - EnterWorktree
 ---
 
 # /evaluate-tool — Orchestrator
@@ -58,6 +59,23 @@ devcontainer exec --workspace-folder . <command>
 ```
 
 Never run Python, Julia, Octave, pytest, or pre-commit on the host.
+
+## Worktree Isolation
+
+**Before doing anything else**, enter a worktree so this evaluation does not interfere
+with other concurrent work in the repository.
+
+1. Use the `EnterWorktree` tool with name `eval/{{TOOL_NAME}}`.
+2. After entering the worktree, all paths are relative to the worktree root. The
+   variables above (`TOOL_DIR`, `RESULTS_DIR`, etc.) resolve correctly because they
+   are relative paths.
+3. Sub-agents inherit the worktree working directory automatically — no special
+   configuration needed.
+4. At the end of the evaluation (after SYNTHESIZE), remind the user that results
+   live on the worktree branch and need to be merged or PR'd to `main`.
+
+If the session is **resuming** from a progress file found in an existing worktree,
+skip this step — the user is already in the worktree.
 
 ## State Machine
 
