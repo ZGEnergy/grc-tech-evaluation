@@ -15,6 +15,19 @@ No ZGE internal dependencies. No connection to the trading platform repos.
 - `evaluations/<tool>/` — One directory per tool under evaluation
 - `evaluations/<tool>/results/<dimension>/` — Test outputs organized by rubric dimension
 
+## Execution Environment
+
+**Never run code, tests, linters, or pre-commit locally.** Always use the devcontainer.
+All commands (pytest, julia, octave, pre-commit, etc.) must run inside the container.
+
+```bash
+# Open a shell inside the devcontainer
+devcontainer exec --workspace-folder . bash
+
+# Or run a one-off command
+devcontainer exec --workspace-folder . <command>
+```
+
 ## Per-Tool Setup
 
 ### Python tools (pypsa, pandapower, gridcal)
