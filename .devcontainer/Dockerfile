@@ -2,10 +2,10 @@
 # Multi-language image: Python 3.12, Julia 1.10, GNU Octave
 # with pre-installed dependencies for all six power-system evaluation tools.
 
-# === Layer 1: Base image ===
+# === Base image ===
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
-# === Layer 2: System packages (rarely changes) ===
+# === System packages (rarely changes) ===
 # Python 3.12 ships with Ubuntu 24.04.
 # Octave 8.x from apt. curl needed for Julia download and MATPOWER setup.
 RUN apt-get update \
@@ -20,7 +20,7 @@ RUN apt-get update \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# === Layer 3: Julia 1.10 installation (rarely changes) ===
+# === Julia 1.10 installation (rarely changes) ===
 # Julia 1.10 is the current LTS release. Pinned here rather than using the
 # julialang devcontainer feature, which installs via juliaup and can silently
 # resolve to a newer major version (e.g. 1.12), breaking Manifest.toml compat.
@@ -32,25 +32,50 @@ RUN curl -fsSL \
     && rm /tmp/julia.tar.gz \
     && julia --version
 
-# === Layer 4: uv installation (rarely changes) ===
+# === uv installation (rarely changes) ===
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# === Layer 5: Environment variables ===
-ENV JULIA_CPU_TARGET=generic
+# === Environment variables ===
+# JULIA_DEPOT_PATH: shared depot so packages installed at build time (as root)
+# are visible at runtime regardless of which user runs Julia (root vs vscode).
+ENV JULIA_CPU_TARGET=generic \
+    JULIA_DEPOT_PATH=/opt/julia-depot
 
-# === Layer 6: Copy repository source for dependency installation ===
-COPY . /workspace
+# === Dependency files only (cache-friendly) ===
+# Copy only lockfiles/manifests first so that dependency-install layers are
+# invalidated only when lockfiles change, not on every source edit.
+COPY evaluations/gridcal/pyproject.toml evaluations/gridcal/uv.lock \
+     /workspace/evaluations/gridcal/
+COPY evaluations/pandapower/pyproject.toml evaluations/pandapower/uv.lock \
+     /workspace/evaluations/pandapower/
+COPY evaluations/pypsa/pyproject.toml evaluations/pypsa/uv.lock \
+     /workspace/evaluations/pypsa/
+COPY evaluations/powermodels/Project.toml evaluations/powermodels/Manifest.toml \
+     /workspace/evaluations/powermodels/
+COPY evaluations/powersimulations/Project.toml evaluations/powersimulations/Manifest.toml \
+     /workspace/evaluations/powersimulations/
 
-# === Layer 7: Python tool dependencies ===
+# === Python tool dependencies (only re-runs when lockfiles change) ===
 RUN cd /workspace/evaluations/gridcal && uv sync
 RUN cd /workspace/evaluations/pandapower && uv sync
 RUN cd /workspace/evaluations/pypsa && uv sync
 
-# === Layer 8: Julia tool dependencies ===
+# === Julia tool dependencies (only re-runs when manifests change) ===
 RUN julia --project=/workspace/evaluations/powermodels \
     -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 RUN julia --project=/workspace/evaluations/powersimulations \
     -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 
-# === Layer 9: MATPOWER download ===
+# === JuliaFormatter shared environment (for pre-commit hook) ===
+# The pre-commit hook runs: julia --project=@format -e 'using JuliaFormatter; ...'
+RUN julia --project=@format -e 'using Pkg; Pkg.add("JuliaFormatter"); Pkg.precompile()'
+
+# Make depot writable by vscode user (packages installed as root during build,
+# but Pkg.instantiate() at runtime writes logs/pidfiles as vscode).
+RUN chmod -R a+rw /opt/julia-depot
+
+# === Full source copy (cheap — only adds/overwrites non-dep files) ===
+COPY . /workspace
+
+# === MATPOWER download ===
 RUN cd /workspace/evaluations/matpower && bash setup.sh
