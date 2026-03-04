@@ -70,6 +70,7 @@ This is the cleanest `.m` import of any Python tool evaluated.
 ### [supply_chain] urllib3/chardet version conflict warning
 
 Every import produces:
+
 ```
 RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0.post1)/
 charset_normalizer (3.4.4) doesn't match a supported version!
