@@ -148,6 +148,8 @@ Each test maps to a sub-question in Rubric Criterion 1. **All tests are first ru
 
 **Note on A-8:** The distinction between "native stochastic support" and "loop over deterministic solves" is critical. A tool that only supports deterministic solves but can be wrapped in a Monte Carlo loop is tested under Extensibility (B-4), not here. A passing grade on A-8 requires that the tool's optimization formulation is aware of multiple scenarios simultaneously — e.g., co-optimizing across scenarios with recourse decisions, or enforcing chance constraints across a scenario set. Random noise applied independently to each interval without temporal correlation or cross-scenario structure does not constitute meaningful stochastic support and does not pass.
 
+**Note on generator cost curves (A-3, A-5, A-6):** Real ISO markets clear using piecewise-linear bid curves, and any tool deployed operationally would need to support them. However, we do not have actual bid curves for the ISO of interest, so all cost data used in this evaluation is estimated. We have made a deliberate choice to use linear (single-segment) cost curves throughout Phase 1 testing. This keeps the computational burden lower — which is appropriate for an evaluation focused on tool capability comparison rather than production fidelity — and avoids conflating cost-curve complexity with other scalability findings. That said, each tool's support for piecewise-linear cost curves must be documented as a finding under Expressiveness (Criterion 1), even though the Phase 1 tests do not exercise it. A tool that supports only linear cost curves would face a significant limitation in any operational deployment.
+
 ---
 
 ### Test Suite B: Extensibility
