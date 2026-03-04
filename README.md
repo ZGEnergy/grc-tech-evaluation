@@ -33,38 +33,101 @@ grc-tech-evaluation/
 └── README.md
 ```
 
-## Prerequisites
+## Dev Environment
 
-- **Python 3.12** — via pyenv, system package, or similar
-- **[uv](https://docs.astral.sh/uv/)** — Python package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- **Julia 1.10** — via juliaup or direct download
-- **GNU Octave** — for MATPOWER evaluation (`sudo apt install octave`)
+All six tools run inside a single **devcontainer** that ships Python 3.12, uv,
+Julia 1.10, and GNU Octave with all dependencies pre-installed.
 
-## Quick Start
+### Prerequisites
 
-Each evaluation tool has its own isolated environment. To set up any Python tool:
+| Requirement | Notes |
+|-------------|-------|
+| [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or Docker Engine |
+| [VS Code](https://code.visualstudio.com/) + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Recommended for interactive development |
+| *or* [devcontainer CLI](https://github.com/devcontainers/cli) | `npm install -g @devcontainers/cli` — for headless/CI use |
+
+### Building and Opening the Container
+
+**VS Code (recommended):**
+
+1. Open this repo in VS Code.
+2. When prompted, click **Reopen in Container** (or run the command
+   `Dev Containers: Reopen in Container` from the palette).
+3. The first build takes a few minutes while it installs all runtimes and
+   dependencies. Subsequent opens reuse the cached image and start in seconds.
+
+**CLI:**
 
 ```bash
-cd evaluations/<tool>
-uv sync
-uv run python verify_install.py
+# Build and start the container (first time or after Dockerfile changes)
+devcontainer up --workspace-folder .
+
+# Open an interactive shell inside the running container
+devcontainer exec --workspace-folder . bash
+
+# Or run a one-off command
+devcontainer exec --workspace-folder . uv run --project evaluations/pypsa python -c "import pypsa; print(pypsa.__version__)"
 ```
 
-For Julia tools:
+### What's Inside the Image
+
+The Dockerfile (`.devcontainer/Dockerfile`) installs everything at build time
+so the container is ready to use immediately:
+
+- **Python 3.12** + **uv** — each Python tool (`pypsa`, `pandapower`,
+  `gridcal`) has its own `.venv` created by `uv sync` during the build.
+- **Julia 1.10.7** (pinned LTS) — Julia packages for `powermodels` and
+  `powersimulations` are instantiated and precompiled during the build.
+- **GNU Octave** — MATPOWER 8.1 is downloaded by `setup.sh` during the build.
+- **JuliaFormatter** — installed in a shared `@format` environment for the
+  pre-commit hook.
+
+### Verifying the Install
+
+Smoke-test all six tools at once:
 
 ```bash
-cd evaluations/<tool>
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
-julia --project=. verify_install.jl
+bash .devcontainer/validate.sh
 ```
 
-For MATPOWER:
+Or verify a single tool:
 
 ```bash
+# Python tools (pypsa, pandapower, gridcal)
+cd evaluations/<tool> && uv run python verify_install.py
+
+# Julia tools (powermodels, powersimulations)
+cd evaluations/<tool> && julia --project=. verify_install.jl
+
+# MATPOWER
+cd evaluations/matpower && octave verify_install.m
+```
+
+### Day-to-Day Development
+
+All work happens inside the container. Run scripts with the tool's own runtime:
+
+```bash
+# Run a Python evaluation script
+cd evaluations/pypsa
+uv run python results/gate/ac_power_flow.py
+
+# Run a Julia evaluation script
+cd evaluations/powermodels
+julia --project=. results/gate/ac_power_flow.jl
+
+# Run an Octave evaluation script
 cd evaluations/matpower
-bash setup.sh
-octave verify_install.m
+octave results/gate/ac_power_flow.m
+
+# Lint Python files
+pre-commit run --all-files
 ```
+
+If you need to add a Python dependency to a tool, update its `pyproject.toml`
+and run `uv sync` inside that tool's directory — do not use `pip install`.
+For Julia, edit `Project.toml` and run
+`julia --project=. -e 'using Pkg; Pkg.instantiate()'`.
 
 ## Evaluation Protocol
 
