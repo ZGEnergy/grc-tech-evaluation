@@ -718,5 +718,294 @@ def _(manifest_summary_df):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ---
+
+        ## Before vs. After: The Case for Cleanup
+
+        The cleanup rules above sound reasonable in isolation, but how much do
+        they actually change? The cells below compare the raw snapshot values
+        against the cleaned values to make the impact concrete — and reveal a
+        **fatal flaw** in the raw data that would make any unit commitment
+        optimization infeasible.
+        """
+    )
+    return
+
+
+@app.cell
+def _(cleanup_result, gen_df, pd):
+    # Build a combined DataFrame with raw and cleaned Pmin for each generator.
+    _cleaned_pmin = {c.gen_index: c.pmin_mw for c in cleanup_result.classifications}
+    pmin_compare_df = gen_df[["gen_bus", "pmin_mw"]].copy()
+    pmin_compare_df = pmin_compare_df.rename(columns={"pmin_mw": "before"})
+    pmin_compare_df["after"] = [_cleaned_pmin[i] for i in range(len(pmin_compare_df))]
+
+    # Melt to long format for layered Altair chart
+    pmin_compare_long = pmin_compare_df.melt(
+        id_vars=["gen_bus"],
+        value_vars=["before", "after"],
+        var_name="stage",
+        value_name="pmin_mw",
+    )
+    pmin_compare_long["stage"] = pmin_compare_long["stage"].map(
+        {"before": "Raw Snapshot", "after": "After Cleanup"}
+    )
+    return (pmin_compare_long,)
+
+
+@app.cell
+def _(alt, pmin_compare_long):
+    pmin_comparison_chart = (
+        alt.Chart(
+            pmin_compare_long,
+            title="Generator Pmin: Raw Snapshot vs. After Cleanup",
+        )
+        .mark_bar()
+        .encode(
+            x=alt.X("gen_bus:N", title="Generator Bus", sort="ascending"),
+            y=alt.Y("pmin_mw:Q", title="Pmin (MW)"),
+            color=alt.Color(
+                "stage:N",
+                title="Stage",
+                scale=alt.Scale(
+                    domain=["Raw Snapshot", "After Cleanup"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+            ),
+            xOffset="stage:N",
+            tooltip=["gen_bus:N", "stage:N", "pmin_mw:Q"],
+        )
+        .properties(width=600, height=350)
+    )
+    pmin_comparison_chart
+    return (pmin_comparison_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        **What changed:** In the raw snapshot, every generator's Pmin equals
+        its current dispatch (Pg) — the solved operating point. After cleanup,
+        all thermal and nuclear generators drop to Pmin = 0 MW (they can be
+        fully de-committed), while the hydro unit (bus 30) retains a Pmin of
+        260 MW (25% of Pmax) to represent minimum reservoir flow requirements.
+
+        This distinction matters enormously: the raw Pmin values lock every
+        generator into its snapshot output, leaving the optimizer zero
+        flexibility. The cleaned values restore the actual operating range.
+        """
+    )
+    return
+
+
+@app.cell
+def _(bus_df, gen_df, cleanup_result, pd):
+    # Compute aggregate values for the infeasibility comparison
+    total_raw_pmin = gen_df["pmin_mw"].sum()
+    total_cleaned_pmin = sum(c.pmin_mw for c in cleanup_result.classifications)
+    total_load = bus_df["pd_mw"].sum()
+
+    infeasibility_data = pd.DataFrame(
+        [
+            {
+                "metric": "Raw Pmin (sum)",
+                "mw": total_raw_pmin,
+                "category": "supply_floor",
+            },
+            {
+                "metric": "Cleaned Pmin (sum)",
+                "mw": total_cleaned_pmin,
+                "category": "supply_floor",
+            },
+            {
+                "metric": "Total Load",
+                "mw": total_load,
+                "category": "demand",
+            },
+        ]
+    )
+    return (infeasibility_data, total_cleaned_pmin, total_load, total_raw_pmin)
+
+
+@app.cell
+def _(alt, infeasibility_data, total_load):
+    _load_rule = (
+        alt.Chart(infeasibility_data[infeasibility_data["category"] == "demand"])
+        .mark_rule(color="black", strokeWidth=2, strokeDash=[6, 4])
+        .encode(y="mw:Q")
+    )
+
+    _load_text = (
+        alt.Chart(infeasibility_data[infeasibility_data["category"] == "demand"])
+        .mark_text(align="left", dx=5, dy=-8, fontSize=12, fontWeight="bold")
+        .encode(
+            y="mw:Q",
+            text=alt.value(f"Total Load = {total_load:,.0f} MW"),
+        )
+    )
+
+    _bars = (
+        alt.Chart(
+            infeasibility_data[infeasibility_data["category"] == "supply_floor"],
+            title="Aggregate Pmin vs. Total Load: The Infeasibility Test",
+        )
+        .mark_bar(width=80)
+        .encode(
+            x=alt.X(
+                "metric:N",
+                title=None,
+                sort=["Raw Pmin (sum)", "Cleaned Pmin (sum)"],
+                axis=alt.Axis(labelAngle=0),
+            ),
+            y=alt.Y("mw:Q", title="MW"),
+            color=alt.Color(
+                "metric:N",
+                title="Metric",
+                scale=alt.Scale(
+                    domain=["Raw Pmin (sum)", "Cleaned Pmin (sum)"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+                legend=None,
+            ),
+            tooltip=["metric:N", "mw:Q"],
+        )
+        .properties(width=400, height=400)
+    )
+
+    infeasibility_reveal_chart = _bars + _load_rule + _load_text
+    infeasibility_reveal_chart
+    return (infeasibility_reveal_chart,)
+
+
+@app.cell
+def _(mo, total_cleaned_pmin, total_load, total_raw_pmin):
+    mo.md(
+        f"""
+        **The dramatic reveal:** The sum of raw Pmin values is
+        **{total_raw_pmin:,.0f} MW**, which *exceeds* total system load of
+        **{total_load:,.0f} MW**. This means even if every generator runs at
+        its minimum, total output is still above demand — there is literally
+        no feasible dispatch that satisfies all Pmin constraints while
+        matching load. A unit commitment solver would declare this problem
+        **infeasible** before even starting.
+
+        After cleanup, total Pmin drops to **{total_cleaned_pmin:,.0f} MW**
+        — well below load. The optimizer now has the headroom it needs to
+        commit and dispatch generators economically.
+
+        This is the simplest necessary condition for UC feasibility:
+        **sum(Pmin) must be less than valley load**. The raw snapshot
+        violates it; the cleaned data satisfies it.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, bus_vm_df, pd):
+    # Build before/after voltage comparison.
+    # Before: raw Vm from the solved snapshot (bus_vm_df).
+    # After: all buses normalized to 1.0 p.u. (flat start).
+    _vm_before = bus_vm_df.copy()
+    _vm_before["stage"] = "Raw Snapshot"
+    _vm_after = pd.DataFrame(
+        {"bus_id": bus_vm_df["bus_id"], "vm_pu": 1.0, "stage": "After Cleanup"}
+    )
+    vm_compare_long = pd.concat([_vm_before, _vm_after], ignore_index=True)
+    return (vm_compare_long,)
+
+
+@app.cell
+def _(alt, vm_compare_long):
+    voltage_comparison_chart = (
+        alt.Chart(
+            vm_compare_long,
+            title="Bus Voltage Magnitude: Raw Snapshot vs. After Cleanup",
+        )
+        .mark_circle(size=60)
+        .encode(
+            x=alt.X("bus_id:O", title="Bus ID", sort="ascending"),
+            y=alt.Y(
+                "vm_pu:Q",
+                title="Vm (p.u.)",
+                scale=alt.Scale(zero=False),
+            ),
+            color=alt.Color(
+                "stage:N",
+                title="Stage",
+                scale=alt.Scale(
+                    domain=["Raw Snapshot", "After Cleanup"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+            ),
+            tooltip=["bus_id:O", "stage:N", "vm_pu:Q"],
+        )
+        .properties(width=650, height=300)
+    )
+    voltage_comparison_chart
+    return (voltage_comparison_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        **What changed:** The raw snapshot voltages range from ~0.98 to
+        ~1.08 p.u. — the result of the converged power-flow solution where
+        generator buses regulate voltage upward and load buses sag. After
+        cleanup, every bus is reset to 1.0 p.u. (flat start), eliminating
+        the warm-start bias that could trap an AC-OPF solver in a local
+        optimum near the snapshot's operating point.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    concluding_markdown = mo.md(
+        r"""
+        ---
+
+        ## Summary: Why Cleanup Matters
+
+        This notebook walked through the raw IEEE 39-bus MATPOWER case file
+        and revealed three categories of problems that must be fixed before
+        the data can serve as input to optimization:
+
+        1. **Pmin artifacts** — Raw Pmin values reflect the snapshot's solved
+           dispatch, not true engineering minimums. Using them makes the UC
+           problem *infeasible* because aggregate Pmin exceeds total load.
+
+        2. **Voltage warm-start bias** — Solved bus voltages encode the
+           snapshot's operating point. Keeping them biases AC-OPF toward a
+           local optimum instead of the global one.
+
+        3. **Missing fuel metadata** — The raw `.m` file has no
+           machine-readable fuel type. Without classification, we cannot
+           assign technology-specific parameters (ramp rates, startup costs,
+           min up/down times) needed for unit commitment.
+
+        The cleanup pipeline zeroed Pg/Qg, normalized Vm/Va, set realistic
+        Pmin values, and classified every generator by fuel type and RTS-GMLC
+        technology class. The result is a **clean, feasible, classified**
+        network ready for optimization.
+
+        **Next up — Notebook 02: Generator Calibration.** With the network
+        cleaned, the next step is to assign temporal operational parameters
+        (ramp rates, minimum up/down times, startup costs, heat rates) to
+        each generator based on its RTS-GMLC class, and attach hourly load
+        and renewable time-series profiles to build a complete 24-hour unit
+        commitment input dataset.
+        """
+    )
+    return (concluding_markdown,)
+
+
 if __name__ == "__main__":
     app.run()
