@@ -1,4 +1,4 @@
-# Phase 1 Test Protocol (v3)
+# Phase 1 Test Protocol
 ## Contract FA714626C0006 | Grid Research Company LLC
 
 ---
@@ -7,7 +7,7 @@
 
 This document defines the reproducible test suite used to generate grades for the Phase 1 Technology Evaluation Rubric. Every grade in the evaluation report must trace to a specific test result or audit finding documented here. The protocol ensures that tool evaluations are comparable, evidence-based, and defensible.
 
-This is a companion document to the **Phase 1 Technology Evaluation Rubric (v2)**, which defines the criteria, sub-questions, and grading standards. The rubric says *what* we evaluate; this protocol says *how*.
+This is a companion document to the **Phase 1 Technology Evaluation Rubric**, which defines the criteria, sub-questions, and grading standards. The rubric says *what* we evaluate; this protocol says *how*.
 
 ---
 
