@@ -60,38 +60,40 @@ context limits. Contains the full state machine position and is read on resume.
 
 ## Session Handoff Schema
 
-```yaml
----
-type: session-handoff
-tool: <tool_name>
-state: <CONFIGURE|RESEARCH|GATE|EVALUATE|SYNTHESIZE>
-completed_states: [<list>]
-completed_dag_steps: [<list>]
-scale_cap: <TINY|SMALL|MEDIUM>
-timestamp: <ISO 8601>
----
-```
+Session handoffs use the shared envelope format from `shared/context-monitoring-reference.md`
+with evaluate-tool-specific fields:
 
 ```markdown
 # Session Handoff
 
-## Current Position
+**Skill:** evaluate-tool
+**Timestamp:** <ISO 8601 with timezone> (epoch: <unix_seconds>)
+**Session ID:** <session_id>
+**Plan Directory:** <absolute path to RESULTS_DIR>
+**Current State:** <CONFIGURE|RESEARCH|GATE|EVALUATE|SYNTHESIZE>
+**Context Remaining:** <percentage>%
+**Scale Cap:** <NONE|TINY|SMALL|MEDIUM>
 
-State: {{state}}, Step: {{current_dag_step}}
+## Snapshot
 
-## Completed Artifacts
+### Completed Work
+- Completed states: <list>
+- Completed DAG steps: <list>
 
-- `eval-config.yaml` — <exists|missing>
-- `research-context.md` — <exists|missing>
-- Gate results: <summary>
-- Completed dimensions/tiers: <list>
-
-## In-Flight Work
-
+### In-Progress Work
 <Any agents that were running when the session ended.
 Include their dimension, tier, and test IDs so they can be re-dispatched.>
 
-## Next Action
+### Pending Work
+<Remaining states and DAG steps.>
 
-<Exact next step to take on resume.>
+### Artifact Inventory
+- `eval-config.yaml` — <complete|partial|not started>
+- `research-context.md` — <complete|partial|not started>
+- Gate results: <summary>
+- Completed dimensions/tiers: <list with status>
+
+### Key Decisions
+- Scale cap: <value> (reason)
+- User approvals: <list>
 ```

@@ -12,9 +12,11 @@ evidence.
 
 ## Task
 
-1. **Read all result files** in `{{results_dir}}/` (across all dimension subdirectories).
-2. **Read all observation files** in `{{observations_dir}}/`.
-3. **Produce a synthesis report** at `{{results_dir}}/synthesis.md`.
+1. **Read the synthesis template** at `{{skill_dir}}/references/synthesis-template.md` for the
+   authoritative section structure and quality checklist.
+2. **Read all result files** in `{{results_dir}}/` (across all dimension subdirectories).
+3. **Read all observation files** in `{{observations_dir}}/`.
+4. **Produce a synthesis report** at `{{results_dir}}/synthesis.md`.
 
 ## Synthesis Report Format
 
@@ -88,6 +90,9 @@ State whether the tool passed the supply chain gate.>
 ### Solver Ecosystem
 <Synthesized from solver-issues observations>
 
+### Architecture Quality
+<Synthesized from arch-quality observations>
+
 ## Items Requiring Human Spot-Check
 
 Flag items that need manual verification before grades are finalized. Common patterns
@@ -115,9 +120,9 @@ Use the 9-point scale from the rubric:
 - **B+** — Mostly strong, one meaningful gap with stable workaround
 - **B** — Supported with caveats, moderate friction
 - **B-** — Multiple workarounds, some fragile
-- **C+** — Significant gaps, NOT disqualifying (lowest passing for gate)
-- **C** — Weak, significant gaps
-- **C-** — Barely functional
+- **C+** — Significant gaps, but NOT disqualifying (**lowest passing grade** for gate criteria)
+- **C** — Weak, significant gaps — **disqualifying for gate criteria**
+- **C-** — Barely functional — **disqualifying for gate criteria**
 - **F** — Not achievable or disqualifying
 
 ### Workaround Impact on Grades
@@ -133,6 +138,6 @@ Use the 9-point scale from the rubric:
 - **Flag disagreements.** If observations from different dimensions suggest different
   grades, flag the tension explicitly.
 - **Be conservative.** When uncertain, recommend the lower grade and flag for human review.
-- **Supply chain is binary for gate purposes.** C+ or below = tool does not pass gate.
+- **Supply chain is binary for gate purposes.** C or below = tool does not pass gate (C+ is the lowest passing grade).
 - **Cross-tool fairness.** Grade against the rubric standards, not against other tools.
   (Cross-tool comparison happens later in a separate synthesis.)

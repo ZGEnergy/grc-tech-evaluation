@@ -15,10 +15,11 @@ structured research and analysis.
 
 ## Execution Environment
 
-Commands that inspect installed packages or run tools must use the devcontainer:
+Commands that inspect installed packages or run tools must use the devcontainer via `dc-exec`:
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 ## Task
@@ -182,8 +183,8 @@ Integrate these into your audit. For example:
 
 ## Supply Chain Gate Semantics
 
-For the supply_chain dimension, any finding rated **C+ or below** is disqualifying.
-Be explicit about severity:
-- Items that are definitely disqualifying (proprietary runtime, incompatible license)
-- Items that are concerning but potentially remediable (ambiguous license, missing build system)
-- Items that are acceptable (copyleft requiring legal review, minor unpinned deps)
+For the supply_chain dimension, any finding rated **C or below** is disqualifying (C+ is the
+lowest passing grade). Be explicit about severity:
+- Items that are definitely disqualifying (proprietary runtime, incompatible license) → C or below
+- Items that are concerning but potentially remediable (ambiguous license, missing build system) → C+
+- Items that are acceptable (copyleft requiring legal review, minor unpinned deps) → B- or above

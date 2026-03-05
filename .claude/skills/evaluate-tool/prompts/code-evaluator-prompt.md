@@ -18,10 +18,11 @@ You write and run test scripts, then produce structured result files for each te
 
 ## Execution Environment
 
-**All code runs inside the devcontainer:**
+**All code runs inside the devcontainer via `dc-exec`:**
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 Never run code on the host.
@@ -57,6 +58,8 @@ Use both in all artifact filenames: `<id_lower>_<slug>`.
 
 **Python tools (pypsa, pandapower, gridcal):**
 - File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
+- For tier-specific variants (when a test runs on multiple tiers), append the tier:
+  `test_<id_lower>_<slug>_<tier_lower>.py` (e.g., `test_a1_dcpf_tiny.py` for functional verification)
 - Use `run()` function convention
 - Include docstring with test ID, description, pass condition
 - Use solver settings from `solver-config.md`
@@ -64,22 +67,25 @@ Use both in all artifact filenames: `<id_lower>_<slug>`.
 
 **Julia tools (powermodels, powersimulations):**
 - File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.jl`
+- For tier-specific variants: `test_<id_lower>_<slug>_<tier_lower>.jl`
 - Use `run()` function convention adapted for Julia
 - Use `@testset` blocks for structured output
 
 **Octave (matpower):**
 - File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.m`
+- For tier-specific variants: `test_<id_lower>_<slug>_<tier_lower>.m`
 - Use function-based convention
 
 Example: test ID `A-8` with slug `stochastic_timeseries` → `test_a8_stochastic_timeseries.py`
+Example: test ID `A-1` with slug `dcpf` on TINY → `test_a1_dcpf_tiny.py`
 
 ### 3. Run the Test
 
 Execute inside the devcontainer (using the `<id_lower>_<slug>` naming):
 
-- Python: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && uv run python tests/{{dimension}}/test_<id_lower>_<slug>.py"`
-- Julia: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && julia --project=. tests/{{dimension}}/test_<id_lower>_<slug>.jl"`
-- Octave: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && octave tests/{{dimension}}/test_<id_lower>_<slug>.m"`
+- Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run python tests/{{dimension}}/test_<id_lower>_<slug>.py`
+- Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/{{dimension}}/test_<id_lower>_<slug>.jl`
+- Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/{{dimension}}/test_<id_lower>_<slug>.m`
 
 If the test fails, analyze the error:
 - Is it a bug in the test script? Fix and re-run.
@@ -139,7 +145,7 @@ Link: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
 ### 5. Emit Observations
 
 For any cross-cutting finding during testing, write an observation file to
-`{{results_dir}}/../observations/<tag>-{{dimension}}-<test_id>.md`:
+`{{results_dir}}/../observations/<tag>-{{dimension}}-<test_id>_<slug>.md`:
 
 ```markdown
 ---
@@ -147,11 +153,23 @@ tag: <observation_tag>
 source_dimension: {{dimension}}
 source_test: <test_id>
 tool: {{tool_name}}
+severity: low|medium|high
+timestamp: <ISO 8601>
 ---
 
 # Observation: <brief title>
 
-<Description of the finding and its implications for consuming dimensions.>
+## Finding
+
+<1-2 sentence description of the cross-cutting finding.>
+
+## Context
+
+<What was being tested when this was discovered.>
+
+## Implications
+
+<What this means for consuming dimensions.>
 ```
 
 Only emit observations for tags listed in `{{observation_tags}}`. Common triggers:

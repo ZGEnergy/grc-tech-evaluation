@@ -32,7 +32,7 @@ test_id: <test_id>
 tool: <tool_name>
 dimension: <dimension>
 network: <TINY|SMALL|MEDIUM|N/A>
-status: pass|fail|qualified_pass
+status: pass|fail|qualified_pass|informational
 workaround_class: null|stable|fragile|blocking
 wall_clock_seconds: <float|null>
 peak_memory_mb: <float|null>
@@ -48,6 +48,8 @@ timestamp: <ISO 8601>
 - **fail** — Test did not meet pass condition
 - **qualified_pass** — Pass condition met but with caveats (e.g., workaround needed,
   non-standard configuration). Requires explanation in narrative.
+- **informational** — Finding recorded for context only; does not affect grades
+  (used by audit tests, especially p2_readiness)
 
 ## Required Markdown Sections
 

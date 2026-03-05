@@ -54,7 +54,8 @@ For each test, extract:
 - `MEDIUM` — name, bus count, file path
 
 ### Reference Counts (for gate validation)
-- TINY: 39 buses, 46 branches, 10 generators
+Extract from the protocol where stated. If not stated, note "verify from .m file":
+- TINY: extract from protocol (expected ~39 buses, ~46 branches, ~10 generators — verify)
 - SMALL: extract from protocol or note "verify from .m file"
 - MEDIUM: extract from protocol or note "verify from .m file"
 
@@ -69,7 +70,8 @@ Record as: `{test_id}.depends_on: [list of test IDs]`
 ### Observation Tags
 Infer cross-cutting observation routing:
 - Code-evaluator dimensions emit: `api-friction`, `doc-gaps`, `workaround-needed`, `solver-issues`
-- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability
+- Extensibility also emits: `arch-quality` (software architecture observations)
+- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity
 - Supply chain audit emits: `license-flags`
 
 For each dimension, record:
@@ -200,6 +202,10 @@ observation_tags:
     description: "Licensing or supply chain concerns"
     emitted_by: [supply_chain]
     consumed_by: [supply_chain]
+  arch-quality:
+    description: "Software architecture observations (positive or negative)"
+    emitted_by: [extensibility]
+    consumed_by: [maturity]
 ```
 
 ## Critical Rules
