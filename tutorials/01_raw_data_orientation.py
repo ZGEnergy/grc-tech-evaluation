@@ -573,5 +573,150 @@ def _(system_summary_markdown):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ---
+
+        ## Snapshot Cleanup: Why Raw Data Can't Be Used Directly
+
+        The `case39.m` file is a **converged power-flow snapshot** — every value
+        reflects the solved operating point at a single instant. Several fields
+        must be modified before the data can serve as input to an optimization
+        (OPF or unit commitment). The cleanup rules below explain what changes
+        are needed and why.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Cleanup Rule 1: Zero Out Pg and Qg
+
+        The snapshot's `Pg` (real power output) and `Qg` (reactive power output)
+        columns contain the **solved dispatch** from the original power-flow run.
+        If left in place, an optimizer might interpret them as initial conditions
+        or warm-start hints, biasing the solution toward the snapshot's operating
+        point instead of finding the true optimum. Zeroing both columns forces the
+        optimizer to determine dispatch from scratch using only the cost curves
+        and constraints.
+
+        ### Cleanup Rule 2: Normalize Vm and Va
+
+        Bus voltage magnitudes (`Vm`) and angles (`Va`) in the snapshot reflect
+        the converged network state. Generator buses show voltages above 1.0 p.u.
+        (voltage regulation), while load buses sag below. For AC-OPF, these
+        non-flat values act as a **warm start** that can trap the solver in a
+        local optimum near the snapshot's operating point. Resetting all `Vm` to
+        1.0 p.u. and all `Va` to 0 degrees provides a neutral flat start.
+
+        ### Cleanup Rule 3: Hydro Pmin Special Treatment
+
+        Generator 0 (bus 30) is a large hydro reservoir unit with Pmax = 1,040 MW.
+        Unlike thermal plants that can idle near zero output, reservoir hydro units
+        typically have **minimum flow requirements** for downstream water management.
+        The cleanup sets Pmin to **25% of Pmax** (260 MW) for hydro generators
+        above a capacity threshold, while all other generators get Pmin = 0.
+
+        ### Cleanup Rule 4: Fuel Classification
+
+        The standard `case39.m` file lacks a `genfuel` field — there is no
+        machine-readable fuel type. However, the file header comments document
+        the intended generator types (hydro, nuclear, fossil). The cleanup
+        pipeline reads the **CASE39_FUEL_MAP** hardcoded mapping to assign each
+        generator a `FuelCategory` (hydro, nuclear, coal, gas) and then maps
+        those to **RTS-GMLC technology classes** that determine which operational
+        parameter templates (ramp rates, min up/down times, startup costs) are
+        applied in later tutorials.
+        """
+    )
+    return
+
+
+@app.cell
+def _(Path, clean_and_classify_case39, mo):
+    @mo.cache
+    def run_cleanup():
+        """Execute cleanup and classification pipeline for case39."""
+        networks_dir = Path(__file__).parent.parent / "data" / "networks"
+        output_dir = Path(__file__).parent.parent / "data" / "timeseries"
+        return clean_and_classify_case39(networks_dir, output_dir)
+
+    cleanup_result = run_cleanup()
+    return (cleanup_result,)
+
+
+@app.cell
+def _(cleanup_result, mo, pd):
+    _rows = [
+        {
+            "gen_index": c.gen_index,
+            "bus": c.bus_id,
+            "fuel_category": c.fuel_category,
+            "rts_gmlc_class": c.rts_gmlc_class.value,
+            "pmax_mw": c.pmax_mw,
+            "pmin_mw": c.pmin_mw,
+        }
+        for c in cleanup_result.classifications
+    ]
+    classification_df = pd.DataFrame(_rows)
+
+    mo.md(
+        f"""
+        ### Generator Classification Table
+
+        The table below shows all **{len(classification_df)} generators** with
+        their fuel category (from header comments), RTS-GMLC technology class,
+        and post-cleanup Pmin values. Note that only the hydro unit (gen 0,
+        bus 30) retains a nonzero Pmin.
+        """
+    )
+    return (classification_df,)
+
+
+@app.cell
+def _(classification_df):
+    classification_df
+    return
+
+
+@app.cell
+def _(Path, mo, pd):
+    import json as _json
+
+    _manifest_path = (
+        Path(__file__).parent.parent / "data" / "timeseries" / "case39" / "cleanup_manifest.json"
+    )
+    _manifest = _json.loads(_manifest_path.read_text())
+
+    # Aggregate rule_summary from the first (only) network in the manifest
+    _network = _manifest["networks"][0]
+    _rule_summary = pd.DataFrame(_network["rule_summary"])
+
+    manifest_summary_df = _rule_summary.rename(
+        columns={"rule": "Cleanup Rule", "modification_count": "Modifications"}
+    )
+
+    mo.md(
+        """
+        ### Cleanup Manifest Summary
+
+        The manifest records every individual field modification made during
+        cleanup. Below is the count of modifications grouped by rule type:
+        """
+    )
+    return (manifest_summary_df,)
+
+
+@app.cell
+def _(manifest_summary_df):
+    manifest_summary_df
+    return
+
+
 if __name__ == "__main__":
     app.run()
