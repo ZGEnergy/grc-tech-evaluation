@@ -54,7 +54,7 @@ Execute gate tests for `{{tool_name}}`. These are pass/fail network ingestion ch
    - Branch flow limits present (needed for OPF)
    - Slack/reference bus identified
 
-5. **Write result file** to `{{results_dir}}/<test_id>.md`:
+5. **Write result file** to `{{results_dir}}/<test_id>_<slug>.md` (slug from config, e.g., `G-1_ingest_tiny.md`):
 
 ```markdown
 ---
@@ -85,10 +85,13 @@ timestamp: <ISO 8601>
 
 ### Halt-on-Failure
 
-- **G-1 (TINY) fails:** Disqualifying. Write result, return immediately with message
+Gate tests are ordered by network tier (TINY → SMALL → MEDIUM). Apply these rules
+based on the tier of each gate test, not hardcoded test IDs:
+
+- **TINY gate fails:** Disqualifying. Write result, return immediately with message
   that tool cannot proceed. Set `scale_cap: NONE`.
-- **G-2 (SMALL) fails:** Record failure. Set `scale_cap: TINY`.
-- **G-3 (MEDIUM) fails:** Record failure. Set `scale_cap: SMALL`.
+- **SMALL gate fails:** Record failure. Set `scale_cap: TINY` (no SMALL/MEDIUM tests).
+- **MEDIUM gate fails:** Record failure. Set `scale_cap: SMALL` (no MEDIUM tests).
 - **All pass:** Set `scale_cap: MEDIUM`.
 
 ## Output
