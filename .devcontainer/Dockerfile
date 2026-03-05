@@ -12,6 +12,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3 \
         python3-venv \
+        python3-dev \
         python3-pip \
         octave \
         octave-dev \
@@ -25,8 +26,14 @@ RUN apt-get update \
 # julialang devcontainer feature, which installs via juliaup and can silently
 # resolve to a newer major version (e.g. 1.12), breaking Manifest.toml compat.
 ARG JULIA_VERSION=1.10.7
-RUN curl -fsSL \
-        "https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-${JULIA_VERSION}-linux-x86_64.tar.gz" \
+RUN ARCH=$(dpkg --print-architecture) \
+    && if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then \
+           JULIA_ARCH="aarch64"; JULIA_DIR="aarch64"; \
+       else \
+           JULIA_ARCH="x86_64"; JULIA_DIR="x64"; \
+       fi \
+    && curl -fsSL \
+        "https://julialang-s3.julialang.org/bin/linux/${JULIA_DIR}/1.10/julia-${JULIA_VERSION}-linux-${JULIA_ARCH}.tar.gz" \
         -o /tmp/julia.tar.gz \
     && tar -xzf /tmp/julia.tar.gz -C /usr/local --strip-components=1 \
     && rm /tmp/julia.tar.gz \
