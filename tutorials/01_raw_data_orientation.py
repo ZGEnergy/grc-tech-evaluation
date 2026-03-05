@@ -302,5 +302,276 @@ def _(branch_df):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ---
+
+        ## Raw Data Exploration
+
+        The cells below visualize the **raw (pre-cleanup) data** parsed from
+        `case39.m`. These charts reveal the structure of the IEEE 39-bus system
+        and highlight important artifacts in the snapshot data that must be
+        understood before any modeling work begins.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, gen_df):
+    generator_pmax_bar_chart = (
+        alt.Chart(gen_df, title="Generator Pmax by Bus")
+        .mark_bar()
+        .encode(
+            x=alt.X("gen_bus:N", title="Generator Bus", sort="ascending"),
+            y=alt.Y("pmax_mw:Q", title="Pmax (MW)"),
+            color=alt.Color(
+                "gen_bus:N",
+                title="Bus",
+                legend=None,
+            ),
+            tooltip=["gen_bus:N", "pmax_mw:Q", "fuel_type:N"],
+        )
+        .properties(width=600, height=350)
+    )
+    return (generator_pmax_bar_chart,)
+
+
+@app.cell
+def _(generator_pmax_bar_chart):
+    generator_pmax_bar_chart
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        **What to notice:** Generator capacity is heavily concentrated on a
+        few buses. Bus 39 (the "equivalent generator" representing the
+        external interconnection) dominates with 1,000 MW of Pmax. The
+        remaining nine generators range from roughly 250 MW to 830 MW. This
+        uneven distribution is typical of real transmission systems where a
+        handful of large plants account for most of the installed capacity.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, gen_df):
+    _melted = gen_df.melt(
+        id_vars=["gen_bus"],
+        value_vars=["pmin_mw", "pmax_mw"],
+        var_name="limit",
+        value_name="mw",
+    )
+    _melted["limit"] = _melted["limit"].map({"pmin_mw": "Pmin", "pmax_mw": "Pmax"})
+
+    pmin_pmax_grouped_bar = (
+        alt.Chart(_melted, title="Pmin vs Pmax per Generator")
+        .mark_bar()
+        .encode(
+            x=alt.X("gen_bus:N", title="Generator Bus", sort="ascending"),
+            y=alt.Y("mw:Q", title="MW"),
+            color=alt.Color(
+                "limit:N",
+                title="Limit",
+                scale=alt.Scale(
+                    domain=["Pmin", "Pmax"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+            ),
+            xOffset="limit:N",
+            tooltip=["gen_bus:N", "limit:N", "mw:Q"],
+        )
+        .properties(width=600, height=350)
+    )
+    return (pmin_pmax_grouped_bar,)
+
+
+@app.cell
+def _(pmin_pmax_grouped_bar):
+    pmin_pmax_grouped_bar
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        **What to notice — the Pmin artifact:** In this snapshot, Pmin values
+        are **not** true engineering minimums. They mirror the **current
+        dispatch** (Pg) rather than the generator's physical minimum stable
+        output. MATPOWER case files store the solved operating point, so the
+        Pmin column often reflects the last converged power-flow solution
+        rather than a meaningful lower bound. Any optimization that treats
+        these Pmin values as real constraints will be artificially constrained
+        to the snapshot's dispatch point. Later tutorials will replace these
+        with realistic minimum stable output levels.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, bus_df):
+    _type_chart = (
+        alt.Chart(bus_df, title="Bus Type Distribution")
+        .mark_bar()
+        .encode(
+            x=alt.X("bus_type_name:N", title="Bus Type"),
+            y=alt.Y("count():Q", title="Count"),
+            color=alt.Color(
+                "bus_type_name:N",
+                title="Type",
+                legend=None,
+            ),
+            tooltip=["bus_type_name:N", "count():Q"],
+        )
+        .properties(width=300, height=300)
+    )
+
+    bus_type_chart = _type_chart
+    return (bus_type_chart,)
+
+
+@app.cell
+def _(Path, pd, re):
+    # Parse Vm (voltage magnitude) from raw case39.m since the parser
+    # dataclass does not include it. MATPOWER bus format column 8 is Vm.
+    _case_path = Path(__file__).parent.parent / "data" / "networks" / "case39.m"
+    _raw = _case_path.read_text()
+    _bus_match = re.search(r"mpc\.bus\s*=\s*\[([^\]]*)\]", _raw, re.DOTALL)
+    assert _bus_match is not None, "Could not find mpc.bus in case39.m"
+
+    _vm_rows: list[dict] = []
+    for _line in _bus_match.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _vals = _line.split()
+        _vm_rows.append({"bus_id": int(float(_vals[0])), "vm_pu": float(_vals[7])})
+
+    bus_vm_df = pd.DataFrame(_vm_rows)
+    return (bus_vm_df,)
+
+
+@app.cell
+def _(alt, bus_vm_df):
+    _vm_chart = (
+        alt.Chart(bus_vm_df, title="Bus Voltage Magnitudes (Vm)")
+        .mark_circle(size=80)
+        .encode(
+            x=alt.X("bus_id:O", title="Bus ID", sort="ascending"),
+            y=alt.Y(
+                "vm_pu:Q",
+                title="Vm (p.u.)",
+                scale=alt.Scale(zero=False),
+            ),
+            tooltip=["bus_id:O", "vm_pu:Q"],
+        )
+        .properties(width=600, height=300)
+    )
+
+    bus_voltage_chart = _vm_chart
+    return (bus_voltage_chart,)
+
+
+@app.cell
+def _(bus_type_chart, bus_voltage_chart, mo):
+    bus_type_and_voltage_charts = mo.hstack([bus_type_chart, bus_voltage_chart])
+    return (bus_type_and_voltage_charts,)
+
+
+@app.cell
+def _(bus_type_and_voltage_charts):
+    bus_type_and_voltage_charts
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        **What to notice:** The bus type distribution shows 29 PQ (load) buses,
+        9 PV (generator) buses, and 1 reference (slack) bus — this matches
+        the 10 generators (9 PV + 1 Ref). The voltage magnitudes are **not**
+        all 1.0 p.u. because this is a **solved snapshot**: the values
+        reflect the converged power-flow solution, not flat-start initial
+        conditions. Generator buses tend to have voltages above 1.0 p.u.
+        because they regulate voltage, while load buses sag slightly below.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Branch Summary
+
+        The full 46-row branch table is displayed below. Key columns include
+        the from/to bus IDs, series impedance (r, x in per-unit), shunt
+        susceptance (b), thermal ratings (MVA), and transformer tap ratio
+        (a nonzero `ratio` indicates a transformer rather than a line).
+        """
+    )
+    return
+
+
+@app.cell
+def _(branch_df):
+    branch_summary_table = branch_df
+    return (branch_summary_table,)
+
+
+@app.cell
+def _(branch_summary_table):
+    branch_summary_table
+    return
+
+
+@app.cell
+def _(branch_df, bus_df, gen_df, mo):
+    _n_buses = len(bus_df)
+    _n_gens = len(gen_df)
+    _n_branches = len(branch_df)
+    _total_pmax = gen_df["pmax_mw"].sum()
+    _total_pd = bus_df["pd_mw"].sum()
+
+    system_summary_markdown = mo.md(
+        f"""
+        ## System Summary
+
+        | Metric | Value |
+        |--------|-------|
+        | Buses | {_n_buses} |
+        | Generators | {_n_gens} |
+        | Branches | {_n_branches} |
+        | Total Pmax | {_total_pmax:.0f} MW |
+        | Total Load (Pd) | {_total_pd:.1f} MW |
+
+        The system has **{_n_gens} generators** with a combined maximum
+        capacity of **{_total_pmax:.0f} MW** serving **{_total_pd:.1f} MW**
+        of load across **{_n_buses} buses** connected by
+        **{_n_branches} branches**.
+        """
+    )
+    return (system_summary_markdown,)
+
+
+@app.cell
+def _(system_summary_markdown):
+    system_summary_markdown
+    return
+
+
 if __name__ == "__main__":
     app.run()
