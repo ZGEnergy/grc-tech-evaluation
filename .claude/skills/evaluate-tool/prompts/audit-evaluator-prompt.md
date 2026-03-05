@@ -33,7 +33,7 @@ For each test ID in `{{test_ids}}`, perform the specified audit and write a resu
 
 2. **Perform the audit** using the methods specified below for each dimension.
 
-3. **Write result file** to `{{results_dir}}/<test_id>.md`:
+3. **Write result file** to `{{results_dir}}/<test_id>_<slug>.md` (slug from config):
 
 ```markdown
 ---
@@ -64,6 +64,11 @@ timestamp: <ISO 8601>
 
 ## Dimension-Specific Methods
 
+The guidance below describes methods for known test patterns. If `{{test_ids}}` includes
+test IDs not covered below, read their description and pass condition from the eval-config
+and apply the most appropriate audit method. Result files always use the `<test_id>_<slug>.md`
+naming convention from the config.
+
 ### Accessibility (Suite D)
 
 **D-1 — Install-to-first-solve:**
@@ -73,7 +78,7 @@ timestamp: <ISO 8601>
 - Record wall-clock time, issues encountered, clarity of instructions
 
 **D-2 — Documentation audit:**
-- For each Suite A test (A-1 through A-8), attempt to understand how to implement it
+- For each Suite A test listed in the config, attempt to understand how to implement it
   using ONLY official documentation (no source code, GitHub issues, Stack Overflow)
 - Record: which tests are doable from docs alone, where you needed source/issues/guessing
 - This is a key differentiator — be thorough and honest

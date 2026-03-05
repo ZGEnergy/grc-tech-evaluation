@@ -53,29 +53,34 @@ with the research context for tool-specific API patterns.
 
 Write a self-documenting test script following conventions from `test-script-conventions.md`:
 
+Each test in the config includes an `id` and a `slug` (short human-readable suffix).
+Use both in all artifact filenames: `<id_lower>_<slug>`.
+
 **Python tools (pypsa, pandapower, gridcal):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.py`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
 - Use `run()` function convention
 - Include docstring with test ID, description, pass condition
 - Use solver settings from `solver-config.md`
-- Follow convergence protocol from `convergence-protocol.md` for AC problems
+- If the test's `converges_ac` flag is true, follow `convergence-protocol.md`
 
 **Julia tools (powermodels, powersimulations):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.jl`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.jl`
 - Use `run()` function convention adapted for Julia
 - Use `@testset` blocks for structured output
 
 **Octave (matpower):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.m`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.m`
 - Use function-based convention
+
+Example: test ID `A-8` with slug `stochastic_timeseries` → `test_a8_stochastic_timeseries.py`
 
 ### 3. Run the Test
 
-Execute inside the devcontainer:
+Execute inside the devcontainer (using the `<id_lower>_<slug>` naming):
 
-- Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run python tests/{{dimension}}/test_<test_id>.py`
-- Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/{{dimension}}/test_<test_id>.jl`
-- Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/{{dimension}}/test_<test_id>.m`
+- Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run python tests/{{dimension}}/test_<id_lower>_<slug>.py`
+- Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/{{dimension}}/test_<id_lower>_<slug>.jl`
+- Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/{{dimension}}/test_<id_lower>_<slug>.m`
 
 If the test fails, analyze the error:
 - Is it a bug in the test script? Fix and re-run.
@@ -84,7 +89,7 @@ If the test fails, analyze the error:
 
 ### 4. Record Results
 
-Write a result file to `{{results_dir}}/<test_id>.md` following `result-template.md`:
+Write a result file to `{{results_dir}}/<test_id>_<slug>.md` following `result-template.md`:
 
 ```markdown
 ---
@@ -129,7 +134,7 @@ Include small tables or code blocks showing actual results.>
 
 ## Test Script
 
-Link: `{{tool_dir}}/tests/{{dimension}}/test_<test_id>.py`
+Link: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
 ```
 
 ### 5. Emit Observations
@@ -158,33 +163,38 @@ Only emit observations for tags listed in `{{observation_tags}}`. Common trigger
 
 ## Dimension-Specific Guidance
 
+Do NOT rely on hardcoded test lists below — always read the full test list from
+`{{test_ids}}` and the eval-config. The guidance here describes *patterns* for each
+dimension, not an exhaustive enumeration.
+
 ### Expressiveness (Suite A)
 
-- **A-1 (DCPF):** Verify structured output — nodal injections, line flows, voltage angles
-- **A-2 (ACPF):** Follow convergence protocol. Record voltage magnitudes, angles, P-Q flows, losses
-- **A-3 (DC OPF):** Must extract dispatch AND LMPs/shadow prices
-- **A-4 (AC Feasibility):** Must reuse A-3 dispatch within same model context. No export/reimport.
-- **A-5 (SCUC):** 24hr, min up/down, startup costs, ramps, reserves. MIP gap ≤ 1%. Note built-in vs user-assembled.
-- **A-6 (SCED):** Fix commitment from A-5, solve ED. UC/ED must be cleanly separable.
-- **A-7 (N-M Contingency):** Graph-distance enumeration, pruning, no full reconstruction per case.
-  Use tier-specific parameters (TINY: x=3, m=3; MEDIUM: x=5, m=4).
-- **A-8 (Stochastic):** Must be NATIVE stochastic structure, not loop-over-deterministic.
+Each test's `pass_condition` in the config is authoritative. General patterns:
+- **Power flow tests:** Verify structured output (nodal injections, line flows, angles/voltages)
+- **OPF tests:** Must extract dispatch AND LMPs/shadow prices
+- **AC problems** (tests with `converges_ac: true`): Follow convergence protocol
+- **Feasibility checks:** Must reuse prior dispatch within the same model context (no export/reimport)
+- **UC/ED tests:** Note built-in vs user-assembled constraints. UC and ED must be cleanly separable.
+- **Contingency sweeps:** Use tier-specific parameters from config. No full model reconstruction per case.
+- **Stochastic tests:** Distinguish native stochastic structure from loop-over-deterministic
+- **SCOPF tests:** Contingency constraints must be part of the optimization, not post-hoc
+- **Loss/distributed-slack tests:** Validate LMP decomposition into components
 
 ### Extensibility (Suite B)
 
-- **B-1 (Custom Constraints):** Flow gate limit via documented API, no forking
-- **B-2 (Graph Access):** BFS to depth 3, return subgraph. Via native or clean library bridge.
-- **B-3 (Contingency Loop):** N-1 DCPF without re-parsing per iteration
-- **B-4 (Stochastic Wrapping):** 50 scenarios, correlated perturbations, 24hr multi-period DCPF
-- **B-5 (Interoperability):** Export to DataFrame + CSV in < 5 LOC beyond solve
-- **B-6 (Code Architecture):** Read source, trace DCPF solve path, document architecture
+- **Custom constraint tests:** Via documented API, no forking
+- **Graph access tests:** Via native primitives or clean library bridge
+- **Loop/wrapping tests:** Must work without model re-instantiation per iteration
+- **Interoperability tests:** Export to standard formats in minimal LOC
+- **Architecture audit (B-6):** Read source, trace solve path, document separation of concerns
+- **Matrix extraction tests:** Document method and computational cost
 
 ### Scalability (Suite C)
 
-- **C-1 through C-7:** No TINY tests. Record wall-clock, peak memory, iterations.
-- **C-7 (Solver Swap):** Test all available open-source solvers, note if swap requires
-  reformulation or just parameter change.
-- Record CPU utilization, parallelism, OOM events.
+- No TINY tests — Suite C runs on SMALL and MEDIUM only
+- Record wall-clock, peak memory, iterations, CPU utilization, parallelism, OOM events
+- Solver swap tests: note if swap requires reformulation or just a parameter change
+- For all C tests, the corresponding A/B functional test must have passed first
 
 ## Consumed Observations
 

@@ -90,12 +90,14 @@ State whether the tool passed the supply chain gate.>
 
 ## Items Requiring Human Spot-Check
 
-The following items need manual verification before grades are finalized:
+Flag items that need manual verification before grades are finalized. Common patterns
+to flag (but derive from actual results, not a hardcoded list):
 
-- [ ] **A-7 (Contingency Sweep):** <reason — e.g., complex pruning logic needs domain review>
-- [ ] **A-8 (Stochastic):** <reason — e.g., native vs loop distinction is judgment call>
-- [ ] **Any qualified passes:** <list with rationale>
-- [ ] **Workaround durability classifications:** <any borderline stable/fragile calls>
+- [ ] Tests involving complex judgment calls (e.g., "native" vs "wrapper" distinctions,
+      pruning logic correctness, stochastic formulation classification)
+- [ ] Any `qualified_pass` results — explain what qualified them
+- [ ] Workaround durability classifications — flag any borderline stable/fragile calls
+- [ ] Supply chain findings near the C+/B- gate threshold
 
 ## Methodology Notes
 

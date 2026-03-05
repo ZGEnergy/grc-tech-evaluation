@@ -41,14 +41,14 @@ For each criterion, include:
 
 #### Strengths
 Bulleted list, each item linked to a specific test ID:
-- "Native DC OPF with LMP extraction ([A-3](expressiveness/A-3.md))"
+- "Native DC OPF with LMP extraction ([A-3](expressiveness/A-3_dcopf.md))"
 
 #### Weaknesses
 Same format with test ID links.
 
 #### Workarounds Required
 List with durability class:
-- "Custom constraint addition requires internal API ([B-1](extensibility/B-1.md)) — **fragile**"
+- "Custom constraint addition requires internal API ([B-1](extensibility/B-1_custom_constraints.md)) — **fragile**"
 
 #### Evidence Summary Table
 
@@ -74,19 +74,17 @@ Synthesize observation files into thematic sections:
 Checklist of items needing manual verification:
 
 ```markdown
-- [ ] **A-7 (Contingency Sweep):** Complex pruning logic — verify graph-distance
-      enumeration is correct
-- [ ] **A-8 (Stochastic):** Native vs loop distinction requires domain judgment
-- [ ] **Qualified passes:** <list with rationale>
-- [ ] **Workaround classifications:** <any borderline stable/fragile>
+- [ ] <Test with complex judgment call> — <reason, e.g., "native vs loop distinction">
+- [ ] <Qualified pass test> — <what qualified it>
+- [ ] <Borderline workaround classification> — <stable vs fragile rationale>
 ```
 
-Always flag:
-- A-7 and A-8 (complex judgment calls)
+Always flag (derive from actual results, not a hardcoded list):
+- Tests involving subjective classification (native vs wrapper, pruning correctness, etc.)
 - Any `qualified_pass` results
 - Any `fragile` workaround classifications
 - Any `Low` confidence grades
-- Supply chain findings at C+ threshold
+- Supply chain findings near the C+/B- gate threshold
 
 ### 6. Methodology Notes
 

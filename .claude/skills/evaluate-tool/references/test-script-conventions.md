@@ -4,18 +4,23 @@ All test scripts follow a consistent format for reproducibility and traceability
 
 ## File Naming
 
+Every test script filename includes both the test ID and a human-readable slug from
+the eval-config. The slug is a short snake_case suffix derived from the test description.
+
 ```
-evaluations/<tool>/tests/<dimension>/test_<test_id_lower>.{py,jl,m}
+evaluations/<tool>/tests/<dimension>/test_<id_lower>_<slug>.{py,jl,m}
 ```
 
 Examples:
-- `evaluations/pypsa/tests/expressiveness/test_a1.py`
-- `evaluations/powermodels/tests/extensibility/test_b3.jl`
-- `evaluations/matpower/tests/scalability/test_c1.m`
+- `evaluations/pypsa/tests/expressiveness/test_a1_dcpf.py`
+- `evaluations/pypsa/tests/expressiveness/test_a8_stochastic_timeseries.py`
+- `evaluations/powermodels/tests/extensibility/test_b3_contingency_loop.jl`
+- `evaluations/powermodels/tests/extensibility/test_b9_ptdf_extraction.jl`
+- `evaluations/matpower/tests/scalability/test_c1_dcpf.m`
 
-For tier-specific variants:
-- `test_a1_tiny.py` — functional verification on TINY
-- `test_a1.py` — grade assessment (on the grade network)
+For tier-specific variants, append the tier:
+- `test_a1_dcpf_tiny.py` — functional verification on TINY
+- `test_a1_dcpf.py` — grade assessment (on the grade network)
 
 ## Python Convention
 

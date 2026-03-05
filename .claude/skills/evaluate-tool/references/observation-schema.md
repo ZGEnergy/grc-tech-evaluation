@@ -6,13 +6,13 @@ They enable information flow between evaluation agents without hard-coded wiring
 ## File Naming
 
 ```
-observations/<tag>-<source_dimension>-<test_id>.md
+observations/<tag>-<source_dimension>-<test_id>_<slug>.md
 ```
 
 Examples:
-- `observations/api-friction-expressiveness-A-1.md`
-- `observations/doc-gaps-extensibility-B-2.md`
-- `observations/solver-issues-scalability-C-3.md`
+- `observations/api-friction-expressiveness-A-1_dcpf.md`
+- `observations/doc-gaps-extensibility-B-2_graph_access.md`
+- `observations/solver-issues-scalability-C-3_dcopf.md`
 
 ## File Format
 

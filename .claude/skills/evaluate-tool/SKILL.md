@@ -33,7 +33,7 @@ evaluation guides specify — you never hard-code test IDs, dimensions, or pass 
 
 The user invokes: `/evaluate-tool <tool_name>`
 
-Valid tool names: `pypsa`, `pandapower`, `gridcal`, `powermodels`, `powersimulations`, `matpower`
+Valid tool names: `pypsa`, `pandapower`, `gridcal` (formerly VeraGrid), `powermodels`, `powersimulations`, `matpower`
 
 Set these variables for the session:
 
@@ -43,8 +43,8 @@ TOOL_DIR      = evaluations/{{TOOL_NAME}}
 RESULTS_DIR   = evaluations/{{TOOL_NAME}}/results
 SKILL_DIR     = .claude/skills/evaluate-tool
 GUIDES_DIR    = evaluation_guides
-RUBRIC_PATH   = {{GUIDES_DIR}}/Phase1_Evaluation_Rubric_v1.md
-PROTOCOL_PATH = {{GUIDES_DIR}}/Phase1_Test_Protocol_v2.md
+RUBRIC_PATH   = {{GUIDES_DIR}}/Phase1_Evaluation_Rubric.md
+PROTOCOL_PATH = {{GUIDES_DIR}}/Phase1_Test_Protocol.md
 CONFIG_PATH   = {{RESULTS_DIR}}/eval-config.yaml
 PROGRESS_PATH = {{RESULTS_DIR}}/.progress.yaml
 RESEARCH_PATH = {{RESULTS_DIR}}/research-context.md
@@ -162,32 +162,28 @@ Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last complet
 
 ### State: GATE
 
-**Purpose:** Run gate tests (G-1, G-2, G-3) with halt-on-failure semantics.
+**Purpose:** Run gate tests with halt-on-failure semantics. Gate test IDs and their
+tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
-1. **Read config.** Extract gate test IDs, networks, and pass conditions from `{{CONFIG_PATH}}`.
+1. **Read config.** Extract gate test IDs, networks, halt semantics, and pass conditions
+   from `{{CONFIG_PATH}}`.
 
 2. **Dispatch gate-evaluator agent.** Read `{{SKILL_DIR}}/prompts/gate-evaluator-prompt.md`,
    replace variables:
    - `{{tool_name}}` → `{{TOOL_NAME}}`
    - `{{tool_dir}}` → `{{TOOL_DIR}}`
-   - `{{test_ids}}` → gate test IDs from config (e.g., `G-1, G-2, G-3`)
+   - `{{test_ids}}` → gate test IDs from config
    - `{{reference_solutions}}` → expected bus/branch/gen counts from config
    - `{{results_dir}}` → `{{RESULTS_DIR}}/gate`
 
    Launch via Agent tool with `subagent_type: "general-purpose"`.
 
 3. **Evaluate gate results.** Read result files from `{{RESULTS_DIR}}/gate/`.
-
-   - **G-1 FAIL:** Halt the entire evaluation. Inform the user:
-     > "{{TOOL_NAME}} failed G-1 (TINY network ingestion). Evaluation cannot proceed."
-     Write final progress and exit.
-
-   - **G-2 or G-3 FAIL:** Record findings, set a `scale_cap` variable:
-     - G-2 fail → `scale_cap: TINY` (no SMALL/MEDIUM tests)
-     - G-3 fail → `scale_cap: SMALL` (no MEDIUM tests)
-     Inform the user of the cap and continue.
-
-   - **All pass:** Set `scale_cap: MEDIUM` and continue.
+   Apply the halt-on-failure semantics defined in the config:
+   - The TINY gate is disqualifying — if it fails, halt the evaluation.
+   - Higher-tier gate failures cap the scale (no tests above that tier).
+   - All pass → `scale_cap: MEDIUM`.
+   Inform the user of the outcome and any scale cap.
 
 4. **Update progress:** Add GATE to `completed_states`, record `scale_cap`, set
    `current_state: EVALUATE`.
@@ -232,15 +228,16 @@ Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last complet
    completed_dag_steps: [1, 2, ...]
    ```
 
-5. **Handle scale tiers.** The DAG typically flows:
-   - Step 1: TINY functional tests (all code-evaluator dimensions)
-   - Step 2: TINY audit dimensions (accessibility, maturity, supply_chain)
-   - Step 3: SMALL grade tests (A-5, A-6, A-8, B-4, C-4, C-6)
-   - Step 4: MEDIUM grade tests (remaining A, B, C tests)
+5. **Handle scale tiers.** The DAG flow comes entirely from the config. A typical
+   pattern is: TINY functional → TINY audits → SMALL grade tests → MEDIUM grade tests,
+   but the actual steps, test IDs, and tier assignments are defined in `{{CONFIG_PATH}}`.
+   Do not hard-code any test IDs or tier groupings here.
 
-   But the actual flow comes from the config — do not hard-code it.
+6. **Phase 2 readiness findings.** If the config includes a `p2_readiness` dimension
+   (informational findings that don't affect Phase 1 grades), dispatch an audit-evaluator
+   agent for those tests. Results go in `{{RESULTS_DIR}}/p2_readiness/`.
 
-6. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: SYNTHESIZE`.
+7. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: SYNTHESIZE`.
 
 ---
 
