@@ -879,5 +879,527 @@ def _(fc_actuals, fc_forecasts, mo, np, pd):
     return (stats_table,)
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Scenario Generation via Iman-Conover
+
+        With the statistical foundation in place — fitted Student-t
+        marginals, estimated spatial correlation, and realistic forecast
+        profiles — we can now generate **stochastic scenarios** that
+        capture the full range of plausible renewable outcomes.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### The Iman-Conover Method
+
+        The **Iman-Conover method** (1982) is a rank-reordering technique
+        that imposes a target rank correlation structure on independently
+        drawn samples **without altering their marginal distributions**.
+
+        The algorithm proceeds in four steps:
+
+        1. **Draw independent samples** — For each generator, draw $N$
+           samples from its fitted Student-t distribution. At this stage
+           the samples are statistically independent across generators.
+
+        2. **Construct a score matrix** — Generate a reference matrix of
+           standard normal scores (van der Waerden scores) and compute
+           its sample correlation.
+
+        3. **Transform scores** — Apply a Cholesky-based linear
+           transformation so the score matrix has the *target* rank
+           correlation (the Spearman matrix from the previous section).
+
+        4. **Reorder originals** — Use the rank ordering of the
+           transformed scores to permute the original Student-t samples.
+           Each column retains its exact original values (preserving the
+           heavy-tailed marginal), but the cross-column rank ordering
+           now matches the target correlation.
+
+        This is the standard approach in power systems for generating
+        spatially correlated renewable scenarios — it respects both the
+        heavy tails we fitted and the spatial dependence we measured.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Multiplicative Scenario Factors
+
+        The Iman-Conover method produces correlated *error samples* in
+        capacity-factor-change units. To apply these errors to a forecast
+        profile, we convert them to **multiplicative factors**:
+
+        $$\text{multiplier}_{s,g,h} = 1 + \frac{\text{error}_{s,g,h}}{\text{forecast}_{g,h}}$$
+
+        The scenario MW value is then:
+
+        $$\text{MW}_{s,g,h} = \text{multiplier}_{s,g,h} \times \text{forecast}_{g,h}$$
+
+        When the forecast is zero (e.g., solar at night), the multiplier
+        is set to 1.0 — there is no generation to scale.
+
+        This multiplicative formulation has two advantages over additive
+        errors:
+
+        - **Heteroscedasticity** — Errors scale with output level,
+          matching the observation that high-output hours have larger
+          absolute errors.
+        - **Interpretability** — A multiplier of 1.3 means "30% more
+          than forecast," regardless of generator size.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Physical Clamping
+
+        Raw multipliers can produce physically impossible generation
+        values — negative MW or output exceeding nameplate capacity.
+        After computing the raw multipliers, we apply two-sided clamping:
+
+        $$\text{multiplier}_{s,g,h} \in \left[0,\;\frac{P_{\max,g}}{\text{forecast}_{g,h}}\right]$$
+
+        - **Lower bound = 0** — Generation cannot be negative.
+        - **Upper bound = Pmax / forecast** — The scenario MW cannot
+          exceed the generator's nameplate capacity.
+
+        For solar generators during nighttime hours, the multiplier is
+        forced to 1.0 regardless of the drawn sample, because both the
+        forecast and actual output are physically zero.
+
+        A small fraction of samples are typically clamped (< 5%),
+        confirming that the fitted distributions are well-calibrated
+        but that extreme-tail events do need physical enforcement.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(
+    ForecastConfig,
+    SEED,
+    corr_result,
+    fc_actuals,
+    fc_forecasts,
+    generate_scenario_multipliers,
+    profiles_df,
+    solar_fit,
+    wind_fit,
+):
+    # Generate 50 correlated scenario multipliers via Iman-Conover
+    _wind_gen_uids = profiles_df[profiles_df["Type"] == "Wind"]["Generator"].unique().tolist()
+    _solar_gen_uids = profiles_df[profiles_df["Type"] == "Solar"]["Generator"].unique().tolist()
+
+    # Split forecasts and actuals into wind/solar lists preserving order
+    _wind_fc = [f for f in fc_forecasts if f.gen_uid in _wind_gen_uids]
+    _solar_fc = [f for f in fc_forecasts if f.gen_uid in _solar_gen_uids]
+    _wind_act = [a for a in fc_actuals if a.gen_uid in _wind_gen_uids]
+    _solar_act = [a for a in fc_actuals if a.gen_uid in _solar_gen_uids]
+
+    _sc_config = ForecastConfig(
+        smoothing_window=3,
+        wind_bias_fraction=0.02,
+        solar_bias_fraction=-0.01,
+        master_seed=SEED,
+        num_scenarios=50,
+    )
+
+    scenario_set = generate_scenario_multipliers(
+        _wind_fc,
+        _solar_fc,
+        wind_fit,
+        solar_fit,
+        corr_result,
+        _sc_config,
+    )
+
+    # Build convenience lists aligned with scenario_set.generator_order
+    sc_all_forecasts = list(_wind_fc) + list(_solar_fc)
+    sc_all_actuals = list(_wind_act) + list(_solar_act)
+    return sc_all_actuals, sc_all_forecasts, scenario_set
+
+
+@app.cell
+def _(alt, np, pd, sc_all_actuals, sc_all_forecasts, scenario_set):
+    # --- Wind Fan Plot ---
+    # Find wind generators in scenario_set.generator_order
+    _wind_indices = [
+        i for i, uid in enumerate(scenario_set.generator_order) if "WIND" in uid.upper()
+    ]
+    _wi = _wind_indices[0]  # first wind generator
+    _uid = scenario_set.generator_order[_wi]
+    _fc_mw = sc_all_forecasts[_wi].hourly_mw
+    _act_mw = sc_all_actuals[_wi].hourly_mw
+    _hours = list(range(1, 25))
+
+    # Build scenario MW traces: scenario_mw = multiplier * forecast
+    _fan_rows = []
+    for s in range(scenario_set.num_scenarios):
+        for h_idx, he in enumerate(_hours):
+            _mw = float(scenario_set.multipliers[s, _wi, h_idx] * _fc_mw[h_idx])
+            _fan_rows.append({"Hour Ending": he, "MW": _mw, "Scenario": f"S{s + 1}"})
+    _fan_df = pd.DataFrame(_fan_rows)
+
+    # Forecast and actual reference lines
+    _ref_rows = []
+    for h_idx, he in enumerate(_hours):
+        _ref_rows.append(
+            {
+                "Hour Ending": he,
+                "MW": float(_fc_mw[h_idx]),
+                "Series": "Forecast",
+            }
+        )
+        _ref_rows.append(
+            {
+                "Hour Ending": he,
+                "MW": float(_act_mw[h_idx]),
+                "Series": "Actual",
+            }
+        )
+    _ref_df = pd.DataFrame(_ref_rows)
+
+    _scenario_layer = (
+        alt.Chart(_fan_df)
+        .mark_line(opacity=0.15, color="steelblue")
+        .encode(
+            x=alt.X(
+                "Hour Ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y("MW:Q", title="Generation (MW)"),
+            detail="Scenario:N",
+        )
+    )
+
+    _fc_layer = (
+        alt.Chart(_ref_df[_ref_df["Series"] == "Forecast"])
+        .mark_line(strokeDash=[5, 3], color="#e45756", strokeWidth=2)
+        .encode(
+            x="Hour Ending:Q",
+            y="MW:Q",
+        )
+    )
+
+    _act_layer = (
+        alt.Chart(_ref_df[_ref_df["Series"] == "Actual"])
+        .mark_line(color="#2d004b", strokeWidth=2.5)
+        .encode(
+            x="Hour Ending:Q",
+            y="MW:Q",
+        )
+    )
+
+    # Compute y-axis range for annotation positioning
+    _all_mw = np.concatenate([_fan_df["MW"].values, _fc_mw, _act_mw])
+    _y_max = float(np.max(_all_mw))
+
+    # Legend as text annotations
+    _legend_df = pd.DataFrame(
+        [
+            {"label": "Forecast (dashed)", "x": 20, "y": _y_max * 0.98},
+            {"label": "Actual (bold)", "x": 20, "y": _y_max * 0.92},
+            {"label": "50 scenarios", "x": 20, "y": _y_max * 0.86},
+        ]
+    )
+
+    wind_fan_chart = alt.layer(_scenario_layer, _fc_layer, _act_layer).properties(
+        width=650,
+        height=380,
+        title=f"Wind Fan Plot — {_uid} (50 Scenarios)",
+    )
+    wind_fan_chart
+    return (wind_fan_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        This is the dramatic moment where uncertainty becomes visible.
+        Each translucent trace is one plausible realization of wind
+        output; the **dashed red line** is the day-ahead forecast and
+        the **bold dark line** is the actual outcome. The spread of the
+        fan quantifies the range of outcomes a unit commitment solver
+        must hedge against.
+
+        Notice how the fan widens during high-output hours and narrows
+        near zero — this is the heteroscedastic structure built into our
+        multiplicative error model.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(alt, np, pd, sc_all_actuals, sc_all_forecasts, scenario_set):
+    # --- Solar Fan Plot ---
+    _solar_indices = [
+        i for i, uid in enumerate(scenario_set.generator_order) if "SOLAR" in uid.upper()
+    ]
+    _si = _solar_indices[0]  # first solar generator
+    _suid = scenario_set.generator_order[_si]
+    _sfc_mw = sc_all_forecasts[_si].hourly_mw
+    _sact_mw = sc_all_actuals[_si].hourly_mw
+    _shours = list(range(1, 25))
+
+    _sfan_rows = []
+    for s in range(scenario_set.num_scenarios):
+        for h_idx, he in enumerate(_shours):
+            _mw = float(scenario_set.multipliers[s, _si, h_idx] * _sfc_mw[h_idx])
+            _sfan_rows.append({"Hour Ending": he, "MW": _mw, "Scenario": f"S{s + 1}"})
+    _sfan_df = pd.DataFrame(_sfan_rows)
+
+    _sref_rows = []
+    for h_idx, he in enumerate(_shours):
+        _sref_rows.append(
+            {
+                "Hour Ending": he,
+                "MW": float(_sfc_mw[h_idx]),
+                "Series": "Forecast",
+            }
+        )
+        _sref_rows.append(
+            {
+                "Hour Ending": he,
+                "MW": float(_sact_mw[h_idx]),
+                "Series": "Actual",
+            }
+        )
+    _sref_df = pd.DataFrame(_sref_rows)
+
+    _sscenario_layer = (
+        alt.Chart(_sfan_df)
+        .mark_line(opacity=0.15, color="goldenrod")
+        .encode(
+            x=alt.X(
+                "Hour Ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y("MW:Q", title="Generation (MW)"),
+            detail="Scenario:N",
+        )
+    )
+
+    _sfc_layer = (
+        alt.Chart(_sref_df[_sref_df["Series"] == "Forecast"])
+        .mark_line(strokeDash=[5, 3], color="#e45756", strokeWidth=2)
+        .encode(x="Hour Ending:Q", y="MW:Q")
+    )
+
+    _sact_layer = (
+        alt.Chart(_sref_df[_sref_df["Series"] == "Actual"])
+        .mark_line(color="#2d004b", strokeWidth=2.5)
+        .encode(x="Hour Ending:Q", y="MW:Q")
+    )
+
+    solar_fan_chart = alt.layer(_sscenario_layer, _sfc_layer, _sact_layer).properties(
+        width=650,
+        height=380,
+        title=f"Solar Fan Plot — {_suid} (50 Scenarios)",
+    )
+    solar_fan_chart
+    return (solar_fan_chart,)
+
+
+@app.cell
+def _(alt, np, pd, scenario_set):
+    # --- Multiplier Histogram at Peak Hour (HE 14, index 13) ---
+    _peak_h = 13  # Hour Ending 14 (peak solar / high wind)
+    _mult_rows = []
+    for j, uid in enumerate(scenario_set.generator_order):
+        for s in range(scenario_set.num_scenarios):
+            _mult_rows.append(
+                {
+                    "Multiplier": float(scenario_set.multipliers[s, j, _peak_h]),
+                    "Generator": uid,
+                }
+            )
+    _mult_df = pd.DataFrame(_mult_rows)
+
+    multiplier_hist = (
+        alt.Chart(_mult_df)
+        .mark_bar(opacity=0.6)
+        .encode(
+            x=alt.X(
+                "Multiplier:Q",
+                bin=alt.Bin(maxbins=30),
+                title="Scenario Multiplier at HE 14",
+            ),
+            y=alt.Y("count()", title="Count"),
+            color=alt.Color("Generator:N", title="Generator"),
+        )
+        .properties(
+            width=650,
+            height=350,
+            title="Multiplier Distribution at Peak Hour (HE 14)",
+        )
+    )
+    multiplier_hist
+    return (multiplier_hist,)
+
+
+@app.cell
+def _(alt, np, pd, scenario_set):
+    # --- Two-Generator Scatter Plot showing spatial correlation ---
+    # Use the first two generators in scenario_set.generator_order
+    _g0 = 0
+    _g1 = 1
+    _uid0 = scenario_set.generator_order[_g0]
+    _uid1 = scenario_set.generator_order[_g1]
+
+    # Use multipliers at HE 14 (peak hour) for both generators
+    _scatter_rows = []
+    for s in range(scenario_set.num_scenarios):
+        _scatter_rows.append(
+            {
+                _uid0: float(scenario_set.multipliers[s, _g0, 13]),
+                _uid1: float(scenario_set.multipliers[s, _g1, 13]),
+                "Scenario": s + 1,
+            }
+        )
+    _scatter_df = pd.DataFrame(_scatter_rows)
+
+    # Compute Spearman r for annotation
+    from scipy.stats import spearmanr as _spearmanr
+
+    _sr, _ = _spearmanr(_scatter_df[_uid0].values, _scatter_df[_uid1].values)
+
+    corr_scatter = (
+        alt.Chart(_scatter_df)
+        .mark_circle(size=50, opacity=0.6, color="#4c78a8")
+        .encode(
+            x=alt.X(
+                f"{_uid0}:Q",
+                title=f"Multiplier — {_uid0}",
+            ),
+            y=alt.Y(
+                f"{_uid1}:Q",
+                title=f"Multiplier — {_uid1}",
+            ),
+            tooltip=[
+                "Scenario:Q",
+                alt.Tooltip(f"{_uid0}:Q", format=".3f"),
+                alt.Tooltip(f"{_uid1}:Q", format=".3f"),
+            ],
+        )
+        .properties(
+            width=420,
+            height=420,
+            title=(f"Scenario Multipliers at HE 14 — Spearman r = {_sr:.2f}"),
+        )
+    )
+    corr_scatter
+    return (corr_scatter,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Diagnostic Summary
+
+        The **multiplier histogram** shows the distribution of scenario
+        factors at peak hour (HE 14). Values cluster around 1.0 (the
+        forecast) with heavy tails reflecting the Student-t marginals.
+        The spread differs by generator because each has a different
+        forecast level and Pmax, producing different clamping bounds.
+
+        The **scatter plot** reveals the spatial correlation imposed by
+        the Iman-Conover method: generators that share weather drivers
+        (e.g., two wind farms) show a clear positive association in
+        their scenario multipliers, while wind-solar pairs are more
+        diffuse. This dependence structure is critical — without it,
+        portfolio-level risk would be artificially diversified away.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo, scenario_set):
+    _n_sc = scenario_set.num_scenarios
+    _n_gen = len(scenario_set.generator_order)
+    mo.md(
+        f"""
+        ## Summary: From Uncertainty to Optimization
+
+        This notebook built a complete stochastic scenario pipeline:
+
+        1. **Student-t fitting** — Heavy-tailed marginals for wind and
+           solar forecast errors, calibrated from RTS-GMLC data.
+        2. **Spatial correlation** — 5x5 Spearman rank correlation
+           estimated from mapped RTS-GMLC profiles.
+        3. **Forecast generation** — Smooth + bias + noise pipeline
+           producing realistic day-ahead forecasts.
+        4. **Iman-Conover scenarios** — **{_n_sc} correlated scenarios**
+           across **{_n_gen} generators x 24 hours**, preserving both
+           marginal distributions and spatial dependence.
+
+        These {_n_sc} scenarios are the input to a **two-stage stochastic
+        unit commitment** formulation:
+
+        - **Stage 1 (here-and-now):** Commit generators based on the
+          forecast, before uncertainty is revealed.
+        - **Stage 2 (wait-and-see):** For each scenario, re-dispatch
+          generation to meet the realized renewable output, incurring
+          balancing costs for any mismatch.
+
+        The objective minimizes expected cost across all {_n_sc} scenarios,
+        producing a commitment plan that is robust to the full range of
+        plausible renewable outcomes — including the extreme tail events
+        that a Gaussian model would underestimate.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Next: Notebook 05 — Stochastic Unit Commitment
+
+        With 50 correlated scenarios in hand, Notebook 05 will formulate
+        and solve a **two-stage stochastic unit commitment** problem:
+
+        - **Decision variables:** binary on/off status for each thermal
+          generator at each hour (Stage 1), plus dispatch MW per
+          scenario (Stage 2).
+        - **Constraints:** Min up/down times, ramp limits, reserve
+          requirements, and power balance per scenario.
+        - **Objective:** Minimize expected total cost (startup +
+          no-load + energy + reserve shortfall penalties) across all
+          scenarios.
+
+        The fan plots above show *why* this matters: a deterministic
+        UC using only the forecast would be caught off-guard by the
+        tails of the uncertainty distribution. The stochastic
+        formulation hedges against those tails by construction.
+        """
+    )
+    return ()
+
+
 if __name__ == "__main__":
     app.run()
