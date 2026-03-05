@@ -102,7 +102,7 @@ When something feels off — documentation that doesn't match behavior, examples
 **Tools under primary evaluation:**
 - PyPSA
 - pandapower
-- VeraGrid (formerly GridCal)
+- GridCal (formerly VeraGrid)
 - PowerModels.jl (LANL-ANSI)
 - PowerSimulations.jl (NREL Sienna)
 - MATPOWER *(reference benchmark only — MATLAB runtime disqualifies for classified deployment)*
