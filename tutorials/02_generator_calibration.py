@@ -689,5 +689,355 @@ def _(load_profile_result, mo):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Operating Reserves
+
+        Operating reserves are generation capacity held back from energy
+        dispatch so the system can respond to sudden supply shortfalls —
+        a generator tripping offline, a transmission line faulting, or an
+        unexpected load spike. Without reserves, any single contingency
+        could cascade into widespread outages.
+
+        Reserves come in two flavors, distinguished by response speed:
+
+        - **Spinning reserves** — capacity on generators that are already
+          synchronized to the grid and can ramp up within **10 minutes**.
+          These provide the first line of defense after a contingency.
+        - **Non-spinning reserves** — capacity on units that may be offline
+          but can start and deliver power within **30 minutes**. These
+          backfill the spinning response and restore the reserve margin.
+
+        The amount of reserves a generator can provide depends directly on
+        its **ramp rate**: a unit that ramps at 120 MW/hr can deliver
+        20 MW of spinning reserve (120 × 10/60) and 60 MW of non-spinning
+        reserve (120 × 30/60) within the respective deployment windows.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### The N-1 Contingency Criterion
+
+        The standard reliability rule is **N-1**: the system must carry
+        enough reserves to survive the loss of its single largest
+        generating unit without shedding load.
+
+        In case39, the largest generator is **1100 MW** (the nuclear units
+        at buses 31, 32, 35, 37, and 38 each have Pmax = 1100 MW). The
+        total reserve requirement is therefore 1100 MW, split evenly:
+
+        | Product | Requirement | Deployment window |
+        |---------|-------------|-------------------|
+        | Spinning | **550 MW** | 10 minutes |
+        | Non-spinning | **550 MW** | 30 minutes |
+
+        This 50/50 split is constant across all 24 hours — a simplification
+        that works well for this tutorial fleet. Production systems often
+        vary reserve requirements by hour based on forecasted load and
+        renewable uncertainty.
+
+        **Nuclear caps:** Nuclear units are technically eligible for
+        reserves, but reactor physics limits how much output they can
+        change quickly. We cap their contribution at **5% of Pmax for
+        spinning** and **10% of Pmax for non-spinning** — meaning each
+        1100 MW nuclear unit provides at most 55 MW spinning and
+        110 MW non-spinning reserve.
+        """
+    )
+    return
+
+
+@app.cell
+def _(
+    CASE39_CLASSIFICATION_TABLE,
+    Path,
+    assign_all_temporal_params,
+    build_reserve_requirements,
+    compute_all_eligibilities,
+    load_reference_table,
+    mo,
+    pd,
+):
+    from scripts.tiny_reserve_definitions import (
+        ReserveProduct,
+        validate_reserve_feasibility,
+    )
+
+    @mo.cache
+    def _compute_reserve_eligibility():
+        from scripts.build_rts_gmlc_reference import main as build_reference
+
+        build_reference()
+
+        _repo_root = Path(__file__).resolve().parent.parent / "data"
+        _ref_csv = _repo_root / "reference" / "rts_gmlc_tech_classes.csv"
+        templates = load_reference_table(_ref_csv)
+
+        classifications = list(CASE39_CLASSIFICATION_TABLE)
+        gen_params = assign_all_temporal_params(classifications, templates)
+
+        spinning_req, non_spinning_req = build_reserve_requirements()
+        eligibilities = compute_all_eligibilities(classifications, gen_params)
+
+        spinning_feas = validate_reserve_feasibility(
+            ReserveProduct.SPINNING,
+            spinning_req.requirement_mw,
+            eligibilities,
+        )
+        non_spinning_feas = validate_reserve_feasibility(
+            ReserveProduct.NON_SPINNING,
+            non_spinning_req.requirement_mw,
+            eligibilities,
+        )
+
+        elig_df = pd.DataFrame(
+            [
+                {
+                    "gen_index": e.gen_index,
+                    "bus_id": e.bus_id,
+                    "fuel_type": e.fuel_type,
+                    "rts_gmlc_class": e.rts_gmlc_class,
+                    "pmax_mw": e.pmax_mw,
+                    "max_spinning_mw": round(e.pmax_mw * e.max_spinning_pct, 1),
+                    "max_non_spinning_mw": round(e.pmax_mw * e.max_non_spinning_pct, 1),
+                    "max_spinning_pct": round(e.max_spinning_pct, 4),
+                    "max_non_spinning_pct": round(e.max_non_spinning_pct, 4),
+                }
+                for e in eligibilities
+            ]
+        )
+
+        feasibility_df = pd.DataFrame(
+            [
+                {
+                    "product": f.product.value,
+                    "requirement_mw": f.requirement_mw,
+                    "total_eligible_mw": f.total_eligible_capacity_mw,
+                    "margin_mw": f.margin_mw,
+                    "is_feasible": f.is_feasible,
+                }
+                for f in [spinning_feas, non_spinning_feas]
+            ]
+        )
+
+        return elig_df, feasibility_df
+
+    reserve_eligibility_df, reserve_feasibility_df = _compute_reserve_eligibility()
+    return (
+        ReserveProduct,
+        reserve_eligibility_df,
+        reserve_feasibility_df,
+        validate_reserve_feasibility,
+    )
+
+
+@app.cell
+def _(alt, reserve_eligibility_df, pd):
+    _bar_records = []
+    for _, _r in reserve_eligibility_df.iterrows():
+        _label = f"Bus {_r['bus_id']}"
+        _bar_records.append(
+            {
+                "generator": _label,
+                "gen_index": _r["gen_index"],
+                "product": "Spinning",
+                "eligible_mw": _r["max_spinning_mw"],
+                "fuel": _r["fuel_type"],
+            }
+        )
+        _bar_records.append(
+            {
+                "generator": _label,
+                "gen_index": _r["gen_index"],
+                "product": "Non-Spinning",
+                "eligible_mw": _r["max_non_spinning_mw"],
+                "fuel": _r["fuel_type"],
+            }
+        )
+    _bar_df = pd.DataFrame(_bar_records)
+
+    eligible_capacity_stacked_bar = (
+        alt.Chart(_bar_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "generator:N",
+                title="Generator (Bus)",
+                sort=alt.EncodingSortField(field="gen_index", order="ascending"),
+            ),
+            y=alt.Y(
+                "eligible_mw:Q",
+                title="Eligible Reserve Capacity (MW)",
+                stack="zero",
+            ),
+            color=alt.Color(
+                "product:N",
+                title="Reserve Product",
+                scale=alt.Scale(
+                    domain=["Spinning", "Non-Spinning"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("generator:N", title="Generator"),
+                alt.Tooltip("fuel:N", title="Fuel"),
+                alt.Tooltip("product:N", title="Product"),
+                alt.Tooltip("eligible_mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title=("Eligible Reserve Capacity by Generator (Spinning + Non-Spinning)"),
+            width=550,
+            height=350,
+        )
+    )
+    eligible_capacity_stacked_bar
+    return (eligible_capacity_stacked_bar,)
+
+
+@app.cell
+def _(alt, reserve_feasibility_df, pd):
+    _feas_records = []
+    for _, _r in reserve_feasibility_df.iterrows():
+        _feas_records.append(
+            {
+                "product": _r["product"].replace("_", "-").title(),
+                "category": "Requirement",
+                "mw": _r["requirement_mw"],
+            }
+        )
+        _feas_records.append(
+            {
+                "product": _r["product"].replace("_", "-").title(),
+                "category": "Eligible Capacity",
+                "mw": _r["total_eligible_mw"],
+            }
+        )
+    _feas_df = pd.DataFrame(_feas_records)
+
+    feasibility_margin_chart = (
+        alt.Chart(_feas_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("product:N", title="Reserve Product"),
+            y=alt.Y("mw:Q", title="MW"),
+            color=alt.Color(
+                "category:N",
+                title="",
+                scale=alt.Scale(
+                    domain=["Requirement", "Eligible Capacity"],
+                    range=["#e45756", "#4c78a8"],
+                ),
+            ),
+            xOffset="category:N",
+            tooltip=[
+                alt.Tooltip("product:N", title="Product"),
+                alt.Tooltip("category:N", title="Category"),
+                alt.Tooltip("mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title="Reserve Feasibility: Requirement vs Eligible Capacity",
+            width=400,
+            height=350,
+        )
+    )
+    feasibility_margin_chart
+    return (feasibility_margin_chart,)
+
+
+@app.cell
+def _(alt, reserve_eligibility_df, pd):
+    _nuc_df = reserve_eligibility_df.copy()
+    _nuc_df["is_nuclear"] = _nuc_df["rts_gmlc_class"] == "Nuclear"
+    _nuc_df["label"] = "Bus " + _nuc_df["bus_id"].astype(str)
+
+    _contrib_records = []
+    for _, _r in _nuc_df.iterrows():
+        _contrib_records.append(
+            {
+                "generator": _r["label"],
+                "gen_index": _r["gen_index"],
+                "is_nuclear": _r["is_nuclear"],
+                "spinning_mw": _r["max_spinning_mw"],
+                "spinning_pct": _r["max_spinning_pct"] * 100,
+            }
+        )
+    _contrib_df = pd.DataFrame(_contrib_records)
+
+    nuclear_contribution_chart = (
+        alt.Chart(_contrib_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "generator:N",
+                title="Generator (Bus)",
+                sort=alt.EncodingSortField(field="gen_index", order="ascending"),
+            ),
+            y=alt.Y(
+                "spinning_mw:Q",
+                title="Max Spinning Reserve (MW)",
+            ),
+            color=alt.Color(
+                "is_nuclear:N",
+                title="Nuclear?",
+                scale=alt.Scale(
+                    domain=[True, False],
+                    range=["#f58518", "#4c78a8"],
+                ),
+                legend=alt.Legend(
+                    labelExpr=(
+                        "datum.value === true ? 'Nuclear (5% cap)' : 'Non-Nuclear (ramp-based)'"
+                    )
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("generator:N", title="Generator"),
+                alt.Tooltip("spinning_mw:Q", title="Spinning MW", format=",.1f"),
+                alt.Tooltip(
+                    "spinning_pct:Q",
+                    title="% of Pmax",
+                    format=".1f",
+                ),
+            ],
+        )
+        .properties(
+            title=("Nuclear vs Non-Nuclear Spinning Reserve Contribution"),
+            width=550,
+            height=350,
+        )
+    )
+    nuclear_contribution_chart
+    return (nuclear_contribution_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        Despite providing over half the fleet's installed capacity
+        (5 × 1100 MW = 5500 MW out of ~7500 MW total), nuclear units
+        contribute only **55 MW each** of spinning reserve — a consequence
+        of the 5% Pmax cap imposed by reactor ramp limitations. The
+        non-nuclear generators (hydro, coal, and gas) carry the bulk of
+        the reserve burden through their higher ramp-based eligibility
+        percentages.
+
+        The thermal fleet is calibrated — ramp rates, commitment
+        parameters, reserve eligibility — but case39 has **no renewable
+        generation**. The next section adds wind and solar profiles to
+        explore how variable resources change the commitment problem.
+        """
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
