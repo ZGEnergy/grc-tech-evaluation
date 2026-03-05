@@ -22,8 +22,11 @@ Use all available tools:
    repo READMEs, API references).
 
 2. **Source code reading** — If the tool is installed in `evaluations/{{tool_name}}/`,
-   read its source code, examples, and configuration files. Look in the virtualenv or
-   package directories for installed source.
+   read its source code, examples, and configuration files. For Python tools, find
+   installed packages via `.devcontainer/dc-exec -C /workspace/evaluations/{{tool_name}} uv run python -c "import <pkg>; print(<pkg>.__file__)"`.
+   For Julia, check `evaluations/{{tool_name}}/` for `Project.toml` and source in
+   the Julia depot. Package source inside the devcontainer may not be readable from
+   the host — use `dc-exec` to inspect if needed.
 
 3. **GitHub exploration** — Search the tool's GitHub repository for issues, PRs,
    discussions, and wiki content related to the research focus.
