@@ -14,6 +14,7 @@ No ZGE internal dependencies. No connection to the trading platform repos.
 - `data/networks/` — Shared MATPOWER .m case files used by all tools
 - `evaluations/<tool>/` — One directory per tool under evaluation
 - `evaluations/<tool>/results/<dimension>/` — Test outputs organized by rubric dimension
+- `tutorials/` — Sequential marimo notebooks introducing power-system modeling concepts
 
 ## Execution Environment
 
@@ -69,6 +70,20 @@ cd evaluations/matpower
 bash setup.sh        # downloads MATPOWER 8.1
 octave verify_install.m
 ```
+
+## Tutorials
+
+```bash
+cd tutorials && uv sync && uv run python verify_setup.py
+```
+
+Launch the notebook editor:
+
+```bash
+uv run marimo edit
+```
+
+Notebooks are `.py` files in marimo format, not Jupyter `.ipynb`. All commands run inside the devcontainer.
 
 ## Conventions
 

@@ -1,0 +1,26 @@
+[project]
+name = "tutorials"
+version = "0.1.0"
+description = "Sequential marimo notebooks introducing power-system modeling concepts"
+requires-python = ">=3.12"
+dependencies = [
+    "marimo",
+    "altair",
+    "pandas",
+    "vl-convert-python",
+    "grc-data-augmentation",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+grc-data-augmentation = { path = "../data" }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+line-length = 100
