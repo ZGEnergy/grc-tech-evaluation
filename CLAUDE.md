@@ -20,13 +20,22 @@ No ZGE internal dependencies. No connection to the trading platform repos.
 **Never run code, tests, linters, or pre-commit locally.** Always use the devcontainer.
 All commands (pytest, julia, octave, pre-commit, etc.) must run inside the container.
 
+Use the `dc-exec` helper (`.devcontainer/dc-exec`) which works from both the main
+checkout and any git worktree:
+
 ```bash
 # Open a shell inside the devcontainer
-devcontainer exec --workspace-folder . bash
+.devcontainer/dc-exec bash
 
-# Or run a one-off command
-devcontainer exec --workspace-folder . <command>
+# Run a one-off command
+.devcontainer/dc-exec <command>
+
+# Run in a specific container directory
+.devcontainer/dc-exec -C /workspace/evaluations/pypsa uv run python -c "import pypsa"
 ```
+
+`dc-exec` finds the container via `git worktree list` + Docker labels, so it works
+from `.claude/worktrees/<name>/` where `devcontainer exec --workspace-folder .` cannot.
 
 ## Per-Tool Setup
 
