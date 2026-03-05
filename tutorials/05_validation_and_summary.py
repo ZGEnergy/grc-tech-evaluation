@@ -1041,5 +1041,627 @@ def _(mo, validation_results_final):
     return ()
 
 
+@app.cell
+def _(alt, pd, validation_results_final):
+    # Consolidated validation dashboard — all checks, all categories
+    _dash_df = pd.DataFrame(validation_results_final)
+
+    # Sort: failures first, then warns/skips, then passes; within group by category
+    _status_order = {"fail": 0, "warn": 1, "skip": 2, "pass": 3}
+    _dash_df["_sort"] = _dash_df["status"].map(_status_order)
+    _dash_df = _dash_df.sort_values(["_sort", "category", "name"]).drop(columns=["_sort"])
+    _dash_df = _dash_df.reset_index(drop=True)
+
+    # Map status to indicator symbol
+    _indicator_map = {
+        "pass": "\u2705",
+        "fail": "\u274c",
+        "warn": "\u26a0\ufe0f",
+        "skip": "\u26a0\ufe0f",
+    }
+    _dash_df["indicator"] = _dash_df["status"].map(_indicator_map)
+
+    _dash_color = alt.condition(
+        alt.datum.status == "pass",
+        alt.value("#2ca02c"),
+        alt.condition(
+            alt.datum.status == "fail",
+            alt.value("#d62728"),
+            alt.value("#ff7f0e"),
+        ),
+    )
+
+    _dash_base = alt.Chart(_dash_df).encode(
+        y=alt.Y(
+            "name:N",
+            title=None,
+            sort=None,
+            axis=alt.Axis(labelLimit=350),
+        ),
+    )
+
+    _dash_dots = _dash_base.mark_point(size=200, filled=True).encode(
+        x=alt.value(20),
+        color=_dash_color,
+        shape=alt.condition(
+            alt.datum.status == "pass",
+            alt.value("circle"),
+            alt.condition(
+                alt.datum.status == "fail",
+                alt.value("cross"),
+                alt.value("triangle-up"),
+            ),
+        ),
+    )
+
+    _dash_cat = _dash_base.mark_text(align="left", dx=40, fontSize=11, color="#888888").encode(
+        text="category:N"
+    )
+
+    _dash_status = _dash_base.mark_text(align="left", dx=180, fontSize=12).encode(
+        text="status:N", color=_dash_color
+    )
+
+    _dash_diag = _dash_base.mark_text(align="left", dx=230, fontSize=11, color="#555555").encode(
+        text="diagnostic:N"
+    )
+
+    dashboard_chart = (
+        (_dash_dots + _dash_cat + _dash_status + _dash_diag)
+        .properties(
+            title="Consolidated Validation Dashboard — TINY (case39)",
+            width=850,
+            height=max(len(_dash_df) * 32, 200),
+        )
+        .configure_view(strokeWidth=0)
+    )
+    dashboard_chart
+    return (dashboard_chart,)
+
+
+@app.cell
+def _(mo, validation_results_final):
+    _n_pass = sum(1 for r in validation_results_final if r["status"] == "pass")
+    _n_fail = sum(1 for r in validation_results_final if r["status"] == "fail")
+    _n_total = len(validation_results_final)
+
+    mo.md(
+        r"""
+        ## Dashboard Interpretation
+
+        **{n_pass} of {n_total}** checks pass across all three validation
+        categories. {fail_note}
+
+        What all-green means:
+
+        - **Referential integrity**: Every bus ID, generator UID, branch
+          index, and scenario multiplier column in the augmented CSV files
+          correctly references an entity in the MATPOWER case file. No
+          orphaned IDs will cause silent data loss or index errors.
+        - **SCUC feasibility**: The dataset satisfies all necessary
+          conditions for the security-constrained unit commitment problem
+          to have a feasible solution. Aggregate capacity exceeds peak
+          load, ramp rates cover load swings, and generator parameters
+          are internally consistent.
+        - **Statistical fidelity**: The 50 stochastic scenarios preserve
+          the intended correlation structure, maintain ensemble
+          unbiasedness relative to the point forecast, respect physical
+          bounds, and enforce solar nighttime zeros.
+
+        The dataset is ready for downstream SCUC/SCED optimization
+        experiments across all six evaluation tools.
+        """.format(
+            n_pass=_n_pass,
+            n_total=_n_total,
+            fail_note=(
+                "No failures detected."
+                if _n_fail == 0
+                else f"{_n_fail} check(s) failed — review diagnostics above."
+            ),
+        )
+    )
+    return ()
+
+
+@app.cell
+def _(mo, np, pd, tiny_output_dir):
+    # Dataset inventory — read summary stats from generated files
+    @mo.cache
+    def _build_inventory():
+        _inv_rows = []
+
+        # Network topology from case file
+        _case_path = tiny_output_dir / "case39.m"
+        _n_buses = 0
+        _n_branches = 0
+        _n_gens_case = 0
+        if _case_path.exists():
+            _text = _case_path.read_text()
+            for _line in _text.splitlines():
+                _stripped = _line.strip()
+                if _stripped.startswith("];"):
+                    pass  # end of matrix
+            # Count data rows in each matrix
+            import re
+
+            _bus_match = re.search(r"mpc\.bus\s*=\s*\[(.*?)\];", _text, re.DOTALL)
+            if _bus_match:
+                _bus_lines = [
+                    ln
+                    for ln in _bus_match.group(1).strip().splitlines()
+                    if ln.strip() and not ln.strip().startswith("%")
+                ]
+                _n_buses = len(_bus_lines)
+
+            _branch_match = re.search(r"mpc\.branch\s*=\s*\[(.*?)\];", _text, re.DOTALL)
+            if _branch_match:
+                _br_lines = [
+                    ln
+                    for ln in _branch_match.group(1).strip().splitlines()
+                    if ln.strip() and not ln.strip().startswith("%")
+                ]
+                _n_branches = len(_br_lines)
+
+            _gen_match = re.search(r"mpc\.gen\s*=\s*\[(.*?)\];", _text, re.DOTALL)
+            if _gen_match:
+                _gen_lines = [
+                    ln
+                    for ln in _gen_match.group(1).strip().splitlines()
+                    if ln.strip() and not ln.strip().startswith("%")
+                ]
+                _n_gens_case = len(_gen_lines)
+
+        _inv_rows.append({"category": "Network", "item": "Buses", "value": str(_n_buses)})
+        _inv_rows.append({"category": "Network", "item": "Branches", "value": str(_n_branches)})
+        _inv_rows.append(
+            {"category": "Network", "item": "Generators (case file)", "value": str(_n_gens_case)}
+        )
+
+        # Generator classification
+        _class_csv = tiny_output_dir / "gen_classification.csv"
+        _n_thermal = 0
+        if _class_csv.exists():
+            _class_df = pd.read_csv(_class_csv)
+            _n_thermal = (
+                len(_class_df[~_class_df["fuel_type"].isin(["Wind", "Solar"])])
+                if "fuel_type" in _class_df.columns
+                else _n_gens_case
+            )
+        _inv_rows.append(
+            {"category": "Network", "item": "Thermal generators", "value": str(_n_thermal)}
+        )
+
+        # Renewables
+        _wind_csv = tiny_output_dir / "wind_forecast_24h.csv"
+        _solar_csv = tiny_output_dir / "solar_forecast_24h.csv"
+        _n_wind = 0
+        _wind_cap = 0.0
+        _n_solar = 0
+        _solar_cap = 0.0
+        if _wind_csv.exists():
+            _wdf = pd.read_csv(_wind_csv)
+            _gen_cols = [c for c in _wdf.columns if c.startswith("gen_")]
+            _n_wind = len(_gen_cols)
+            _wind_cap = sum(_wdf[c].max() for c in _gen_cols)
+        if _solar_csv.exists():
+            _sdf = pd.read_csv(_solar_csv)
+            _gen_cols_s = [c for c in _sdf.columns if c.startswith("gen_")]
+            _n_solar = len(_gen_cols_s)
+            _solar_cap = sum(_sdf[c].max() for c in _gen_cols_s)
+
+        _inv_rows.append(
+            {
+                "category": "Renewables",
+                "item": "Wind units",
+                "value": f"{_n_wind} ({_wind_cap:.0f} MW nameplate)",
+            }
+        )
+        _inv_rows.append(
+            {
+                "category": "Renewables",
+                "item": "Solar units",
+                "value": f"{_n_solar} ({_solar_cap:.0f} MW nameplate)",
+            }
+        )
+
+        # BESS
+        _bess_csv = tiny_output_dir / "bess_units.csv"
+        if _bess_csv.exists():
+            _bess_df = pd.read_csv(_bess_csv)
+            _n_bess = len(_bess_df)
+            _bess_mw = _bess_df["power_mw"].sum() if "power_mw" in _bess_df.columns else 0
+            _bess_mwh = _bess_df["energy_mwh"].sum() if "energy_mwh" in _bess_df.columns else 0
+            _inv_rows.append(
+                {
+                    "category": "Storage",
+                    "item": "BESS units",
+                    "value": f"{_n_bess} ({_bess_mw:.0f} MW / {_bess_mwh:.0f} MWh)",
+                }
+            )
+        else:
+            _inv_rows.append({"category": "Storage", "item": "BESS units", "value": "0"})
+
+        # DR
+        _dr_csv = tiny_output_dir / "dr_buses.csv"
+        if _dr_csv.exists():
+            _dr_df = pd.read_csv(_dr_csv)
+            _n_dr = len(_dr_df)
+            _dr_mw = _dr_df["curtailment_mw"].sum() if "curtailment_mw" in _dr_df.columns else 0
+            _inv_rows.append(
+                {
+                    "category": "Demand Response",
+                    "item": "DR buses",
+                    "value": f"{_n_dr} ({_dr_mw:.0f} MW curtailment)",
+                }
+            )
+        else:
+            _inv_rows.append({"category": "Demand Response", "item": "DR buses", "value": "0"})
+
+        # Flowgates
+        _fg_csv = tiny_output_dir / "flowgates.csv"
+        if _fg_csv.exists():
+            _fg_df = pd.read_csv(_fg_csv)
+            _n_fg = len(_fg_df)
+            _fg_limits = (
+                f"{_fg_df['limit_mw'].min():.0f}–{_fg_df['limit_mw'].max():.0f}"
+                if "limit_mw" in _fg_df.columns
+                else "N/A"
+            )
+            _inv_rows.append(
+                {
+                    "category": "Flowgates",
+                    "item": "Flowgate constraints",
+                    "value": f"{_n_fg} (limits: {_fg_limits} MW)",
+                }
+            )
+
+        # Load profile
+        _load_csv = tiny_output_dir / "load_24h.csv"
+        if _load_csv.exists():
+            _load_df = pd.read_csv(_load_csv)
+            _load_cols = [c for c in _load_df.columns if c.startswith("HR_")]
+            if _load_cols:
+                _total_load = _load_df[_load_cols].sum(axis=0)
+                _peak = _total_load.max()
+                _valley = _total_load.min()
+                _inv_rows.append(
+                    {
+                        "category": "Load",
+                        "item": "Peak system load",
+                        "value": f"{_peak:.0f} MW",
+                    }
+                )
+                _inv_rows.append(
+                    {
+                        "category": "Load",
+                        "item": "Valley system load",
+                        "value": f"{_valley:.0f} MW",
+                    }
+                )
+
+        # Reserves
+        _res_csv = tiny_output_dir / "reserve_eligibility.csv"
+        if _res_csv.exists():
+            _res_df = pd.read_csv(_res_csv)
+            _spin_cols = [c for c in _res_df.columns if "spin" in c.lower()]
+            _products = []
+            for c in _res_df.columns:
+                if c not in ("gen_uid", "bus_id"):
+                    _products.append(c)
+            _inv_rows.append(
+                {
+                    "category": "Reserves",
+                    "item": "Reserve products",
+                    "value": ", ".join(_products) if _products else "N/A",
+                }
+            )
+
+        # Scenarios
+        _scen_dir = tiny_output_dir / "scenarios"
+        if _scen_dir.exists():
+            _mult_csv = _scen_dir / "scenario_multipliers.csv"
+            if _mult_csv.exists():
+                _scen_df = pd.read_csv(_mult_csv)
+                _n_scenarios = (
+                    _scen_df["scenario_id"].nunique() if "scenario_id" in _scen_df.columns else 0
+                )
+                _inv_rows.append(
+                    {
+                        "category": "Scenarios",
+                        "item": "Scenario count",
+                        "value": str(_n_scenarios),
+                    }
+                )
+                # Multiplier range
+                _mult_cols = [
+                    c for c in _scen_df.columns if c.startswith("HR_") or c.startswith("gen_")
+                ]
+                if _mult_cols:
+                    _all_vals = _scen_df[_mult_cols].values.flatten()
+                    _all_vals = _all_vals[~np.isnan(_all_vals)]
+                    if len(_all_vals) > 0:
+                        _inv_rows.append(
+                            {
+                                "category": "Scenarios",
+                                "item": "Multiplier range",
+                                "value": (f"{np.min(_all_vals):.3f} – {np.max(_all_vals):.3f}"),
+                            }
+                        )
+
+        return pd.DataFrame(_inv_rows)
+
+    inventory_df = _build_inventory()
+    return (inventory_df,)
+
+
+@app.cell
+def _(inventory_df, mo):
+    mo.md(
+        r"""
+        ## Dataset Inventory
+
+        The table below consolidates everything the five-notebook pipeline
+        produced for the TINY (case39) network.
+        """
+    )
+    _table = mo.ui.table(inventory_df, selection=None)
+    mo.vstack([_table])
+    return ()
+
+
+@app.cell
+def _(alt, pd, tiny_output_dir):
+    # Generation mix stacked bar at peak hour vs peak load + reserves
+    _load_csv_p = tiny_output_dir / "load_24h.csv"
+    _class_csv_p = tiny_output_dir / "gen_classification.csv"
+    _gen_params_csv = tiny_output_dir / "gen_temporal_params.csv"
+
+    _peak_chart = None
+    if _load_csv_p.exists() and _class_csv_p.exists():
+        _load_p = pd.read_csv(_load_csv_p)
+        _hr_cols = [c for c in _load_p.columns if c.startswith("HR_")]
+        _total_load_p = _load_p[_hr_cols].sum(axis=0)
+        _peak_hr_idx = _total_load_p.values.argmax()
+        _peak_load_mw = float(_total_load_p.iloc[_peak_hr_idx])
+
+        _class_p = pd.read_csv(_class_csv_p)
+
+        # Build capacity by fuel type
+        _fuel_cap = {}
+        for _, row in _class_p.iterrows():
+            _ft = row.get("fuel_type", "Unknown")
+            _pmax = row.get("pmax_mw", row.get("Pmax", 0))
+            _fuel_cap[_ft] = _fuel_cap.get(_ft, 0) + float(_pmax)
+
+        # Add renewables from forecast CSVs (nameplate capacity)
+        _wind_fc = tiny_output_dir / "wind_forecast_24h.csv"
+        _solar_fc = tiny_output_dir / "solar_forecast_24h.csv"
+        if _wind_fc.exists():
+            _wdf_p = pd.read_csv(_wind_fc)
+            _wg = [c for c in _wdf_p.columns if c.startswith("gen_")]
+            _fuel_cap["Wind"] = _fuel_cap.get("Wind", 0) + sum(_wdf_p[c].max() for c in _wg)
+        if _solar_fc.exists():
+            _sdf_p = pd.read_csv(_solar_fc)
+            _sg = [c for c in _sdf_p.columns if c.startswith("gen_")]
+            _fuel_cap["Solar"] = _fuel_cap.get("Solar", 0) + sum(_sdf_p[c].max() for c in _sg)
+
+        _cap_rows = [
+            {"fuel_type": ft, "MW": mw, "kind": "capacity"} for ft, mw in sorted(_fuel_cap.items())
+        ]
+        # Add peak load reference line
+        _cap_rows.append({"fuel_type": "Peak Load", "MW": _peak_load_mw, "kind": "load"})
+
+        _cap_df = pd.DataFrame(_cap_rows)
+
+        _cap_only = _cap_df[_cap_df["kind"] == "capacity"]
+        _load_only = _cap_df[_cap_df["kind"] == "load"]
+
+        _bar = (
+            alt.Chart(_cap_only)
+            .mark_bar()
+            .encode(
+                x=alt.X(
+                    "MW:Q",
+                    stack="zero",
+                    title="MW",
+                ),
+                color=alt.Color(
+                    "fuel_type:N",
+                    title="Fuel Type",
+                    scale=alt.Scale(
+                        scheme="tableau10",
+                    ),
+                ),
+                y=alt.value(25),
+            )
+        )
+
+        _load_rule = (
+            alt.Chart(_load_only)
+            .mark_rule(color="red", strokeWidth=3, strokeDash=[6, 3])
+            .encode(x="MW:Q")
+        )
+
+        _load_label = (
+            alt.Chart(_load_only)
+            .mark_text(
+                align="left",
+                dx=5,
+                dy=-15,
+                fontSize=12,
+                color="red",
+                fontWeight="bold",
+            )
+            .encode(
+                x="MW:Q",
+                text=alt.value(f"Peak Load: {_peak_load_mw:.0f} MW"),
+            )
+        )
+
+        _peak_chart = (_bar + _load_rule + _load_label).properties(
+            title=(f"Generation Capacity by Fuel Type vs Peak Load (HR_{_peak_hr_idx + 1})"),
+            width=700,
+            height=80,
+        )
+
+    peak_hour_chart = _peak_chart
+    peak_hour_chart
+    return (peak_hour_chart,)
+
+
+@app.cell
+def _(alt, feasibility_result, load_generators, pd, tiny_output_dir):
+    # 24-hour overview: load profile, total capacity, and reserve margin
+    _gens_ov = load_generators(tiny_output_dir, "case39")
+    _load_ov = feasibility_result.load_profile_mw
+    _total_cap = sum(g.pmax_mw for g in _gens_ov)
+
+    _hours_ov = list(range(1, 25))
+    _ov_rows = []
+    for _i, _hr in enumerate(_hours_ov):
+        _load_mw = _load_ov[_i]
+        _margin = _total_cap - _load_mw
+        _ov_rows.append({"hour": _hr, "series": "System Load", "MW": _load_mw})
+        _ov_rows.append({"hour": _hr, "series": "Total Generation Capacity", "MW": _total_cap})
+        _ov_rows.append({"hour": _hr, "series": "Reserve Margin", "MW": _margin})
+
+    _ov_df = pd.DataFrame(_ov_rows)
+
+    _load_cap = _ov_df[_ov_df["series"].isin(["System Load", "Total Generation Capacity"])]
+    _margin_df = _ov_df[_ov_df["series"] == "Reserve Margin"]
+
+    _lines = (
+        alt.Chart(_load_cap)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("hour:O", title="Hour (HR)"),
+            y=alt.Y("MW:Q", title="MW"),
+            color=alt.Color(
+                "series:N",
+                scale=alt.Scale(
+                    domain=["System Load", "Total Generation Capacity"],
+                    range=["#1f77b4", "#2ca02c"],
+                ),
+                title="Series",
+            ),
+        )
+    )
+
+    _area = (
+        alt.Chart(_margin_df)
+        .mark_area(opacity=0.15, color="#2ca02c")
+        .encode(
+            x=alt.X("hour:O"),
+            y=alt.Y("MW:Q"),
+        )
+    )
+
+    overview_24h_chart = (_lines + _area).properties(
+        title="24-Hour System Overview — Load, Capacity, and Reserve Margin",
+        width=700,
+        height=300,
+    )
+    overview_24h_chart
+    return (overview_24h_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Where to Go Next
+
+        This five-notebook tutorial series built a complete, validated
+        power-system dataset from a raw MATPOWER case file. The TINY
+        (case39) dataset is intentionally small — 39 buses, 24 hours,
+        50 scenarios — so that every evaluation tool can solve it in
+        seconds. But the dataset exercises the same structural features
+        that matter at production scale: thermal unit commitment
+        constraints, stochastic renewable scenarios, battery storage,
+        demand response, flowgate limits, and reserve requirements.
+
+        ### Connecting to rubric dimensions
+
+        The evaluation rubric (in `evaluation_guides/`) scores each tool
+        across seven dimensions. This dataset is designed to test three
+        of them directly:
+
+        - **Expressiveness** — Can the tool represent all resource types
+          (thermal, wind, solar, BESS, DR) and constraint types
+          (flowgates, reserves, min up/down times) present in this
+          dataset?
+        - **Scalability** — How does solve time grow when we move from
+          case39 (39 buses) to ACTIVSg2000 (2000 buses) to ACTIVSg10k
+          (10,000 buses)?
+        - **Extensibility** — How hard is it to add a new constraint
+          type (e.g., a custom flowgate formulation) or a new resource
+          type (e.g., pumped hydro)?
+
+        ### Evaluation tools
+
+        Six tools are under evaluation, each in its own directory with
+        independent dependencies:
+
+        | Tool | Directory | Language |
+        |------|-----------|----------|
+        | PyPSA | `evaluations/pypsa/` | Python |
+        | pandapower | `evaluations/pandapower/` | Python |
+        | GridCal | `evaluations/gridcal/` | Python |
+        | PowerModels.jl | `evaluations/powermodels/` | Julia |
+        | PowerSimulations.jl | `evaluations/powersimulations/` | Julia |
+        | MATPOWER | `evaluations/matpower/` | Octave/MATLAB |
+
+        Each evaluation directory contains scripts that ingest this
+        same TINY dataset and solve the SCUC/OPF problem, producing
+        results scored against the rubric.
+
+        ### Full rubric
+
+        See `evaluation_guides/` for the complete scoring methodology,
+        including the four additional dimensions (gate, accessibility,
+        maturity, supply_chain) that are assessed through documentation
+        review and community analysis rather than computational tests.
+        """
+    )
+    return ()
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Five-Notebook Recap
+
+        1. **Notebook 01 — Raw Data Orientation**: Parsed the IEEE 39-bus
+           MATPOWER case file, extracted bus/branch/generator tables, and
+           established the network topology that anchors all subsequent data.
+
+        2. **Notebook 02 — Generator Calibration**: Classified generators by
+           fuel type, assigned temporal operating parameters (ramp rates,
+           min up/down times, startup costs), and created renewable
+           forecast profiles from nameplate capacities.
+
+        3. **Notebook 03 — Infrastructure Augmentation**: Placed BESS and
+           demand-response resources on the network, defined flowgate
+           constraints from DC power flow congestion analysis, and built
+           24-hour load profiles with reserve requirements.
+
+        4. **Notebook 04 — Stochastic Scenarios**: Fitted Student-t
+           distributions to forecast errors, estimated spatial correlations
+           between renewable generators, and produced 50 correlated scenario
+           multiplier profiles using the Iman-Conover procedure.
+
+        5. **Notebook 05 — Validation and Summary**: Verified referential
+           integrity across all files, screened SCUC feasibility of the
+           assembled parameters, validated statistical fidelity of the
+           stochastic scenarios, and confirmed the dataset is ready for
+           tool evaluation.
+
+        The TINY dataset is complete. The evaluation begins.
+        """
+    )
+    return ()
+
+
 if __name__ == "__main__":
     app.run()
