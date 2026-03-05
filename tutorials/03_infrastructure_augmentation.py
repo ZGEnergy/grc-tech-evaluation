@@ -426,5 +426,383 @@ def _(mo):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## DC Optimal Power Flow and Transmission Congestion
+
+        With BESS and DR resources defined, we now turn to the **network
+        physics** that determine where congestion occurs and where those
+        resources can provide the most relief. The workhorse tool for this
+        analysis is the **DC Optimal Power Flow (DC OPF)**.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### What is DC OPF?
+
+        DC OPF is a **linearized, lossless** approximation of the full AC
+        power flow equations. It makes three simplifying assumptions:
+
+        1. **Voltage magnitudes are fixed at 1.0 p.u.** — no reactive power
+           modeled.
+        2. **Angle differences across branches are small** — so
+           $\sin(\theta_i - \theta_j) \approx \theta_i - \theta_j$.
+        3. **Line losses are neglected** — power in equals power out on every
+           branch.
+
+        These assumptions reduce the nonlinear AC power flow to a **linear
+        system** $B \cdot \theta = P_{\text{inject}}$, where $B$ is the bus
+        susceptance matrix and $\theta$ is the vector of bus voltage angles.
+        Branch flows follow directly:
+
+        $$P_{ij} = \frac{\theta_i - \theta_j}{x_{ij}} \cdot S_{\text{base}}$$
+
+        DC OPF is the standard tool for **congestion analysis**, **LMP
+        decomposition**, and **flowgate identification** in ISO/RTO market
+        operations because it is fast, convex, and captures the dominant
+        physics of real-power flow on high-voltage transmission networks.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Three Load Levels: Peak, Shoulder, and Valley
+
+        A single power-flow snapshot tells us what happens at one operating
+        point. But congestion patterns shift dramatically across the daily
+        load cycle. We analyze three representative load levels derived from
+        the system load profile:
+
+        | Level | Scale Factor | Description |
+        |-------|-------------|-------------|
+        | **Peak** | 1.00 | Highest system load hour — maximum stress on transmission |
+        | **Shoulder** | 0.75 | Mid-range load (morning ramp or evening decline) |
+        | **Valley** | 0.55 | Overnight minimum — light loading, different flow patterns |
+
+        These scale factors multiply every bus load proportionally, then
+        generators are re-dispatched to balance. This reveals which branches
+        congest only at peak versus those that are stressed even at moderate
+        load levels.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Branch Utilization and the 80% Threshold
+
+        For each branch, we compute **loading percentage**:
+
+        $$\text{Loading \%} = \frac{|P_{\text{branch}}|}{\text{Rate A}} \times 100$$
+
+        where Rate A is the branch's thermal MVA limit from the case file.
+
+        Branches loaded above **80%** are flagged as **congestion candidates**.
+        This threshold is standard in transmission planning — it provides a
+        safety margin below the hard thermal limit while identifying branches
+        that are operationally stressed. These candidates become the basis
+        for flowgate definitions in the next section.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### DC vs AC OPF: Tradeoffs
+
+        | Aspect | DC OPF | AC OPF |
+        |--------|--------|--------|
+        | **Variables** | Real power, angles | Real & reactive power, voltages, angles |
+        | **Losses** | Neglected | Modeled |
+        | **Voltage limits** | Not enforced | Enforced |
+        | **Solution method** | Linear (LP/QP) | Nonlinear (NLP) |
+        | **Solve time** | Milliseconds | Seconds to minutes |
+        | **Accuracy** | ~95% for real-power flows | Full fidelity |
+        | **Use case** | Market clearing, congestion screening | Detailed planning, voltage studies |
+
+        For congestion identification on a 39-bus system, DC OPF is more than
+        adequate. The ~5% error in branch flows is well within the margin
+        provided by the 80% congestion threshold. We would switch to AC OPF
+        only if voltage stability or reactive power limits were the binding
+        constraints — which they rarely are in day-ahead energy market clearing.
+        """
+    )
+    return
+
+
+@app.cell
+def _(Path, mo):
+    from scripts.tiny_flowgates import (
+        CONGESTION_THRESHOLD as _CONG_THRESHOLD,
+        LOAD_LEVELS as _LOAD_LEVELS,
+        main as _run_flowgate_analysis,
+    )
+
+    @mo.cache
+    def _execute_dcopf():
+        """Run DC OPF at three load levels via tiny_flowgates."""
+        case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+        load_csv = (
+            Path(__file__).resolve().parent.parent
+            / "data"
+            / "timeseries"
+            / "case39"
+            / "load_24h.csv"
+        )
+        output_dir = Path(__file__).resolve().parent.parent / "data" / "timeseries" / "case39"
+        return _run_flowgate_analysis(
+            m_file_path=case_file,
+            load_csv_path=load_csv,
+            output_dir=output_dir,
+        )
+
+    opf_result = _execute_dcopf()
+    opf_load_levels = _LOAD_LEVELS
+    opf_cong_threshold = _CONG_THRESHOLD
+    return opf_cong_threshold, opf_load_levels, opf_result
+
+
+@app.cell
+def _(alt, opf_cong_threshold, opf_result, pd):
+    # Build a DataFrame of branch loading at peak for the sorted bar chart.
+    _peak_flows = opf_result.branch_flows["peak"]
+    _peak_df = pd.DataFrame(
+        [
+            {
+                "Branch": f"{bf.from_bus}-{bf.to_bus}",
+                "Loading (%)": round(bf.loading_pct, 1),
+                "Congested": bf.loading_pct >= opf_cong_threshold * 100,
+            }
+            for bf in sorted(_peak_flows, key=lambda x: x.loading_pct, reverse=True)
+        ]
+    )
+
+    _threshold_pct = opf_cong_threshold * 100
+
+    _color_scale = alt.Scale(
+        domain=[True, False],
+        range=["#d62728", "#1f77b4"],
+    )
+
+    _bars = (
+        alt.Chart(_peak_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Branch:N",
+                sort=alt.EncodingSortField(field="Loading (%)", order="descending"),
+                axis=alt.Axis(labelAngle=-60, labelFontSize=9),
+                title="Branch (from-to)",
+            ),
+            y=alt.Y(
+                "Loading (%):Q",
+                title="Branch Loading (%)",
+                scale=alt.Scale(domain=[0, 120]),
+            ),
+            color=alt.Color(
+                "Congested:N",
+                scale=_color_scale,
+                legend=alt.Legend(title="Above 80%"),
+            ),
+            tooltip=[
+                alt.Tooltip("Branch:N"),
+                alt.Tooltip("Loading (%):Q", format=".1f"),
+                alt.Tooltip("Congested:N"),
+            ],
+        )
+    )
+
+    _threshold_rule = (
+        alt.Chart(pd.DataFrame({"y": [_threshold_pct]}))
+        .mark_rule(strokeDash=[6, 3], color="black", strokeWidth=2)
+        .encode(y="y:Q")
+    )
+
+    _threshold_label = (
+        alt.Chart(pd.DataFrame({"y": [_threshold_pct], "label": ["80% threshold"]}))
+        .mark_text(align="left", dx=5, dy=-8, fontSize=11, fontWeight="bold")
+        .encode(y="y:Q", text="label:N")
+    )
+
+    peak_loading_chart = (_bars + _threshold_rule + _threshold_label).properties(
+        title="Branch Loading at Peak — Congestion Candidates Highlighted",
+        width=700,
+        height=400,
+    )
+    peak_loading_chart
+    return (peak_loading_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        The chart above reveals the **dramatic concentration of congestion**
+        in a handful of branches. At peak load, only a few branches exceed
+        the 80% threshold (shown in red), but these are the critical
+        bottlenecks that constrain power delivery across the network. The
+        long tail of lightly loaded branches confirms that congestion in
+        the IEEE 39-bus system is **localized**, not systemic — a pattern
+        typical of meshed transmission networks where a few key corridors
+        carry disproportionate flow.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, opf_cong_threshold, opf_load_levels, opf_result, pd):
+    # Build a combined DataFrame across all load levels.
+    _rows = []
+    for _level, _scale in opf_load_levels.items():
+        for _bf in opf_result.branch_flows[_level]:
+            _rows.append(
+                {
+                    "Branch": f"{_bf.from_bus}-{_bf.to_bus}",
+                    "Loading (%)": round(_bf.loading_pct, 1),
+                    "Load Level": _level.capitalize(),
+                    "Scale Factor": _scale,
+                }
+            )
+    _multi_df = pd.DataFrame(_rows)
+
+    # Keep only the top-loaded branches at peak (top 15) to avoid clutter.
+    _peak_top = (
+        _multi_df[_multi_df["Load Level"] == "Peak"].nlargest(15, "Loading (%)")["Branch"].tolist()
+    )
+    _multi_filtered = _multi_df[_multi_df["Branch"].isin(_peak_top)]
+
+    _level_order = ["Valley", "Shoulder", "Peak"]
+
+    multi_level_chart = (
+        alt.Chart(_multi_filtered)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Load Level:N",
+                sort=_level_order,
+                title="Load Level",
+                axis=alt.Axis(labelAngle=0),
+            ),
+            y=alt.Y(
+                "Loading (%):Q",
+                title="Branch Loading (%)",
+            ),
+            color=alt.Color(
+                "Load Level:N",
+                sort=_level_order,
+                scale=alt.Scale(
+                    domain=_level_order,
+                    range=["#2ca02c", "#ff7f0e", "#d62728"],
+                ),
+                legend=alt.Legend(title="Load Level"),
+            ),
+            column=alt.Column(
+                "Branch:N",
+                sort=alt.EncodingSortField(field="Loading (%)", order="descending"),
+                header=alt.Header(
+                    labelAngle=-60,
+                    labelFontSize=9,
+                    titleOrient="bottom",
+                ),
+                title="Branch",
+            ),
+            tooltip=[
+                alt.Tooltip("Branch:N"),
+                alt.Tooltip("Load Level:N"),
+                alt.Tooltip("Loading (%):Q", format=".1f"),
+            ],
+        )
+        .properties(
+            title="Branch Loading Across Load Levels (Top 15 at Peak)",
+            width=30,
+            height=300,
+        )
+    )
+    multi_level_chart
+    return (multi_level_chart,)
+
+
+@app.cell
+def _(opf_cong_threshold, opf_load_levels, opf_result, pd):
+    # Identify branches exceeding the congestion threshold at ANY load level.
+    _threshold_pct = opf_cong_threshold * 100
+    _candidates: dict[str, dict] = {}
+
+    for _level in opf_load_levels:
+        for _bf in opf_result.branch_flows[_level]:
+            _key = f"{_bf.from_bus}-{_bf.to_bus}"
+            if _bf.loading_pct >= _threshold_pct:
+                if _key not in _candidates:
+                    _candidates[_key] = {
+                        "Branch": _key,
+                        "From Bus": _bf.from_bus,
+                        "To Bus": _bf.to_bus,
+                        "Rate A (MW)": _bf.rate_a_mw,
+                        "Peak (%)": 0.0,
+                        "Shoulder (%)": 0.0,
+                        "Valley (%)": 0.0,
+                        "Max Loading (%)": 0.0,
+                        "Binding Level": "",
+                    }
+
+    # Fill in loading percentages for all levels.
+    for _level in opf_load_levels:
+        _col = f"{_level.capitalize()} (%)"
+        for _bf in opf_result.branch_flows[_level]:
+            _key = f"{_bf.from_bus}-{_bf.to_bus}"
+            if _key in _candidates:
+                _candidates[_key][_col] = round(_bf.loading_pct, 1)
+                if _bf.loading_pct > _candidates[_key]["Max Loading (%)"]:
+                    _candidates[_key]["Max Loading (%)"] = round(_bf.loading_pct, 1)
+                    _candidates[_key]["Binding Level"] = _level.capitalize()
+
+    congestion_candidates_df = pd.DataFrame(
+        sorted(_candidates.values(), key=lambda r: r["Max Loading (%)"], reverse=True)
+    )
+    congestion_candidates_df
+    return (congestion_candidates_df,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Transition: From Branch Loading to Flowgates
+
+        Individual branch overloads are useful for spotting bottlenecks, but
+        ISOs and RTOs manage congestion through **flowgates** — groups of
+        related branches whose combined flow is monitored against a single
+        limit. A flowgate might represent a transmission corridor, an
+        interface between control areas, or a set of parallel paths that
+        share load.
+
+        The next section will show how the congestion candidates identified
+        above are **grouped into flowgate definitions** by topological
+        adjacency, assigned MW limits (derated to 95% of the binding branch's
+        thermal rating), and prepared for use in the unit commitment
+        formulation.
+        """
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
