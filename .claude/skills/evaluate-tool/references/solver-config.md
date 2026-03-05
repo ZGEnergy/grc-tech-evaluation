@@ -72,19 +72,20 @@ msg_lev: GLP_MSG_ON
 
 ## Solver Selection per Test
 
-| Test | Primary Solver | Secondary (if applicable) |
-|------|---------------|--------------------------|
-| A-1 (DCPF) | Direct (no optimizer) | — |
-| A-2 (ACPF) | Ipopt | — |
-| A-3 (DC OPF) | HiGHS | — |
-| A-4 (AC Feasibility) | Ipopt | — |
-| A-5 (SCUC) | HiGHS | SCIP |
-| A-6 (SCED) | HiGHS | — |
-| A-7 (Contingency) | Direct or HiGHS | — |
-| A-8 (Stochastic) | HiGHS | — |
-| C-3 (DC OPF scale) | HiGHS, GLPK | — |
-| C-4 (SCUC scale) | HiGHS, SCIP | — |
-| C-7 (Solver swap) | All available | — |
+Each test's required solver(s) are specified in the eval-config's `solver` field.
+The general mapping by problem type is:
+
+| Problem Type | Primary Solver | Secondary (if applicable) |
+|-------------|---------------|--------------------------|
+| DC Power Flow (DCPF) | Direct (no optimizer) | — |
+| AC Power Flow (ACPF, NLP) | Ipopt | — |
+| LP / DC OPF / SCED | HiGHS | — |
+| MILP / SCUC | HiGHS | SCIP |
+| QP | HiGHS | — |
+| Scalability solver comparison | All available | — |
+
+Consult the eval-config for test-specific solver assignments. For scalability tests
+(Suite C), also test with multiple solvers where the config specifies it.
 
 ## Recording Requirements
 
