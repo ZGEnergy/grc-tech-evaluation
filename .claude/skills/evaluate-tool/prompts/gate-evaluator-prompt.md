@@ -13,10 +13,11 @@ Gate tests determine whether a tool can proceed to full evaluation.
 
 ## Execution Environment
 
-**All code runs inside the devcontainer:**
+**All code runs inside the devcontainer via `dc-exec`:**
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 Never run code on the host.
@@ -31,9 +32,9 @@ Execute gate tests for `{{tool_name}}`. These are pass/fail network ingestion ch
    `test_gate.jl`, `test_gate.m`).
 
 2. **Run or write the test.**
-   - Python: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && uv run pytest tests/test_gate.py -v -k <test_id>"`
-   - Julia: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && julia --project=. tests/test_gate.jl"`
-   - Octave: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && octave tests/test_gate.m"`
+   - Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run pytest tests/test_gate.py -v -k <test_id>`
+   - Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/test_gate.jl`
+   - Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/test_gate.m`
 
    If no existing test covers it, write one that:
    - Loads the network file for the relevant tier

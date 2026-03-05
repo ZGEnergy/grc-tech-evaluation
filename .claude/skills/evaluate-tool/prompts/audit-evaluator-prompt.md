@@ -15,10 +15,11 @@ structured research and analysis.
 
 ## Execution Environment
 
-Commands that inspect installed packages or run tools must use the devcontainer:
+Commands that inspect installed packages or run tools must use the devcontainer via `dc-exec`:
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 ## Task

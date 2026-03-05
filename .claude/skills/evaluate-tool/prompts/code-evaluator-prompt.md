@@ -18,10 +18,11 @@ You write and run test scripts, then produce structured result files for each te
 
 ## Execution Environment
 
-**All code runs inside the devcontainer:**
+**All code runs inside the devcontainer via `dc-exec`:**
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 Never run code on the host.
@@ -72,9 +73,9 @@ Write a self-documenting test script following conventions from `test-script-con
 
 Execute inside the devcontainer:
 
-- Python: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && uv run python tests/{{dimension}}/test_<test_id>.py"`
-- Julia: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && julia --project=. tests/{{dimension}}/test_<test_id>.jl"`
-- Octave: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && octave tests/{{dimension}}/test_<test_id>.m"`
+- Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run python tests/{{dimension}}/test_<test_id>.py`
+- Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/{{dimension}}/test_<test_id>.jl`
+- Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/{{dimension}}/test_<test_id>.m`
 
 If the test fails, analyze the error:
 - Is it a bug in the test script? Fix and re-run.

@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# dc-exec — Execute commands inside the devcontainer from any worktree.
+#
+# Unlike `devcontainer exec --workspace-folder .`, this uses `docker exec -w`
+# which works from any git worktree (not just the main checkout).
+#
+# Usage:
+#   dc-exec <command> [args...]           Run command in /workspace
+#   dc-exec -C <dir> <command> [args...]  Run command in <dir> (container path)
+#
+# Examples:
+#   dc-exec python --version
+#   dc-exec -C /workspace/evaluations/pypsa uv run pytest tests/ -v
+#   dc-exec bash
+
+set -euo pipefail
+
+# --- Parse -C flag -----------------------------------------------------------
+WORKDIR="/workspace"
+if [[ "${1:-}" == "-C" ]]; then
+    if [[ -z "${2:-}" ]]; then
+        echo "dc-exec: -C requires a directory argument" >&2
+        exit 1
+    fi
+    WORKDIR="$2"
+    shift 2
+fi
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: dc-exec [-C <container-dir>] <command> [args...]" >&2
+    exit 1
+fi
+
+# --- Find the main repo root via git worktree list ---------------------------
+REPO_ROOT="$(git worktree list --porcelain | head -1 | sed 's/^worktree //')"
+if [[ -z "$REPO_ROOT" ]]; then
+    echo "dc-exec: could not determine repo root (not in a git repo?)" >&2
+    exit 1
+fi
+
+# --- Find the devcontainer ---------------------------------------------------
+CONTAINER_ID="$(docker ps -q --filter "label=devcontainer.local_folder=${REPO_ROOT}")"
+
+if [[ -z "$CONTAINER_ID" ]]; then
+    echo "dc-exec: no running devcontainer found for ${REPO_ROOT}" >&2
+    echo "dc-exec: start it with: devcontainer up --workspace-folder ${REPO_ROOT}" >&2
+    exit 1
+fi
+
+# Validate exactly one container matched
+CONTAINER_COUNT="$(echo "$CONTAINER_ID" | wc -l)"
+if [[ "$CONTAINER_COUNT" -gt 1 ]]; then
+    echo "dc-exec: multiple containers found for ${REPO_ROOT} — expected exactly one" >&2
+    echo "$CONTAINER_ID" >&2
+    exit 1
+fi
+
+# --- TTY detection ------------------------------------------------------------
+DOCKER_FLAGS=()
+if [ -t 0 ]; then
+    DOCKER_FLAGS+=("-it")
+fi
+
+# --- Execute ------------------------------------------------------------------
+exec docker exec \
+    "${DOCKER_FLAGS[@]}" \
+    -u vscode \
+    -w "$WORKDIR" \
+    "$CONTAINER_ID" \
+    "$@"
