@@ -1039,5 +1039,309 @@ def _(mo):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Synthetic Renewable Generation
+
+        The 10 thermal generators calibrated above — nuclear, coal, gas, and
+        hydro — provide the dispatchable backbone of the case39 fleet. But
+        modern grids derive a growing share of energy from **variable
+        renewable resources** (wind and solar) whose output fluctuates with
+        weather rather than operator decisions.
+
+        Adding renewables to the commitment problem changes it fundamentally:
+
+        - **Net load** (load minus renewables) replaces gross load as the
+          signal that thermal units must follow. High renewable output
+          reduces the number of thermal units needed online, while rapid
+          drops in wind or solar force fast-ramping units to compensate.
+        - **Reserve requirements** may increase to cover renewable forecast
+          uncertainty — a topic explored in later notebooks.
+
+        ### Bus Placement via Headroom Scoring
+
+        Where should new wind and solar generators connect? Injecting power
+        at an already-congested bus would violate thermal limits on
+        transmission lines. We score every **non-generator bus** by its
+        **transmission headroom** — the sum of unused thermal capacity
+        (rateA minus estimated flow) on all connected branches. Buses with
+        high headroom can absorb new generation without congestion. We also
+        diversify across network areas so that renewable output is
+        geographically spread.
+
+        ### Capacity Factor Profiles
+
+        Each renewable type has a characteristic **capacity factor (CF)**
+        shape — the fraction of nameplate capacity produced in each hour:
+
+        - **Wind** CF is highest overnight and in the evening, lowest in
+          the early afternoon. Crucially, wind output is **non-zero in
+          every hour** — unlike solar, wind farms produce power around
+          the clock, though the amount varies.
+        - **Solar** CF follows a bell curve centered on midday and is
+          **exactly zero at night** (HE 1–6 and HE 21–24). The sharp
+          morning ramp-up and evening ramp-down create the "duck curve"
+          that thermal units must accommodate.
+
+        We use synthetic profiles derived from **RTS-GMLC representative
+        day** shapes, scaled to each unit's nameplate capacity (Pmax).
+        """
+    )
+    return
+
+
+@app.cell
+def _(Path, mo, parse_matpower_case, synthesize_renewable_profiles):
+    @mo.cache
+    def _compute_renewables():
+        _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+        _case_data = parse_matpower_case(_case_file)
+        return synthesize_renewable_profiles(_case_data, penetration=0.20)
+
+    renewable_result = _compute_renewables()
+    return (renewable_result,)
+
+
+@app.cell
+def _(pd, renewable_result):
+    _unit_records = [
+        {
+            "gen_uid": u.gen_uid,
+            "bus_id": u.bus_id,
+            "type": u.renewable_type.value,
+            "pmax_mw": u.pmax_mw,
+            "area": u.area,
+        }
+        for u in renewable_result.units
+    ]
+    renewable_units_df = pd.DataFrame(_unit_records)
+    renewable_units_df
+    return (renewable_units_df,)
+
+
+@app.cell
+def _(alt, pd, renewable_result):
+    _wind_records = []
+    for _wp in renewable_result.wind_profiles:
+        for _h_idx, _mw in enumerate(_wp.values_mw):
+            _wind_records.append(
+                {
+                    "hour_ending": _h_idx + 1,
+                    "gen_uid": _wp.gen_uid,
+                    "mw": round(_mw, 2),
+                }
+            )
+    _wind_df = pd.DataFrame(_wind_records)
+
+    wind_profile_chart = (
+        alt.Chart(_wind_df)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X(
+                "hour_ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y("mw:Q", title="Wind Output (MW)"),
+            color=alt.Color("gen_uid:N", title="Wind Unit"),
+            tooltip=[
+                alt.Tooltip("gen_uid:N", title="Unit"),
+                alt.Tooltip("hour_ending:Q", title="HE"),
+                alt.Tooltip("mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title="Wind Generation Profiles (24 Hours)",
+            width=600,
+            height=350,
+        )
+    )
+    wind_profile_chart
+    return (wind_profile_chart,)
+
+
+@app.cell
+def _(alt, pd, renewable_result):
+    _solar_records = []
+    for _sp in renewable_result.solar_profiles:
+        for _h_idx, _mw in enumerate(_sp.values_mw):
+            _solar_records.append(
+                {
+                    "hour_ending": _h_idx + 1,
+                    "gen_uid": _sp.gen_uid,
+                    "mw": round(_mw, 2),
+                }
+            )
+    _solar_df = pd.DataFrame(_solar_records)
+
+    solar_profile_chart = (
+        alt.Chart(_solar_df)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X(
+                "hour_ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y("mw:Q", title="Solar Output (MW)"),
+            color=alt.Color("gen_uid:N", title="Solar Unit"),
+            tooltip=[
+                alt.Tooltip("gen_uid:N", title="Unit"),
+                alt.Tooltip("hour_ending:Q", title="HE"),
+                alt.Tooltip("mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title="Solar Generation Profiles (24 Hours)",
+            width=600,
+            height=350,
+        )
+    )
+    solar_profile_chart
+    return (solar_profile_chart,)
+
+
+@app.cell
+def _(mo, renewable_result):
+    _wind_peak_he = (
+        max(
+            range(24),
+            key=lambda i: sum(wp.values_mw[i] for wp in renewable_result.wind_profiles),
+        )
+        + 1
+    )
+    _solar_peak_he = (
+        max(
+            range(24),
+            key=lambda i: sum(sp.values_mw[i] for sp in renewable_result.solar_profiles),
+        )
+        + 1
+    )
+
+    mo.md(
+        f"""
+        ### Profile Patterns
+
+        **Wind** output peaks in the evening (HE {_wind_peak_he}) and dips
+        in the early afternoon — the inverse of load and solar patterns.
+        All three wind units share the same capacity factor shape (derived
+        from the RTS-GMLC representative day) but differ in MW output
+        because they share the same nameplate capacity.
+
+        **Solar** output follows a symmetric bell curve, peaking near
+        midday (HE {_solar_peak_he}). Output is **exactly zero** for
+        10 nighttime hours (HE 1–6, HE 21–24), which means the thermal
+        fleet must cover the full load during those hours with no solar
+        contribution.
+
+        This complementary timing — wind strongest when solar is weakest
+        — is a key reason portfolios combine both technologies.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, classification_df, load_profile_result, pd, renewable_result):
+    # Find peak hour from load profile
+    _sys_mw_mix = load_profile_result.metadata.hourly_system_mw
+    _peak_he_idx = _sys_mw_mix.index(max(_sys_mw_mix))
+    _peak_load_mw = max(_sys_mw_mix)
+
+    # Thermal capacity at peak (total Pmax of all thermal gens)
+    _thermal_total_mw = classification_df["pmax_mw"].sum()
+
+    # Renewable output at peak hour
+    _wind_at_peak = sum(wp.values_mw[_peak_he_idx] for wp in renewable_result.wind_profiles)
+    _solar_at_peak = sum(sp.values_mw[_peak_he_idx] for sp in renewable_result.solar_profiles)
+
+    _mix_records = [
+        {"category": "Thermal Capacity", "mw": _thermal_total_mw},
+        {"category": "Wind @ Peak", "mw": round(_wind_at_peak, 1)},
+        {"category": "Solar @ Peak", "mw": round(_solar_at_peak, 1)},
+        {"category": "Peak Load", "mw": _peak_load_mw},
+    ]
+    _mix_df = pd.DataFrame(_mix_records)
+
+    generation_mix_peak_chart = (
+        alt.Chart(_mix_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "category:N",
+                title="",
+                sort=["Thermal Capacity", "Wind @ Peak", "Solar @ Peak", "Peak Load"],
+            ),
+            y=alt.Y("mw:Q", title="MW"),
+            color=alt.Color(
+                "category:N",
+                title="",
+                scale=alt.Scale(
+                    domain=[
+                        "Thermal Capacity",
+                        "Wind @ Peak",
+                        "Solar @ Peak",
+                        "Peak Load",
+                    ],
+                    range=["#4c78a8", "#72b7b2", "#f58518", "#e45756"],
+                ),
+                legend=None,
+            ),
+            tooltip=[
+                alt.Tooltip("category:N", title="Category"),
+                alt.Tooltip("mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title=(f"Generation Mix vs Peak Load (HE {_peak_he_idx + 1})"),
+            width=500,
+            height=350,
+        )
+    )
+    generation_mix_peak_chart
+    return (generation_mix_peak_chart,)
+
+
+@app.cell
+def _(mo, renewable_result):
+    mo.md(
+        f"""
+        ## Notebook Summary: The Fully Augmented Fleet
+
+        This notebook transformed the IEEE 39-bus snapshot into a
+        **SCUC-ready dataset** with five calibration layers:
+
+        1. **Fuel classification** — 10 thermal generators mapped to
+           RTS-GMLC technology classes (hydro, nuclear, coal, gas).
+        2. **Temporal parameters** — ramp rates, min up/down times,
+           tiered startup costs, and no-load costs scaled from RTS-GMLC
+           templates.
+        3. **24-hour load profile** — system demand shaped by an
+           RTS-GMLC winter weekday pattern, distributed proportionally
+           across load buses.
+        4. **Operating reserves** — spinning and non-spinning products
+           sized by the N-1 criterion, with nuclear caps on reserve
+           contribution.
+        5. **Renewable generation** — {len(renewable_result.units)}
+           synthetic units ({renewable_result.total_wind_mw:.0f} MW wind
+           + {renewable_result.total_solar_mw:.0f} MW solar =
+           {renewable_result.total_renewable_mw:.0f} MW,
+           {renewable_result.penetration_pct:.1f}% penetration) placed
+           by transmission headroom scoring with 24-hour profiles.
+
+        The complete fleet now comprises **10 thermal + 5 renewable = 15
+        generators** with all parameters needed for unit commitment.
+
+        **Next: Notebook 03** builds the SCUC formulation itself —
+        assembling these generators, load profiles, reserves, and
+        renewable profiles into the mixed-integer program that each
+        evaluation tool must solve.
+        """
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
