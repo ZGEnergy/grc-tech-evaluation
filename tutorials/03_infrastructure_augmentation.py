@@ -804,5 +804,446 @@ def _(mo):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Flowgate Definition and Congestion Monitoring
+
+        With congestion candidates identified, we now formalize them into
+        **flowgates** — the standard mechanism ISOs and RTOs use to monitor
+        and manage transmission congestion in real-time and day-ahead markets.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### What Is a Flowgate?
+
+        A flowgate is a **monitored constraint** defined as a weighted sum of
+        power flows on one or more transmission branches, subject to a MW
+        limit:
+
+        $$\sum_{k \in \mathcal{B}} w_k \cdot P_k \;\leq\; F^{\max}$$
+
+        where $\mathcal{B}$ is the set of branches in the flowgate, $w_k$ is
+        the weight (direction coefficient) for branch $k$, $P_k$ is the real
+        power flow on branch $k$, and $F^{\max}$ is the flowgate MW limit.
+
+        Flowgates are a **NERC/ISO standard** for congestion management. Every
+        ISO in North America (ERCOT, MISO, PJM, CAISO, SPP, NYISO, ISO-NE)
+        publishes flowgate definitions that market participants use to
+        understand binding transmission constraints and their impact on
+        locational marginal prices (LMPs).
+
+        Key properties:
+
+        - **Single-branch flowgates** monitor one critical branch (e.g., a
+          tie line between regions).
+        - **Multi-branch flowgates** monitor a transmission corridor where
+          parallel paths share load — the weighted sum captures the aggregate
+          flow across the corridor.
+        - **Weights** are typically +1 or -1, indicating whether each branch's
+          flow adds to or subtracts from the aggregate (depending on the
+          direction convention relative to the monitored flow direction).
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Calibration from DC OPF Results
+
+        Our flowgate identification pipeline works as follows:
+
+        1. **Run DC OPF** at three load levels (peak, shoulder, valley) to
+           compute branch flows across representative operating conditions.
+        2. **Flag congested branches** — any branch loaded above 80% of its
+           Rate A thermal limit at any load level.
+        3. **Group by adjacency** — congested branches sharing a common bus
+           are grouped into a single multi-branch flowgate (they likely form
+           a transmission corridor or interface).
+        4. **Set the flowgate limit** — the minimum Rate A across branches
+           in the group, **derated to 95%**. The 5% derating provides
+           operating margin for:
+           - DC OPF approximation error (~2-3%)
+           - Ambient temperature derating
+           - Relay protection margins
+
+        This 95% derating is consistent with standard ISO practice. ERCOT,
+        for example, uses System Operating Limit (SOL) values that are
+        typically 95-97% of the Facility Rating to account for these factors.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Branch Weights: Direction Convention
+
+        For the TINY (IEEE 39-bus) network, all flowgate branch weights are
+        **+1.0**. This means every branch in the flowgate contributes
+        positively to the aggregate flow in the monitored direction.
+
+        In larger networks, weights of **-1** appear when a branch's "from-to"
+        convention runs opposite to the flowgate's monitored direction. For
+        example, if a flowgate monitors northbound flow on a corridor and one
+        branch has its from-bus at the north end, that branch would receive
+        weight -1 so that its southbound (positive) flow subtracts from the
+        northbound aggregate.
+
+        For our 39-bus case, the adjacency-based grouping produces flowgates
+        where all constituent branches flow in the same direction through the
+        corridor, so uniform +1 weights are correct.
+        """
+    )
+    return
+
+
+@app.cell
+def _(opf_result, pd):
+    # Extract flowgate definitions from the OPF result.
+    # The FlowgateResult already contains fully constructed FlowgateDefinition
+    # records produced by tiny_flowgates.main().
+    _fg_rows = []
+    for _fg in opf_result.flowgates:
+        _branch_strs = [f"{fb}-{tb}" for fb, tb in zip(_fg.from_buses, _fg.to_buses)]
+        _fg_rows.append(
+            {
+                "Flowgate ID": _fg.flowgate_id,
+                "Name": _fg.name,
+                "Branches": "; ".join(_branch_strs),
+                "Weights": "; ".join(f"{w:+.0f}" for w in _fg.weights),
+                "Limit (MW)": round(_fg.limit_mw, 1),
+                "Binding Level": _fg.binding_load_level.capitalize(),
+                "Max Loading (%)": round(_fg.max_loading_pct, 1),
+            }
+        )
+
+    flowgate_defs_df = pd.DataFrame(_fg_rows)
+    flowgate_defs_df
+    return (flowgate_defs_df,)
+
+
+@app.cell
+def _(alt, flowgate_defs_df, pd):
+    # Flowgate summary table rendered as an Altair heatmap-style table.
+    _table_data = flowgate_defs_df.copy()
+    _table_data["row_index"] = range(len(_table_data))
+
+    # Melt into long form for the text-table approach.
+    _cols = [
+        "Flowgate ID",
+        "Branches",
+        "Weights",
+        "Limit (MW)",
+        "Binding Level",
+        "Max Loading (%)",
+    ]
+    _melted = _table_data.melt(
+        id_vars=["row_index"],
+        value_vars=_cols,
+        var_name="Column",
+        value_name="Value",
+    )
+    _melted["Value"] = _melted["Value"].astype(str)
+
+    flowgate_summary_table = (
+        alt.Chart(_melted)
+        .mark_text(fontSize=12)
+        .encode(
+            x=alt.X(
+                "Column:N",
+                sort=_cols,
+                title=None,
+                axis=alt.Axis(
+                    orient="top",
+                    labelAngle=0,
+                    labelFontWeight="bold",
+                    labelFontSize=12,
+                ),
+            ),
+            y=alt.Y(
+                "row_index:O",
+                title=None,
+                axis=alt.Axis(labels=False, ticks=False),
+            ),
+            text="Value:N",
+            color=alt.condition(
+                alt.datum.Column == "Max Loading (%)",
+                alt.value("#d62728"),
+                alt.value("#333333"),
+            ),
+        )
+        .properties(
+            title="Flowgate Summary",
+            width=650,
+            height=max(60, len(flowgate_defs_df) * 30),
+        )
+    )
+    flowgate_summary_table
+    return (flowgate_summary_table,)
+
+
+@app.cell
+def _(alt, opf_load_levels, opf_result, pd):
+    # Flow vs limit per flowgate at each load level.
+    _fg_flow_rows = []
+    for _fg in opf_result.flowgates:
+        for _level, _scale in opf_load_levels.items():
+            _level_flows = opf_result.branch_flows[_level]
+            _flow_map = {f.branch_index: f for f in _level_flows}
+            # Aggregate weighted flow across flowgate branches.
+            _agg_flow = sum(
+                w * abs(_flow_map[bi].flow_mw)
+                for bi, w in zip(_fg.branches, _fg.weights)
+                if bi in _flow_map
+            )
+            _fg_flow_rows.append(
+                {
+                    "Flowgate": _fg.flowgate_id,
+                    "Load Level": _level.capitalize(),
+                    "Flow (MW)": round(_agg_flow, 1),
+                    "Limit (MW)": round(_fg.limit_mw, 1),
+                }
+            )
+
+    _fg_flow_df = pd.DataFrame(_fg_flow_rows)
+
+    _level_sort = ["Valley", "Shoulder", "Peak"]
+
+    _flow_bars = (
+        alt.Chart(_fg_flow_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Load Level:N",
+                sort=_level_sort,
+                title="Load Level",
+                axis=alt.Axis(labelAngle=0),
+            ),
+            y=alt.Y(
+                "Flow (MW):Q",
+                title="Aggregate Flow (MW)",
+            ),
+            color=alt.Color(
+                "Load Level:N",
+                sort=_level_sort,
+                scale=alt.Scale(
+                    domain=_level_sort,
+                    range=["#2ca02c", "#ff7f0e", "#d62728"],
+                ),
+                legend=alt.Legend(title="Load Level"),
+            ),
+            column=alt.Column(
+                "Flowgate:N",
+                header=alt.Header(
+                    labelFontSize=11,
+                    labelFontWeight="bold",
+                    titleOrient="bottom",
+                ),
+                title="Flowgate",
+            ),
+            tooltip=[
+                alt.Tooltip("Flowgate:N"),
+                alt.Tooltip("Load Level:N"),
+                alt.Tooltip("Flow (MW):Q", format=".1f"),
+                alt.Tooltip("Limit (MW):Q", format=".1f"),
+            ],
+        )
+    )
+
+    # Add limit line per flowgate using a rule mark.
+    _limit_rule = (
+        alt.Chart(_fg_flow_df)
+        .mark_rule(color="black", strokeDash=[6, 3], strokeWidth=2)
+        .encode(
+            y="Limit (MW):Q",
+            column=alt.Column("Flowgate:N"),
+        )
+    )
+
+    flow_vs_limit_chart = (_flow_bars + _limit_rule).properties(
+        title="Flowgate Flow vs Limit by Load Level",
+        width=100,
+        height=300,
+    )
+    flow_vs_limit_chart
+    return (flow_vs_limit_chart,)
+
+
+@app.cell
+def _(alt, opf_cong_threshold, opf_result, pd):
+    # Branch-flowgate overlay: branch loading at peak, annotated with
+    # flowgate membership.
+    _peak_flows = opf_result.branch_flows["peak"]
+
+    # Build a mapping from branch_index to flowgate ID(s).
+    _branch_to_fg: dict[int, str] = {}
+    for _fg in opf_result.flowgates:
+        for _bi in _fg.branches:
+            _branch_to_fg[_bi] = _fg.flowgate_id
+
+    _overlay_rows = []
+    for _bf in sorted(_peak_flows, key=lambda x: x.loading_pct, reverse=True):
+        _fg_label = _branch_to_fg.get(_bf.branch_index, "None")
+        _overlay_rows.append(
+            {
+                "Branch": f"{_bf.from_bus}-{_bf.to_bus}",
+                "Loading (%)": round(_bf.loading_pct, 1),
+                "Flowgate": _fg_label,
+                "In Flowgate": _fg_label != "None",
+            }
+        )
+
+    _overlay_df = pd.DataFrame(_overlay_rows)
+
+    # Keep top 20 branches for readability.
+    _overlay_top = _overlay_df.head(20)
+
+    _fg_ids = sorted({r["Flowgate"] for r in _overlay_rows if r["Flowgate"] != "None"})
+    _fg_domain = _fg_ids + ["None"]
+    _fg_colors = [
+        "#e41a1c",
+        "#377eb8",
+        "#4daf4a",
+        "#984ea3",
+        "#ff7f00",
+        "#a65628",
+        "#f781bf",
+        "#999999",
+    ][: len(_fg_ids)] + ["#cccccc"]
+
+    _overlay_bars = (
+        alt.Chart(_overlay_top)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Branch:N",
+                sort=alt.EncodingSortField(field="Loading (%)", order="descending"),
+                axis=alt.Axis(labelAngle=-60, labelFontSize=9),
+                title="Branch (from-to)",
+            ),
+            y=alt.Y(
+                "Loading (%):Q",
+                title="Branch Loading (%)",
+                scale=alt.Scale(domain=[0, 120]),
+            ),
+            color=alt.Color(
+                "Flowgate:N",
+                scale=alt.Scale(
+                    domain=_fg_domain,
+                    range=_fg_colors,
+                ),
+                legend=alt.Legend(title="Flowgate"),
+            ),
+            tooltip=[
+                alt.Tooltip("Branch:N"),
+                alt.Tooltip("Loading (%):Q", format=".1f"),
+                alt.Tooltip("Flowgate:N"),
+            ],
+        )
+    )
+
+    _threshold_pct_overlay = opf_cong_threshold * 100
+    _overlay_rule = (
+        alt.Chart(pd.DataFrame({"y": [_threshold_pct_overlay]}))
+        .mark_rule(strokeDash=[6, 3], color="black", strokeWidth=2)
+        .encode(y="y:Q")
+    )
+
+    branch_flowgate_overlay = (_overlay_bars + _overlay_rule).properties(
+        title=("Branch Loading at Peak — Colored by Flowgate Membership"),
+        width=700,
+        height=400,
+    )
+    branch_flowgate_overlay
+    return (branch_flowgate_overlay,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Flowgate Enforcement in UC/SCED
+
+        In the unit commitment (UC) and security-constrained economic dispatch
+        (SCED) formulations used by ISOs, flowgate constraints enter as
+        **linear inequality constraints** on the dispatch variables:
+
+        $$\sum_{k \in \mathcal{B}} w_k \cdot \text{PTDF}_k \cdot P_g
+        \;\leq\; F^{\max}$$
+
+        where $\text{PTDF}_k$ is the Power Transfer Distribution Factor
+        mapping generator $g$'s output to flow on branch $k$. This means
+        flowgates constrain the **dispatch decisions** — generators on the
+        "sending" side of a congested corridor are backed down, while
+        generators on the "receiving" side are dispatched up, creating the
+        LMP separation that signals congestion cost to the market.
+
+        When a flowgate binds (flow equals the limit), the **shadow price**
+        of that constraint becomes the **congestion component** of the LMP
+        at every bus, weighted by each bus's PTDF sensitivity to the
+        flowgate. This is the mechanism by which transmission congestion
+        creates price differences across the network.
+
+        In Notebook 04, we will implement these flowgate constraints in the
+        UC formulation and observe the resulting LMP separation.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## Infrastructure Summary
+
+        This notebook has built up the complete **augmented IEEE 39-bus
+        network** that will serve as the foundation for power system
+        optimization in the remaining tutorials. Here is what we have
+        assembled:
+
+        | Component | Source | Key Parameters |
+        |-----------|--------|----------------|
+        | **Network topology** | `case39.m` (MATPOWER) | 39 buses, 10 generators, 46 branches |
+        | **Load profiles** | `load_24h.csv` | 24-hour bus-level MW demand |
+        | **BESS** | `tiny_bess_dr.py` | 50 MW / 200 MWh at bus 25, 4-hour duration |
+        | **Demand Response** | `tiny_bess_dr.py` | 25 MW curtailment at bus 20, energy-neutral |
+        | **Flowgates** | `tiny_flowgates.py` | Identified from DC OPF, 95% derated limits |
+        | **DC OPF results** | Computed in-notebook | Branch flows at peak/shoulder/valley |
+
+        ### What Notebook 04 Will Build
+
+        With this infrastructure in place, Notebook 04 (*Unit Commitment and
+        Economic Dispatch*) will:
+
+        1. **Formulate a 24-hour unit commitment** problem with binary
+           on/off decisions for thermal generators
+        2. **Co-optimize BESS and DR** alongside conventional generation
+        3. **Enforce flowgate constraints** using the PTDF-based formulation
+        4. **Compute locational marginal prices (LMPs)** from dual variables
+        5. **Analyze congestion rents** — the revenue from price separation
+           across flowgates
+
+        The augmented network defined here ensures that Notebook 04 has
+        realistic flexibility resources and binding transmission constraints
+        to produce meaningful market-clearing results.
+        """
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
