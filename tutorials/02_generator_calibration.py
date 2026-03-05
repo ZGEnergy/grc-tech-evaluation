@@ -488,5 +488,206 @@ def _(mo):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ## 24-Hour Load Profile
+
+        A **load profile** describes how electricity demand varies across the
+        hours of a day. While a MATPOWER snapshot gives a single Pd value per
+        bus, unit commitment requires a full 24-hour demand trajectory so the
+        optimizer can schedule generators to meet load at every hour.
+
+        ### RTS-GMLC Hourly Shape Template
+
+        We borrow the system-level hourly load shape from a representative
+        **RTS-GMLC winter weekday** — 24 MW values that capture the typical
+        daily demand pattern: an overnight valley, a morning ramp, and an
+        evening peak. The shape is normalized to fraction-of-peak so it can
+        be applied to any system size.
+
+        ### Proportional Bus-Level Distribution
+
+        Each bus's 24-hour load is computed as:
+
+        > `load_bus_h = fraction_h × Pd_bus`
+
+        where `fraction_h` is the normalized shape at hour *h* and `Pd_bus` is
+        the base-case real power demand from the MATPOWER file. Buses with
+        zero Pd are excluded. This preserves each bus's share of total load
+        at every hour and ensures the system peak equals total base-case Pd.
+
+        ### Hour-Ending Convention
+
+        All hours use the **hour-ending (HE)** convention standard in ERCOT
+        and RTS-GMLC: HE1 = midnight–1 AM, HE24 = 11 PM–midnight. An HE
+        label refers to the end of the interval, not the start.
+        """
+    )
+    return
+
+
+@app.cell
+def _(Path, mo, synthesize_load_profile):
+    @mo.cache
+    def _synthesize_load():
+        _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+        return synthesize_load_profile(_case_file)
+
+    load_profile_result = _synthesize_load()
+    return (load_profile_result,)
+
+
+@app.cell
+def _(alt, load_profile_result, pd):
+    # Build system-level 24h load from metadata
+    _sys_mw = load_profile_result.metadata.hourly_system_mw
+    _sys_df = pd.DataFrame({"hour_ending": list(range(1, 25)), "system_mw": _sys_mw})
+
+    _peak_mw = max(_sys_mw)
+    _valley_mw = min(_sys_mw)
+    _peak_he = _sys_mw.index(_peak_mw) + 1
+    _valley_he = _sys_mw.index(_valley_mw) + 1
+
+    _line = (
+        alt.Chart(_sys_df)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X(
+                "hour_ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y(
+                "system_mw:Q",
+                title="System Load (MW)",
+                scale=alt.Scale(zero=False),
+            ),
+            tooltip=[
+                alt.Tooltip("hour_ending:Q", title="HE"),
+                alt.Tooltip("system_mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+    )
+
+    _peak_df = pd.DataFrame([{"hour_ending": _peak_he, "system_mw": _peak_mw}])
+    _valley_df = pd.DataFrame([{"hour_ending": _valley_he, "system_mw": _valley_mw}])
+
+    _peak_text = (
+        alt.Chart(_peak_df)
+        .mark_text(dy=-12, fontSize=12, fontWeight="bold", color="#e45756")
+        .encode(
+            x="hour_ending:Q",
+            y="system_mw:Q",
+            text=alt.value(f"Peak {_peak_mw:,.0f} MW (HE{_peak_he})"),
+        )
+    )
+    _valley_text = (
+        alt.Chart(_valley_df)
+        .mark_text(dy=14, fontSize=12, fontWeight="bold", color="#4c78a8")
+        .encode(
+            x="hour_ending:Q",
+            y="system_mw:Q",
+            text=alt.value(f"Valley {_valley_mw:,.0f} MW (HE{_valley_he})"),
+        )
+    )
+
+    system_load_curve_chart = (_line + _peak_text + _valley_text).properties(
+        title="case39 System Load Profile (24 Hours)",
+        width=600,
+        height=350,
+    )
+    system_load_curve_chart
+    return (system_load_curve_chart,)
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        The peak occurs in the early evening (HE15–HE18 range) when both
+        commercial and residential loads overlap. The valley falls in the
+        pre-dawn hours (HE3–HE5) when only baseload demand remains. The
+        **peak-to-valley ratio** quantifies how much the system must ramp
+        over the day — higher ratios demand more flexible generation.
+        """
+    )
+    return
+
+
+@app.cell
+def _(alt, load_profile_result, pd):
+    # Build long-format DataFrame for stacked area chart
+    _bus_records = []
+    for _row in load_profile_result.rows:
+        for _h_idx, _mw_val in enumerate(_row.hourly_mw):
+            _bus_records.append(
+                {
+                    "hour_ending": _h_idx + 1,
+                    "bus_id": f"Bus {_row.bus_id}",
+                    "load_mw": round(_mw_val, 2),
+                }
+            )
+    _bus_long_df = pd.DataFrame(_bus_records)
+
+    per_bus_stacked_area_chart = (
+        alt.Chart(_bus_long_df)
+        .mark_area()
+        .encode(
+            x=alt.X(
+                "hour_ending:Q",
+                title="Hour Ending",
+                scale=alt.Scale(domain=[1, 24]),
+            ),
+            y=alt.Y(
+                "sum(load_mw):Q",
+                title="Load (MW)",
+                stack="zero",
+            ),
+            color=alt.Color(
+                "bus_id:N",
+                title="Bus",
+                sort=alt.EncodingSortField(field="bus_id", order="ascending"),
+            ),
+            tooltip=[
+                alt.Tooltip("bus_id:N", title="Bus"),
+                alt.Tooltip("hour_ending:Q", title="HE"),
+                alt.Tooltip("load_mw:Q", title="MW", format=",.1f"),
+            ],
+        )
+        .properties(
+            title="Per-Bus Load Contribution (Stacked Area, 24 Hours)",
+            width=600,
+            height=350,
+        )
+    )
+    per_bus_stacked_area_chart
+    return (per_bus_stacked_area_chart,)
+
+
+@app.cell
+def _(load_profile_result, mo):
+    _meta = load_profile_result.metadata
+    _sys_mw_summary = _meta.hourly_system_mw
+    _peak_val = max(_sys_mw_summary)
+    _valley_val = min(_sys_mw_summary)
+    _ratio = _peak_val / _valley_val if _valley_val > 0 else float("inf")
+
+    mo.md(
+        f"""
+        ### Load Profile Summary Statistics
+
+        | Metric | Value |
+        |--------|-------|
+        | **Peak System Load** | {_peak_val:,.1f} MW |
+        | **Valley System Load** | {_valley_val:,.1f} MW |
+        | **Peak-to-Valley Ratio** | {_ratio:.2f} |
+        | **Load Bus Count** | {_meta.load_buses} |
+        """
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()
