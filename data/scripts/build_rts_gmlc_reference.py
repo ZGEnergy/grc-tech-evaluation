@@ -887,7 +887,7 @@ def print_summary(result: ReferenceTableResult) -> None:
 def main(
     output_dir: Path | None = None,
     *,
-    commit_hash: str = "v3.2",
+    commit_hash: str = "v0.2.3",
 ) -> ReferenceTableResult:
     """Entry point: download gen.csv, build reference table, write output.
 
@@ -901,7 +901,7 @@ def main(
     Args:
         output_dir: Base directory for output. Defaults to
             <repo_root>/data/reference/.
-        commit_hash: RTS-GMLC commit hash or tag to pin. Defaults to "v3.2"
+        commit_hash: RTS-GMLC commit hash or tag to pin. Defaults to "v0.2.3"
             pending resolution of OQ-P2-01.
 
     Returns:
