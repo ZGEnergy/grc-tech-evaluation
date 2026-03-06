@@ -1212,15 +1212,15 @@ def _(alt, ed_solution, np, pd):
     # Compute BESS arbitrage revenue
     _revenue = sum(_bess_dis[_hh] * _energy_lmp[_hh] for _hh in range(24))
     _cost = sum(_bess_ch[_hh] * _energy_lmp[_hh] for _hh in range(24))
-    _profit = _revenue - _cost
+    profit = _revenue - _cost
 
-    return bess_chart, _profit
+    return bess_chart, profit
 
 
 @app.cell
-def _(_profit, mo):
+def _(profit, mo):
     mo.md(rf"""
-    The BESS earns **${_profit:,.0f}** in arbitrage profit over 24 hours
+    The BESS earns **${profit:,.0f}** in arbitrage profit over 24 hours
     by buying energy at low prices (red bars) and selling at high prices
     (green bars).  The SoC line (right axis) shows the battery cycling
     from its initial level, down during discharge, and back up during
