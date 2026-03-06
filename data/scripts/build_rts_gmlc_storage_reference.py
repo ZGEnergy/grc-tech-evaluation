@@ -590,7 +590,7 @@ def parse_storage_csv(csv_path: Path) -> dict[str, dict[str, float]]:
             continue
 
         # Only use the "head" position row (or the first row if no position column).
-        position = row.get("Storage", "").strip().lower()
+        position = row.get("position", "").strip().lower()
         if position and position != "head":
             continue
 
