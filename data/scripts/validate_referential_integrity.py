@@ -561,6 +561,13 @@ def check_branch_references(
     text = flowgates_path.read_text(encoding="utf-8")
     reader = csv.DictReader(io.StringIO(text))
 
+    # Build lookup for "from-to" branch name strings to validate them
+    _branch_names: set[str] = set()
+    for idx in m_ids.branch_indices:
+        fb = m_ids.branch_from_bus[idx]
+        tb = m_ids.branch_to_bus[idx]
+        _branch_names.add(f"{fb}-{tb}")
+
     all_branch_ids: set[int] = set()
     orphaned_refs: list[OrphanedReference] = []
 
@@ -574,17 +581,30 @@ def check_branch_references(
             bid_str = bid_str.strip()
             if not bid_str:
                 continue
-            bid = int(float(bid_str))
-            all_branch_ids.add(bid)
-            if bid not in m_ids.branch_indices:
-                orphaned_refs.append(
-                    OrphanedReference(
-                        id_value=bid,
-                        source_file=str(flowgates_path),
-                        target_file=f"{network_id.value}.m (branch table)",
-                        context=f"flowgate_id={flowgate_id}",
+            # Support both integer indices and "from-to" branch name strings
+            if "-" in bid_str and not bid_str.startswith("-"):
+                # Branch name format: "from_bus-to_bus"
+                if bid_str not in _branch_names:
+                    orphaned_refs.append(
+                        OrphanedReference(
+                            id_value=bid_str,
+                            source_file=str(flowgates_path),
+                            target_file=f"{network_id.value}.m (branch table)",
+                            context=f"flowgate_id={flowgate_id}",
+                        )
                     )
-                )
+            else:
+                bid = int(float(bid_str))
+                all_branch_ids.add(bid)
+                if bid not in m_ids.branch_indices:
+                    orphaned_refs.append(
+                        OrphanedReference(
+                            id_value=bid,
+                            source_file=str(flowgates_path),
+                            target_file=f"{network_id.value}.m (branch table)",
+                            context=f"flowgate_id={flowgate_id}",
+                        )
+                    )
 
     status = CheckStatus.PASS if not orphaned_refs else CheckStatus.FAIL
     return IntegrityCheckResult(
@@ -1021,7 +1041,7 @@ def validate_network_integrity(
         check_branch_references(
             m_ids,
             network_dir / "flowgates.csv",
-            "line_ids",
+            "branches",
             network_id,
         )
     )

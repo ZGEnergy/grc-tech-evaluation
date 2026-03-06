@@ -1,0 +1,11 @@
+gen_uid,gen_index,bus_id,rts_gmlc_class,tech_class_key,pmax_mw,ramp_rate_mw_per_min,ramp_rate_mw_per_hr,min_up_time_hr,min_down_time_hr,startup_cost_cold_dollar,startup_cost_warm_dollar,startup_cost_hot_dollar,no_load_cost_dollar_per_hr
+case39_bus30_gen1,0,30,Hydro,hydro,1040.0,1040.0,62400.0,1.0,1.0,0.0,0.0,0.0,0.0
+case39_bus31_gen2,1,31,Nuclear,nuclear,646.0,32.3,1938.0,24.0,48.0,63999.82,0.0,0.0,0.0
+case39_bus32_gen3,2,32,Nuclear,nuclear,725.0,36.25,2175.0,24.0,48.0,63999.82,0.0,0.0,0.0
+case39_bus33_gen4,3,33,Coal/Steam,coal_large,652.0,7.451429,447.0857,24.0,48.0,36749.81,21381.74,20649.88,450.0
+case39_bus34_gen5,4,34,Coal/Steam,coal_large,508.0,5.805714,348.3429,24.0,48.0,36749.81,21381.74,20649.88,450.0
+case39_bus35_gen6,5,35,Nuclear,nuclear,687.0,34.35,2061.0,24.0,48.0,63999.82,0.0,0.0,0.0
+case39_bus36_gen7,6,36,Gas/CC,gas_CC,580.0,6.763944,405.8366,8.0,4.5,28046.68,17632.82,12425.89,600.0
+case39_bus37_gen8,7,37,Nuclear,nuclear,564.0,28.2,1692.0,24.0,48.0,63999.82,0.0,0.0,0.0
+case39_bus38_gen9,8,38,Nuclear,nuclear,865.0,43.25,2595.0,24.0,48.0,63999.82,0.0,0.0,0.0
+case39_bus39_gen10,9,39,Gas/CC (flexible),gas_CC,1100.0,19.242254,1154.5352,4.0,2.25,28046.68,17632.82,12425.89,600.0

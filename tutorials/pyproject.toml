@@ -9,6 +9,9 @@ dependencies = [
     "pandas",
     "vl-convert-python",
     "grc-data-augmentation",
+    "pyzmq>=27.1.0",
+    "plotly",
+    "networkx",
 ]
 
 [tool.uv]
@@ -16,6 +19,11 @@ package = false
 
 [tool.uv.sources]
 grc-data-augmentation = { path = "../data" }
+
+[[tool.uv.index]]
+name = "zge-python"
+url = "https://us-central1-python.pkg.dev/zge-main/zge-python-repo/simple/"
+explicit = true
 
 [dependency-groups]
 dev = [

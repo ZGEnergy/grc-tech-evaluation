@@ -1,0 +1,21 @@
+# RTS-GMLC Technology Class Reference Table
+# Repository: https://github.com/GridMod/RTS-GMLC
+# Commit: master
+# Source file: RTS_Data/SourceData/gen.csv
+# Download timestamp: 2026-03-06T03:21:15.265824+00:00
+# Script version: 0.1.0
+# Generators parsed: 158
+# Technology classes: 11
+#
+tech_class,fuel_type,unit_type,capacity_band,pmax_template_mw,pmin_template_mw,ramp_rate_mw_per_min,ramp_rate_mw_per_hr,min_up_time_hr,min_down_time_hr,startup_time_cold_hr,startup_time_warm_hr,startup_time_hot_hr,startup_cost_cold_dollar,startup_cost_warm_dollar,startup_cost_hot_dollar,shutdown_cost_dollar,capacity_band_min_mw,capacity_band_max_mw,generator_count
+coal_large,coal,STEAM,large,350.0,140.0,4.0,240.0,24.0,48.0,96.0,12.0,8.0,36749.813558999995,21381.740455999996,20649.877118,0.0,300.0,inf,2
+coal_medium,coal,STEAM,medium,155.0,62.0,3.0,180.0,8.0,8.0,60.0,11.0,3.0,22784.795619,15722.800624999998,14569.830479,0.0,100.0,300.0,7
+coal_small,coal,STEAM,small,76.0,30.0,2.0,120.0,8.0,4.0,12.0,10.0,3.0,11172.014352,10276.950985999998,7144.017806,0.0,0.0,100.0,7
+gas_CC,gas,CC,large,355.0,170.0,4.14,248.39999999999998,8.0,4.5,2.0,1.0,0.5,28046.681022,17632.818642000002,12425.887452,0.0,40.0,inf,10
+gas_CT,gas,CT,large,55.0,22.0,3.7,222.0,2.2,2.2,1.0,0.75,0.25,5665.234428000001,4363.40445,1760.1332160000002,0.0,40.0,inf,27
+hydro,hydro,HYDRO,small,50.0,0.0,50.0,3000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,inf,20
+nuclear,nuclear,NUCLEAR,large,400.0,396.0,20.0,1200.0,24.0,48.0,9999.0,9999.0,9999.0,63999.8223,0.0,8102.68965,0.0,0.0,inf,1
+oil_CT,oil,CT,small,20.0,8.0,3.0,180.0,1.0,1.0,1.0,0.0,0.0,51.747,51.747,51.747,0.0,0.0,inf,12
+oil_STEAM,oil,STEAM,small,12.0,5.0,1.0,60.0,4.0,2.0,12.0,4.0,2.0,703.7592,455.37359999999995,393.2772,0.0,0.0,inf,7
+solar,solar,PV,small,51.6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,inf,57
+wind,wind,WIND,small,756.3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,inf,4

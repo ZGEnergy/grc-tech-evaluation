@@ -38,6 +38,7 @@ def _():
         synthesize_renewable_profiles,
     )
     from scripts.reconcile_bus_gen import parse_matpower_case
+    import grid_plot
 
     return (
         CASE39_CLASSIFICATION_TABLE,
@@ -49,6 +50,7 @@ def _():
         build_reserve_requirements,
         compute_all_eligibilities,
         define_reserves,
+        grid_plot,
         load_gen_classification,
         load_reference_table,
         parse_matpower_case,
@@ -136,6 +138,78 @@ def _(CASE39_CLASSIFICATION_TABLE, pd):
     classification_df = pd.DataFrame(_records)
     classification_df
     return (classification_df,)
+
+
+@app.cell
+def _(Path, classification_df, grid_plot, mo, parse_matpower_case, pd, re):
+    # Topology diagram: generators colored by fuel type, sized by Pmax
+    import re as _re
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = parse_matpower_case(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw_text = _case_file.read_text()
+    _branch_match = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw_text, _re.DOTALL)
+    _branch_rows = []
+    for _line in _branch_match.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _branch_rows.append([float(v) for v in _line.split()])
+    _branch_df = pd.DataFrame(
+        _branch_rows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _branch_df["fbus"] = _branch_df["fbus"].astype(int)
+    _branch_df["tbus"] = _branch_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _branch_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Generator Fleet by Fuel Type and Capacity",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+    _gen_plot_df = classification_df.rename(
+        columns={"bus_id": "gen_bus", "fuel_category": "fuel_type"}
+    )
+    grid_plot.add_generator_markers(_fig, _gen_plot_df, fuel_col="fuel_type")
+    grid_plot.add_load_markers(_fig, _bus_df)
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Each square shows a generator colored by fuel type and sized by Pmax. Load
+    triangles (orange, sized by MW) show where demand concentrates. Nuclear
+    dominates the perimeter while hydro anchors the top-left. The two coal units
+    and single gas unit cluster in the lower portion of the network.
+    """)
+    return
 
 
 @app.cell
@@ -255,11 +329,12 @@ def _(
         from scripts.build_rts_gmlc_reference import main as build_reference
 
         # Ensure the RTS-GMLC reference CSV exists (idempotent download + build).
-        build_reference()
+        _repo_root = Path(__file__).resolve().parent.parent / "data"
+        _ref_dir = _repo_root / "reference"
+        build_reference(output_dir=_ref_dir)
 
         # Load the reference table from the generated CSV.
-        _repo_root = Path(__file__).resolve().parent.parent / "data"
-        _ref_csv = _repo_root / "reference" / "rts_gmlc_tech_classes.csv"
+        _ref_csv = _ref_dir / "rts_gmlc_tech_classes.csv"
         templates = load_reference_table(_ref_csv)
 
         # Assign temporal parameters to all 10 case39 generators.
@@ -1119,6 +1194,85 @@ def _(pd, renewable_result):
     renewable_units_df = pd.DataFrame(_unit_records)
     renewable_units_df
     return (renewable_units_df,)
+
+
+@app.cell
+def _(Path, grid_plot, mo, parse_matpower_case, pd, renewable_units_df):
+    # Topology diagram: wind and solar locations on the network
+    import re as _re
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = parse_matpower_case(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw_text = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw_text, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _branch_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _branch_df["fbus"] = _branch_df["fbus"].astype(int)
+    _branch_df["tbus"] = _branch_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _branch_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Renewable Generation Placement on IEEE 39-Bus Network",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+
+    _resources = []
+    for _, _r in renewable_units_df.iterrows():
+        _resources.append(
+            {
+                "bus": int(_r["bus_id"]),
+                "type": _r["type"].title(),
+                "label": f"{_r['pmax_mw']:.0f} MW",
+                "mw": _r["pmax_mw"],
+            }
+        )
+    grid_plot.add_resource_markers(_fig, _resources)
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Wind generators (green stars) and solar generators (yellow stars) are placed
+    at buses with high transmission headroom, spread across different network areas
+    to diversify output. This geographic distribution means renewable variability
+    affects multiple parts of the network, not just one corridor.
+    """)
+    return
 
 
 @app.cell

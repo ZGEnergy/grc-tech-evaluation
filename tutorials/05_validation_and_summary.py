@@ -63,6 +63,8 @@ def _():
         NetworkId as ScenarioNetworkId,
     )
 
+    import grid_plot
+
     return (
         CheckSeverity,
         CheckStatus,
@@ -87,6 +89,7 @@ def _():
         check_solar_nighttime_zero,
         cleanup_main,
         flowgates_main,
+        grid_plot,
         load_actual_profiles,
         load_correlation_matrix,
         load_generators,
@@ -206,16 +209,16 @@ def _(
         # 1. Cleanup and classify the raw case file
         cleanup_main(networks_dir=networks_dir, output_dir=output_dir)
 
-        # 2. Generator temporal parameters
-        ref_csv = output_dir / "gen_classification.csv"
-        temporal_params_main(reference_csv=ref_csv, output_dir=output_dir)
+        # 2. Generator temporal parameters (needs RTS-GMLC reference table)
+        rts_ref_csv = data_dir / "reference" / "rts_gmlc_tech_classes.csv"
+        temporal_params_main(reference_csv=rts_ref_csv, output_dir=output_dir)
 
         # 3. Load profile
         m_file = output_dir / "case39.m"
         load_profile_main(m_file_path=m_file, output_dir=output_dir)
 
         # 4. Reserve definitions
-        reserve_main(output_dir=output_dir, reference_csv=ref_csv)
+        reserve_main(output_dir=output_dir, reference_csv=rts_ref_csv)
 
         # 5. BESS and DR placement
         bess_dr_main(networks_dir=networks_dir, output_dir=output_dir)
@@ -328,19 +331,19 @@ def _(CheckStatus, integrity_report, pd):
     for check in integrity_report.checks:
         orphan_count = len(check.orphaned_ids)
         if check.status == CheckStatus.PASS:
-            diagnostic = f"All {check.total_ids_checked} IDs valid"
+            _diagnostic = f"All {check.total_ids_checked} IDs valid"
         elif check.status == CheckStatus.SKIPPED:
-            diagnostic = check.skip_reason or "File not found"
+            _diagnostic = check.skip_reason or "File not found"
         else:
             orphan_sample = ", ".join(str(o.id_value) for o in check.orphaned_ids[:5])
-            diagnostic = f"{orphan_count}/{check.total_ids_checked} orphaned: [{orphan_sample}]"
+            _diagnostic = f"{orphan_count}/{check.total_ids_checked} orphaned: [{orphan_sample}]"
 
         _rows.append(
             {
                 "category": "referential_integrity",
                 "name": check.check_name,
                 "status": check.status.value,
-                "diagnostic": diagnostic,
+                "diagnostic": _diagnostic,
                 "source_file": check.source_file,
                 "target_file": check.target_file,
                 "ids_checked": check.total_ids_checked,
@@ -370,14 +373,12 @@ def _(mo):
 
 @app.cell
 def _(alt, integrity_results_df):
-    _status_color = alt.condition(
-        alt.datum.status == "pass",
-        alt.value("#2ca02c"),  # green
-        alt.condition(
-            alt.datum.status == "fail",
-            alt.value("#d62728"),  # red
-            alt.value("#ff7f0e"),  # orange for skipped
-        ),
+    _status_color = (
+        alt.when(alt.datum.status == "pass")
+        .then(alt.value("#2ca02c"))
+        .when(alt.datum.status == "fail")
+        .then(alt.value("#d62728"))
+        .otherwise(alt.value("#ff7f0e"))
     )
 
     _base = alt.Chart(integrity_results_df).encode(
@@ -577,19 +578,19 @@ def _(CheckSeverity, feasibility_result, pd, validation_results):
         ),
     ]
 
-    for name, status, diagnostic in _checks:
+    for _name, _status, _diagnostic in _checks:
         _feas_rows.append(
             {
                 "category": "feasibility",
-                "name": name,
+                "name": _name,
                 "status": (
                     "pass"
-                    if status == CheckSeverity.PASS
+                    if _status == CheckSeverity.PASS
                     else "warn"
-                    if status == CheckSeverity.WARN
+                    if _status == CheckSeverity.WARN
                     else "fail"
                 ),
-                "diagnostic": diagnostic,
+                "diagnostic": _diagnostic,
             }
         )
 
@@ -867,14 +868,12 @@ def _(alt, pd, statistical_rows):
     # Build a status chart for statistical fidelity checks
     _stat_df = pd.DataFrame(statistical_rows)
 
-    _stat_color = alt.condition(
-        alt.datum.status == "pass",
-        alt.value("#2ca02c"),
-        alt.condition(
-            alt.datum.status == "fail",
-            alt.value("#d62728"),
-            alt.value("#ff7f0e"),  # orange for skip
-        ),
+    _stat_color = (
+        alt.when(alt.datum.status == "pass")
+        .then(alt.value("#2ca02c"))
+        .when(alt.datum.status == "fail")
+        .then(alt.value("#d62728"))
+        .otherwise(alt.value("#ff7f0e"))
     )
 
     _stat_base = alt.Chart(_stat_df).encode(
@@ -1061,14 +1060,20 @@ def _(alt, pd, validation_results_final):
     }
     _dash_df["indicator"] = _dash_df["status"].map(_indicator_map)
 
-    _dash_color = alt.condition(
-        alt.datum.status == "pass",
-        alt.value("#2ca02c"),
-        alt.condition(
-            alt.datum.status == "fail",
-            alt.value("#d62728"),
-            alt.value("#ff7f0e"),
-        ),
+    _dash_color = (
+        alt.when(alt.datum.status == "pass")
+        .then(alt.value("#2ca02c"))
+        .when(alt.datum.status == "fail")
+        .then(alt.value("#d62728"))
+        .otherwise(alt.value("#ff7f0e"))
+    )
+
+    _dash_shape = (
+        alt.when(alt.datum.status == "pass")
+        .then(alt.value("circle"))
+        .when(alt.datum.status == "fail")
+        .then(alt.value("cross"))
+        .otherwise(alt.value("triangle-up"))
     )
 
     _dash_base = alt.Chart(_dash_df).encode(
@@ -1083,15 +1088,7 @@ def _(alt, pd, validation_results_final):
     _dash_dots = _dash_base.mark_point(size=200, filled=True).encode(
         x=alt.value(20),
         color=_dash_color,
-        shape=alt.condition(
-            alt.datum.status == "pass",
-            alt.value("circle"),
-            alt.condition(
-                alt.datum.status == "fail",
-                alt.value("cross"),
-                alt.value("triangle-up"),
-            ),
-        ),
+        shape=_dash_shape,
     )
 
     _dash_cat = _dash_base.mark_text(align="left", dx=40, fontSize=11, color="#888888").encode(
@@ -1222,9 +1219,10 @@ def _(mo, np, pd, tiny_output_dir):
         _n_thermal = 0
         if _class_csv.exists():
             _class_df = pd.read_csv(_class_csv)
+            _fuel_col = "fuel_category" if "fuel_category" in _class_df.columns else "fuel_type"
             _n_thermal = (
-                len(_class_df[~_class_df["fuel_type"].isin(["Wind", "Solar"])])
-                if "fuel_type" in _class_df.columns
+                len(_class_df[~_class_df[_fuel_col].isin(["Wind", "Solar"])])
+                if _fuel_col in _class_df.columns
                 else _n_gens_case
             )
         _inv_rows.append(
@@ -1240,14 +1238,14 @@ def _(mo, np, pd, tiny_output_dir):
         _solar_cap = 0.0
         if _wind_csv.exists():
             _wdf = pd.read_csv(_wind_csv)
-            _gen_cols = [c for c in _wdf.columns if c.startswith("gen_")]
-            _n_wind = len(_gen_cols)
-            _wind_cap = sum(_wdf[c].max() for c in _gen_cols)
+            _n_wind = len(_wdf)  # each row is a generator
+            _whr_cols = [c for c in _wdf.columns if c.startswith("HR_")]
+            _wind_cap = sum(_wdf.loc[i, _whr_cols].max() for i in range(len(_wdf)))
         if _solar_csv.exists():
             _sdf = pd.read_csv(_solar_csv)
-            _gen_cols_s = [c for c in _sdf.columns if c.startswith("gen_")]
-            _n_solar = len(_gen_cols_s)
-            _solar_cap = sum(_sdf[c].max() for c in _gen_cols_s)
+            _n_solar = len(_sdf)
+            _shr_cols = [c for c in _sdf.columns if c.startswith("HR_")]
+            _solar_cap = sum(_sdf.loc[i, _shr_cols].max() for i in range(len(_sdf)))
 
         _inv_rows.append(
             {
@@ -1410,6 +1408,154 @@ def _(inventory_df, mo):
 
 
 @app.cell
+def _(Path, grid_plot, mo, pd, tiny_output_dir):
+    # Capstone topology: the complete augmented IEEE 39-bus system
+    import re as _re
+    from scripts.reconcile_bus_gen import parse_matpower_case as _parse
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = _parse(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Complete Augmented IEEE 39-Bus System",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+
+    # Add thermal generators by fuel type
+    _class_csv = tiny_output_dir / "gen_classification.csv"
+    if _class_csv.exists():
+        _class_df = pd.read_csv(_class_csv)
+        _fuel_col = "fuel_category" if "fuel_category" in _class_df.columns else "fuel_type"
+        _thermal = (
+            _class_df[~_class_df[_fuel_col].isin(["Wind", "Solar"])]
+            if _fuel_col in _class_df.columns
+            else _class_df
+        )
+        if not _thermal.empty and "bus_id" in _thermal.columns:
+            _gen_plot = _thermal.rename(columns={"bus_id": "gen_bus", _fuel_col: "fuel_type"})
+            if "pmax_mw" in _gen_plot.columns:
+                grid_plot.add_generator_markers(_fig, _gen_plot, fuel_col="fuel_type")
+
+    # Add loads
+    grid_plot.add_load_markers(_fig, _bus_df)
+
+    # Add renewables
+    _resources = []
+    _renew_csv = tiny_output_dir / "renewable_units.csv"
+    if _renew_csv.exists():
+        _renew_df = pd.read_csv(_renew_csv)
+        for _, _row in _renew_df.iterrows():
+            _rtype = "Wind" if _row["type"].lower() == "wind" else "Solar"
+            _resources.append(
+                {
+                    "bus": int(_row["bus_id"]),
+                    "type": _rtype,
+                    "label": f"{_row['pmax_mw']:.0f} MW",
+                }
+            )
+
+    # Add BESS and DR
+    _bess_csv = tiny_output_dir / "bess_units.csv"
+    _dr_csv = tiny_output_dir / "dr_buses.csv"
+    if _bess_csv.exists():
+        _bess_df = pd.read_csv(_bess_csv)
+        for _, _r in _bess_df.iterrows():
+            _resources.append(
+                {
+                    "bus": int(_r["bus_id"]) if "bus_id" in _r else int(_r.get("bus", 25)),
+                    "type": "BESS",
+                    "label": f"{_r.get('power_mw', 50):.0f} MW",
+                }
+            )
+    if _dr_csv.exists():
+        _dr_df = pd.read_csv(_dr_csv)
+        for _, _r in _dr_df.iterrows():
+            _resources.append(
+                {
+                    "bus": int(_r["bus_id"]) if "bus_id" in _r else int(_r.get("bus", 20)),
+                    "type": "DR",
+                    "label": f"{_r.get('curtailment_mw', 25):.0f} MW",
+                }
+            )
+
+    if _resources:
+        grid_plot.add_resource_markers(_fig, _resources)
+
+    # Highlight flowgates if available
+    _fg_csv = tiny_output_dir / "flowgates.csv"
+    if _fg_csv.exists():
+        _fg_df = pd.read_csv(_fg_csv)
+        _fg_colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
+        _fg_list = []
+        for _i, (_, _row) in enumerate(_fg_df.iterrows()):
+            if "from_bus" in _row and "to_bus" in _row:
+                _fg_list.append(
+                    {
+                        "name": _row.get("flowgate_id", f"FG{_i + 1}"),
+                        "branches": [(int(_row["from_bus"]), int(_row["to_bus"]))],
+                        "color": _fg_colors[_i % len(_fg_colors)],
+                    }
+                )
+        if _fg_list:
+            grid_plot.add_flowgate_highlights(_fig, _fg_list)
+
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The capstone diagram shows the **complete augmented system** built across all
+    five notebooks: 39 buses, 46 branches, thermal generators colored by fuel type
+    (squares), wind/solar resources (stars), BESS (diamond), DR (hexagon), load
+    concentrations (triangles), and flowgate corridors (colored lines). This is the
+    full dataset that each evaluation tool must ingest and solve.
+    """)
+    return
+
+
+@app.cell
 def _(alt, pd, tiny_output_dir):
     # Generation mix stacked bar at peak hour vs peak load + reserves
     _load_csv_p = tiny_output_dir / "load_24h.csv"
@@ -1429,7 +1575,7 @@ def _(alt, pd, tiny_output_dir):
         # Build capacity by fuel type
         _fuel_cap = {}
         for _, row in _class_p.iterrows():
-            _ft = row.get("fuel_type", "Unknown")
+            _ft = row.get("fuel_category", row.get("fuel_type", "Unknown"))
             _pmax = row.get("pmax_mw", row.get("Pmax", 0))
             _fuel_cap[_ft] = _fuel_cap.get(_ft, 0) + float(_pmax)
 
@@ -1438,12 +1584,17 @@ def _(alt, pd, tiny_output_dir):
         _solar_fc = tiny_output_dir / "solar_forecast_24h.csv"
         if _wind_fc.exists():
             _wdf_p = pd.read_csv(_wind_fc)
-            _wg = [c for c in _wdf_p.columns if c.startswith("gen_")]
-            _fuel_cap["Wind"] = _fuel_cap.get("Wind", 0) + sum(_wdf_p[c].max() for c in _wg)
+            _whr = [c for c in _wdf_p.columns if c.startswith("HR_")]
+            # Each row is a generator; nameplate ≈ max across hours
+            _fuel_cap["Wind"] = _fuel_cap.get("Wind", 0) + sum(
+                _wdf_p.loc[i, _whr].max() for i in range(len(_wdf_p))
+            )
         if _solar_fc.exists():
             _sdf_p = pd.read_csv(_solar_fc)
-            _sg = [c for c in _sdf_p.columns if c.startswith("gen_")]
-            _fuel_cap["Solar"] = _fuel_cap.get("Solar", 0) + sum(_sdf_p[c].max() for c in _sg)
+            _shr = [c for c in _sdf_p.columns if c.startswith("HR_")]
+            _fuel_cap["Solar"] = _fuel_cap.get("Solar", 0) + sum(
+                _sdf_p.loc[i, _shr].max() for i in range(len(_sdf_p))
+            )
 
         _cap_rows = [
             {"fuel_type": ft, "MW": mw, "kind": "capacity"} for ft, mw in sorted(_fuel_cap.items())

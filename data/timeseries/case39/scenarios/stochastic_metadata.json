@@ -1,0 +1,102 @@
+{
+  "script_version": "0.1.0",
+  "generated_at": "2026-03-06T03:22:04.234455+00:00",
+  "forecast_config": {
+    "smoothing_window": 3,
+    "wind_bias_fraction": 0.02,
+    "solar_bias_fraction": -0.01,
+    "master_seed": 42,
+    "num_scenarios": 50
+  },
+  "wind_student_t": {
+    "df": 11.612505785121138,
+    "loc": 0.000996833459346915,
+    "scale": 0.06719248592449643,
+    "sample_size": 35036,
+    "num_generators_pooled": 4
+  },
+  "solar_student_t": {
+    "df": 25460649946.190216,
+    "loc": 0.0006409818736118876,
+    "scale": 0.15354658319993056,
+    "sample_size": 14348,
+    "num_generators_pooled": 3
+  },
+  "correlation": {
+    "matrix": [
+      [
+        0.9999999999999998,
+        0.8774104009720081,
+        0.873702020998555,
+        -0.7933545328881249,
+        -0.7961005764033846
+      ],
+      [
+        0.8774104009720081,
+        0.9999999999999998,
+        0.8751672718043187,
+        -0.7926673725264601,
+        -0.7958703658322014
+      ],
+      [
+        0.873702020998555,
+        0.8751672718043187,
+        0.9999999999999998,
+        -0.7717698777906936,
+        -0.7738696390996361
+      ],
+      [
+        -0.7933545328881249,
+        -0.7926673725264601,
+        -0.7717698777906936,
+        1.0,
+        0.9774281034061758
+      ],
+      [
+        -0.7961005764033846,
+        -0.7958703658322013,
+        -0.7738696390996361,
+        0.9774281034061758,
+        1.0
+      ]
+    ],
+    "generator_order": [
+      "WIND_1",
+      "WIND_2",
+      "WIND_3",
+      "SOLAR_1",
+      "SOLAR_2"
+    ],
+    "is_psd": true,
+    "psd_projected": false
+  },
+  "scenario_multipliers": {
+    "shape": [
+      50,
+      5,
+      24
+    ],
+    "generator_order": [
+      "WIND_1",
+      "WIND_2",
+      "WIND_3",
+      "SOLAR_1",
+      "SOLAR_2"
+    ],
+    "num_scenarios": 50,
+    "seed_used": 42
+  },
+  "output_files": [
+    "wind_forecast_24h.csv",
+    "wind_actual_24h.csv",
+    "solar_forecast_24h.csv",
+    "solar_actual_24h.csv",
+    "scenarios/scenario_multipliers_50x24.csv"
+  ],
+  "notes": [
+    "Student-t fitted from synthetic RTS-GMLC profiles",
+    "Correlation estimated via Spearman rank on mapped generators",
+    "Iman-Conover preserves marginals while imposing rank correlation",
+    "Master seed = 42"
+  ]
+}

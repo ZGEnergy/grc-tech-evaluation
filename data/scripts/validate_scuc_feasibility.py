@@ -258,7 +258,13 @@ def load_generators(
 
     records: list[GeneratorRecord] = []
     for i, (gen, trow) in enumerate(zip(case_data.generators, temporal_rows, strict=True)):
-        fuel_type = trow["fuel_type"].strip().lower()
+        # Support both old (fuel_type) and new (rts_gmlc_class) column names
+        fuel_type = (trow.get("fuel_type") or trow.get("rts_gmlc_class", "Unknown")).strip().lower()
+        tech_class = (trow.get("tech_class") or trow.get("tech_class_key", "Unknown")).strip()
+        startup_cost = float(
+            trow.get("startup_cost_dollar") or trow.get("startup_cost_cold_dollar", 0)
+        )
+        shutdown_cost = float(trow.get("shutdown_cost_dollar", 0))
         records.append(
             GeneratorRecord(
                 gen_uid=trow["gen_uid"].strip(),
@@ -266,12 +272,12 @@ def load_generators(
                 pmax_mw=gen.pmax,
                 pmin_mw=gen.pmin,
                 fuel_type=fuel_type,
-                tech_class=trow["tech_class"].strip(),
+                tech_class=tech_class,
                 ramp_rate_mw_per_hr=float(trow["ramp_rate_mw_per_hr"]),
                 min_up_time_hr=float(trow["min_up_time_hr"]),
                 min_down_time_hr=float(trow["min_down_time_hr"]),
-                startup_cost_dollar=float(trow["startup_cost_dollar"]),
-                shutdown_cost_dollar=float(trow["shutdown_cost_dollar"]),
+                startup_cost_dollar=startup_cost,
+                shutdown_cost_dollar=shutdown_cost,
                 is_renewable=fuel_type in RENEWABLE_FUEL_TYPES,
             )
         )

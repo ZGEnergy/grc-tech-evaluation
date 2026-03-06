@@ -27,6 +27,7 @@ def _():
         synthesize_renewable_profiles,
     )
     from scripts.reconcile_bus_gen import parse_matpower_case
+    import grid_plot
 
     # Stochastic scenario pipeline (Phase 05)
     from scripts.tiny_stochastic_scenarios import (
@@ -66,6 +67,7 @@ def _():
         fit_student_t_pooled,
         generate_forecast,
         generate_scenario_multipliers,
+        grid_plot,
         inject_noise,
         load_rts_gmlc_full_year_profiles,
         map_tiny_to_rts_gmlc_generators,
@@ -155,6 +157,81 @@ def _(Path, alt, pd, synthesize_renewable_profiles, parse_matpower_case):
     )
     profiles_chart
     return (profiles_chart, profiles_df)
+
+
+@app.cell
+def _(Path, grid_plot, mo, parse_matpower_case, pd, synthesize_renewable_profiles):
+    # Topology: wind/solar locations sized by nameplate capacity
+    import re as _re
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = parse_matpower_case(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Renewable Locations: Where Forecast Uncertainty Lives",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+
+    _ren = synthesize_renewable_profiles(_case_data, penetration=0.20)
+    _resources = [
+        {"bus": u.bus_id, "type": u.renewable_type.value.title(), "label": f"{u.pmax_mw:.0f} MW"}
+        for u in _ren.units
+    ]
+    grid_plot.add_resource_markers(_fig, _resources)
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The wind (green) and solar (yellow) generators are spread across the network.
+    Each star is sized and labeled by nameplate capacity. The stochastic scenarios
+    we build below will perturb these generators' output — understanding their
+    spatial distribution helps anticipate where forecast uncertainty has the
+    greatest impact on power flows.
+    """)
+    return
 
 
 @app.cell
@@ -1052,26 +1129,26 @@ def _(alt, np, pd, sc_all_actuals, sc_all_forecasts, scenario_set):
 
     # Build scenario MW traces: scenario_mw = multiplier * forecast
     _fan_rows = []
-    for s in range(scenario_set.num_scenarios):
-        for h_idx, he in enumerate(_hours):
-            _mw = float(scenario_set.multipliers[s, _wi, h_idx] * _fc_mw[h_idx])
-            _fan_rows.append({"Hour Ending": he, "MW": _mw, "Scenario": f"S{s + 1}"})
+    for _s in range(scenario_set.num_scenarios):
+        for _h_idx, _he in enumerate(_hours):
+            _mw = float(scenario_set.multipliers[_s, _wi, _h_idx] * _fc_mw[_h_idx])
+            _fan_rows.append({"Hour Ending": _he, "MW": _mw, "Scenario": f"S{_s + 1}"})
     _fan_df = pd.DataFrame(_fan_rows)
 
     # Forecast and actual reference lines
     _ref_rows = []
-    for h_idx, he in enumerate(_hours):
+    for _h_idx, _he in enumerate(_hours):
         _ref_rows.append(
             {
-                "Hour Ending": he,
-                "MW": float(_fc_mw[h_idx]),
+                "Hour Ending": _he,
+                "MW": float(_fc_mw[_h_idx]),
                 "Series": "Forecast",
             }
         )
         _ref_rows.append(
             {
-                "Hour Ending": he,
-                "MW": float(_act_mw[h_idx]),
+                "Hour Ending": _he,
+                "MW": float(_act_mw[_h_idx]),
                 "Series": "Actual",
             }
         )
@@ -1163,25 +1240,25 @@ def _(alt, np, pd, sc_all_actuals, sc_all_forecasts, scenario_set):
     _shours = list(range(1, 25))
 
     _sfan_rows = []
-    for s in range(scenario_set.num_scenarios):
-        for h_idx, he in enumerate(_shours):
-            _mw = float(scenario_set.multipliers[s, _si, h_idx] * _sfc_mw[h_idx])
-            _sfan_rows.append({"Hour Ending": he, "MW": _mw, "Scenario": f"S{s + 1}"})
+    for _s in range(scenario_set.num_scenarios):
+        for _h_idx, _he in enumerate(_shours):
+            _mw = float(scenario_set.multipliers[_s, _si, _h_idx] * _sfc_mw[_h_idx])
+            _sfan_rows.append({"Hour Ending": _he, "MW": _mw, "Scenario": f"S{_s + 1}"})
     _sfan_df = pd.DataFrame(_sfan_rows)
 
     _sref_rows = []
-    for h_idx, he in enumerate(_shours):
+    for _h_idx, _he in enumerate(_shours):
         _sref_rows.append(
             {
-                "Hour Ending": he,
-                "MW": float(_sfc_mw[h_idx]),
+                "Hour Ending": _he,
+                "MW": float(_sfc_mw[_h_idx]),
                 "Series": "Forecast",
             }
         )
         _sref_rows.append(
             {
-                "Hour Ending": he,
-                "MW": float(_sact_mw[h_idx]),
+                "Hour Ending": _he,
+                "MW": float(_sact_mw[_h_idx]),
                 "Series": "Actual",
             }
         )
@@ -1228,10 +1305,10 @@ def _(alt, np, pd, scenario_set):
     _peak_h = 13  # Hour Ending 14 (peak solar / high wind)
     _mult_rows = []
     for j, uid in enumerate(scenario_set.generator_order):
-        for s in range(scenario_set.num_scenarios):
+        for _s in range(scenario_set.num_scenarios):
             _mult_rows.append(
                 {
-                    "Multiplier": float(scenario_set.multipliers[s, j, _peak_h]),
+                    "Multiplier": float(scenario_set.multipliers[_s, j, _peak_h]),
                     "Generator": uid,
                 }
             )
@@ -1270,12 +1347,12 @@ def _(alt, np, pd, scenario_set):
 
     # Use multipliers at HE 14 (peak hour) for both generators
     _scatter_rows = []
-    for s in range(scenario_set.num_scenarios):
+    for _s in range(scenario_set.num_scenarios):
         _scatter_rows.append(
             {
-                _uid0: float(scenario_set.multipliers[s, _g0, 13]),
-                _uid1: float(scenario_set.multipliers[s, _g1, 13]),
-                "Scenario": s + 1,
+                _uid0: float(scenario_set.multipliers[_s, _g0, 13]),
+                _uid1: float(scenario_set.multipliers[_s, _g1, 13]),
+                "Scenario": _s + 1,
             }
         )
     _scatter_df = pd.DataFrame(_scatter_rows)
@@ -1334,6 +1411,109 @@ def _(mo):
         """
     )
     return ()
+
+
+@app.cell
+def _(
+    Path, grid_plot, mo, np, parse_matpower_case, pd, scenario_set, synthesize_renewable_profiles
+):
+    # Topology: uncertainty magnitude per renewable bus (std dev of multipliers at peak)
+    import re as _re
+    import plotly.graph_objects as _go
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = parse_matpower_case(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Forecast Uncertainty by Renewable Bus (Std Dev of Multipliers at Peak)",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+
+    _ren = synthesize_renewable_profiles(_case_data, penetration=0.20)
+    _peak_h = 13  # HE14 (0-indexed)
+    for _gi, _uid in enumerate(scenario_set.generator_order):
+        _std = float(np.std(scenario_set.multipliers[:, _gi, _peak_h]))
+        _unit = next((u for u in _ren.units if u.gen_uid == _uid), None)
+        if _unit is None:
+            continue
+        _bx, _by = grid_plot.BUS_POSITIONS[_unit.bus_id]
+        _rtype = _unit.renewable_type.value.title()
+        _color = grid_plot.FUEL_COLORS.get(_rtype, "#888")
+        _sz = max(12, min(40, int(12 + _std * 200)))
+        _fig.add_trace(
+            _go.Scatter(
+                x=[_bx],
+                y=[_by],
+                mode="markers+text",
+                marker=dict(
+                    size=_sz,
+                    color=_color,
+                    symbol="star",
+                    line=dict(width=1.5, color="white"),
+                    opacity=0.8,
+                ),
+                text=[f"std={_std:.3f}"],
+                textposition="bottom center",
+                textfont=dict(size=8),
+                hovertext=f"{_uid}<br>{_rtype} @ Bus {_unit.bus_id}<br>Multiplier Std Dev: {_std:.4f}",
+                hoverinfo="text",
+                showlegend=False,
+            )
+        )
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Larger stars indicate higher forecast uncertainty at peak hour. Wind generators
+    tend to have wider multiplier spread than solar (whose peak-hour output is near
+    maximum and thus more predictable). This map answers: **which parts of the grid
+    face the most forecast uncertainty?** — critical for understanding where reserve
+    capacity and flexible resources have the most value.
+    """)
+    return
 
 
 @app.cell

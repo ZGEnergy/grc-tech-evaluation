@@ -37,6 +37,8 @@ def _():
         synthesize_load_profile,
     )
 
+    import grid_plot
+
     return (
         BessUnit,
         DrBus,
@@ -46,6 +48,7 @@ def _():
         alt,
         build_bess_unit,
         build_dr_bus,
+        grid_plot,
         parse_matpower_case_extended,
         pd,
         synthesize_load_profile,
@@ -167,6 +170,82 @@ def _(mo):
           demand flexibility.
         """
     )
+    return
+
+
+@app.cell
+def _(Path, grid_plot, mo, pd):
+    # Topology diagram: BESS and DR placement on the network
+    import re as _re
+    from scripts.reconcile_bus_gen import parse_matpower_case as _parse
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = _parse(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="BESS and DR Placement on IEEE 39-Bus Network",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+    grid_plot.add_load_markers(_fig, _bus_df)
+    grid_plot.add_resource_markers(
+        _fig,
+        [
+            {"bus": 25, "type": "BESS", "label": "50 MW / 200 MWh"},
+            {"bus": 20, "type": "DR", "label": "25 MW curtailment"},
+        ],
+    )
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The **BESS** (purple diamond, bus 25) sits downstream of the nuclear generation
+    pocket at buses 37-38, positioned to absorb excess baseload during off-peak hours.
+    The **DR** resource (teal hexagon, bus 20) targets the network's heaviest load bus
+    (680 MW). Load triangles are sized by demand — notice how bus 20 dominates.
+    """)
     return
 
 
@@ -668,6 +747,87 @@ def _(mo):
 
 
 @app.cell
+def _(Path, grid_plot, mo, opf_result, pd):
+    # Congestion heatmap: branches colored/thickened by loading at peak
+    import re as _re
+    from scripts.reconcile_bus_gen import parse_matpower_case as _parse
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = _parse(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Branch Congestion Heatmap at Peak Load",
+        bus_size=8,
+        bus_color="#ccc",
+        branch_color="#eee",
+        branch_width=1,
+    )
+
+    # Build branch loading DataFrame from peak results
+    _peak_flows = opf_result.branch_flows.get("peak", [])
+    if _peak_flows:
+        _flow_df = pd.DataFrame(
+            [
+                {"fbus": bf.from_bus, "tbus": bf.to_bus, "loading_pct": bf.loading_pct}
+                for bf in _peak_flows
+            ]
+        )
+        grid_plot.add_branch_loading(_fig, _G, _flow_df)
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Congestion is **spatial**: the red/thick branches are the few corridors carrying
+    disproportionate flow at peak. Green branches have ample headroom. This map
+    makes visible what the bar chart above showed numerically — congestion concentrates
+    in specific corridors, not uniformly across the network.
+    """)
+    return
+
+
+@app.cell
 def _(alt, opf_cong_threshold, opf_load_levels, opf_result, pd):
     # Build a combined DataFrame across all load levels.
     _rows = []
@@ -996,6 +1156,87 @@ def _(alt, flowgate_defs_df, pd):
 
 
 @app.cell
+def _(Path, grid_plot, mo, opf_result, pd):
+    # Topology diagram: flowgate corridors highlighted in distinct colors
+    import re as _re
+    from scripts.reconcile_bus_gen import parse_matpower_case as _parse
+
+    _case_file = Path(__file__).resolve().parent.parent / "data" / "networks" / "case39.m"
+    _case_data = _parse(_case_file)
+    _bus_df = pd.DataFrame(
+        [
+            {"bus_id": b.bus_id, "bus_type_name": b.bus_type.name, "pd_mw": b.pd}
+            for b in _case_data.buses
+        ]
+    )
+    _raw = _case_file.read_text()
+    _bm = _re.search(r"mpc\.branch\s*=\s*\[([^\]]*)\]", _raw, _re.DOTALL)
+    _brows = []
+    for _line in _bm.group(1).split(";"):
+        _line = _line.strip()
+        if "%" in _line:
+            _line = _line[: _line.index("%")]
+        _line = _line.strip()
+        if not _line:
+            continue
+        _brows.append([float(v) for v in _line.split()])
+    _br_df = pd.DataFrame(
+        _brows,
+        columns=[
+            "fbus",
+            "tbus",
+            "r_pu",
+            "x_pu",
+            "b_pu",
+            "rate_a_mva",
+            "rate_b_mva",
+            "rate_c_mva",
+            "ratio",
+            "angle",
+            "status",
+            "angmin",
+            "angmax",
+        ],
+    )
+    _br_df["fbus"] = _br_df["fbus"].astype(int)
+    _br_df["tbus"] = _br_df["tbus"].astype(int)
+
+    _G = grid_plot.build_graph(_bus_df, _br_df)
+    _fig = grid_plot.plot_base_topology(
+        _G,
+        title="Flowgate Corridors on IEEE 39-Bus Network",
+        bus_size=8,
+        bus_color="#ccc",
+    )
+
+    _fg_colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#a65628"]
+    _fg_data = []
+    for _i, _fg in enumerate(opf_result.flowgates):
+        _branches = list(zip(_fg.from_buses, _fg.to_buses))
+        _fg_data.append(
+            {
+                "name": _fg.flowgate_id,
+                "branches": _branches,
+                "color": _fg_colors[_i % len(_fg_colors)],
+            }
+        )
+    grid_plot.add_flowgate_highlights(_fig, _fg_data)
+    mo.ui.plotly(_fig)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Each flowgate is highlighted as a colored corridor through the network. These are
+    the transmission bottlenecks identified by the congestion analysis — the branches
+    that hit or approach their thermal limits at peak load. Flowgate constraints in the
+    SCUC formulation will limit aggregate flow through these corridors.
+    """)
+    return
+
+
+@app.cell
 def _(alt, opf_load_levels, opf_result, pd):
     # Flow vs limit per flowgate at each load level.
     _fg_flow_rows = []
@@ -1045,15 +1286,6 @@ def _(alt, opf_load_levels, opf_result, pd):
                 ),
                 legend=alt.Legend(title="Load Level"),
             ),
-            column=alt.Column(
-                "Flowgate:N",
-                header=alt.Header(
-                    labelFontSize=11,
-                    labelFontWeight="bold",
-                    titleOrient="bottom",
-                ),
-                title="Flowgate",
-            ),
             tooltip=[
                 alt.Tooltip("Flowgate:N"),
                 alt.Tooltip("Load Level:N"),
@@ -1069,14 +1301,28 @@ def _(alt, opf_load_levels, opf_result, pd):
         .mark_rule(color="black", strokeDash=[6, 3], strokeWidth=2)
         .encode(
             y="Limit (MW):Q",
-            column=alt.Column("Flowgate:N"),
         )
     )
 
-    flow_vs_limit_chart = (_flow_bars + _limit_rule).properties(
-        title="Flowgate Flow vs Limit by Load Level",
-        width=100,
-        height=300,
+    # Layer first, then facet (Altair doesn't allow layering faceted charts).
+    flow_vs_limit_chart = (
+        alt.layer(_flow_bars, _limit_rule)
+        .properties(
+            title="Flowgate Flow vs Limit by Load Level",
+            width=100,
+            height=300,
+        )
+        .facet(
+            column=alt.Column(
+                "Flowgate:N",
+                header=alt.Header(
+                    labelFontSize=11,
+                    labelFontWeight="bold",
+                    titleOrient="bottom",
+                ),
+                title="Flowgate",
+            ),
+        )
     )
     flow_vs_limit_chart
     return (flow_vs_limit_chart,)
