@@ -1,6 +1,6 @@
 {
   "script_version": "0.1.0",
-  "generated_at": "2026-03-06T03:22:04.234455+00:00",
+  "generated_at": "2026-03-06T20:05:32.417547+00:00",
   "forecast_config": {
     "smoothing_window": 3,
     "wind_bias_fraction": 0.02,
