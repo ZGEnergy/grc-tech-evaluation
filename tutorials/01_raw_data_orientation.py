@@ -96,7 +96,9 @@ def _(mo):
     - **10 generators** representing the major generation plants in the region:
       hydro, nuclear, fossil (coal and gas), plus one large equivalent generator
       (bus 39) representing the interconnection to the rest of the Eastern
-      Interconnect.
+      Interconnect. Note: bus 39 carries **both** a 1104 MW load and a 1100 MW
+      generator — a standard modeling convention where the net injection
+      represents the aggregate power exchange with the external grid.
     - **19 load buses** drawing a combined ~6,100 MW of real power demand.
     - **1 reference (slack) bus** (bus 31) that balances supply and demand.
 
@@ -463,11 +465,12 @@ def _(generator_pmax_bar_chart):
 @app.cell
 def _(mo):
     mo.md(r"""
-    **What to notice:** ~50% of generator capacity is heavily concentrated on a
-    few buses. Bus 30 and 39 account for 33% of system capacity. The
-    remaining nine generators range from roughly 250 MW to 830 MW. This
-    uneven distribution is typical of real transmission systems where a
-    handful of large plants account for most of the installed capacity.
+    **What to notice:** Generator capacity is heavily concentrated on a
+    few buses. Bus 30 (1040 MW) and Bus 39 (1100 MW) alone account for
+    29% of the fleet's ~7400 MW total. The remaining eight generators
+    range from roughly 500 MW to 865 MW. This uneven distribution is
+    typical of real transmission systems where a handful of large plants
+    account for a disproportionate share of installed capacity.
     """)
     return
 

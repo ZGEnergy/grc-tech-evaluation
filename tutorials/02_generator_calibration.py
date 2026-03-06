@@ -804,9 +804,9 @@ def _(mo):
         enough reserves to survive the loss of its single largest
         generating unit without shedding load.
 
-        In case39, the largest generator is **1100 MW** (the nuclear units
-        at buses 31, 32, 35, 37, and 38 each have Pmax = 1100 MW). The
-        total reserve requirement is therefore 1100 MW, split evenly:
+        In case39, the largest generator is **1100 MW** (the
+        interconnection equivalent at bus 39). The total reserve
+        requirement is therefore 1100 MW, split evenly:
 
         | Product | Requirement | Deployment window |
         |---------|-------------|-------------------|
@@ -818,12 +818,15 @@ def _(mo):
         vary reserve requirements by hour based on forecasted load and
         renewable uncertainty.
 
-        **Nuclear caps:** Nuclear units are technically eligible for
+        **Nuclear caps:** The five nuclear units (buses 31, 32, 35, 37,
+        38) have Pmax values of 646, 725, 687, 564, and 865 MW
+        respectively — a total of **3487 MW**, roughly 47% of the
+        fleet's installed capacity. They are technically eligible for
         reserves, but reactor physics limits how much output they can
         change quickly. We cap their contribution at **5% of Pmax for
-        spinning** and **10% of Pmax for non-spinning** — meaning each
-        1100 MW nuclear unit provides at most 55 MW spinning and
-        110 MW non-spinning reserve.
+        spinning** and **10% of Pmax for non-spinning** — so for example
+        the largest nuclear unit (865 MW at bus 38) provides at most
+        43 MW spinning and 87 MW non-spinning reserve.
         """
     )
     return
@@ -1097,12 +1100,13 @@ def _(alt, reserve_eligibility_df, pd):
 def _(mo):
     mo.md(
         r"""
-        Despite providing over half the fleet's installed capacity
-        (5 × 1100 MW = 5500 MW out of ~7500 MW total), nuclear units
-        contribute only **55 MW each** of spinning reserve — a consequence
-        of the 5% Pmax cap imposed by reactor ramp limitations. The
-        non-nuclear generators (hydro, coal, and gas) carry the bulk of
-        the reserve burden through their higher ramp-based eligibility
+        Despite providing nearly half the fleet's installed capacity
+        (3487 MW out of ~7400 MW total), nuclear units contribute very
+        little spinning reserve — only 5% of each unit's Pmax, ranging
+        from 28 MW (bus 37, 564 MW) to 43 MW (bus 38, 865 MW). This is
+        a consequence of the 5% cap imposed by reactor ramp limitations.
+        The non-nuclear generators (hydro, coal, and gas) carry the bulk
+        of the reserve burden through their higher ramp-based eligibility
         percentages.
 
         The thermal fleet is calibrated — ramp rates, commitment
@@ -1381,8 +1385,8 @@ def _(mo, renewable_result):
         **Wind** output peaks in the evening (HE {_wind_peak_he}) and dips
         in the early afternoon — the inverse of load and solar patterns.
         All three wind units share the same capacity factor shape (derived
-        from the RTS-GMLC representative day) but differ in MW output
-        because they share the same nameplate capacity.
+        from the RTS-GMLC representative day) and the same nameplate
+        capacity, so their MW output profiles are identical.
 
         **Solar** output follows a symmetric bell curve, peaking near
         midday (HE {_solar_peak_he}). Output is **exactly zero** for

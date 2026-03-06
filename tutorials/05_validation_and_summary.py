@@ -1546,8 +1546,8 @@ def _(Path, grid_plot, mo, pd, tiny_output_dir):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The capstone diagram shows the **complete augmented system** built across all
-    five notebooks: 39 buses, 46 branches, thermal generators colored by fuel type
+    The capstone diagram shows the **complete augmented system** built across
+    Notebooks 01–05: 39 buses, 46 branches, thermal generators colored by fuel type
     (squares), wind/solar resources (stars), BESS (diamond), DR (hexagon), load
     concentrations (triangles), and flowgate corridors (colored lines). This is the
     full dataset that each evaluation tool must ingest and solve.
@@ -1722,14 +1722,21 @@ def _(mo):
         r"""
         ## Where to Go Next
 
-        This five-notebook tutorial series built a complete, validated
-        power-system dataset from a raw MATPOWER case file. The TINY
-        (case39) dataset is intentionally small — 39 buses, 24 hours,
-        50 scenarios — so that every evaluation tool can solve it in
-        seconds. But the dataset exercises the same structural features
-        that matter at production scale: thermal unit commitment
-        constraints, stochastic renewable scenarios, battery storage,
-        demand response, flowgate limits, and reserve requirements.
+        This notebook validated the dataset's structural integrity and
+        physical plausibility. But we haven't yet *used* the dataset
+        for optimization. **Notebook 06 — Economic Dispatch and
+        Locational Pricing** is the capstone: it formulates a 24-hour
+        DC OPF economic dispatch, computes locational marginal prices
+        (LMPs) from dual variables, and analyzes congestion rents
+        across the flowgates we defined in Notebook 03.
+
+        The TINY (case39) dataset is intentionally small — 39 buses,
+        24 hours, 50 scenarios — so that every evaluation tool can
+        solve it in seconds. But the dataset exercises the same
+        structural features that matter at production scale: thermal
+        unit commitment constraints, stochastic renewable scenarios,
+        battery storage, demand response, flowgate limits, and reserve
+        requirements.
 
         ### Connecting to rubric dimensions
 
@@ -1781,7 +1788,7 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        ## Five-Notebook Recap
+        ## Notebook Recap (01–05)
 
         1. **Notebook 01 — Raw Data Orientation**: Parsed the IEEE 39-bus
            MATPOWER case file, extracted bus/branch/generator tables, and
@@ -1793,9 +1800,9 @@ def _(mo):
            forecast profiles from nameplate capacities.
 
         3. **Notebook 03 — Infrastructure Augmentation**: Placed BESS and
-           demand-response resources on the network, defined flowgate
-           constraints from DC power flow congestion analysis, and built
-           24-hour load profiles with reserve requirements.
+           demand-response resources on the network, ran DC power flow
+           at three load levels to identify congested corridors, and
+           defined flowgate constraints for downstream optimization.
 
         4. **Notebook 04 — Stochastic Scenarios**: Fitted Student-t
            distributions to forecast errors, estimated spatial correlations
@@ -1808,7 +1815,9 @@ def _(mo):
            stochastic scenarios, and confirmed the dataset is ready for
            tool evaluation.
 
-        The TINY dataset is complete. The evaluation begins.
+        The TINY dataset is validated and ready. Notebook 06 puts it to
+        work with an economic dispatch that computes LMPs and congestion
+        rents — the capstone demonstration of what these data enable.
         """
     )
     return ()

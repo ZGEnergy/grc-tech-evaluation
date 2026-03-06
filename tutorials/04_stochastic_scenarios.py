@@ -256,8 +256,18 @@ def _(mo):
         $$\Delta\text{CF}_{g,h} = \text{CF}_{g,h} - \text{CF}_{g,h-1}$$
 
         We pool these changes across all generators of the same fuel type
-        (wind or solar) and across all 8,760 hours of a synthetic year
-        to get a large sample for distribution fitting.
+        (wind or solar) and across all 8,760 hours to get a large sample
+        for distribution fitting.
+
+        **Data source note:** When RTS-GMLC historical profiles are
+        available (in `data/rts_gmlc/`), the fits use real observed
+        generation data. When those files are absent, the pipeline falls
+        back to **synthetic 8760-hour profiles** that mimic RTS-GMLC
+        diurnal patterns with manufactured day-to-day variability. The
+        statistical results (degrees of freedom, scale parameters,
+        correlations) will differ between the two sources. If you see
+        "using synthetic profiles" in the console output, the fits are
+        based on generated data, not historical observations.
         """
     )
     return ()

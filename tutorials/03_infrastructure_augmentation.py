@@ -108,6 +108,10 @@ def _(mo):
 
         SoC is bounded between minimum and maximum limits (e.g., 10%-90%)
         to protect battery health and longevity.
+
+        *The chart below shows an **illustrative** SoC trajectory based on
+        a stylized charge/discharge pattern — not an optimization result.
+        The actual optimal schedule depends on the unit commitment solution.*
         """
     )
     return
@@ -498,8 +502,9 @@ def _(mo):
         - Reserve requirements
 
         The following sections of this notebook will build up the DC OPF
-        formulation step by step, starting with the flowgate definitions
-        that encode network congestion constraints.
+        formulation step by step: first the power flow physics, then
+        congestion analysis at three load levels, and finally the
+        flowgate definitions that encode network congestion constraints.
         """
     )
     return
@@ -1443,8 +1448,8 @@ def _(mo):
         flowgate. This is the mechanism by which transmission congestion
         creates price differences across the network.
 
-        In Notebook 04, we will implement these flowgate constraints in the
-        UC formulation and observe the resulting LMP separation.
+        In Notebook 06, we will implement these flowgate constraints in an
+        economic dispatch formulation and observe the resulting LMP separation.
         """
     )
     return
@@ -1470,20 +1475,23 @@ def _(mo):
         | **Flowgates** | `tiny_flowgates.py` | Identified from DC OPF, 95% derated limits |
         | **DC OPF results** | Computed in-notebook | Branch flows at peak/shoulder/valley |
 
-        ### What Notebook 04 Will Build
+        ### What Comes Next
 
-        With this infrastructure in place, Notebook 04 (*Unit Commitment and
-        Economic Dispatch*) will:
+        Before we can run optimization, we need an **uncertainty model**
+        for renewable output. Notebook 04 builds stochastic scenarios
+        from forecast error distributions. Notebook 05 validates the
+        complete dataset for referential integrity and physical
+        plausibility. Then Notebook 06 (*Economic Dispatch and
+        Locational Pricing*) brings everything together:
 
-        1. **Formulate a 24-hour unit commitment** problem with binary
-           on/off decisions for thermal generators
-        2. **Co-optimize BESS and DR** alongside conventional generation
+        1. **Formulate a 24-hour economic dispatch** as a linear program
+        2. **Co-optimize BESS** alongside conventional generation
         3. **Enforce flowgate constraints** using the PTDF-based formulation
         4. **Compute locational marginal prices (LMPs)** from dual variables
         5. **Analyze congestion rents** — the revenue from price separation
            across flowgates
 
-        The augmented network defined here ensures that Notebook 04 has
+        The augmented network defined here ensures that Notebook 06 has
         realistic flexibility resources and binding transmission constraints
         to produce meaningful market-clearing results.
         """
