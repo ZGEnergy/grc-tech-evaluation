@@ -15,10 +15,11 @@ structured research and analysis.
 
 ## Execution Environment
 
-Commands that inspect installed packages or run tools must use the devcontainer:
+Commands that inspect installed packages or run tools must use the devcontainer via `dc-exec`:
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 ## Task
@@ -32,7 +33,7 @@ For each test ID in `{{test_ids}}`, perform the specified audit and write a resu
 
 2. **Perform the audit** using the methods specified below for each dimension.
 
-3. **Write result file** to `{{results_dir}}/<test_id>.md`:
+3. **Write result file** to `{{results_dir}}/<test_id>_<slug>.md` (slug from config):
 
 ```markdown
 ---
@@ -63,6 +64,11 @@ timestamp: <ISO 8601>
 
 ## Dimension-Specific Methods
 
+The guidance below describes methods for known test patterns. If `{{test_ids}}` includes
+test IDs not covered below, read their description and pass condition from the eval-config
+and apply the most appropriate audit method. Result files always use the `<test_id>_<slug>.md`
+naming convention from the config.
+
 ### Accessibility (Suite D)
 
 **D-1 — Install-to-first-solve:**
@@ -72,7 +78,7 @@ timestamp: <ISO 8601>
 - Record wall-clock time, issues encountered, clarity of instructions
 
 **D-2 — Documentation audit:**
-- For each Suite A test (A-1 through A-8), attempt to understand how to implement it
+- For each Suite A test listed in the config, attempt to understand how to implement it
   using ONLY official documentation (no source code, GitHub issues, Stack Overflow)
 - Record: which tests are doable from docs alone, where you needed source/issues/guessing
 - This is a key differentiator — be thorough and honest
@@ -163,6 +169,19 @@ timestamp: <ISO 8601>
 - Are official examples pinned to a specific release?
 - Flag unversioned downloads, main-branch links, mutable URLs
 
+### Phase 2 Readiness (Suite P2)
+
+P2 tests may be hybrid (audit + lightweight functional probe). If the eval-config's pass
+condition includes a functional test step (e.g., "attempt to parse", "attempt to solve",
+"define a 3-segment piecewise-linear cost curve"), execute it in the devcontainer.
+Otherwise, perform documentation/source audit only. Result files use the same
+`<test_id>_<slug>.md` naming convention. Include `protocol_version: "v4"` in frontmatter.
+
+## Reference Files
+
+Read `cross-tool-watchpoints.md` from `{{reference_files}}` for timing methodology,
+solver compatibility, and known tool-specific pitfalls that may inform audit findings.
+
 ## Consumed Observations
 
 The following observations from code-evaluator agents are available:
@@ -177,8 +196,8 @@ Integrate these into your audit. For example:
 
 ## Supply Chain Gate Semantics
 
-For the supply_chain dimension, any finding rated **C+ or below** is disqualifying.
-Be explicit about severity:
-- Items that are definitely disqualifying (proprietary runtime, incompatible license)
-- Items that are concerning but potentially remediable (ambiguous license, missing build system)
-- Items that are acceptable (copyleft requiring legal review, minor unpinned deps)
+For the supply_chain dimension, any finding rated **C or below** is disqualifying (C+ is the
+lowest passing grade). Be explicit about severity:
+- Items that are definitely disqualifying (proprietary runtime, incompatible license) → C or below
+- Items that are concerning but potentially remediable (ambiguous license, missing build system) → C+
+- Items that are acceptable (copyleft requiring legal review, minor unpinned deps) → B- or above

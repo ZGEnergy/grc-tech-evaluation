@@ -5,18 +5,24 @@ defines the required format.
 
 ## File Location
 
-```
-evaluations/<tool>/results/<dimension>/<test_id>.md
-```
-
-For tests run on multiple tiers, use:
+Every artifact filename includes both the test ID and a human-readable slug from
+the eval-config. The slug is a short snake_case suffix derived from the test description.
 
 ```
-evaluations/<tool>/results/<dimension>/<test_id>_<tier>.md
+evaluations/<tool>/results/<dimension>/<test_id>_<slug>.md
 ```
 
-Example: `evaluations/pypsa/results/expressiveness/A-1_TINY.md` (functional verification)
-and `evaluations/pypsa/results/expressiveness/A-1.md` (grade assessment on MEDIUM).
+For tests run on multiple tiers, append the tier:
+
+```
+evaluations/<tool>/results/<dimension>/<test_id>_<slug>_<tier>.md
+```
+
+Examples:
+- `evaluations/pypsa/results/expressiveness/A-1_dcpf.md` (grade assessment on MEDIUM)
+- `evaluations/pypsa/results/expressiveness/A-1_dcpf_TINY.md` (functional verification)
+- `evaluations/pypsa/results/expressiveness/A-8_stochastic_timeseries.md`
+- `evaluations/pypsa/results/extensibility/B-9_ptdf_extraction.md`
 
 ## Required YAML Frontmatter
 
@@ -26,7 +32,8 @@ test_id: <test_id>
 tool: <tool_name>
 dimension: <dimension>
 network: <TINY|SMALL|MEDIUM|N/A>
-status: pass|fail|qualified_pass
+protocol_version: "v4"
+status: pass|fail|qualified_pass|informational
 workaround_class: null|stable|fragile|blocking
 wall_clock_seconds: <float|null>
 peak_memory_mb: <float|null>
@@ -42,6 +49,8 @@ timestamp: <ISO 8601>
 - **fail** — Test did not meet pass condition
 - **qualified_pass** — Pass condition met but with caveats (e.g., workaround needed,
   non-standard configuration). Requires explanation in narrative.
+- **informational** — Finding recorded for context only; does not affect grades
+  (used by audit tests, especially p2_readiness)
 
 ## Required Markdown Sections
 
@@ -114,14 +123,15 @@ the tool's API or a workaround.>
 
 ## Cross-Linking
 
-- Link to test scripts: `[test script](../../../tests/<dimension>/test_<id>.py)`
-- Link to observations: `[observation](../observations/<tag>-<dim>-<id>.md)`
+- Link to test scripts: `[test script](../../../tests/<dimension>/test_<id_lower>_<slug>.py)`
+- Link to observations: `[observation](../observations/<tag>-<dim>-<id>_<slug>.md)`
 - Link to handoffs: `[handoff](./<dim>-handoff-<tier>.md)`
 
 ## Quality Checklist
 
 Before finalizing a result file, verify:
 - [ ] YAML frontmatter is valid and all required fields are present
+- [ ] `protocol_version` is present and matches the protocol revision used
 - [ ] Status accurately reflects whether the pass condition was met
 - [ ] Workaround class is correct per `workaround-classification.md`
 - [ ] Timing data is recorded (or explicitly noted as unmeasured)

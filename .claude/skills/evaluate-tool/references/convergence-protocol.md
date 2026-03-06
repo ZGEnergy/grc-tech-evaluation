@@ -5,7 +5,7 @@ Ensures consistent treatment across all tools under evaluation.
 
 ## Flat Start Protocol
 
-**Default for all AC problems (A-2, A-4, C-2):**
+**Default for all AC problems (any test with `converges_ac: true` in the eval-config):**
 
 1. **Flat start:** Initialize all bus voltage magnitudes to 1.0 pu, all angles to 0.0 rad.
    This is the standard "cold start" that tests the solver's robustness.
@@ -47,12 +47,12 @@ If the DC warm start also fails:
 | SMALL | Expected for some tools | Notable finding | Record, may cap grade |
 | MEDIUM | Common | Notable finding | Record, may cap grade |
 
-## AC Feasibility (A-4) Specific Protocol
+## AC Feasibility Check Protocol
 
-A-4 tests running ACPF on a DC OPF dispatch (from A-3). The procedure:
+For tests that run ACPF on a DC OPF dispatch (e.g., AC feasibility checks):
 
-1. **Solve DC OPF (A-3)** — obtain generator dispatch
-2. **Fix generator active power** to A-3 dispatch values
+1. **Solve DC OPF** — obtain generator dispatch
+2. **Fix generator active power** to DC OPF dispatch values
 3. **Run ACPF** with generators as PV buses (voltage magnitude specified, active power fixed)
 4. **Record violations:**
    - Voltage magnitude violations (outside [0.95, 1.05] pu)
@@ -60,10 +60,10 @@ A-4 tests running ACPF on a DC OPF dispatch (from A-3). The procedure:
    - Reactive power limit violations
 
 The key test is whether step 2-3 can happen **within the same model context** — no
-exporting A-3 results to a file and reimporting. The tool must support modifying
+exporting results to a file and reimporting. The tool must support modifying
 generator dispatch and re-solving without reconstructing the network model.
 
-## Contingency Convergence (A-7, B-3, C-5)
+## Contingency Convergence
 
 For contingency sweeps involving ACPF:
 - Use the base case solution as warm start for each contingency

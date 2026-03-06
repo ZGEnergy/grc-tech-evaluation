@@ -28,9 +28,17 @@ For each evaluation criterion, extract:
   - `gate-evaluator` for gate tests (special, not a regular dimension)
 - `weight_rank` — priority order for tie-breaking (from rubric)
 
+If the protocol defines a **Phase 2 Readiness Findings** section, extract those as a
+separate dimension:
+- `name: p2_readiness`
+- `archetype: audit-evaluator`
+- `informational: true` (findings do not affect Phase 1 grades)
+- Extract each P2 finding as a test with its own ID, slug, and method
+
 ### Test IDs
 For each test, extract:
 - `id` — test identifier (e.g., G-1, A-1, B-3, C-5)
+- `slug` — short snake_case suffix derived from the test description (e.g., `dcpf`, `acpf`, `dcopf`, `scuc`, `contingency_sweep`, `stochastic_timeseries`, `scopf`, `custom_constraints`, `graph_access`, `ptdf_extraction`). This slug is used in all artifact filenames alongside the test ID for human readability.
 - `dimension` — which dimension it belongs to
 - `description` — one-line description
 - `functional_network` — network tier for functional verification (TINY or N/A)
@@ -38,6 +46,7 @@ For each test, extract:
 - `pass_condition` — what constitutes a pass (from protocol)
 - `solver` — required solver(s), if specified (e.g., "Ipopt", "HiGHS, GLPK")
 - `recorded_metrics` — what to record (wall-clock, memory, LOC, etc.)
+- `converges_ac` — whether this test involves AC power flow and needs the convergence protocol (boolean, inferred from test description)
 
 ### Network Tiers
 - `TINY` — name, bus count, file path in `data/networks/`
@@ -45,7 +54,8 @@ For each test, extract:
 - `MEDIUM` — name, bus count, file path
 
 ### Reference Counts (for gate validation)
-- TINY: 39 buses, 46 branches, 10 generators
+Extract from the protocol where stated. If not stated, note "verify from .m file":
+- TINY: extract from protocol (expected ~39 buses, ~46 branches, ~10 generators — verify)
 - SMALL: extract from protocol or note "verify from .m file"
 - MEDIUM: extract from protocol or note "verify from .m file"
 
@@ -60,7 +70,8 @@ Record as: `{test_id}.depends_on: [list of test IDs]`
 ### Observation Tags
 Infer cross-cutting observation routing:
 - Code-evaluator dimensions emit: `api-friction`, `doc-gaps`, `workaround-needed`, `solver-issues`
-- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability
+- Extensibility also emits: `arch-quality` (software architecture observations)
+- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity
 - Supply chain audit emits: `license-flags`
 
 For each dimension, record:
@@ -84,18 +95,24 @@ execution_dag:
     dimensions:
       - name: gate
         tier: ALL
-        test_ids: [G-1, G-2, G-3]
+        test_ids: [<all G-* test IDs from protocol>]
   - step: 2
     label: "TINY functional verification"
     dimensions:
       - name: expressiveness
         tier: TINY
-        test_ids: [A-1, A-2, A-3]
+        test_ids: [<all A-* tests with functional_network=TINY, respecting dependencies>]
       - name: extensibility
         tier: TINY
-        test_ids: [B-1, B-2, B-3, B-5]
-    # ... etc
+        test_ids: [<all B-* tests with functional_network=TINY, no unmet dependencies>]
+    # ... continue for all dimensions and tiers
 ```
+
+Include ALL test IDs extracted from the protocol in the DAG — do not omit any.
+
+**Batch splitting:** No single agent dispatch should include more than 5 test IDs. If a
+dimension x tier combination has more than 5 tests, split into multiple DAG sub-steps
+grouped semantically (e.g., by shared setup requirements or dependency chains).
 
 1. **Write the output.** Write the complete YAML to `{{output_path}}` using the Write tool.
 
@@ -147,13 +164,15 @@ dimensions:
     consumes: []
     tests:
       - id: A-1
+        slug: dcpf
         description: "Solve DCPF"
         functional_network: TINY
         grade_network: MEDIUM
         pass_condition: "Converges, nodal injections/line flows/voltage angles accessible as structured output"
         depends_on: []
+        converges_ac: false
         recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
-      # ... all A tests
+      # ... all A tests (extract ALL from protocol — do not omit any)
 
   # ... all dimensions
 
@@ -187,6 +206,10 @@ observation_tags:
     description: "Licensing or supply chain concerns"
     emitted_by: [supply_chain]
     consumed_by: [supply_chain]
+  arch-quality:
+    description: "Software architecture observations (positive or negative)"
+    emitted_by: [extensibility]
+    consumed_by: [maturity]
 ```
 
 ## Critical Rules

@@ -68,6 +68,20 @@ The CAISO Full Network Model (FNM) is not used in Phase 1 testing. The FNM uses 
 
 This rubric is accompanied by a separate **Phase 1 Test Protocol** document that defines the exact test cases, pass conditions, and recording requirements used to produce grades. Every grade in the evaluation report must trace to a specific test result or audit finding in the protocol. The rubric says *what* we evaluate; the protocol says *how*.
 
+### Phase 2 Context — CAISO Congestion Readiness
+
+The v2 amendments to this rubric add sub-questions and findings that assess each tool's readiness for Phase 2 ISO congestion pattern reproduction. These amendments were motivated by research into how CAISO's market clearing engine actually works, which revealed gaps in the original rubric's coverage of key analytical primitives.
+
+**How CAISO clears its market:** CAISO's Day-Ahead Market (DAM) uses a Security-Constrained Unit Commitment (SCUC) formulation — a single large MILP that co-optimizes commitment and dispatch. The optimization is linearized: DC power flow with AC-derived parameters (shift factors from a solved AC power flow, marginal loss factors from an AC loss calculation). Contingency constraints are embedded in the optimization via pre-computed LODFs and PTDFs — the engine does not remove equipment and re-run power flow for each contingency. Instead, post-contingency flows are expressed as linear functions of base-case flows, and the corresponding flow limits become additional constraints in the MILP. This is a *preventive* SCOPF: the base-case dispatch must be feasible under all monitored contingencies simultaneously.
+
+**LMP decomposition:** CAISO LMPs decompose into three components: System Marginal Energy Cost (SMEC) + Marginal Cost of Congestion (MCC) + Marginal Cost of Losses (MCL). The SMEC is defined at a distributed load-weighted reference bus, not a single slack bus. A tool that produces only lossless single-slack DC OPF LMPs will systematically misrepresent congestion patterns, particularly on long transmission paths where loss components are material.
+
+**Contingency modeling:** The critical distinction is between *post-hoc* contingency analysis (remove equipment, re-solve, check for violations — tested in the original rubric as A-7) and *preventive SCOPF* (contingency flow limits as constraints inside the optimization). All ISOs use preventive SCOPF for market clearing. The original rubric tested only post-hoc sweeps.
+
+**Phase 2 network data:** The CAISO Full Network Model (FNM) is NDA-restricted and distributed in PSS/E RAW format. Phase 2 will require either native PSS/E parsing or a custom converter, plus network imputation and calibration to reproduce published congestion patterns. DAM congestion is the recommended Phase 2 starting point due to data availability (public LMP and binding constraint data from OASIS).
+
+**Impact on Phase 1 grading:** The new sub-questions (Expressiveness 9–11, Extensibility 8–9) are supplementary Phase 2 readiness indicators. They inform the grade narrative but do not automatically override the original sub-questions. See the grading note after Expressiveness sub-question 11.
+
 ---
 
 ## Cross-Cutting Lens — Software Engineering Quality
@@ -88,7 +102,7 @@ When something feels off — documentation that doesn't match behavior, examples
 **Tools under primary evaluation:**
 - PyPSA
 - pandapower
-- VeraGrid (formerly GridCal)
+- GridCal (formerly VeraGrid)
 - PowerModels.jl (LANL-ANSI)
 - PowerSimulations.jl (NREL Sienna)
 - MATPOWER *(reference benchmark only — MATLAB runtime disqualifies for classified deployment)*
@@ -115,18 +129,30 @@ When something feels off — documentation that doesn't match behavior, examples
 
 **6. SCED** — Real-time economic dispatch, typically LP/QP. Can you solve SCED as a warm-started dispatch given a fixed commitment schedule? Does the tool separate UC and ED cleanly as a two-stage workflow?
 
-**Note on cost curve formulation:** Phase 1 tests use linear (single-segment) generator cost curves throughout. This is a deliberate simplification — we do not have actual bid curves for the ISO of interest, and linear curves keep compute burden lower, which is appropriate for a comparative evaluation. However, real ISO markets clear using piecewise-linear bid curves. For each tool, the evaluator must document whether the tool supports piecewise-linear cost curves in its OPF and UC formulations (sub-questions 3, 5, and 6), even though the Phase 1 tests do not exercise them. This is recorded as an Expressiveness finding: a tool that only supports linear cost curves faces a meaningful limitation in any operational deployment.
+**Note on cost curve formulation:** The MATPOWER .m reference case files contain polynomial (quadratic) generator cost curves. Phase 1 uses whatever cost curves ship with the reference cases as-is — the evaluator documents which cost model is in effect and any solver implications. Real ISO markets clear using piecewise-linear bid curves. For each tool, the evaluator must document whether the tool supports piecewise-linear cost curves in its OPF and UC formulations (sub-questions 3, 5, and 6). This is recorded as an Expressiveness finding: a tool that supports only linear cost curves faces a meaningful limitation in any operational deployment.
 
 **7. N-M Contingency Sweep (point-outward)** — Can you enumerate network elements radiating outward from a node of interest using graph primitives the tool exposes? Can you then re-solve PF/OPF for each contingency case without re-building the model from scratch?
 
-**8. Stochastic Timeseries Optimization** — Does the tool natively support stochastic or multi-scenario optimization for load, wind, and solar timeseries? "Natively" means the stochastic structure is part of the optimization formulation — e.g., scenario trees, two-stage stochastic programs with recourse, or chance-constrained formulations — not independent deterministic solves in a loop. Random noise applied independently to each interval without temporal correlation or cross-scenario structure does not constitute meaningful stochastic support.
+**8. Stochastic Timeseries Optimization** — Does the tool natively support stochastic or multi-scenario optimization for load, wind, and solar timeseries? "Natively" means the stochastic structure is part of the optimization formulation — e.g., scenario trees, two-stage stochastic programs with recourse, or chance-constrained formulations — not independent deterministic solves in a loop. Perturbations must be independent by resource type (load, wind, solar — classified by cost tier proxy), and price extraction is part of the evaluation. Random noise applied independently to each interval without temporal correlation or cross-scenario structure does not constitute meaningful stochastic support.
+
+**9. Security-Constrained OPF (SCOPF)** — Can the tool solve an OPF where N-1 contingency flow constraints are part of the optimization formulation, not checked post-hoc? Does the tool support preventive security constraints where the base-case dispatch must be feasible under all enumerated contingencies simultaneously? Can it use iterative contingency screening (activate/deactivate contingency constraints based on binding status) to manage problem size?
+
+This is distinct from sub-question 7: sub-question 7 tests post-hoc contingency sweeps (re-solve PF/OPF for each contingency case after an initial solve). SCOPF tests contingency constraints *inside* the optimization — the dispatch is constrained to remain feasible under all enumerated contingencies. This is how CAISO and all ISOs actually clear markets.
+
+**Note on SCOPF feasibility:** Small test cases (e.g., IEEE 39-bus) may have tight thermal limits that make preventive SCOPF infeasible. Thermal rating relaxation is permitted for functional verification per the test protocol. This is a data finding, not a tool limitation.
+
+**10. Lossy DC OPF and LMP Decomposition** — Can the tool solve a DC OPF with loss approximation (iterative loss factors, quadratic loss terms, or penalty factors — any method acceptable)? Can LMPs be decomposed into energy, congestion, and loss components? A tool that produces only lossless DC OPF LMPs will systematically misrepresent congestion patterns on long transmission paths.
+
+**11. Distributed Slack OPF** — Can the tool solve DC OPF with a distributed slack bus (load-proportional or generation-proportional) rather than a single slack bus? All ISOs use distributed slack in their market clearing engines — the reference bus is a weighted aggregate across participating loads or generators, not a single bus. This directly affects LMP computation: the System Marginal Energy Cost is defined at the distributed reference, and congestion/loss components are relative to it. A tool that only supports single-slack OPF will produce LMP decompositions that don't match ISO-published values.
+
+**Note on Phase 2 readiness sub-questions (9, 10, 11):** These sub-questions are supplementary Phase 2 readiness indicators. The original sub-questions (1–8) remain the primary drivers of the Expressiveness grade. Sub-questions 9–11 inform whether the tool is ready for ISO congestion pattern reproduction. A tool that scores well on 1–8 but poorly on 9–11 receives a grade note, not an automatic downgrade. However, a tool that cannot express SCOPF at all (not even through its extension API) or cannot support distributed slack faces a meaningful limitation for Phase 2 that should be reflected in the grade narrative.
 
 ### Grading Standards
 
 | Grade | Description |
 |-------|-------------|
-| **A** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. |
-| **B** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. Stochastic support may require wrapping in an external loop (tested separately under Extensibility). |
+| **A** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. SCOPF expressible natively or through documented extension API. Loss-inclusive OPF supported with LMP decomposition into energy, congestion, and loss components. Distributed slack OPF supported natively. |
+| **B** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. Stochastic support may require wrapping in an external loop (tested separately under Extensibility). SCOPF achievable through extension API with moderate effort. Loss approximation possible but may require manual implementation. Distributed slack achievable through configuration or workaround. |
 | **C** | A target problem type is outside the tool's design scope entirely, or requires rebuilding core functionality from primitives in a general-purpose modeling language. |
 
 ---
@@ -153,6 +179,10 @@ This is distinct from Expressiveness. Expressiveness asks "can the tool solve th
 
 **7. AC feasibility as extension** — If the tool does not natively support running an AC PF feasibility check on a DC OPF dispatch within the same model context (as tested in Criterion 1, sub-question 4), document the effort required to achieve this workflow. This is noted here for tools where the AC check requires a workaround rather than a built-in path.
 
+**8. Reference bus control** — Can the analyst programmatically set or change the reference/slack bus? Does LMP computation respond correctly to reference bus changes? This affects LMP decomposition in ISO markets that use distributed load reference buses.
+
+**9. PTDF matrix extraction** — Can the tool expose or compute Power Transfer Distribution Factors as a programmatically accessible matrix or per-element query? This is the fundamental analytical primitive for congestion analysis. PTDFs may be exposed natively (e.g., MATPOWER's `makePTDF()`), extractable from the solved model's internal matrices, or computable via unit injection experiments. Document the method and effort level.
+
 ### Workaround Durability
 
 When a sub-question is answered with a workaround, the workaround is classified:
@@ -169,8 +199,8 @@ Stable workarounds support a B-range grade. Fragile workarounds pull toward B- o
 
 | Grade | Description |
 |-------|-------------|
-| **A** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection. Results export to standard formats is trivial. Clean architecture with separation of concerns — a competent analyst can extend the tool in days, not weeks. |
-| **B** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. |
+| **A** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection. Results export to standard formats is trivial. Clean architecture with separation of concerns — a competent analyst can extend the tool in days, not weeks. Reference bus configurable via API. PTDF matrix accessible as a structured output. |
+| **B** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. Reference bus control possible with workaround. PTDF extraction requires manual computation from network data. |
 | **C** | Extension requires forking or patching the core. Network topology not accessible as a graph. Contingency analysis requires full model rebuilds. Stochastic wrapping not feasible without major effort. Monolithic or thesis-project architecture with no meaningful separation of concerns. |
 
 ---
@@ -304,6 +334,16 @@ This is the criterion that motivated the entire contract. A tool can score well 
 
 ---
 
+## Phase 2 Readiness Findings
+
+These are informational findings documented during Phase 1 evaluation. They do not affect Phase 1 grades but directly inform Phase 2 planning effort estimates.
+
+**1. PSS/E RAW Format Parsing** — Does the tool have any PSS/E RAW format parsing capability? If so, which RAW versions (v26, v29, v30, v33, v35)? If not, what is the expected effort to build or integrate a parser? The CAISO Full Network Model is distributed in PSS/E format; Phase 2 requires either native parsing or a custom converter.
+
+**2. Piecewise-Linear Cost Curves** — Does the tool support piecewise-linear cost curves in its OPF and UC formulations? This finding is cross-referenced from the Expressiveness cost curve note. Real ISO markets clear using piecewise-linear bid curves; a tool that only supports linear cost curves faces a meaningful limitation in any operational deployment. Document the formulation type if supported (SOS2, lambda, incremental) and any limitations.
+
+---
+
 ## Addendum — Tools Considered but Ruled Out
 
 The following tools were identified during the landscape survey and considered for inclusion in the primary evaluation. Each was ruled out for the reason noted. They are documented here for traceability and to inform future scope expansions.
@@ -332,3 +372,13 @@ The following tools were identified during the landscape survey and considered f
 | 4. Scalability | Weighted (priority 3) | Does it perform at WECC scale with open-source solvers? |
 | 5. Maturity & Sustainability | Weighted (priority 5) | Will it still be here and maintained in three years? |
 | 6. Supply Chain, Inspectability & Licensing Risk | **Gate** | Is every component in the stack auditable, inspectable, and legally clean? |
+
+---
+
+## Revision History
+
+| Version | Date | Change | Author |
+|---------|------|--------|--------|
+| v1 | TBD | Initial rubric | GRC |
+| v2 | 2026-03-05 | Added Phase 2 Context section (CAISO SCOPF/LMP research). Added Expressiveness sub-questions 9 (SCOPF), 10 (lossy DC OPF / LMP decomposition), 11 (distributed slack OPF) with grading note. Updated Expressiveness grading standards for A and B to reference new sub-questions. Added Extensibility sub-questions 8 (reference bus control) and 9 (PTDF matrix extraction). Updated Extensibility grading standards for A and B. Added Phase 2 Readiness Findings section (PSS/E RAW parsing, piecewise-linear cost curves). | GRC |
+| v3 | 2026-03-06 | Cost curve note updated to acknowledge polynomial costs in MATPOWER files (was "linear costs throughout"). Added SCOPF feasibility note for small test cases. Stochastic optimization sub-question clarified: independent perturbations by resource type, price extraction required. Aligned with protocol v4 changes. | GRC |

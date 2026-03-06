@@ -130,7 +130,7 @@ Build the REPO_REGISTRY and set up per-repo state. This runs after PARSE_PLAN be
 4. **Create feature branches**:
    - Derive a slug from the project name (e.g., `ercot-power-flow-scenario-gen`).
    - For each repo in REPO_REGISTRY:
-     a. `cd <repo_root> && git checkout -b implement/<plan-slug>`
+     a. `cd <repo_root> && git branch implement/<plan-slug>` (create branch ref without checking it out — all work happens in worktrees).
      b. Store HEAD as `tier_base_ref` in that repo's REPO_REGISTRY entry.
 
 5. **Write initial progress file** with metadata section (plans directory, repos, feature branch, scope, max parallelism, current state: CONFIGURE, Repo State table, timestamps).

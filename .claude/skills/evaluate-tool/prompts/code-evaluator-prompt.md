@@ -18,10 +18,11 @@ You write and run test scripts, then produce structured result files for each te
 
 ## Execution Environment
 
-**All code runs inside the devcontainer:**
+**All code runs inside the devcontainer via `dc-exec`:**
 
 ```bash
-devcontainer exec --workspace-folder . <command>
+.devcontainer/dc-exec <command>
+.devcontainer/dc-exec -C /workspace/{{tool_dir}} <command>
 ```
 
 Never run code on the host.
@@ -38,6 +39,7 @@ Key references:
 - `convergence-protocol.md` — Flat start → DC warm start fallback for AC problems
 - `result-template.md` — Required fields for result files
 - `workaround-classification.md` — Stable/fragile/blocking definitions
+- `cross-tool-watchpoints.md` — Timing methodology, solver compatibility, known pitfalls
 
 ## Task
 
@@ -52,29 +54,39 @@ with the research context for tool-specific API patterns.
 
 Write a self-documenting test script following conventions from `test-script-conventions.md`:
 
+Each test in the config includes an `id` and a `slug` (short human-readable suffix).
+Use both in all artifact filenames: `<id_lower>_<slug>`.
+
 **Python tools (pypsa, pandapower, gridcal):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.py`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
+- For tier-specific variants (when a test runs on multiple tiers), append the tier:
+  `test_<id_lower>_<slug>_<tier_lower>.py` (e.g., `test_a1_dcpf_tiny.py` for functional verification)
 - Use `run()` function convention
 - Include docstring with test ID, description, pass condition
 - Use solver settings from `solver-config.md`
-- Follow convergence protocol from `convergence-protocol.md` for AC problems
+- If the test's `converges_ac` flag is true, follow `convergence-protocol.md`
 
 **Julia tools (powermodels, powersimulations):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.jl`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.jl`
+- For tier-specific variants: `test_<id_lower>_<slug>_<tier_lower>.jl`
 - Use `run()` function convention adapted for Julia
 - Use `@testset` blocks for structured output
 
 **Octave (matpower):**
-- File: `{{tool_dir}}/tests/{{dimension}}/test_<test_id_lower>.m`
+- File: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.m`
+- For tier-specific variants: `test_<id_lower>_<slug>_<tier_lower>.m`
 - Use function-based convention
+
+Example: test ID `A-8` with slug `stochastic_timeseries` → `test_a8_stochastic_timeseries.py`
+Example: test ID `A-1` with slug `dcpf` on TINY → `test_a1_dcpf_tiny.py`
 
 ### 3. Run the Test
 
-Execute inside the devcontainer:
+Execute inside the devcontainer (using the `<id_lower>_<slug>` naming):
 
-- Python: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && uv run python tests/{{dimension}}/test_<test_id>.py"`
-- Julia: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && julia --project=. tests/{{dimension}}/test_<test_id>.jl"`
-- Octave: `devcontainer exec --workspace-folder . bash -c "cd {{tool_dir}} && octave tests/{{dimension}}/test_<test_id>.m"`
+- Python: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} uv run python tests/{{dimension}}/test_<id_lower>_<slug>.py`
+- Julia: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} julia --project=. tests/{{dimension}}/test_<id_lower>_<slug>.jl`
+- Octave: `.devcontainer/dc-exec -C /workspace/{{tool_dir}} octave tests/{{dimension}}/test_<id_lower>_<slug>.m`
 
 If the test fails, analyze the error:
 - Is it a bug in the test script? Fix and re-run.
@@ -83,7 +95,7 @@ If the test fails, analyze the error:
 
 ### 4. Record Results
 
-Write a result file to `{{results_dir}}/<test_id>.md` following `result-template.md`:
+Write a result file to `{{results_dir}}/<test_id>_<slug>.md` following `result-template.md`:
 
 ```markdown
 ---
@@ -91,6 +103,7 @@ test_id: <id>
 tool: {{tool_name}}
 dimension: {{dimension}}
 network: {{network_tier}}
+protocol_version: "v4"
 status: pass|fail|qualified_pass
 workaround_class: null|stable|fragile|blocking
 wall_clock_seconds: <float>
@@ -128,13 +141,13 @@ Include small tables or code blocks showing actual results.>
 
 ## Test Script
 
-Link: `{{tool_dir}}/tests/{{dimension}}/test_<test_id>.py`
+Link: `{{tool_dir}}/tests/{{dimension}}/test_<id_lower>_<slug>.py`
 ```
 
 ### 5. Emit Observations
 
 For any cross-cutting finding during testing, write an observation file to
-`{{results_dir}}/../observations/<tag>-{{dimension}}-<test_id>.md`:
+`{{results_dir}}/../observations/<tag>-{{dimension}}-<test_id>_<slug>.md`:
 
 ```markdown
 ---
@@ -142,11 +155,23 @@ tag: <observation_tag>
 source_dimension: {{dimension}}
 source_test: <test_id>
 tool: {{tool_name}}
+severity: low|medium|high
+timestamp: <ISO 8601>
 ---
 
 # Observation: <brief title>
 
-<Description of the finding and its implications for consuming dimensions.>
+## Finding
+
+<1-2 sentence description of the cross-cutting finding.>
+
+## Context
+
+<What was being tested when this was discovered.>
+
+## Implications
+
+<What this means for consuming dimensions.>
 ```
 
 Only emit observations for tags listed in `{{observation_tags}}`. Common triggers:
@@ -155,35 +180,25 @@ Only emit observations for tags listed in `{{observation_tags}}`. Common trigger
 - `workaround-needed` — test required a workaround to pass
 - `solver-issues` — solver-related problems (convergence, performance, compatibility)
 
-## Dimension-Specific Guidance
+## Generic Guardrails
 
-### Expressiveness (Suite A)
+Read each test's `pass_condition` and `parameters` from the eval-config. The protocol
+notes for each test provide methodology guidance — cross-reference them via the research
+context.
 
-- **A-1 (DCPF):** Verify structured output — nodal injections, line flows, voltage angles
-- **A-2 (ACPF):** Follow convergence protocol. Record voltage magnitudes, angles, P-Q flows, losses
-- **A-3 (DC OPF):** Must extract dispatch AND LMPs/shadow prices
-- **A-4 (AC Feasibility):** Must reuse A-3 dispatch within same model context. No export/reimport.
-- **A-5 (SCUC):** 24hr, min up/down, startup costs, ramps, reserves. MIP gap ≤ 1%. Note built-in vs user-assembled.
-- **A-6 (SCED):** Fix commitment from A-5, solve ED. UC/ED must be cleanly separable.
-- **A-7 (N-M Contingency):** Graph-distance enumeration, pruning, no full reconstruction per case.
-  Use tier-specific parameters (TINY: x=3, m=3; MEDIUM: x=5, m=4).
-- **A-8 (Stochastic):** Must be NATIVE stochastic structure, not loop-over-deterministic.
+- **Protocol is authoritative:** The pass condition in the eval-config (derived from the
+  protocol) is the sole authority for what a test must achieve. Do not add requirements
+  beyond the pass condition, and do not relax it.
 
-### Extensibility (Suite B)
+- **Workaround taxonomy:** Only three durability classes exist: stable, fragile, blocking.
+  See `workaround-classification.md`. Do not invent other classes.
 
-- **B-1 (Custom Constraints):** Flow gate limit via documented API, no forking
-- **B-2 (Graph Access):** BFS to depth 3, return subgraph. Via native or clean library bridge.
-- **B-3 (Contingency Loop):** N-1 DCPF without re-parsing per iteration
-- **B-4 (Stochastic Wrapping):** 50 scenarios, correlated perturbations, 24hr multi-period DCPF
-- **B-5 (Interoperability):** Export to DataFrame + CSV in < 5 LOC beyond solve
-- **B-6 (Code Architecture):** Read source, trace DCPF solve path, document architecture
+- **Performance loops:** For any test involving repeated solves (scenarios, contingencies),
+  clone the network object rather than reloading from file. Record per-unit metrics
+  (time per solve) alongside totals.
 
-### Scalability (Suite C)
-
-- **C-1 through C-7:** No TINY tests. Record wall-clock, peak memory, iterations.
-- **C-7 (Solver Swap):** Test all available open-source solvers, note if swap requires
-  reformulation or just parameter change.
-- Record CPU utilization, parallelism, OOM events.
+- **Result frontmatter:** Every result file must include `protocol_version: "v4"` in
+  the YAML frontmatter.
 
 ## Consumed Observations
 

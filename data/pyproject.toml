@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["scripts"]
 
+
 [project]
 name = "grc-data-augmentation"
 version = "0.1.0"

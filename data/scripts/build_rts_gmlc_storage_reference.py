@@ -1001,7 +1001,7 @@ def print_summary(result: StorageReferenceResult) -> None:
 def main(
     output_dir: Path | None = None,
     *,
-    commit_hash: str = "master",
+    commit_hash: str = "v3.2",
 ) -> StorageReferenceResult:
     """Entry point: download sources, build reference table, write outputs.
 
@@ -1021,7 +1021,7 @@ def main(
     Args:
         output_dir: Base directory for output. Defaults to
             <repo_root>/data/reference/.
-        commit_hash: RTS-GMLC commit hash or tag to pin. Defaults to "master"
+        commit_hash: RTS-GMLC commit hash or tag to pin. Defaults to "v3.2"
             pending resolution of OQ-D3.01-01.
 
     Returns:
