@@ -38,17 +38,17 @@ plans/
 # Marimo session cache
 tutorials/__marimo__/
 
-# Intermediate data artifacts
+# Generated data pipeline outputs (rebuilt from scratch via scripts)
+data/timeseries/ACTIVSg_raw/
+data/timeseries/ACTIVSg2000/
+data/timeseries/ACTIVSg10k/
+data/timeseries/download_manifest.json
+data/timeseries/cleanup_manifest.json
+data/timeseries/reconciliation_report.json
+data/timeseries/scenarios/rank_correlation_matrix.json
 data/timeseries/case39/case39.m
 data/timeseries/case39/case39/
 data/timeseries/case39/cleanup_manifest.json
-
-# ACTIVSg raw PowerWorld exports (source for preprocessing)
-data/timeseries/ACTIVSg_raw/
-
-# ACTIVSg preprocessed companion CSVs
-data/timeseries/ACTIVSg2000/raw/
-data/timeseries/ACTIVSg10k/raw/
 
 # OS
 .DS_Store
