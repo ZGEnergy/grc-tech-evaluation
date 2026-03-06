@@ -32,6 +32,17 @@ htmlcov/
 # Plans
 plans/
 
+# Claude worktrees
+.claude/worktrees/
+
+# Marimo session cache
+tutorials/__marimo__/
+
+# Intermediate data artifacts
+data/timeseries/case39/case39.m
+data/timeseries/case39/case39/
+data/timeseries/case39/cleanup_manifest.json
+
 # OS
 .DS_Store
 Thumbs.db
