@@ -39,6 +39,7 @@ Key references:
 - `convergence-protocol.md` — Flat start → DC warm start fallback for AC problems
 - `result-template.md` — Required fields for result files
 - `workaround-classification.md` — Stable/fragile/blocking definitions
+- `cross-tool-watchpoints.md` — Timing methodology, solver compatibility, known pitfalls
 
 ## Task
 
@@ -102,6 +103,7 @@ test_id: <id>
 tool: {{tool_name}}
 dimension: {{dimension}}
 network: {{network_tier}}
+protocol_version: "v4"
 status: pass|fail|qualified_pass
 workaround_class: null|stable|fragile|blocking
 wall_clock_seconds: <float>
@@ -178,40 +180,25 @@ Only emit observations for tags listed in `{{observation_tags}}`. Common trigger
 - `workaround-needed` — test required a workaround to pass
 - `solver-issues` — solver-related problems (convergence, performance, compatibility)
 
-## Dimension-Specific Guidance
+## Generic Guardrails
 
-Do NOT rely on hardcoded test lists below — always read the full test list from
-`{{test_ids}}` and the eval-config. The guidance here describes *patterns* for each
-dimension, not an exhaustive enumeration.
+Read each test's `pass_condition` and `parameters` from the eval-config. The protocol
+notes for each test provide methodology guidance — cross-reference them via the research
+context.
 
-### Expressiveness (Suite A)
+- **Protocol is authoritative:** The pass condition in the eval-config (derived from the
+  protocol) is the sole authority for what a test must achieve. Do not add requirements
+  beyond the pass condition, and do not relax it.
 
-Each test's `pass_condition` in the config is authoritative. General patterns:
-- **Power flow tests:** Verify structured output (nodal injections, line flows, angles/voltages)
-- **OPF tests:** Must extract dispatch AND LMPs/shadow prices
-- **AC problems** (tests with `converges_ac: true`): Follow convergence protocol
-- **Feasibility checks:** Must reuse prior dispatch within the same model context (no export/reimport)
-- **UC/ED tests:** Note built-in vs user-assembled constraints. UC and ED must be cleanly separable.
-- **Contingency sweeps:** Use tier-specific parameters from config. No full model reconstruction per case.
-- **Stochastic tests:** Distinguish native stochastic structure from loop-over-deterministic
-- **SCOPF tests:** Contingency constraints must be part of the optimization, not post-hoc
-- **Loss/distributed-slack tests:** Validate LMP decomposition into components
+- **Workaround taxonomy:** Only three durability classes exist: stable, fragile, blocking.
+  See `workaround-classification.md`. Do not invent other classes.
 
-### Extensibility (Suite B)
+- **Performance loops:** For any test involving repeated solves (scenarios, contingencies),
+  clone the network object rather than reloading from file. Record per-unit metrics
+  (time per solve) alongside totals.
 
-- **Custom constraint tests:** Via documented API, no forking
-- **Graph access tests:** Via native primitives or clean library bridge
-- **Loop/wrapping tests:** Must work without model re-instantiation per iteration
-- **Interoperability tests:** Export to standard formats in minimal LOC
-- **Architecture audit (B-6):** Read source, trace solve path, document separation of concerns
-- **Matrix extraction tests:** Document method and computational cost
-
-### Scalability (Suite C)
-
-- No TINY tests — Suite C runs on SMALL and MEDIUM only
-- Record wall-clock, peak memory, iterations, CPU utilization, parallelism, OOM events
-- Solver swap tests: note if swap requires reformulation or just a parameter change
-- For all C tests, the corresponding A/B functional test must have passed first
+- **Result frontmatter:** Every result file must include `protocol_version: "v4"` in
+  the YAML frontmatter.
 
 ## Consumed Observations
 

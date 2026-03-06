@@ -110,6 +110,10 @@ execution_dag:
 
 Include ALL test IDs extracted from the protocol in the DAG — do not omit any.
 
+**Batch splitting:** No single agent dispatch should include more than 5 test IDs. If a
+dimension x tier combination has more than 5 tests, split into multiple DAG sub-steps
+grouped semantically (e.g., by shared setup requirements or dependency chains).
+
 1. **Write the output.** Write the complete YAML to `{{output_path}}` using the Write tool.
 
 ## Output Format

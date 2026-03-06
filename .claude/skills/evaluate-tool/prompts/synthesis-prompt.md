@@ -106,10 +106,12 @@ to flag (but derive from actual results, not a hardcoded list):
 
 ## Methodology Notes
 
+- **Protocol version:** <version from result frontmatter, e.g., "v4">
 - **Scale cap applied:** <TINY/SMALL/MEDIUM> (based on gate results)
 - **Tests skipped:** <list any skipped tests with reason>
 - **Solver versions:** <versions used>
 - **Tool version:** <version evaluated>
+- **Protocol version consistency:** <note if any result files have mixed protocol_version values>
 ```
 
 ## Grading Standards Reference
@@ -141,3 +143,6 @@ Use the 9-point scale from the rubric:
 - **Supply chain is binary for gate purposes.** C or below = tool does not pass gate (C+ is the lowest passing grade).
 - **Cross-tool fairness.** Grade against the rubric standards, not against other tools.
   (Cross-tool comparison happens later in a separate synthesis.)
+- **Protocol version consistency.** If result files have mixed `protocol_version` values,
+  note this in Methodology Notes and flag any tests where the version difference materially
+  affects comparability (e.g., changed pass conditions, adjusted parameters).
