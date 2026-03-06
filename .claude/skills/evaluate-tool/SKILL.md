@@ -88,7 +88,7 @@ skip this step — the user is already in the worktree.
 ## State Machine
 
 ```
-CONFIGURE → RESEARCH → GATE → EVALUATE → SYNTHESIZE
+CONFIGURE → RESEARCH → GATE → EVALUATE → VALIDATE → SYNTHESIZE
 ```
 
 Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last completed state.
@@ -220,7 +220,8 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
       - `{{research_context}}` → contents of `{{RESEARCH_PATH}}`
       - `{{reference_files}}` → pass ALL reference file paths from `{{SKILL_DIR}}/references/`:
         `test-script-conventions.md`, `solver-config.md`, `convergence-protocol.md`,
-        `result-template.md`, `workaround-classification.md`, `observation-schema.md`
+        `result-template.md`, `workaround-classification.md`, `observation-schema.md`,
+        `cross-tool-watchpoints.md`
       - `{{observation_tags}}` → tags this dimension emits (from config)
       - `{{consumed_observations}}` → contents of observation files matching consumed tags
 
@@ -245,7 +246,42 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
    (informational findings that don't affect Phase 1 grades), dispatch an audit-evaluator
    agent for those tests. Results go in `{{RESULTS_DIR}}/p2_readiness/`.
 
-7. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: SYNTHESIZE`.
+7. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: VALIDATE`.
+
+---
+
+### State: VALIDATE
+
+**Purpose:** Verify completeness and quality of all result files before synthesis.
+
+1. **Scan result files.** Read `{{CONFIG_PATH}}` to get every test ID. For each test ID,
+   check that a result file exists in the appropriate `{{RESULTS_DIR}}/<dimension>/` directory.
+
+2. **Validate frontmatter.** For each result file:
+   - Required fields present: `test_id`, `tool`, `dimension`, `network`, `status`,
+     `workaround_class`, `timestamp`, `protocol_version`
+   - `status` value is one of: `pass`, `fail`, `qualified_pass`, `informational`
+   - `workaround_class` value is one of: `null`, `stable`, `fragile`, `blocking`
+   - `protocol_version` is present and non-empty
+   - If `status` is `qualified_pass`, the Workarounds section must be non-empty
+
+3. **Validate naming.** Each result file must follow either:
+   - `<test_id>_<slug>.md` (for single-tier tests or grade-network results)
+   - `<test_id>_<slug>_<TIER>.md` (for tier-specific results)
+
+4. **Produce validation report.** Write `{{RESULTS_DIR}}/validation-report.md` with:
+   - **Gaps:** Test IDs with no result file
+   - **Violations:** Frontmatter errors, invalid status/workaround values
+   - **Warnings:** Naming convention deviations, missing optional fields
+
+5. **Gate on gaps.** If any config test IDs have no result file, present the gaps to
+   the user via AskUserQuestion:
+   - "The following test IDs have no result file: [list]. Choose an option:"
+   - Options: "Fix gaps before synthesis", "Proceed with gaps noted", "Abort"
+   Missing result files block SYNTHESIZE by default. Frontmatter and naming violations
+   are warnings only — they do not block synthesis.
+
+6. **Update progress:** Add VALIDATE to `completed_states`, set `current_state: SYNTHESIZE`.
 
 ---
 
@@ -270,7 +306,7 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 3. **Final progress update:**
 
    ```yaml
-   completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, SYNTHESIZE]
+   completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
    current_state: DONE
    timestamp: <ISO 8601>
    ```

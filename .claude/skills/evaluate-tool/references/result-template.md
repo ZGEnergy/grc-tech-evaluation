@@ -32,6 +32,7 @@ test_id: <test_id>
 tool: <tool_name>
 dimension: <dimension>
 network: <TINY|SMALL|MEDIUM|N/A>
+protocol_version: "v4"
 status: pass|fail|qualified_pass|informational
 workaround_class: null|stable|fragile|blocking
 wall_clock_seconds: <float|null>
@@ -130,6 +131,7 @@ the tool's API or a workaround.>
 
 Before finalizing a result file, verify:
 - [ ] YAML frontmatter is valid and all required fields are present
+- [ ] `protocol_version` is present and matches the protocol revision used
 - [ ] Status accurately reflects whether the pass condition was met
 - [ ] Workaround class is correct per `workaround-classification.md`
 - [ ] Timing data is recorded (or explicitly noted as unmeasured)

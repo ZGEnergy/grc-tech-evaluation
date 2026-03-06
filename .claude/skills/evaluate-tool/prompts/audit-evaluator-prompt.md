@@ -169,6 +169,19 @@ naming convention from the config.
 - Are official examples pinned to a specific release?
 - Flag unversioned downloads, main-branch links, mutable URLs
 
+### Phase 2 Readiness (Suite P2)
+
+P2 tests may be hybrid (audit + lightweight functional probe). If the eval-config's pass
+condition includes a functional test step (e.g., "attempt to parse", "attempt to solve",
+"define a 3-segment piecewise-linear cost curve"), execute it in the devcontainer.
+Otherwise, perform documentation/source audit only. Result files use the same
+`<test_id>_<slug>.md` naming convention. Include `protocol_version: "v4"` in frontmatter.
+
+## Reference Files
+
+Read `cross-tool-watchpoints.md` from `{{reference_files}}` for timing methodology,
+solver compatibility, and known tool-specific pitfalls that may inform audit findings.
+
 ## Consumed Observations
 
 The following observations from code-evaluator agents are available:

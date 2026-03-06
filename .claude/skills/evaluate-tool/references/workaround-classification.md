@@ -105,6 +105,14 @@ If a single test requires multiple workarounds, the overall classification is th
 - stable + fragile = fragile
 - anything + blocking = blocking
 
+## Taxonomy Enforcement
+
+Only three durability classes exist: **stable**, **fragile**, **blocking**. Do not invent
+other classes (e.g., "moderate", "partial", "minor"). Use descriptive qualifiers in the
+narrative for nuance (e.g., "stable, but relies on underdocumented parameter" or "fragile,
+though the internal API has been unchanged for 3 major versions"). The class determines
+grade impact; the qualifier provides context for human review.
+
 ## Edge Cases
 
 - **Companion package:** If the workaround uses an official companion package (e.g.,
