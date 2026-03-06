@@ -1,0 +1,40 @@
+# .progress.yaml
+tool: pypsa
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, SYNTHESIZE]
+current_state: DONE
+scale_cap: MEDIUM
+timestamp: 2026-03-05T00:00:00Z
+completed_dag_steps: [1, 2, 3, 4, 5, 6]
+gate_results:
+  G-1: pass
+  G-2: pass
+  G-3: pass
+gate_notes:
+  - "Import via matpowercaseframes -> pypower ppc -> import_from_pypower_ppc()"
+  - "Generator cost data not imported by pypower importer (needs manual post-processing)"
+  - "MEDIUM: 2459/9726 lines have s_nom=0"
+step2_summary:
+  expressiveness_tiny: "7 PASS, 1 PARTIAL (A-8 stochastic), 1 FAIL (A-11 distributed slack)"
+  extensibility_tiny: "9/9 PASS"
+  accessibility: "5/5 completed"
+  maturity: "7/7 completed"
+  supply_chain: "9/9 completed"
+  p2_readiness: "2/2 completed"
+step3_summary:
+  A-4_ac_feasibility: pass
+  A-6_sced: pass
+step4_summary:
+  expressiveness_small: "A-5 PASS (solver timeout), A-6 PASS (conditional), A-8 QUALIFIED_PASS, A-9 PASS, A-10 PASS, A-11 FAIL"
+  extensibility_small: "B-4 PASS, B-8 PASS"
+step5_summary:
+  expressiveness_medium: "A-1 PASS, A-2 PASS, A-3 PASS, A-4 PASS, A-7 QUALIFIED_PASS"
+  extensibility_medium: "B-1 PASS, B-2 PASS, B-3 PASS, B-5 PASS, B-7 PASS, B-9 PASS"
+step6_summary:
+  scalability: "C-1 PASS, C-2 FAIL, C-3 QUALIFIED_PASS, C-4 QUALIFIED_PASS, C-5 QUALIFIED_PASS, C-6 PASS, C-7 QUALIFIED_PASS, C-8 FAIL, C-9 PASS, C-10 FAIL"
+synthesis_grades:
+  expressiveness: B+
+  extensibility: A-
+  scalability: B
+  accessibility: B+
+  maturity: A-
+  supply_chain: "A- (GATE PASS)"
