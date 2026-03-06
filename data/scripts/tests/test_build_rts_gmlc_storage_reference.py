@@ -59,10 +59,10 @@ _GEN_CSV_WIND_ROW = "303_WIND_1,303,WIND,Wind,Wind,148,0,0,0,0,0,0,0,0,0,0,0,0,0
 _GEN_CSV_SOLAR_ROW = "310_PV_1,310,PV,Solar,Solar,51.6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 
 # Minimal storage.csv with head and tail rows for 313_STORAGE_1.
-_STORAGE_CSV_HEADER = "GEN UID,Storage,Max Volume GWh,Initial Volume GWh,Inflow Limit GWh,position"
+_STORAGE_CSV_HEADER = "GEN UID,Storage,Max Volume GWh,Initial Volume GWh,Inflow Limit GWh"
 
-_STORAGE_CSV_HEAD_ROW = "313_STORAGE_1,313_HEAD_STORAGE,0.15,0.075,0.05,head"
-_STORAGE_CSV_TAIL_ROW = "313_STORAGE_1,313_TAIL_STORAGE,0.15,0.075,0.05,tail"
+_STORAGE_CSV_HEAD_ROW = "313_STORAGE_1,head,0.15,0.075,0.05"
+_STORAGE_CSV_TAIL_ROW = "313_STORAGE_1,tail,0.15,0.075,0.05"
 
 
 def _write_gen_csv(
