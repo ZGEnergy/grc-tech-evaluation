@@ -43,6 +43,13 @@ data/timeseries/case39/case39.m
 data/timeseries/case39/case39/
 data/timeseries/case39/cleanup_manifest.json
 
+# ACTIVSg raw PowerWorld exports (source for preprocessing)
+data/timeseries/ACTIVSg_raw/
+
+# ACTIVSg preprocessed companion CSVs
+data/timeseries/ACTIVSg2000/raw/
+data/timeseries/ACTIVSg10k/raw/
+
 # OS
 .DS_Store
 Thumbs.db
