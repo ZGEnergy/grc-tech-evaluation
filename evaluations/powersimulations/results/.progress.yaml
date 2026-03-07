@@ -1,0 +1,10 @@
+# .progress.yaml
+tool: powersimulations
+completed_states: [CONFIGURE, RESEARCH, GATE]
+current_state: EVALUATE
+scale_cap: MEDIUM
+timestamp: 2026-03-07T01:45:00Z
+completed_dag_steps: []
+# Step 2 partially complete: A-1/A-2/A-3 results written, D-1/D-4 not yet written
+# Step 3 in progress: A-4/A-5 scripts written and running, results not yet written
+# See .session-handoff.md for full details
