@@ -1,0 +1,6 @@
+project_root
+line_length: 120
+suppress_rule: "unicode"
+suppress_rule: "operator_after_continuation"
+suppress_rule: "naming_scripts"
+suppress_rule: "copyright_notice"
