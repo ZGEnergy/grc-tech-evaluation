@@ -90,7 +90,11 @@ def parse_header(lines: list[str]) -> HeaderInfo:
 
     # Line 1: IC, SBASE, REV, XFRRAT, NXFRAT, BASFRQ  / comment
     line1 = lines[0].split("/")[0].strip()
+    # Try comma-separated first, fall back to space-separated
     parts = [p.strip() for p in line1.split(",") if p.strip()]
+    if len(parts) == 1:
+        # Space-separated format (e.g., CAISO RAW files)
+        parts = line1.split()
 
     try:
         ic = int(float(parts[0]))
@@ -143,7 +147,7 @@ def count_section_records(line_iter: Iterator[str], section_index: int) -> int:
                 break
             # This is line 1 of a transformer record
             # Determine 2W vs 3W by checking K (3rd bus number, field index 2)
-            parts = line.split(",")
+            parts = line.split(",") if "," in line else line.split()
             try:
                 k = int(parts[2].strip())
             except (ValueError, IndexError):
@@ -162,7 +166,7 @@ def count_section_records(line_iter: Iterator[str], section_index: int) -> int:
             if _is_sentinel(line):
                 break
             # First line has NCONV, NDCBS, NDCLN, ...
-            parts = line.split(",")
+            parts = line.split(",") if "," in line else line.split()
             try:
                 nconv = int(parts[0].strip())
                 ndcbs = int(parts[1].strip())
