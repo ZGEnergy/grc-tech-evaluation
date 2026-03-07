@@ -61,8 +61,17 @@ All tests use open-source solvers exclusively. Commercial solvers (Gurobi, CPLEX
 |-------|---------|-------|---------|
 | SMALL | ACTIVSg 2k | ~2,000 | Smoke test, fast iteration |
 | MEDIUM | ACTIVSg 10k | ~10,000 | Primary benchmark — all grades assessed here |
+| LARGE | CAISO FNM Annual S01 | ~30,000 | Data model fidelity — production-network evidence for Expressiveness and Extensibility (FNM_PATH-gated) |
 
-The CAISO Full Network Model (FNM) is not used in Phase 1 testing. The FNM uses a legacy PSS/E version unlikely to be supported by any evaluated tool's native parser. A custom FNM parser is a Phase 2 deliverable.
+#### FNM Scope Expansion (v4)
+
+The CAISO Full Network Model (FNM) Annual S01 variant is included in Phase 1 testing as a LARGE reference network. The FNM is ingested via a shared intermediate format (not direct PSS/E parsing) and tests data model fidelity: whether each tool can faithfully represent a production-scale ISO network's full parameter space, including record types absent from synthetic MATPOWER cases (3-winding transformers, switched shunt discrete steps, multi-section lines, area interchange data, and market-specific supplemental CSVs).
+
+FNM test results inform Expressiveness and Extensibility grades via grading notes (see Criterion 1 and Criterion 2) but do not override the primary sub-questions or alter A/B/C grade boundaries. This follows the precedent of the v2 amendment, which added SCOPF/LMP sub-questions as Phase 2 readiness indicators that inform grades without automatic override.
+
+All FNM-dependent tests are gated by the `FNM_PATH` environment variable. When `FNM_PATH` is not set, FNM tests skip gracefully and tools receive complete grades based on synthetic-network results alone. FNM results are additive evidence, not gating criteria.
+
+For the full rationale, see `data/fnm/docs/rubric-v4-justification.md`.
 
 ### Companion Test Protocol
 
@@ -147,6 +156,13 @@ This is distinct from sub-question 7: sub-question 7 tests post-hoc contingency 
 
 **Note on Phase 2 readiness sub-questions (9, 10, 11):** These sub-questions are supplementary Phase 2 readiness indicators. The original sub-questions (1–8) remain the primary drivers of the Expressiveness grade. Sub-questions 9–11 inform whether the tool is ready for ISO congestion pattern reproduction. A tool that scores well on 1–8 but poorly on 9–11 receives a grade note, not an automatic downgrade. However, a tool that cannot express SCOPF at all (not even through its extension API) or cannot support distributed slack faces a meaningful limitation for Phase 2 that should be reflected in the grade narrative.
 
+**Note on FNM data model fidelity (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to ingest and faithfully represent the FNM intermediate format is additional evidence for the Expressiveness grade. Specifically:
+
+- **Record type coverage** — The FNM contains PSS/E record types absent from synthetic MATPOWER cases: 3-winding transformers, switched shunt discrete steps, multi-section lines, HVDC records, and area interchange data. A tool that ingests all record types from the intermediate format without data loss demonstrates broader data model expressiveness than one tested only against synthetic cases. Record type coverage informs sub-questions 1 and 2 (DCPF/ACPF) because correct power flow results depend on faithful topology and parameter representation.
+- **Power flow verification** — DCPF and ACPF results on the FNM are compared against reference solutions using pass conditions defined in `data/fnm/reference/pass_conditions.json`. A tool that passes FNM power flow verification demonstrates that its data model fidelity is sufficient for production-scale computation, not just ingestion. This directly informs sub-questions 1 and 2.
+- **Grade impact** — FNM results strengthen or weaken the evidence base for the grade assigned by sub-questions 1–11, but do not independently determine the grade. A tool that passes all synthetic-network tests but fails FNM ingestion entirely receives a grade note documenting the gap. A tool that passes both synthetic and FNM tests has stronger evidence for its grade. The A/B/C grade boundaries are unchanged.
+- **Scale vs. expressiveness** — If FNM ingestion fails due to scale alone (the tool cannot handle ~30K buses regardless of data model completeness), the finding is attributed to Scalability (Criterion 4), not Expressiveness. If failure is due to missing record type support (e.g., the tool has no representation for 3-winding transformers), the finding is attributed to Expressiveness.
+
 ### Grading Standards
 
 | Grade | Description |
@@ -182,6 +198,18 @@ This is distinct from Expressiveness. Expressiveness asks "can the tool solve th
 **8. Reference bus control** — Can the analyst programmatically set or change the reference/slack bus? Does LMP computation respond correctly to reference bus changes? This affects LMP decomposition in ISO markets that use distributed load reference buses.
 
 **9. PTDF matrix extraction** — Can the tool expose or compute Power Transfer Distribution Factors as a programmatically accessible matrix or per-element query? This is the fundamental analytical primitive for congestion analysis. PTDFs may be exposed natively (e.g., MATPOWER's `makePTDF()`), extractable from the solved model's internal matrices, or computable via unit injection experiments. Document the method and effort level.
+
+**Note on FNM supplemental CSV representability (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to represent data from the 7 CAISO supplemental CSVs is additional evidence for the Extensibility grade. The supplemental CSVs carry market-specific data — trading hub definitions, generator distribution factors, contingency definitions, interface limits, transmission ratings beyond the base 3-tier, and outage scheduling data — that no tool natively ingests.
+
+For each supplemental CSV field, a representability classification is assigned using the 3-tier system documented in `data/fnm/docs/supplemental-csvs.md`:
+
+- **Natively representable** — The tool has a built-in attribute or data structure for this data. No analyst effort required.
+- **Extension-representable** — The tool can carry this data via its documented extension mechanisms (custom attributes, metadata dictionaries, user-defined fields) without forking or patching the codebase. Moderate analyst effort.
+- **Tool-external** — No representation path exists within the tool's data model. The data must be carried in an external structure (DataFrame, dictionary, database) alongside the tool's network model. This creates a split-model workflow where some network data lives inside the tool and some outside.
+
+The proportion of supplemental CSV fields in each tier directly indicates how much post-ingestion extension work an analyst faces to use the FNM for production analysis. This maps to Extensibility sub-questions 1 (custom constraints — supplemental data like interface limits and contingency definitions are inputs to custom constraints), 5 (interoperability — tool-external fields require external data structures that must stay synchronized with the tool's network model), and 6 (code architecture quality — a tool whose data model is easily extended to carry supplemental data demonstrates better architectural extensibility than one that forces tool-external workarounds).
+
+**Grade impact:** A tool with predominantly natively-representable or extension-representable supplemental CSV fields has stronger evidence for an A or B Extensibility grade. A tool where most supplemental data is tool-external demonstrates a meaningful limitation that should be noted in the grade narrative. The A/B/C grade boundaries are unchanged. The representability summary in `data/fnm/docs/supplemental-csv-representability.md` provides the cross-tool comparison matrix.
 
 ### Workaround Durability
 
@@ -382,3 +410,4 @@ The following tools were identified during the landscape survey and considered f
 | v1 | TBD | Initial rubric | GRC |
 | v2 | 2026-03-05 | Added Phase 2 Context section (CAISO SCOPF/LMP research). Added Expressiveness sub-questions 9 (SCOPF), 10 (lossy DC OPF / LMP decomposition), 11 (distributed slack OPF) with grading note. Updated Expressiveness grading standards for A and B to reference new sub-questions. Added Extensibility sub-questions 8 (reference bus control) and 9 (PTDF matrix extraction). Updated Extensibility grading standards for A and B. Added Phase 2 Readiness Findings section (PSS/E RAW parsing, piecewise-linear cost curves). | GRC |
 | v3 | 2026-03-06 | Cost curve note updated to acknowledge polynomial costs in MATPOWER files (was "linear costs throughout"). Added SCOPF feasibility note for small test cases. Stochastic optimization sub-question clarified: independent perturbations by resource type, price extraction required. Aligned with protocol v4 changes. | GRC |
+| v4 | 2026-03-06 | FNM scope expansion: replaced FNM exclusion paragraph with scope expansion section incorporating CAISO FNM Annual S01 as LARGE reference network (~30K buses, PSS/E v31 via intermediate format, FNM_PATH-gated). Added FNM data model fidelity grading note under Expressiveness (record type coverage, power flow verification, scale-vs-expressiveness attribution). Added supplemental CSV representability grading note under Extensibility (3-tier field classification, sub-question mapping). FNM results inform but do not override primary sub-questions or alter grade boundaries. Full justification: `data/fnm/docs/rubric-v4-justification.md`. | GRC |
