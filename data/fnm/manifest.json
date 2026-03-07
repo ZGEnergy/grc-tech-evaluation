@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "variant": "ERCOT_FNM",
+  "source_files": [
+    {
+      "file_name": "ERCOT_FNM.raw",
+      "file_type": "psse_raw",
+      "description": "PSS/E v31 RAW file containing the full ERCOT network model",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "bus_names.csv",
+      "file_type": "supplemental_csv",
+      "description": "Bus name mapping with station and voltage level metadata",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "branch_ratings.csv",
+      "file_type": "supplemental_csv",
+      "description": "Branch thermal rating overrides and seasonal limits",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "generator_costs.csv",
+      "file_type": "supplemental_csv",
+      "description": "Generator cost curves and fuel type classifications",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "load_distribution.csv",
+      "file_type": "supplemental_csv",
+      "description": "Load distribution factors by weather zone and bus",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "transformer_taps.csv",
+      "file_type": "supplemental_csv",
+      "description": "Transformer tap position settings and regulation bands",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "shunt_switching.csv",
+      "file_type": "supplemental_csv",
+      "description": "Switched shunt device status and control parameters",
+      "sha256": null,
+      "required": true
+    },
+    {
+      "file_name": "contingency_definitions.csv",
+      "file_type": "supplemental_csv",
+      "description": "Contingency definitions for N-1 and N-2 analysis",
+      "sha256": null,
+      "required": true
+    }
+  ],
+  "notes": "Default manifest for ERCOT FNM ingestion. SHA-256 checksums are populated after first successful parse via update_manifest_checksums()."
+}
