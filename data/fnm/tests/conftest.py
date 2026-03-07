@@ -20,6 +20,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "gridcal: tests requiring VeraGridEngine (GridCal) installed"
     )
+    config.addinivalue_line("markers", "docs: tests validating documentation artifacts")
 
 
 @pytest.fixture
