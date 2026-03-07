@@ -3,8 +3,9 @@ tool: powersimulations
 completed_states: [CONFIGURE, RESEARCH, GATE]
 current_state: EVALUATE
 scale_cap: MEDIUM
-timestamp: 2026-03-07T01:45:00Z
-completed_dag_steps: []
-# Step 2 partially complete: A-1/A-2/A-3 results written, D-1/D-4 not yet written
-# Step 3 in progress: A-4/A-5 scripts written and running, results not yet written
-# See .session-handoff.md for full details
+timestamp: 2026-03-07T04:30:00Z
+completed_dag_steps: [1, 2, 3]
+# Step 1: Gate tests (G-1, G-2, G-3) — all PASS
+# Step 2: A-1/A-2/A-3 PASS/PASS/QUALIFIED_PASS, D-1 QUALIFIED_PASS, D-4 QUALIFIED_PASS
+# Step 3: A-4 QUALIFIED_PASS (ACPF non-convergence due to unit mismatch), A-5 QUALIFIED_PASS (SCIP OK, HiGHS fail)
+# Next: Step 4 (A-6 SCED, A-7 contingency sweep, A-8 stochastic)
