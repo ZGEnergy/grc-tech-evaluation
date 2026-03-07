@@ -48,7 +48,7 @@ repos:
     rev: v0.21.0
     hooks:
       - id: markdownlint-cli2
-        exclude: '(matpower8\.1/|\.venv/|\.pytest_cache/)'
+        exclude: '(matpower8\.1/|\.venv/|\.pytest_cache/|\.claude/skills/)'
 
   # MATLAB/Octave linting (miss_hit)
   # miss_hit 0.9.44 (latest PyPI release, 2024-08). Only static analysis tool

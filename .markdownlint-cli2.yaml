@@ -7,3 +7,4 @@ config:
   MD033: false  # Inline HTML
   MD040: false  # Fenced code block language
   MD060: false  # Table column style
+  MD031: false  # Blanks around fences (conflicts with indented fences in lists)
