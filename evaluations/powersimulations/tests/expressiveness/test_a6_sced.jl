@@ -284,9 +284,9 @@ function solve_ed(sys::System)
     end
     result["ramp_analysis"] = ramp_analysis
 
-    # ===== NOW TEST WITH ThermalRampLimited =====
+    # ===== NOW TEST WITH ThermalStandardDispatch =====
     # ThermalBasicDispatch may not include ramp constraints.
-    # ThermalRampLimited explicitly adds ramp constraints.
+    # ThermalStandardDispatch explicitly adds ramp constraints.
     result["ramp_limited_test"] = Dict{String,Any}()
 
     result["status"] = "pass"
@@ -295,15 +295,15 @@ function solve_ed(sys::System)
 end
 
 """
-Solve again with ThermalRampLimited formulation to demonstrate ramp enforcement.
+Solve again with ThermalStandardDispatch formulation to demonstrate ramp enforcement.
 """
 function solve_ed_with_ramp(sys::System)
     result = Dict{String,Any}()
 
     template = ProblemTemplate(NetworkModel(PTDFPowerModel; duals=[CopperPlateBalanceConstraint]))
 
-    # ThermalRampLimited: dispatch with explicit ramp rate constraints
-    set_device_model!(template, ThermalStandard, ThermalRampLimited)
+    # ThermalStandardDispatch: dispatch with explicit ramp rate constraints
+    set_device_model!(template, ThermalStandard, ThermalStandardDispatch)
     set_device_model!(template, RenewableDispatch, RenewableFullDispatch)
     set_device_model!(template, PowerLoad, StaticPowerLoad)
     set_device_model!(template, Line, StaticBranch)
@@ -373,7 +373,7 @@ function solve_ed_with_ramp(sys::System)
         result["jump_model_error"] = string(typeof(e), ": ", sprint(showerror, e))
     end
 
-    result["formulation"] = "ThermalRampLimited"
+    result["formulation"] = "ThermalStandardDispatch"
     result["status"] = "pass"
     return result
 end
@@ -419,8 +419,8 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
         basic_result = solve_ed(sys)
         results["details"]["basic_dispatch"] = basic_result
 
-        # ===== 4. Solve ED with ThermalRampLimited =====
-        println("=== Solving ED with ThermalRampLimited ===")
+        # ===== 4. Solve ED with ThermalStandardDispatch =====
+        println("=== Solving ED with ThermalStandardDispatch ===")
         sys2 = System(network_file)
         prepare_system_for_ed!(sys2)
         ramp_result = solve_ed_with_ramp(sys2)
@@ -466,11 +466,11 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
         end
         separation["separation_mechanism"] =
             "PSI separates UC and ED via formulation selection: " *
-            "ThermalStandardUnitCommitment (UC) vs ThermalBasicDispatch/ThermalRampLimited (ED). " *
+            "ThermalStandardUnitCommitment (UC) vs ThermalBasicDispatch/ThermalStandardDispatch (ED). " *
             "No need to fix binary variables -- simply use a dispatch-only formulation."
         separation["two_stage_workflow"] =
             "Run SCUC (A-5) to get commitment schedule, " *
-            "then run SCED with committed generators using ThermalRampLimited. " *
+            "then run SCED with committed generators using ThermalStandardDispatch. " *
             "PSI does not have a built-in 'fix commitment from UC' API -- " *
             "the separation is achieved by choosing a dispatch-only formulation."
         results["details"]["uc_ed_separation"] = separation

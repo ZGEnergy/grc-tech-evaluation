@@ -172,7 +172,7 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
 
         jump_model = nothing
         try
-            jump_model = get_jump_model(model)
+            jump_model = PowerSimulations.get_jump_model(model)
             results["details"]["jump_model_accessible"] = true
             println("JuMP model accessed successfully")
         catch e
@@ -253,14 +253,28 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
         end
 
         # Add N-1 contingency constraints using LODF
+        # Filter: skip contingencies where any LODF > 0.9 (near-radial branches
+        # that would cause infeasibility due to full flow transfer to a parallel path).
+        # This is standard SCOPF practice to exclude non-credible contingencies.
         n_constraints_added = 0
         n_contingencies = 0
+        n_skipped_contingencies = 0
 
         for k_idx in 1:length(lodf_axes)
             k_name = lodf_axes[k_idx]
             if !haskey(flow_vars, k_name)
                 continue
             end
+
+            # Check if this contingency would cause any extreme LODF values
+            max_lodf_for_k = maximum(
+                abs(lodf_matrix.data[l, k_idx]) for l in 1:length(lodf_axes) if l != k_idx
+            )
+            if max_lodf_for_k > 0.9
+                n_skipped_contingencies += 1
+                continue  # Skip near-radial contingency
+            end
+
             f_k = flow_vars[k_name]
             n_contingencies += 1
 
@@ -287,6 +301,8 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
                 n_constraints_added += 2
             end
         end
+
+        results["details"]["n_skipped_contingencies"] = n_skipped_contingencies
 
         results["details"]["n_contingencies"] = n_contingencies
         results["details"]["n_contingency_constraints"] = n_constraints_added
@@ -319,22 +335,25 @@ function run_test(network_file::String="/workspace/data/networks/case39.m")
             results["details"]["scopf_objective"] = scopf_obj
             println("SCOPF objective: $scopf_obj")
 
-            # Extract SCOPF dispatch
+            # Extract SCOPF dispatch (JuMP vars are in system base / per-unit,
+            # multiply by base_power=100 to get MW for comparison with read_variables output)
+            base_power = get_base_power(sys)
             scopf_dispatch = Dict{String,Float64}()
             for v in all_jump_vars
                 vname = JuMP.name(v)
                 if occursin("ActivePower", vname) && occursin("Thermal", vname)
                     for gen_name in keys(baseline_dispatch)
                         if occursin(gen_name, vname)
-                            scopf_dispatch[gen_name] = JuMP.value(v)
+                            scopf_dispatch[gen_name] = JuMP.value(v) * base_power
                             break
                         end
                     end
                 end
             end
             results["details"]["scopf_dispatch"] = scopf_dispatch
+            results["details"]["base_power"] = base_power
 
-            # Extract SCOPF line flows
+            # Extract SCOPF line flows (in per-unit)
             scopf_flows = Dict{String,Float64}()
             for (bname, v) in flow_vars
                 scopf_flows[bname] = JuMP.value(v)

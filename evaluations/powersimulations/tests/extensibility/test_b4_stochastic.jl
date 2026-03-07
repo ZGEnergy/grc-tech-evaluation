@@ -16,6 +16,7 @@ using PowerSystems
 using PowerSimulations
 using HiGHS
 using JuMP
+using Statistics
 using JSON
 using DataFrames
 using Dates
@@ -76,7 +77,9 @@ function build_scenario_system(
 
     resolution = Hour(1)
     initial_time = DateTime("2024-01-01T00:00:00")
-    timestamps = [initial_time + (i - 1) * resolution for i in 1:n_hours]
+    # Need n_hours + 1 timestamps for transform to create windows
+    ts_length = n_hours + 1
+    timestamps = [initial_time + (i - 1) * resolution for i in 1:ts_length]
 
     # Fix generator limits
     for gen in get_components(ThermalStandard, sys)
@@ -88,28 +91,30 @@ function build_scenario_system(
     end
 
     # Thermal generators: constant availability (1.0)
-    thermal_mults = ones(n_hours)
+    thermal_mults = ones(ts_length)
     for gen in get_components(ThermalStandard, sys)
         ta = TimeArray(timestamps, thermal_mults)
         ts = SingleTimeSeries("max_active_power", ta)
         add_time_series!(sys, gen, ts)
     end
 
-    # Renewable generators: scenario-specific multipliers
+    # Renewable generators: scenario-specific multipliers (extend by 1 point)
+    renew_extended = vcat(renew_mults, [renew_mults[end]])
     for gen in get_components(RenewableDispatch, sys)
-        ta = TimeArray(timestamps, renew_mults)
+        ta = TimeArray(timestamps, renew_extended)
         ts = SingleTimeSeries("max_active_power", ta)
         add_time_series!(sys, gen, ts)
     end
 
-    # Loads: scenario-specific multipliers
+    # Loads: scenario-specific multipliers (extend by 1 point)
+    load_extended = vcat(load_mults, [load_mults[end]])
     for load in get_components(PowerLoad, sys)
-        ta = TimeArray(timestamps, load_mults)
+        ta = TimeArray(timestamps, load_extended)
         ts = SingleTimeSeries("max_active_power", ta)
         add_time_series!(sys, load, ts)
     end
 
-    transform_single_time_series!(sys, resolution, Hour(n_hours))
+    transform_single_time_series!(sys, Hour(n_hours), resolution)
     return sys
 end
 
@@ -199,7 +204,22 @@ function run(network_file::String="/workspace/data/networks/case39.m")
                 continue
             end
 
-            solve_status = solve!(model)
+            solve_status = try
+                solve!(model)
+            catch e
+                scenario_time = time() - t_scenario
+                push!(scenario_times, scenario_time)
+                push!(
+                    scenario_results,
+                    Dict(
+                        "scenario" => s,
+                        "status" => "solve_error",
+                        "error" => string(e),
+                        "time_seconds" => scenario_time,
+                    ),
+                )
+                continue
+            end
             scenario_time = time() - t_scenario
             push!(scenario_times, scenario_time)
 
