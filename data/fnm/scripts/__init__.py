@@ -1,5 +1,54 @@
 from __future__ import annotations
 
+from fnm.scripts.acpf_reference import (
+    ConvergenceInfo,
+    SolutionSource,
+    SolverSettings,
+    SystemSummary,
+    build_acpf_reference,
+    compute_system_summary,
+    determine_solution_source,
+    extract_branch_results,
+    extract_bus_results,
+    extract_generator_results,
+    read_snapshot_classification,
+    run_gridcal_acpf,
+    run_matpower_acpf,
+    write_branches_csv,
+    write_buses_csv,
+    write_generators_csv,
+    write_shunts_csv,
+    write_summary_json,
+    write_taps_csv,
+)
+from fnm.scripts.acpf_reference import main as acpf_reference_main
+from fnm.scripts.bus_exclusion_registry import (
+    BusExclusionRegistry,
+    ExcludedBusRecord,
+    ExclusionReason,
+    ExclusionSummary,
+    IslandSummary,
+    RegistryMetadata,
+    build_connectivity_graph,
+    build_excluded_bus_records,
+    build_exclusion_summary,
+    build_island_summaries,
+    build_registry,
+    find_connected_components,
+    find_disconnected_buses,
+    find_ide4_buses,
+    find_vm_zero_buses,
+    identify_main_island,
+    load_branch_table,
+    load_transformer_table,
+    registry_to_csv,
+    registry_to_dict,
+    registry_to_json,
+)
+from fnm.scripts.bus_exclusion_registry import (
+    load_bus_table as exclusion_load_bus_table,
+)
+from fnm.scripts.bus_exclusion_registry import main as bus_exclusion_registry_main
 from fnm.scripts.csv_join_keys import (
     CandidateKey,
     CsvJoinMapping,
@@ -33,6 +82,10 @@ from fnm.scripts.fnm_gating import (
 )
 from fnm.scripts.fnm_gating_cli import cli_validate_fnm_path
 from fnm.scripts.fnm_gating_fixtures import require_fnm, require_fnm_csvs, require_fnm_raw
+from fnm.scripts.generate_schema_reference import (
+    generate_document,
+)
+from fnm.scripts.generate_schema_reference import main as generate_schema_reference_main
 from fnm.scripts.gridcal_parser import (
     GRIDCAL_ELEMENT_COLLECTIONS,
     PSSE_TO_GRIDCAL_MAPPING,
@@ -251,4 +304,52 @@ __all__ = [
     "count_section_records",
     "parse_header",
     "summary_to_dict",
+    # generate_schema_reference
+    "generate_document",
+    "generate_schema_reference_main",
+    # bus_exclusion_registry
+    "BusExclusionRegistry",
+    "ExcludedBusRecord",
+    "ExclusionReason",
+    "ExclusionSummary",
+    "IslandSummary",
+    "RegistryMetadata",
+    "build_connectivity_graph",
+    "build_excluded_bus_records",
+    "build_exclusion_summary",
+    "build_island_summaries",
+    "build_registry",
+    "bus_exclusion_registry_main",
+    "exclusion_load_bus_table",
+    "find_connected_components",
+    "find_disconnected_buses",
+    "find_ide4_buses",
+    "find_vm_zero_buses",
+    "identify_main_island",
+    "load_branch_table",
+    "load_transformer_table",
+    "registry_to_csv",
+    "registry_to_dict",
+    "registry_to_json",
+    # acpf_reference
+    "ConvergenceInfo",
+    "SolutionSource",
+    "SolverSettings",
+    "SystemSummary",
+    "acpf_reference_main",
+    "build_acpf_reference",
+    "compute_system_summary",
+    "determine_solution_source",
+    "extract_branch_results",
+    "extract_bus_results",
+    "extract_generator_results",
+    "read_snapshot_classification",
+    "run_gridcal_acpf",
+    "run_matpower_acpf",
+    "write_branches_csv",
+    "write_buses_csv",
+    "write_generators_csv",
+    "write_shunts_csv",
+    "write_summary_json",
+    "write_taps_csv",
 ]
