@@ -1,5 +1,27 @@
 from __future__ import annotations
 
+from fnm.scripts.csv_join_keys import (
+    CandidateKey,
+    CsvJoinMapping,
+    JoinCardinality,
+    JoinKeyReport,
+    JoinValidationResult,
+    KeyColumnPattern,
+    KeyType,
+    ReportMetadata,
+    ReportSummary,
+    analyze_csv,
+    build_join_key_report,
+    discover_candidate_keys,
+    get_default_key_patterns,
+    load_intermediate_key_values,
+    read_csv_header,
+    read_csv_key_values,
+    read_csv_sample,
+    validate_join,
+)
+from fnm.scripts.csv_join_keys import report_to_dict as csv_join_keys_report_to_dict
+from fnm.scripts.csv_join_keys import report_to_markdown as csv_join_keys_report_to_markdown
 from fnm.scripts.fnm_gating import (
     FnmFileCheck,
     FnmFileStatus,
@@ -200,6 +222,27 @@ __all__ = [
     "derive_phase3_implications",
     "load_bus_data",
     "load_generator_data",
+    # csv_join_keys
+    "CandidateKey",
+    "CsvJoinMapping",
+    "JoinCardinality",
+    "JoinKeyReport",
+    "JoinValidationResult",
+    "KeyColumnPattern",
+    "KeyType",
+    "ReportMetadata",
+    "ReportSummary",
+    "analyze_csv",
+    "build_join_key_report",
+    "csv_join_keys_report_to_dict",
+    "csv_join_keys_report_to_markdown",
+    "discover_candidate_keys",
+    "get_default_key_patterns",
+    "load_intermediate_key_values",
+    "read_csv_header",
+    "read_csv_key_values",
+    "read_csv_sample",
+    "validate_join",
     # raw_record_counter
     "HeaderInfo",
     "PSSE_V31_SECTION_NAMES",
