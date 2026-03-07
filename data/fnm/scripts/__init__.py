@@ -11,6 +11,17 @@ from fnm.scripts.fnm_gating import (
 )
 from fnm.scripts.fnm_gating_cli import cli_validate_fnm_path
 from fnm.scripts.fnm_gating_fixtures import require_fnm, require_fnm_csvs, require_fnm_raw
+from fnm.scripts.gridcal_parser import (
+    GRIDCAL_ELEMENT_COLLECTIONS,
+    PSSE_TO_GRIDCAL_MAPPING,
+    GridCalParserSummary,
+    MultiCircuitCounts,
+    ParserLog,
+    ParserLogEntry,
+    PsseIntermediateCounts,
+    RecordTypeMapping,
+    build_record_type_mapping,
+)
 from fnm.scripts.raw_record_counter import (
     PSSE_V31_SECTION_NAMES,
     HeaderInfo,
@@ -33,6 +44,16 @@ __all__ = [
     "require_fnm_csvs",
     "require_fnm_raw",
     "resolve_fnm_path",
+    # gridcal_parser
+    "GRIDCAL_ELEMENT_COLLECTIONS",
+    "GridCalParserSummary",
+    "MultiCircuitCounts",
+    "PSSE_TO_GRIDCAL_MAPPING",
+    "ParserLog",
+    "ParserLogEntry",
+    "PsseIntermediateCounts",
+    "RecordTypeMapping",
+    "build_record_type_mapping",
     # raw_record_counter
     "HeaderInfo",
     "PSSE_V31_SECTION_NAMES",
