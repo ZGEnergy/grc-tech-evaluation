@@ -22,6 +22,22 @@ from fnm.scripts.gridcal_parser import (
     RecordTypeMapping,
     build_record_type_mapping,
 )
+from fnm.scripts.matpower_parser import (
+    KnownLimitation,
+    MatpowerParserLog,
+    MatpowerParserSummary,
+    ParserWarning,
+    SectionCountMap,
+    build_known_limitations,
+    build_octave_command,
+    find_matpower_path,
+    log_to_dict,
+    parse_octave_stdout,
+    parse_octave_warnings,
+    read_csv_field_counts,
+    run_psse2mpc,
+)
+from fnm.scripts.matpower_parser import summary_to_dict as matpower_summary_to_dict
 from fnm.scripts.raw_record_counter import (
     PSSE_V31_SECTION_NAMES,
     HeaderInfo,
@@ -44,6 +60,21 @@ __all__ = [
     "require_fnm_csvs",
     "require_fnm_raw",
     "resolve_fnm_path",
+    # matpower_parser
+    "KnownLimitation",
+    "MatpowerParserLog",
+    "MatpowerParserSummary",
+    "ParserWarning",
+    "SectionCountMap",
+    "build_known_limitations",
+    "build_octave_command",
+    "find_matpower_path",
+    "log_to_dict",
+    "matpower_summary_to_dict",
+    "parse_octave_stdout",
+    "parse_octave_warnings",
+    "read_csv_field_counts",
+    "run_psse2mpc",
     # gridcal_parser
     "GRIDCAL_ELEMENT_COLLECTIONS",
     "GridCalParserSummary",
