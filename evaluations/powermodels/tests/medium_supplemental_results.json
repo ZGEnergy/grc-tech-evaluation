@@ -1,0 +1,31 @@
+{
+  "ipopt": {
+    "num_gen_total": 1937,
+    "peak_memory_mb": 183.8,
+    "memory_delta_mb": 108.9,
+    "lmp_mean": -2073.77,
+    "objective": 2.43663122e6,
+    "lmp_min": -2073.77,
+    "lmp_range": 0.0,
+    "status": "pass",
+    "lmp_max": -2073.77,
+    "total_generation_pu": 1509.17,
+    "num_branch_flows": 12706,
+    "termination": "LOCALLY_SOLVED",
+    "generators_cost_fixed": 1349,
+    "num_gen_dispatched": 1937,
+    "num_lmps": 10000,
+    "branches_zero_rate_a": 2462,
+    "solve_time": 3.134
+  },
+  "glpk": {
+    "num_lmps": 10000,
+    "note": "Fully linearized costs (ncost=2) to make LP-compatible",
+    "total_generation_pu": 1509.17,
+    "objective": 2.40133708e6,
+    "termination": "OPTIMAL",
+    "lmp_min": -2006.4,
+    "lmp_max": -2006.4,
+    "solve_time": 50.907
+  }
+}

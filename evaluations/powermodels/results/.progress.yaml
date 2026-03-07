@@ -1,0 +1,7 @@
+# .progress.yaml
+tool: powermodels
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
+current_state: DONE
+scale_cap: MEDIUM
+timestamp: 2026-03-07T02:30:00Z
+completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
