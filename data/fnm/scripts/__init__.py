@@ -11,6 +11,15 @@ from fnm.scripts.fnm_gating import (
 )
 from fnm.scripts.fnm_gating_cli import cli_validate_fnm_path
 from fnm.scripts.fnm_gating_fixtures import require_fnm, require_fnm_csvs, require_fnm_raw
+from fnm.scripts.raw_record_counter import (
+    PSSE_V31_SECTION_NAMES,
+    HeaderInfo,
+    RecordCountSummary,
+    count_raw_records,
+    count_section_records,
+    parse_header,
+    summary_to_dict,
+)
 
 __all__ = [
     "FnmFileCheck",
@@ -24,4 +33,12 @@ __all__ = [
     "require_fnm_csvs",
     "require_fnm_raw",
     "resolve_fnm_path",
+    # raw_record_counter
+    "HeaderInfo",
+    "PSSE_V31_SECTION_NAMES",
+    "RecordCountSummary",
+    "count_raw_records",
+    "count_section_records",
+    "parse_header",
+    "summary_to_dict",
 ]
