@@ -14,3 +14,4 @@ from fnm.scripts.fnm_gating_fixtures import (  # noqa: F401
 def pytest_configure(config: pytest.Config) -> None:
     """Register custom markers."""
     config.addinivalue_line("markers", "fnm: tests requiring FNM data (FNM_PATH env var)")
+    config.addinivalue_line("markers", "octave: tests requiring Octave and MATPOWER installation")

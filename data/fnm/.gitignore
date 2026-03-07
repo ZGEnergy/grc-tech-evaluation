@@ -15,6 +15,7 @@ reference/**
 !README.md
 !**/README.md
 !scripts/**/*.py
+!scripts/**/*.m
 !docs/**/*.md
 !docs/**/*.json
 !.gitignore
