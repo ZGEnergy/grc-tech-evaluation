@@ -71,6 +71,32 @@ from fnm.scripts.csv_join_keys import (
 )
 from fnm.scripts.csv_join_keys import report_to_dict as csv_join_keys_report_to_dict
 from fnm.scripts.csv_join_keys import report_to_markdown as csv_join_keys_report_to_markdown
+from fnm.scripts.dcpf_reference import (
+    BMatrixResult,
+    BranchFlow,
+    DCPFSolution,
+    DCPFValidation,
+    build_b_matrix,
+    compute_branch_flows,
+    compute_bus_injections,
+    compute_phase_shift_injections,
+    filter_active_buses,
+    identify_slack_bus,
+    load_excluded_buses,
+    run_dcpf_reference,
+    solve_dcpf,
+    validate_dcpf_solution,
+)
+from fnm.scripts.dcpf_reference import BranchRecord as DcpfBranchRecord
+from fnm.scripts.dcpf_reference import BusRecord as DcpfBusRecord
+from fnm.scripts.dcpf_reference import GeneratorRecord as DcpfGeneratorRecord
+from fnm.scripts.dcpf_reference import load_branch_table as dcpf_load_branch_table
+from fnm.scripts.dcpf_reference import load_bus_table as dcpf_load_bus_table
+from fnm.scripts.dcpf_reference import load_generator_table as dcpf_load_generator_table
+from fnm.scripts.dcpf_reference import main as dcpf_reference_main
+from fnm.scripts.dcpf_reference import write_branches_csv as dcpf_write_branches_csv
+from fnm.scripts.dcpf_reference import write_buses_csv as dcpf_write_buses_csv
+from fnm.scripts.dcpf_reference import write_summary_json as dcpf_write_summary_json
 from fnm.scripts.fnm_gating import (
     FnmFileCheck,
     FnmFileStatus,
@@ -352,4 +378,29 @@ __all__ = [
     "write_shunts_csv",
     "write_summary_json",
     "write_taps_csv",
+    # dcpf_reference
+    "BMatrixResult",
+    "BranchFlow",
+    "DCPFSolution",
+    "DCPFValidation",
+    "DcpfBranchRecord",
+    "DcpfBusRecord",
+    "DcpfGeneratorRecord",
+    "build_b_matrix",
+    "compute_branch_flows",
+    "compute_bus_injections",
+    "compute_phase_shift_injections",
+    "dcpf_load_branch_table",
+    "dcpf_load_bus_table",
+    "dcpf_load_generator_table",
+    "dcpf_reference_main",
+    "dcpf_write_branches_csv",
+    "dcpf_write_buses_csv",
+    "dcpf_write_summary_json",
+    "filter_active_buses",
+    "identify_slack_bus",
+    "load_excluded_buses",
+    "run_dcpf_reference",
+    "solve_dcpf",
+    "validate_dcpf_solution",
 ]
