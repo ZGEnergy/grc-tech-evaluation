@@ -1,6 +1,6 @@
 # FNM Data Directory
 
-This directory contains artifacts related to the ERCOT Full Network Model (FNM) ingestion
+This directory contains artifacts related to the Full Network Model (FNM) ingestion
 pipeline. The FNM data itself is NDA-restricted and **must never be committed to version
 control**.
 
@@ -19,7 +19,7 @@ data/fnm/
 
 ## NDA Restrictions
 
-FNM source files (PSS/E RAW files and supplemental CSVs) are provided by ERCOT under NDA.
+FNM source files (PSS/E RAW files and supplemental CSVs) are provided under NDA.
 They must not be committed, shared publicly, or stored in any unencrypted location outside
 approved infrastructure.
 
@@ -40,7 +40,7 @@ if invoked directly.
 
 ## Obtaining FNM Source Files
 
-FNM source files must be obtained through ERCOT's authorized distribution channels.
+FNM source files must be obtained through the ISO's authorized distribution channels.
 Contact the data engineering team for access. The `manifest.json` file lists all expected
 source files with descriptions.
 

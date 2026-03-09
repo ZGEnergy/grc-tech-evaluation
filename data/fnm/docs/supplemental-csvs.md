@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Audience:** evaluate-tool agents, human reviewers
-**Scope:** 7 supplemental CSVs from the CAISO FNM Annual S01 variant
+**Scope:** 7 supplemental CSVs from the FNM Annual S01 variant
 **Join key source:** Phase 1 D9 join-key mapping report
 **Representability method:** Analytical classification with empirical spot-checks
 **Tools evaluated:** PyPSA, pandapower, GridCal, PowerModels.jl, PowerSimulations.jl, MATPOWER
@@ -47,7 +47,7 @@ The proportion of X (tool-external) fields for a given CSV directly indicates th
 ## LINE_AND_TRANSFORMER.csv
 
 **Domain:** Transmission
-**Purpose:** Provides thermal ratings (up to 4 tiers: Rate A/B/C/D), emergency ratings, and operational parameters for transmission lines and transformers. These ratings define the MVA transfer limits used in security-constrained dispatch and congestion management. The 4-tier rating hierarchy supports normal, long-term emergency, short-term emergency, and extreme emergency operating conditions as defined by CAISO operating procedures.
+**Purpose:** Provides thermal ratings (up to 4 tiers: Rate A/B/C/D), emergency ratings, and operational parameters for transmission lines and transformers. These ratings define the MVA transfer limits used in security-constrained dispatch and congestion management. The 4-tier rating hierarchy supports normal, long-term emergency, short-term emergency, and extreme emergency operating conditions as defined by ISO operating procedures.
 **Row count:** ~15,000 rows
 **Join key:** FROM_BUS + TO_BUS + CKT
 **Join target:** branch, transformer
@@ -71,7 +71,7 @@ The composite key FROM_BUS + TO_BUS + CKT identifies each transmission element b
 | RATE_A | float | Normal (continuous) thermal rating in MVA. The maximum power transfer under normal operating conditions. Corresponds to PSS/E RATEA. | 785.0 | no |
 | RATE_B | float | Long-term emergency thermal rating in MVA. Applicable during planned outage conditions or system restoration. Corresponds to PSS/E RATEB. | 890.0 | no |
 | RATE_C | float | Short-term emergency thermal rating in MVA. Applicable during contingency conditions for limited duration. Corresponds to PSS/E RATEC. | 1050.0 | no |
-| RATE_D | float | Extreme emergency thermal rating in MVA. A CAISO-specific 4th rating tier not present in PSS/E, used for extreme contingency analysis. | 1200.0 | no |
+| RATE_D | float | Extreme emergency thermal rating in MVA. An ISO-specific 4th rating tier not present in PSS/E, used for extreme contingency analysis. | 1200.0 | no |
 | STATUS | enum | Operational status of the element: IN_SERVICE or OUT_OF_SERVICE. Elements with OUT_OF_SERVICE status are excluded from thermal limit enforcement. | IN_SERVICE | no |
 | EFFECTIVE_DATE | date | Date from which these ratings become effective, in ISO 8601 format. Supports seasonal rating changes. | 2024-06-01 | no |
 
@@ -103,7 +103,7 @@ The composite key FROM_BUS + TO_BUS + CKT identifies each transmission element b
 
 ### Key Findings
 
-- RATE_D (4th thermal rating tier) is Extension-representable (E) across all 6 tools -- no tool has a native 4th rating tier. This is a CAISO-specific concept not present in PSS/E or IEEE standards.
+- RATE_D (4th thermal rating tier) is Extension-representable (E) across all 6 tools -- no tool has a native 4th rating tier. This is an ISO-specific concept not present in PSS/E or IEEE standards.
 - MATPOWER and PowerModels.jl have the best native coverage (60%) because they natively support 3 thermal rating tiers (RATE_A/B/C) in the branch data structure, while other tools support only 1 native rating.
 - The CKT (circuit identifier) field is Extension-representable in all tools despite being a fundamental PSS/E identifier, because tools use internal element indexing rather than PSS/E's bus-pair-circuit composite key.
 - EFFECTIVE_DATE is universally Extension-representable -- no power flow tool has native temporal validity concepts for ratings.
@@ -111,7 +111,7 @@ The composite key FROM_BUS + TO_BUS + CKT identifies each transmission element b
 ## TRADING_HUB.csv
 
 **Domain:** Market
-**Purpose:** Defines trading hub compositions by mapping hub names to sets of buses with associated distribution factors. Trading hubs are market constructs used by CAISO for energy market settlement and congestion pricing -- they aggregate physical buses into commercial trading points. No power flow tool has a native trading hub concept because hubs are a market-layer abstraction that sits above the physical network model.
+**Purpose:** Defines trading hub compositions by mapping hub names to sets of buses with associated distribution factors. Trading hubs are market constructs used by ISOs for energy market settlement and congestion pricing -- they aggregate physical buses into commercial trading points. No power flow tool has a native trading hub concept because hubs are a market-layer abstraction that sits above the physical network model.
 **Row count:** ~500 rows
 **Join key:** BUS_NUMBER
 **Join target:** bus
@@ -128,7 +128,7 @@ The BUS_NUMBER column joins each hub-bus mapping record to the bus table via the
 
 | Field | Type | Semantic Description | Example | Join Key |
 |-------|------|---------------------|---------|----------|
-| HUB_NAME | string | Name of the trading hub as defined in the CAISO market. Uses standardized naming conventions reflecting geographic regions and hub types. | SP15_GEN_HUB | no |
+| HUB_NAME | string | Name of the trading hub as defined in the ISO market. Uses standardized naming conventions reflecting geographic regions and hub types. | SP15_GEN_HUB | no |
 | BUS_NUMBER | integer | Bus number of a physical bus participating in this trading hub. Each bus may appear in multiple hubs. Corresponds to PSS/E bus number I. | 24510 | yes |
 | DISTRIBUTION_FACTOR | float | Weight factor for this bus within the hub. Distribution factors within a hub sum to 1.0 and determine each bus's contribution to the hub's aggregated price or quantity. | 0.0234 | no |
 | HUB_TYPE | enum | Classification of the hub: GEN for generation-weighted hubs, LOAD for load-weighted hubs, TRADING for pure trading points. | GEN | no |
@@ -273,7 +273,7 @@ Branch contingencies use the composite key ELEMENT_FROM_BUS + ELEMENT_TO_BUS + E
 ## INTERFACE.csv
 
 **Domain:** Transmission
-**Purpose:** Defines named transmission interfaces with normal and emergency flow limits. Interfaces are groupings of monitored transmission paths whose aggregate flow is constrained for reliability purposes. CAISO uses interfaces (also called paths or flowgates) to manage power transfers across critical transmission corridors. Interface definitions do not directly reference individual network elements -- the element composition is specified in INTERFACE_ELEMENT.csv.
+**Purpose:** Defines named transmission interfaces with normal and emergency flow limits. Interfaces are groupings of monitored transmission paths whose aggregate flow is constrained for reliability purposes. ISOs use interfaces (also called paths or flowgates) to manage power transfers across critical transmission corridors. Interface definitions do not directly reference individual network elements -- the element composition is specified in INTERFACE_ELEMENT.csv.
 **Row count:** ~100 rows
 **Join key:** INTERFACE_ID
 **Join target:** (indirect via INTERFACE_ELEMENT.csv)

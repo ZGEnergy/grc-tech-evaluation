@@ -85,7 +85,7 @@ class FnmPathResult:
         if self.status == FnmPathStatus.NOT_SET:
             return (
                 "FNM_PATH environment variable is not set. "
-                "Set FNM_PATH to the directory containing CAISO FNM Annual S01 data files. "
+                "Set FNM_PATH to the directory containing FNM Annual S01 data files. "
                 "See data/fnm/README.md for setup instructions."
             )
         if self.status == FnmPathStatus.INVALID_PATH:

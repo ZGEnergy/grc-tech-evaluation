@@ -45,7 +45,7 @@ class FnmManifest:
 
     Attributes:
         version: Manifest schema version string.
-        variant: FNM variant identifier (e.g. "ERCOT_FNM_2024").
+        variant: FNM variant identifier (e.g. "FNM_ANNUAL_S01").
         source_files: List of expected source file entries.
         notes: Optional free-text notes about this manifest.
     """
@@ -133,9 +133,9 @@ def build_default_manifest() -> FnmManifest:
     """
     source_files = [
         SourceFileEntry(
-            file_name="ERCOT_FNM.raw",
+            file_name="FNM_ANNUAL_S01.raw",
             file_type=SourceFileType.PSSE_RAW,
-            description="PSS/E v31 RAW file containing the full ERCOT network model",
+            description="PSS/E v31 RAW file containing the full network model",
         ),
         SourceFileEntry(
             file_name="bus_names.csv",
@@ -175,9 +175,9 @@ def build_default_manifest() -> FnmManifest:
     ]
     return FnmManifest(
         version="1.0",
-        variant="ERCOT_FNM",
+        variant="FNM_ANNUAL_S01",
         source_files=source_files,
-        notes="Default manifest for ERCOT FNM ingestion. SHA-256 checksums are populated "
+        notes="Default manifest for FNM ingestion. SHA-256 checksums are populated "
         "after first successful parse via update_manifest_checksums().",
     )
 

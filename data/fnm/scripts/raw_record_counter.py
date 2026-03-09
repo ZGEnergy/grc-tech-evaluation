@@ -93,7 +93,7 @@ def parse_header(lines: list[str]) -> HeaderInfo:
     # Try comma-separated first, fall back to space-separated
     parts = [p.strip() for p in line1.split(",") if p.strip()]
     if len(parts) == 1:
-        # Space-separated format (e.g., CAISO RAW files)
+        # Space-separated format (e.g., production RAW files)
         parts = line1.split()
 
     try:

@@ -269,10 +269,10 @@ def test_fnm_header_is_v31(require_fnm_raw: Path) -> None:
 
 @pytest.mark.fnm
 def test_fnm_bus_count_scale(require_fnm_raw: Path) -> None:
-    """T11: Bus count in 25000-35000 range (ERCOT-scale network)."""
+    """T11: Bus count in 25000-35000 range (production-scale network)."""
     summary = count_raw_records(require_fnm_raw)
     assert 25000 <= summary.section_counts["Bus"] <= 35000, (
-        f"Bus count {summary.section_counts['Bus']} outside expected ERCOT range"
+        f"Bus count {summary.section_counts['Bus']} outside expected production-scale range"
     )
 
 

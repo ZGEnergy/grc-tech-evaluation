@@ -234,7 +234,7 @@ class TestGridCalFnm:
     """T10-T12: FNM integration tests requiring both GridCal and FNM_PATH."""
 
     def test_load_fnm_raw_produces_multicircuit(self, require_gridcal, require_fnm_raw) -> None:
-        """T10: Load the ERCOT FNM RAW file, verify non-zero bus count."""
+        """T10: Load the FNM RAW file, verify non-zero bus count."""
         from fnm.scripts.gridcal_parser import count_multicircuit, load_raw_with_logging
 
         grid, _psse_circuit, _logger = load_raw_with_logging(require_fnm_raw)

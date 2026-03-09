@@ -93,7 +93,7 @@ class TestStructuralIntegrity:
         )
 
     def test_reference_networks_table_has_large(self, protocol_text: str) -> None:
-        """T04: Reference Networks table has LARGE row with CAISO FNM."""
+        """T04: Reference Networks table has LARGE row with FNM."""
         # Find the Reference Networks table area
         ref_net_section = _section_text(protocol_text, r"Reference Networks")
         assert ref_net_section, "Reference Networks section not found"
@@ -107,7 +107,7 @@ class TestStructuralIntegrity:
         assert large_rows, "No LARGE row in Reference Networks table"
 
         large_row = large_rows[0]
-        assert "CAISO FNM" in large_row, "LARGE row missing 'CAISO FNM'"
+        assert "FNM Annual S01" in large_row, "LARGE row missing 'FNM Annual S01'"
         assert "FNM_PATH" in large_row, "LARGE row missing 'FNM_PATH' reference"
 
     def test_results_recording_has_fnm_ingestion(self, protocol_text: str) -> None:

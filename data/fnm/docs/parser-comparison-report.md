@@ -1,4 +1,4 @@
-# Parser Fidelity Comparison Report: CAISO FNM Annual S01
+# Parser Fidelity Comparison Report: FNM Annual S01
 
 ## Summary
 
@@ -43,7 +43,7 @@ Extracted by `raw_record_counter.py` — parser-independent line counting.
 
 ### HVDC/FACTS/Multi-Terminal DC (OQ-E02)
 
-All HVDC, FACTS, and Multi-Terminal DC sections are empty. This CAISO FNM contains
+All HVDC, FACTS, and Multi-Terminal DC sections are empty. This FNM contains
 no DC transmission, no FACTS devices, and no multi-terminal DC lines.
 
 ---
@@ -105,7 +105,7 @@ Changing the version header to 32 allows GridCal to begin parsing, but it reads
 117,416 "buses" (the entire file) and finds 0 loads, 0 generators, 0 branches —
 the section boundary detection fails completely.
 
-**Conclusion:** GridCal cannot parse this CAISO FNM file through any combination of
+**Conclusion:** GridCal cannot parse this FNM file through any combination of
 format conversion and version adjustment. The v31 gap in the supported version list
 and the comma-only parser make it unsuitable for this real-world production file.
 
@@ -174,14 +174,14 @@ Seven supplemental CSVs accompany the RAW file:
 | `AUC_AN_2026_2026_S01_RESOURCE.csv` | 1.3 MB | Resource (generator) data |
 | `AUC_AN_2026_2026_S01_TRADING_HUB.csv` | 103 KB | Trading hub definitions |
 
-Note: The manifest expects ERCOT-style file names but the actual data is CAISO.
-The manifest should be updated to reflect the actual CAISO file naming convention.
+Note: The manifest expects generic file names but the actual data files may use
+a different naming convention. The manifest should be updated to reflect the actual file names.
 
 ---
 
 ## Implications for Tool Evaluation
 
-1. **MATPOWER is the only viable parser** for this CAISO FNM. All intermediate format
+1. **MATPOWER is the only viable parser** for this FNM. All intermediate format
    generation must use MATPOWER's mpc output as the canonical source.
 
 2. **GridCal's PSS/E parser has two critical gaps:**

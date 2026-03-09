@@ -1,6 +1,6 @@
 """Supplemental CSV Join-Key Mapping.
 
-Analyzes supplemental CSVs accompanying the CAISO FNM Annual S01 variant,
+Analyzes supplemental CSVs accompanying the FNM Annual S01 variant,
 identifies columns that serve as join keys to PSS/E network elements in the
 intermediate format tables, validates those joins against actual data, and
 produces a structured mapping report (JSON + markdown).
@@ -163,7 +163,7 @@ class JoinKeyReport:
 # Constants
 # ---------------------------------------------------------------------------
 
-CAISO_FNM_CSV_NAMES: list[str] = [
+FNM_CSV_NAMES: list[str] = [
     "LINE_AND_TRANSFORMER.csv",
     "TRADING_HUB.csv",
     "GEN_DISTRIBUTION_FACTOR.csv",
@@ -799,7 +799,7 @@ def build_join_key_report(
         A complete JoinKeyReport.
     """
     if manifest_csv_names is None:
-        manifest_csv_names = CAISO_FNM_CSV_NAMES
+        manifest_csv_names = FNM_CSV_NAMES
 
     csvs_found: list[str] = []
     csvs_missing: list[str] = []

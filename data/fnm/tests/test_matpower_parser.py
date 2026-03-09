@@ -363,7 +363,7 @@ def test_fnm_psse2mpc_converts(require_fnm_raw: Path, tmp_path: Path) -> None:
 
 @pytest.mark.fnm
 def test_fnm_bus_csv_exists(require_fnm_raw: Path, tmp_path: Path) -> None:
-    """T11: mpc_bus.csv is produced and has rows in ERCOT-scale range."""
+    """T11: mpc_bus.csv is produced and has rows in production-scale range."""
     if shutil.which("octave") is None:
         pytest.skip("Octave not available")
 
@@ -372,7 +372,9 @@ def test_fnm_bus_csv_exists(require_fnm_raw: Path, tmp_path: Path) -> None:
 
     assert (output_dir / "mpc_bus.csv").exists()
     bus_count = log.field_counts_csv.get("bus", 0)
-    assert 25000 <= bus_count <= 35000, f"Bus count {bus_count} outside expected ERCOT range"
+    assert 25000 <= bus_count <= 35000, (
+        f"Bus count {bus_count} outside expected production-scale range"
+    )
 
 
 @pytest.mark.fnm
@@ -386,7 +388,9 @@ def test_fnm_branch_csv_exists(require_fnm_raw: Path, tmp_path: Path) -> None:
 
     assert (output_dir / "mpc_branch.csv").exists()
     branch_count = log.field_counts_csv.get("branch", 0)
-    assert branch_count > 1000, f"Branch count {branch_count} seems too low for ERCOT"
+    assert branch_count > 1000, (
+        f"Branch count {branch_count} seems too low for a production-scale network"
+    )
 
 
 @pytest.mark.fnm

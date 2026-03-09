@@ -507,7 +507,7 @@ MATPOWER's `psse2mpc` converter automatically decomposes 3-winding transformers 
 
 ### Source Parameters
 
-A synthetic 500/230/115 kV autotransformer representative of bulk transmission infrastructure in the CAISO footprint:
+A synthetic 500/230/115 kV autotransformer representative of bulk transmission infrastructure in the ISO transmission system:
 
 - **Winding 1 (HV):** 500 kV nominal, 600 MVA rating
 - **Winding 2 (MV):** 230 kV nominal, 300 MVA rating

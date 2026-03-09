@@ -73,7 +73,7 @@ def test_manifest_contains_all_expected_source_files() -> None:
     manifest = load_manifest(FNM_DIR / "manifest.json")
     assert len(manifest.source_files) == 8
     file_names = [sf.file_name for sf in manifest.source_files]
-    assert "ERCOT_FNM.raw" in file_names
+    assert "FNM_ANNUAL_S01.raw" in file_names
 
 
 def test_manifest_source_file_types_correct() -> None:
