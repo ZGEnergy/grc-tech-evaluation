@@ -1,0 +1,393 @@
+tool: powersimulations
+source_version: "v4"
+timestamp: "2026-03-07T12:00:00Z"
+evaluation_summary:
+  total_tests: 57
+  pass: 20
+  fail: 6
+  qualified_pass: 14
+  informational: 17
+
+findings:
+  - id: psi-F01
+    category: extraordinary_claim
+    severity: high
+    test_ids: [C-3, C-4, C-5, C-6]
+    title: "Four scalability tests report estimated timings without actual measurement"
+    description: >
+      C-3 (DCOPF scale) says "est. <60s", C-4 (SCUC scale) says "est. >300s",
+      C-5 (contingency sweep scale) says "est. serial" with no measured time,
+      C-6 (stochastic scale) says "est. 10-20min". These are extrapolations or
+      projections, not wall-clock measurements from executed code. The protocol
+      requires "Record everything. Wall-clock time (for scalability-relevant tests)."
+    evidence:
+      - file: "scalability/C-3_dcopf_scale.md"
+        excerpt: "HiGHS is expected to solve the MEDIUM DCOPF in < 60s"
+      - file: "scalability/C-4_scuc_scale.md"
+        excerpt: "Expected solve time | >300s (estimated)"
+      - file: "scalability/C-5_contingency_sweep_scale.md"
+        excerpt: "Wall-clock time not measured at MEDIUM scale"
+      - file: "scalability/C-6_stochastic_scale.md"
+        excerpt: "Not measured at SMALL scale. Estimated 10-20 minutes"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+  - id: psi-F02
+    category: extraordinary_claim
+    severity: high
+    test_ids: [A-4, B-7]
+    title: "Unit mismatch between PSI dispatch output and PowerSystems limits claimed but root cause uncertain"
+    description: >
+      The evaluation reports a ~100x scaling mismatch between PSI's
+      ActivePowerVariable output and PowerSystems.jl component limits. Dispatch
+      values of 660.85 are reported when Pmax is 10.40 pu. The synthesis calls
+      this "fragile" and undocumented. However, the A-3 result table shows the
+      same gen-1 dispatch as "660.85 MW" with "Pmax 1040.0 MW" -- suggesting
+      the values may actually be in MW, not pu. The A-4 result table confusingly
+      labels dispatch as "pu" while showing MW-scale values. This may be a
+      labeling error in the test report rather than a genuine 100x unit mismatch.
+    evidence:
+      - file: "expressiveness/A-3_dcopf.md"
+        excerpt: "gen-1 | 660.85 | 1040.0 | No"
+      - file: "expressiveness/A-4_ac_feasibility.md"
+        excerpt: "gen-1 | 660.85 | 66,085 | 10.40"
+      - file: "extensibility/B-7_ac_feasibility_extension.md"
+        excerpt: "Dispatch values from PSI are ~100x larger than Pmax values from the System"
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: claim_verification
+    proposed_action: add_verification
+
+  - id: psi-F03
+    category: missing_verification
+    severity: medium
+    test_ids: [B-1]
+    title: "Custom constraint dual value verified only for non-binding case"
+    description: >
+      B-1 tests custom constraint injection and dual extraction, but the flow
+      gate limit was set at 80% of the unconstrained flow sum, which was
+      non-binding. The dual value was correctly zero, but a binding constraint
+      with non-zero dual was never demonstrated. The result acknowledges this:
+      "A tighter limit or different line selection would produce a binding
+      constraint with non-zero dual." The protocol requires "Dual value of
+      custom constraint extractable and correctly reflects binding status."
+    evidence:
+      - file: "extensibility/B-1_custom_constraints.md"
+        excerpt: "The signed flow sum was -5.54 pu, well below the limit, so the constraint was non-binding. Dual = 0.0"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: add_verification
+
+  - id: psi-F04
+    category: scoring_inconsistency
+    severity: medium
+    test_ids: [A-6, A-7]
+    title: "Tests with workarounds scored as pass instead of qualified_pass"
+    description: >
+      The synthesis notes that A-6 and A-7 have "status: pass" but
+      "workaround_class: stable" and flags this as inconsistent. The protocol
+      states stable workarounds receive B-range grades and suggests
+      qualified_pass. The result file for A-6 actually has status:
+      qualified_pass in its frontmatter, contradicting the synthesis table which
+      shows "pass" for A-7. A-7's frontmatter shows status: pass with
+      workaround_class: stable. By protocol convention, a test requiring a
+      workaround (even stable) should be qualified_pass.
+    evidence:
+      - file: "expressiveness/A-7_contingency.md"
+        excerpt: "status: pass\nworkaround_class: stable"
+      - file: "synthesis.md"
+        excerpt: "A-6 and A-7 status/workaround inconsistency"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: psi-F05
+    category: network_insufficiency
+    severity: medium
+    test_ids: [A-5]
+    title: "SCUC on 39-bus produces no unit cycling -- network too small to exercise UC"
+    description: >
+      A-5 reports that all 10 generators are committed ON for all 24 hours
+      with zero startup events and zero cycling generators. The result
+      acknowledges this is "expected for a system where total capacity closely
+      matches peak load." However, this means the SCUC test does not actually
+      exercise unit commitment decisions -- it degenerates to a dispatch
+      problem. Min up/down time constraints, startup costs, and shutdown
+      decisions are never tested as binding.
+    evidence:
+      - file: "expressiveness/A-5_scuc.md"
+        excerpt: "All generators committed ON for all 24 hours (no cycling observed)"
+      - file: "expressiveness/A-5_scuc.md"
+        excerpt: "Startup events | 0\nCycling generators | 0"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: psi-F06
+    category: misleading_result
+    severity: medium
+    test_ids: [A-11]
+    title: "Distributed slack qualified_pass on uncongested network where both formulations produce identical results"
+    description: >
+      A-11 compares PTDFPowerModel (claimed distributed slack) with
+      DCPPowerModel (single slack). On the uncongested case39 network, both
+      produce numerically identical dispatch (max difference 1.5e-5 MW) and
+      objectives (difference 3.8e-13). The test cannot discriminate because
+      there is no congestion to differentiate the formulations. Furthermore,
+      PTDF slack weights are not configurable, which is a key requirement of
+      the pass condition. The qualified_pass is based on the claim that PTDF
+      "inherently" distributes slack, but on an uncongested network this is
+      indistinguishable from single slack.
+    evidence:
+      - file: "expressiveness/A-11_distributed_slack.md"
+        excerpt: "Objective difference: 3.8e-13 (numerically identical)"
+      - file: "expressiveness/A-11_distributed_slack.md"
+        excerpt: "Weights are not configurable"
+    cross_tool_relevance: confirmed
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: redesign_test
+
+  - id: psi-F07
+    category: scoring_inconsistency
+    severity: low
+    test_ids: [A-6]
+    title: "A-6 SCED qualified_pass despite ramp constraints not enforced"
+    description: >
+      A-6's pass condition requires "ramp rate constraints are demonstrably
+      enforced between consecutive dispatch intervals in the ED stage." The
+      test shows 182 ramp violations across all generators and hours with
+      ThermalBasicDispatch, and the ramp-enforcing ThermalRampLimited fails to
+      build. The result correctly notes this as qualified_pass, but this is
+      close to a fail -- the core pass condition is unmet. The qualification
+      is generous given the evidence.
+    evidence:
+      - file: "expressiveness/A-6_sced.md"
+        excerpt: "Total: 182 ramp violations across all generators and hours"
+      - file: "expressiveness/A-6_sced.md"
+        excerpt: "ThermalRampLimited | Build status | FAILED"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: psi-F08
+    category: test_design_gap
+    severity: medium
+    test_ids: [A-9]
+    title: "SCOPF contingency filtering removes 70% of contingencies without documented rationale for threshold"
+    description: >
+      A-9 filters out 32 of 46 contingencies as "near-radial" (max |LODF| >
+      0.9), leaving only 14 contingencies included. This 70% reduction
+      significantly eases the SCOPF problem and the 0.51% cost increase over
+      baseline is small. The LODF threshold of 0.9 is stated as "standard
+      SCOPF practice" but the aggressiveness of the filter (removing 70% of
+      contingencies) may mask whether the formulation would work with a
+      larger, less filtered set. The resulting 156 constraints on a 56-variable
+      problem is not particularly challenging.
+    evidence:
+      - file: "expressiveness/A-9_scopf.md"
+        excerpt: "32 contingencies skipped (near-radial), 14 contingencies included"
+      - file: "expressiveness/A-9_scopf.md"
+        excerpt: "Total constraints added: 156"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: psi-F09
+    category: infrastructure_friction
+    severity: low
+    test_ids: [A-3, A-4, A-5, A-6, A-8, A-9, A-10, A-11, B-4]
+    title: "Mandatory time series boilerplate inflates LOC and qualified_pass count"
+    description: >
+      PSI's DecisionModel requires time series setup (~30 LOC) for any
+      optimization, even single-period OPF. This is a genuine tool
+      characteristic (multi-period framework paradigm) but it produces a
+      systematic qualified_pass pattern across all optimization tests. The
+      boilerplate is stable and well-documented, so it inflates the
+      qualified_pass count without reflecting distinct capability gaps. Eight
+      of the nine optimization tests share identical boilerplate code.
+    evidence:
+      - file: "expressiveness/A-3_dcopf.md"
+        excerpt: "Adds significant boilerplate (~30 LOC) for what is conceptually a single-period OPF"
+      - file: "accessibility/D-5_code_volume.md"
+        excerpt: "time series boilerplate and device model registration together account for approximately 25-30 LOC per optimization test"
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: psi-F10
+    category: missing_verification
+    severity: medium
+    test_ids: [C-2]
+    title: "ACPF scale failure lacks diagnostic detail on convergence"
+    description: >
+      C-2 reports ACPF failure on MEDIUM but provides no iteration count,
+      residual history, or diagnostic beyond the error string. The root cause
+      analysis speculates about missing robustness features but does not verify
+      whether the issue is the solver, the network data, or the initial
+      conditions. No DC warm start was attempted because "PowerFlows.jl does
+      not support DC warm start initialization" -- but this was not confirmed
+      by checking whether voltage setpoints from DCPF could be manually
+      applied.
+    evidence:
+      - file: "scalability/C-2_acpf_scale.md"
+        excerpt: "The NewtonRaphsonACPowerFlow solver failed to converge"
+      - file: "scalability/C-2_acpf_scale.md"
+        excerpt: "PowerFlows.jl does not support DC warm start initialization -- it only offers ACPowerFlow() with the system's existing voltage setpoints"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: convergence_check
+    proposed_action: add_verification
+
+  - id: psi-F11
+    category: low_signal
+    severity: low
+    test_ids: [G-1, G-2, G-3]
+    title: "Gate tests produce identical pass outcome for all tools with MATPOWER support"
+    description: >
+      All three gate tests pass cleanly with correct bus/branch/gen counts.
+      PowerSystems.jl's MATPOWER parser handles all three networks without
+      issues. This is expected for any tool with a MATPOWER parser. The gate
+      tests serve their intended purpose (verify data ingestion) but do not
+      differentiate between tools.
+    evidence:
+      - file: "gate/G-1_ingest_tiny.md"
+        excerpt: "Actual counts: 39 buses / 46 branches / 10 generators"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: psi-F12
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [E-6]
+    title: "100% code coverage claim requires scrutiny"
+    description: >
+      E-6 reports "100% code coverage" from the Codecov badge. The result
+      itself notes "Julia coverage tools measure line coverage which may not
+      reflect branch coverage or edge case coverage." 100% line coverage is
+      unusual for a 10,000+ commit project and may reflect coverage measurement
+      methodology rather than true comprehensive testing. The claim is reported
+      from the badge without independent verification.
+    evidence:
+      - file: "maturity/E-6_ci_test_coverage.md"
+        excerpt: "Codecov badge: 100% (as of 2026-03-06)"
+      - file: "maturity/E-6_ci_test_coverage.md"
+        excerpt: "Julia coverage tools measure line coverage which may not reflect branch coverage"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: claim_verification
+    proposed_action: add_verification
+
+  - id: psi-F13
+    category: misleading_result
+    severity: low
+    test_ids: [B-4]
+    title: "B-4 stochastic wrapping runs only 5 of specified 20 scenarios with 2 failures"
+    description: >
+      B-4 specifies 20 scenarios but the test ran only 5, with 2 of those
+      failing (infeasible). The extrapolated timing of ~50s for 20 scenarios
+      is based on 3 successful solves. The 40% failure rate (2/5 infeasible)
+      may indicate the scenario generation approach needs adjustment for
+      case39's tight limits, but the finding is reported without discussing
+      whether 20 scenarios would have a similar or higher failure rate.
+    evidence:
+      - file: "extensibility/B-4_stochastic.md"
+        excerpt: "Ran 5 scenarios (of the specified 20)"
+      - file: "extensibility/B-4_stochastic.md"
+        excerpt: "Scenarios 3 and 4 became infeasible"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: psi-F14
+    category: missing_verification
+    severity: low
+    test_ids: [B-8, B-9]
+    title: "B-8 and B-9 results lack wall-clock timing and appear to be interactive probes"
+    description: >
+      B-8 states "No dedicated test script -- verified via interactive probe
+      in the devcontainer." B-9 similarly says "Verified via interactive probe."
+      Both lack wall_clock_seconds in frontmatter and have no reproducible test
+      script. The protocol requires "one test script per tool per test case"
+      and "Record everything."
+    evidence:
+      - file: "extensibility/B-8_reference_bus_config.md"
+        excerpt: "No dedicated test script -- verified via interactive probe in the devcontainer"
+      - file: "extensibility/B-9_ptdf_extraction.md"
+        excerpt: "Verified via interactive probe in the devcontainer"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: psi-F15
+    category: test_design_gap
+    severity: low
+    test_ids: [C-7]
+    title: "Solver swap test lacks measured wall-clock times per solver"
+    description: >
+      C-7 confirms solver swap is parameter-only (no reformulation), which is
+      the key finding. However, the protocol specifies "Time per solver" as a
+      recorded metric, and no timing data is provided. The test script
+      reference mentions both HiGHS and Ipopt but no comparative timing.
+    evidence:
+      - file: "scalability/C-7_solver_swap.md"
+        excerpt: "wall_clock_seconds: null"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+extraordinary_claims:
+  - test_id: C-3
+    claim: "DCOPF on MEDIUM expected to solve in <60s"
+    concern: "This is an estimate, not a measured result. No test script was successfully run to completion on MEDIUM for DCOPF."
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: C-4
+    claim: "SCUC on SMALL expected to take >300s with SCIP"
+    concern: "Estimated timing without execution. The SMALL network has 544 generators creating ~13,000 binary variables -- actual solve time could be much longer."
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: C-5
+    claim: "Contingency sweep approach scales to MEDIUM"
+    concern: "Wall-clock time not measured. The estimate of '2-7 hours serial' for N-1 alone would be very slow. No MEDIUM test was run."
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: C-6
+    claim: "20-scenario stochastic DCOPF on SMALL estimated at 10-20 minutes"
+    concern: "No execution on SMALL. Extrapolated from TINY timings which showed 40% scenario infeasibility rate."
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: E-6
+    claim: "100% code coverage"
+    concern: "Reported from Codecov badge without independent verification. Line coverage may not reflect branch/edge case coverage. 100% is unusually high."
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: claim_verification
+
+  - test_id: A-4
+    claim: "PSI dispatch values are ~100x larger than component limits (unit mismatch)"
+    concern: "A-3 shows the same gen-1 value (660.85) but labeled as MW with Pmax 1040.0 MW -- consistent units. A-4 labels them as pu with Pmax 10.40 pu. This may be a reporting error in A-4 rather than a genuine unit mismatch."
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: claim_verification
