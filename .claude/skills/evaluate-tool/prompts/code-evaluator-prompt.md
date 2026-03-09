@@ -103,11 +103,15 @@ test_id: <id>
 tool: {{tool_name}}
 dimension: {{dimension}}
 network: {{network_tier}}
-protocol_version: "v4"
+protocol_version: <version from eval-config>
 status: pass|fail|qualified_pass
 workaround_class: null|stable|fragile|blocking
+blocked_by: null|<test_id>
 wall_clock_seconds: <float>
+timing_source: measured|estimated
 peak_memory_mb: <float>
+convergence_residual: <float|null>
+convergence_iterations: <int|null>
 loc: <int>
 timestamp: <ISO 8601>
 ---
@@ -197,8 +201,52 @@ context.
   clone the network object rather than reloading from file. Record per-unit metrics
   (time per solve) alongside totals.
 
-- **Result frontmatter:** Every result file must include `protocol_version: "v4"` in
-  the YAML frontmatter.
+- **Result frontmatter:** Every result file must include `protocol_version` in
+  the YAML frontmatter (use the version from the eval-config).
+
+## Methodology Guardrails
+
+These guardrails address patterns that produced incorrect or misleading results in
+prior evaluation rounds. Apply them to all relevant tests.
+
+- **Convergence verification (A-2 and any `converges_ac` test):** Do not accept solver
+  "converged" status at face value. Verify: (a) convergence residual is reported and
+  below the tool's stated tolerance, (b) iteration count is reported and nonzero,
+  (c) voltage magnitudes differ from flat-start defaults (1.0 pu) on >95% of buses.
+  If the tool cannot report residual or iteration count, record this as a diagnostic
+  quality finding. See `cross-tool-watchpoints.md` for details.
+
+- **Measured timing only (Suite C):** All scalability results must use measured
+  wall-clock times from actual execution. Never grade on estimated or projected
+  timings. If a test cannot complete within the time budget, record `fail` with
+  the projected timing as supplementary context. Label any non-measured timing as
+  `"estimated"` in the result frontmatter's `timing_source` field.
+
+- **PTDF phase-shifter handling (B-9/C-9):** If the network contains phase-shifting
+  transformers (nonzero SHIFT in branch data), PTDF flow validation must either
+  apply Pbusinj/Pfinj correction terms or exclude phase-shifting branches from the
+  accuracy comparison. See `cross-tool-watchpoints.md` for the full equation.
+
+- **Unit consistency at analysis boundaries (A-4, B-7):** When transferring dispatch
+  results between analyses (e.g., DC OPF → AC feasibility), explicitly log base_power,
+  dispatch units, and limit units at each transfer point. Verify MW vs per-unit
+  consistency before interpreting results.
+
+- **Binding constraint verification (B-1):** When testing custom constraint duals,
+  include both a non-binding case (verify dual=0) AND a binding case (set constraint
+  at ~50% of unconstrained flow, verify dual != 0 and objective increases). Testing
+  only non-binding constraints provides no evidence that dual extraction works.
+
+- **Generator cycling verification (A-5):** If the network's capacity-to-load ratio
+  makes decommitment uneconomical (e.g., case39), note that all generators committed
+  for all hours is the expected optimal solution. The test then verifies formulation
+  expressiveness rather than commitment optimality. If the protocol modifies network
+  parameters to force cycling, verify that at least some generators cycle.
+
+- **Cascaded failure distinction (Suite C):** If a scalability test fails solely
+  because its prerequisite expressiveness test failed (e.g., C-4 fails because A-5
+  failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
+  This distinguishes independent failures from cascaded ones.
 
 ## Consumed Observations
 

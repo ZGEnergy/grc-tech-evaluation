@@ -126,6 +126,9 @@ naming convention from the config.
 - Find CI config files (.github/workflows, .gitlab-ci.yml, etc.)
 - Check if tests exist, run in CI, pass on current release
 - Note coverage measurement if available
+- **Badge verification:** Do not rely on coverage badge rendering in the README alone.
+  Verify the coverage percentage by fetching the badge SVG URL or checking the
+  Codecov/Coveralls detail page directly. Badge values can be stale or misread.
 
 **E-7 — Operational adoption:**
 - Search for utility, ISO, or government deployment evidence
@@ -175,7 +178,8 @@ P2 tests may be hybrid (audit + lightweight functional probe). If the eval-confi
 condition includes a functional test step (e.g., "attempt to parse", "attempt to solve",
 "define a 3-segment piecewise-linear cost curve"), execute it in the devcontainer.
 Otherwise, perform documentation/source audit only. Result files use the same
-`<test_id>_<slug>.md` naming convention. Include `protocol_version: "v4"` in frontmatter.
+`<test_id>_<slug>.md` naming convention. Include `protocol_version` from the eval-config
+in frontmatter.
 
 ## Reference Files
 
@@ -193,6 +197,20 @@ Integrate these into your audit. For example:
 - `doc-gaps` observations directly support D-2 findings
 - `solver-issues` inform F-8 (solver dependency assessment)
 - `workaround-needed` observations inform overall accessibility assessment
+
+## Cross-Referencing Code Test Results
+
+When auditing maturity and accessibility, cross-reference code evaluator results for
+consistency:
+
+- **Unit consistency:** If code-evaluator observations mention MW vs per-unit mismatches
+  or unexpected magnitude differences between analyses, investigate whether the test
+  scripts apply consistent unit conventions. A 100x discrepancy is often a labeling
+  error (MW vs pu), not a solver failure.
+
+- **Badge/claim verification:** For any quantitative claim from a project badge or README
+  (coverage percentage, build status, contributor count), verify independently against
+  the source service (Codecov, GitHub API, etc.). Badge values can be stale or misread.
 
 ## Supply Chain Gate Semantics
 
