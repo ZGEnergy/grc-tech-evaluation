@@ -25,9 +25,7 @@ const NETWORKS = Dict(
 )
 
 # Reference counts for gate validation
-const REFERENCE_COUNTS = Dict(
-    "TINY" => Dict("buses" => 39, "branches" => 46, "generators" => 10),
-)
+const REFERENCE_COUNTS = Dict("TINY" => Dict("buses" => 39, "branches" => 46, "generators" => 10))
 
 """
     discover_tests(dimension::String="") -> Vector{String}
@@ -87,10 +85,7 @@ function run_test_file(path::String)
             return Dict("status" => "fail", "errors" => ["No run() function defined"])
         end
     catch e
-        return Dict(
-            "status" => "fail",
-            "errors" => [string(typeof(e), ": ", sprint(showerror, e))],
-        )
+        return Dict("status" => "fail", "errors" => [string(typeof(e), ": ", sprint(showerror, e))])
     end
 end
 

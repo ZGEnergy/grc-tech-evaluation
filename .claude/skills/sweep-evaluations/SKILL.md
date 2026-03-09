@@ -53,6 +53,7 @@ PROTOCOL_PATH     = {{GUIDES_DIR}}/Phase1_Test_Protocol.md
 SWEEP_DATA_DIR    = sweep-data/{{SOURCE_VERSION}}-to-{{TARGET_VERSION}}
 FINDINGS_REPORT   = sweep-reports/{{SOURCE_VERSION}}-to-{{TARGET_VERSION}}.md
 PROGRESS_PATH     = {{SWEEP_DATA_DIR}}/.progress.yaml
+ISSUES_PATH       = {{SWEEP_DATA_DIR}}/github-issues.yaml
 ```
 
 **Tool list** (canonical, do not hardcode elsewhere):
@@ -145,19 +146,45 @@ Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last complet
 4. **Read protocol and rubric.** Load `{{PROTOCOL_PATH}}` and `{{RUBRIC_PATH}}` to
    establish the baseline test structure for the source version.
 
-5. **Present summary to user.** Show:
+5. **Query open GitHub issues.** Run `gh issue list --state open --label protocol --json number,title,body,labels`
+   to find issues proposing rubric or protocol changes. For each issue, triage its relevance:
+   - `rubric` — proposes a rubric scoring or weighting change
+   - `protocol` — proposes a test design, addition, or removal
+   - `skill` — proposes a skill file update
+   - `out_of_scope` — not relevant to this sweep
+
+   Save results to `{{ISSUES_PATH}}`:
+
+   ```yaml
+   issues:
+     - number: 43
+       title: "Add reviewer concentration metric for bus factor"
+       relevance: rubric
+       summary: <1-2 sentence distillation of the proposal>
+     - number: 45
+       title: "..."
+       relevance: out_of_scope
+       summary: "..."
+   ```
+
+   If `gh` is not available or the query fails, log a warning and continue without
+   issues — the sweep can still run from evaluation results alone.
+
+6. **Present summary to user.** Show:
    - Tools available (with paths) vs unavailable
    - Protocol version confirmation
    - Total result files per tool
+   - Open GitHub issues triaged (count by relevance, list in-scope issues)
    Ask for approval via AskUserQuestion before proceeding.
 
-6. **Write progress:**
+7. **Write progress:**
 
    ```yaml
    # .progress.yaml
    source_version: {{SOURCE_VERSION}}
    target_version: {{TARGET_VERSION}}
    tools_available: [list]
+   issues_in_scope: <count of issues with relevance != out_of_scope>
    completed_states: [INIT]
    current_state: SWEEP
    timestamp: <ISO 8601>
@@ -274,6 +301,7 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
    - `{{rubric_path}}` → `{{RUBRIC_PATH}}`
    - `{{output_dir}}` → `{{SWEEP_DATA_DIR}}/aggregation`
    - `{{tools}}` → comma-separated list of available tools
+   - `{{github_issues_path}}` → `{{ISSUES_PATH}}`
 
    Launch via Agent tool with `subagent_type: "general-purpose"`.
 
@@ -311,6 +339,7 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
       - `{{output_path}}` → `{{FINDINGS_REPORT}}`
       - `{{report_template}}` → `{{SKILL_DIR}}/references/findings-report-template.md`
       - `{{mapping_schema}}` → `{{SKILL_DIR}}/references/test-id-mapping-schema.md`
+      - `{{github_issues_path}}` → `{{ISSUES_PATH}}`
 
    b. **Protocol/rubric updater.** Read
       `{{SKILL_DIR}}/prompts/protocol-update-prompt.md`, replace variables:
@@ -321,6 +350,7 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
       - `{{aggregation_dir}}` → `{{SWEEP_DATA_DIR}}/aggregation`
       - `{{output_protocol}}` → `{{GUIDES_DIR}}/Phase1_Test_Protocol.md`
       - `{{output_rubric}}` → `{{GUIDES_DIR}}/Phase1_Evaluation_Rubric.md`
+      - `{{github_issues_path}}` → `{{ISSUES_PATH}}`
 
    c. **Skill updater.** Read
       `{{SKILL_DIR}}/prompts/skill-update-prompt.md`, replace variables:
@@ -366,6 +396,8 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
      in either the protocol, rubric, or findings report (with an explanation
      if a proposed change was not adopted)
    - Test-ID mapping table is complete (every vN test accounted for)
+   - Every in-scope GitHub issue from `{{ISSUES_PATH}}` is either reflected in a
+     proposed change or listed as deferred with rationale in the findings report
 
 5. **Produce validation report.** Write `{{SWEEP_DATA_DIR}}/validation-report.md` with:
    - Checks passed / failed
@@ -392,13 +424,20 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
    - Updated skill: `.claude/skills/evaluate-tool/`
    - All on worktree branch — needs PR to `main`.
 
+   **Issue linking.** If any in-scope GitHub issues were incorporated into the
+   protocol update, include them in the PR body so they auto-close on merge.
+   Use `Closes #<number>` for each resolved issue. List deferred issues as
+   `Related to #<number>` so they remain open but linked.
+
 ---
 
 ## Data Flow Summary
 
 ```
-Per-tool worktrees (read-only)
-  │
+Per-tool worktrees (read-only)     GitHub issues (gh issue list)
+  │                                       │
+  ├─ INIT: resolve paths, query issues → github-issues.yaml
+  │                                       │
   ├─ SWEEP: 6 parallel agents → per-tool/*/findings.{yaml,md}
   │                                    │
   │                            probe-manifest.yaml
@@ -407,11 +446,11 @@ Per-tool worktrees (read-only)
   │         parallel/cross
   │                                    │
   ├─ AGGREGATE: 1 agent      → aggregation/{themes,low-signal-tests,
-  │                              comparison-matrices,proposed-changes}
+  │    (+ github issues)        comparison-matrices,proposed-changes}
   │                                    │
   ├─ GENERATE: 3 parallel    → findings report + protocol/rubric + skill updates
   │                                    │
-  └─ VALIDATE: consistency   → validation-report.md
+  └─ VALIDATE: consistency   → validation-report.md (+ issue coverage check)
 ```
 
 ---

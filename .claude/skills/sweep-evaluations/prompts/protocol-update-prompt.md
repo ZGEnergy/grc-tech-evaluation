@@ -13,6 +13,7 @@ documents, incorporating all approved changes from the aggregation.
 - **Aggregation directory:** `{{aggregation_dir}}`
 - **Output protocol:** `{{output_protocol}}`
 - **Output rubric:** `{{output_rubric}}`
+- **GitHub issues:** `{{github_issues_path}}`
 
 ## Task
 
@@ -24,6 +25,10 @@ documents, incorporating all approved changes from the aggregation.
   - `{{aggregation_dir}}/proposed-changes.yaml` — all approved changes
   - `{{aggregation_dir}}/themes.md` — context for changes
   - `{{aggregation_dir}}/low-signal-tests.yaml` — tests to redesign/remove
+- Read `{{github_issues_path}}` (if it exists) for issue context. Some entries in
+  `proposed-changes.yaml` have `source: github_issue` and `issue_number` — these
+  originated from open GitHub issues. Apply them identically to sweep-derived changes;
+  the aggregation agent already validated their evidence.
 
 ### 2. Apply Changes to Protocol
 
