@@ -1,0 +1,144 @@
+low_signal_tests:
+  - test_id: G-1
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: >
+      All tools have MATPOWER .m parsers. Gate test serves its purpose as a
+      precondition filter but provides zero discriminative signal between tools.
+    preserve: true
+    preserve_reason: Gate tests prevent downstream waste if a tool cannot ingest the format.
+
+  - test_id: G-2
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: Same as G-1. SMALL network ingestion trivial for all tools.
+    preserve: true
+    preserve_reason: Validates format handling at intermediate scale.
+
+  - test_id: G-3
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: Same as G-1. MEDIUM network ingestion trivial for all tools.
+    preserve: true
+    preserve_reason: Validates format handling at target scale.
+
+  - test_id: A-1 TINY
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: DCPF on 39-bus is trivial for any power systems tool.
+    preserve: true
+    preserve_reason: Functional baseline for PF capability.
+
+  - test_id: A-2 TINY
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: ACPF on 39-bus converges for all tools.
+    preserve: true
+    preserve_reason: Baseline; the MEDIUM test has high signal.
+
+  - test_id: A-3 TINY
+    outcome: near_unanimous_pass
+    tools_count: 6
+    reason: >
+      All tools solve DCOPF on 39-bus. LMPs are uniform across all tools due to
+      identical generator costs (0.3 $/MWh) and no binding constraints.
+      Confirmed by probes 006/007. The test cannot verify congestion-driven LMP
+      differentiation on this network.
+    preserve: true
+    preserve_reason: MEDIUM test has higher signal; TINY validates basic OPF.
+    proposed_change: >
+      Tighten 3-5 branch limits on case39 to force at least one binding constraint
+      and produce non-uniform LMPs. This enables LMP extraction verification at TINY.
+
+  - test_id: A-5 TINY (cycling aspect)
+    outcome: unanimous_no_cycling
+    tools_count: 6
+    reason: >
+      case39 capacity-to-load ratio means all generators stay committed for all
+      24 hours. No tool demonstrates UC cycling. Confirmed across pypsa,
+      powersimulations, matpower (all report 10/10 generators on, 0 startups).
+    preserve: true
+    preserve_reason: The formulation test has value; the network is insufficient.
+    proposed_change: >
+      Augment case39 with excess capacity (add 2 peakers with high startup costs)
+      or reduce minimum load to force at least 2 generators to cycle.
+
+  - test_id: A-9 TINY (cost comparison aspect)
+    outcome: unanimous_no_signal
+    tools_count: 4
+    reason: >
+      SCOPF and unconstrained OPF produce identical objectives on case39 because
+      all generators have identical marginal costs and no branches bind. Cost
+      comparison produces no signal. pypsa notes objective equality, matpower notes
+      identical dispatch.
+    preserve: true
+    preserve_reason: The SMALL test produces a meaningful security premium (0.4-4.7%).
+    proposed_change: >
+      Use perturbed generator costs on TINY to enable cost comparison even without
+      congestion.
+
+  - test_id: A-11 (on uncongested networks)
+    outcome: unanimous_no_discrimination
+    tools_count: 5
+    reason: >
+      Distributed slack vs single slack produces identical LMPs on uncongested
+      networks (case39 and ACTIVSg2000). Confirmed by probes 023 and findings
+      from pypsa, powermodels, powersimulations, matpower. The test cannot
+      verify that distributed slack changes LMP decomposition because there is
+      no congestion to decompose.
+    preserve: true
+    preserve_reason: The capability test matters for ISO market clearing fidelity.
+    proposed_change: >
+      Use a congested network (tightened branch limits) where distributed vs
+      single slack produces demonstrably different LMPs.
+
+  - test_id: B-3 TINY
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: N-1 contingency loop on 39-bus is trivial for all tools.
+    preserve: true
+    preserve_reason: Baseline; MEDIUM test has medium signal.
+
+  - test_id: B-5
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: >
+      CSV export trivial for any tool using DataFrames (Python) or matrices
+      (Octave/Julia). pypsa: 2 LOC, matpower: 18 LOC, all others < 5 LOC.
+    preserve: true
+    preserve_reason: Documents interoperability baseline even if non-discriminative.
+
+  - test_id: C-1 MED
+    outcome: unanimous_pass
+    tools_count: 6
+    reason: DCPF scales well for all tools (all complete in < 30s on 10k-bus).
+    preserve: true
+    preserve_reason: Provides timing baseline for cross-tool comparison.
+
+  - test_id: C-8 MED
+    outcome: unanimous_fail
+    tools_count: 6
+    reason: >
+      500-contingency SCOPF on 10k-bus is infeasible for all tools within the
+      time budget. Probe-016 confirms even 5 contingencies time out for
+      PowerModels. No tool can demonstrate this capability at MEDIUM scale.
+    preserve: false
+    preserve_reason: null
+    proposed_change: >
+      Reduce C-8 MEDIUM to 50 contingencies (matching SMALL parameter) or
+      accept iterative screening with only binding contingencies. The current
+      500-contingency target produces unanimous failure with zero discriminative
+      value.
+
+  - test_id: A-8
+    outcome: near_unanimous_fail
+    tools_count: 6
+    reason: >
+      Only MATPOWER (via MOST) has native stochastic optimization. All other
+      tools fail or are absent. The B-4 wrapping test provides the practical
+      stochastic capability assessment. Probe-002 shows PyPSA has partial
+      stochastic API that crashes on realistic networks.
+    preserve: true
+    preserve_reason: >
+      The A-8/B-4 distinction (native vs wrapping) is protocol-correct and
+      reveals a genuine architectural gap. The near-unanimous fail IS the signal.

@@ -1,0 +1,10 @@
+source_version: v4
+target_version: v5
+tools_available: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+completed_states: [INIT, SWEEP, PROBE, AGGREGATE, GENERATE, VALIDATE]
+current_state: DONE
+timestamp: "2026-03-09T12:00:00Z"
+probes_run: 18
+probes_supported: 13
+probes_debunked: 4
+probes_inconclusive: 0

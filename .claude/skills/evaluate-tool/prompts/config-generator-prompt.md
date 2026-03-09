@@ -70,8 +70,10 @@ Record as: `{test_id}.depends_on: [list of test IDs]`
 ### Observation Tags
 Infer cross-cutting observation routing:
 - Code-evaluator dimensions emit: `api-friction`, `doc-gaps`, `workaround-needed`, `solver-issues`
+- Expressiveness also emits: `convergence-quality` (solver reports convergence but diagnostics disagree), `unit-mismatch` (MW vs pu inconsistency)
 - Extensibility also emits: `arch-quality` (software architecture observations)
-- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity
+- Scalability also emits: `cascaded-failure` (test blocked by prerequisite failure)
+- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity, `convergence-quality` → scalability + accessibility, `unit-mismatch` → accessibility, `cascaded-failure` → synthesis
 - Supply chain audit emits: `license-flags`
 
 For each dimension, record:
@@ -202,6 +204,18 @@ observation_tags:
     description: "Solver-related findings"
     emitted_by: [expressiveness, scalability]
     consumed_by: [scalability]
+  convergence-quality:
+    description: "Solver reports convergence but diagnostics indicate otherwise"
+    emitted_by: [expressiveness]
+    consumed_by: [scalability, accessibility]
+  unit-mismatch:
+    description: "MW vs per-unit inconsistency at analysis boundaries"
+    emitted_by: [expressiveness, extensibility]
+    consumed_by: [accessibility]
+  cascaded-failure:
+    description: "Scalability test blocked by prerequisite expressiveness failure"
+    emitted_by: [scalability]
+    consumed_by: [synthesis]
   license-flags:
     description: "Licensing or supply chain concerns"
     emitted_by: [supply_chain]

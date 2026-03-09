@@ -32,11 +32,15 @@ test_id: <test_id>
 tool: <tool_name>
 dimension: <dimension>
 network: <TINY|SMALL|MEDIUM|N/A>
-protocol_version: "v4"
+protocol_version: <version from eval-config>
 status: pass|fail|qualified_pass|informational
 workaround_class: null|stable|fragile|blocking
+blocked_by: null|<test_id>          # If this test failed solely because a prerequisite failed
 wall_clock_seconds: <float|null>
+timing_source: measured|estimated   # "estimated" timings cannot support pass/qualified_pass
 peak_memory_mb: <float|null>
+convergence_residual: <float|null>  # For AC convergence tests — final mismatch
+convergence_iterations: <int|null>  # For iterative solvers — NR iteration count
 loc: <int|null>
 solver: <solver_name|null>
 timestamp: <ISO 8601>
@@ -85,8 +89,10 @@ Include enough detail to verify correctness.>
 ## Timing
 
 - **Wall-clock:** <seconds>
+- **Timing source:** measured|estimated (estimated timings cannot support pass/qualified_pass)
 - **Peak memory:** <MB> (or "not measured" with reason)
 - **Solver iterations:** <count> (for iterative solvers)
+- **Convergence residual:** <float> (for AC convergence tests — final power mismatch)
 - **CPU cores used:** <count> (if parallelism observed)
 
 ## Test Script
@@ -135,6 +141,9 @@ Before finalizing a result file, verify:
 - [ ] Status accurately reflects whether the pass condition was met
 - [ ] Workaround class is correct per `workaround-classification.md`
 - [ ] Timing data is recorded (or explicitly noted as unmeasured)
+- [ ] `timing_source` is `measured` for any pass/qualified_pass on scalability tests
+- [ ] `blocked_by` is set if this test failed due to a prerequisite failure
+- [ ] For AC convergence tests, `convergence_residual` and `convergence_iterations` are recorded
 - [ ] Test script path is correct and the script is self-contained
 - [ ] Numerical outputs are present (not just "test passed")
 - [ ] For qualified passes, the qualification is clearly explained

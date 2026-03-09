@@ -175,6 +175,7 @@ Adversarial lenses:
 3. **Domain Critic** (optional): Domain-specific risks — data leaking, timezone bugs, hour-ending off-by-ones, credit check failures, stale data assumptions, DST edge cases.
 
 Each critic returns findings in structured format:
+
 ```
 ## Critique: [Critic Role]
 

@@ -223,6 +223,56 @@ Use relative paths from the repository root:
 The `run()` function takes the network file as a parameter so the same script can
 be pointed at different networks.
 
+## Peak Memory Measurement
+
+Each language has a different approach to measuring peak memory. Include memory
+measurement in all scalability tests and optionally in expressiveness tests.
+
+### Python
+
+```python
+import tracemalloc
+
+tracemalloc.start()
+# ... solve ...
+current, peak = tracemalloc.get_traced_memory()
+tracemalloc.stop()
+results["details"]["peak_memory_mb"] = peak / (1024 * 1024)
+```
+
+### Julia
+
+```julia
+# Option 1: @allocated (measures allocations, not peak RSS)
+bytes = @allocated begin
+    # ... solve ...
+end
+results["details"]["allocated_mb"] = bytes / (1024^2)
+
+# Option 2: /proc/self/status (peak RSS on Linux)
+function peak_rss_mb()
+    for line in eachline("/proc/self/status")
+        if startswith(line, "VmHWM:")
+            return parse(Float64, split(line)[2]) / 1024  # kB to MB
+        end
+    end
+    return nothing
+end
+```
+
+### Octave
+
+```matlab
+% Read peak RSS from /proc/self/status (Linux only)
+function peak_mb = get_peak_rss()
+    [~, out] = system('grep VmHWM /proc/self/status');
+    peak_mb = sscanf(out, 'VmHWM: %f') / 1024;  % kB to MB
+end
+```
+
+If memory measurement is not feasible for a particular test, record
+`peak_memory_mb: null` with a brief explanation in the result file.
+
 ## Solver Configuration
 
 Import solver settings from `solver-config.md`. Do not hard-code solver parameters
