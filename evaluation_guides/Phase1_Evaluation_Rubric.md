@@ -62,6 +62,8 @@ All tests use open-source solvers exclusively. Commercial solvers (Gurobi, CPLEX
 | SMALL | ACTIVSg 2k | ~2,000 | Smoke test, fast iteration |
 | MEDIUM | ACTIVSg 10k | ~10,000 | Primary benchmark — all grades assessed here |
 
+Reference networks are preprocessed per the test protocol's Data Preparation section before evaluation begins. Key preprocessing steps include fixing zero-impedance branches, setting unconstrained thermal ratings, and tightening select branch limits to induce congestion for tests that depend on binding constraints and non-uniform LMPs.
+
 The CAISO Full Network Model (FNM) is not used in Phase 1 testing. The FNM uses a legacy PSS/E version unlikely to be supported by any evaluated tool's native parser. A custom FNM parser is a Phase 2 deliverable.
 
 ### Companion Test Protocol
@@ -119,13 +121,13 @@ When something feels off — documentation that doesn't match behavior, examples
 
 **1. DC Power Flow** — Can you ingest a network and solve DCPF with minimal boilerplate? Does the tool expose nodal injections, line flows, and voltage angles as first-class outputs?
 
-**2. AC Power Flow** — Full Newton-Raphson AC PF. Does the tool converge reliably on realistic, potentially ill-conditioned networks? Are bus voltage magnitudes and angles, line flows, and losses accessible directly?
+**2. AC Power Flow** — Full Newton-Raphson AC PF. Does the tool converge reliably on realistic, potentially ill-conditioned networks? Are bus voltage magnitudes and angles, line flows, and losses accessible directly? Can the tool report convergence residuals and iteration counts? Are solved voltage magnitudes demonstrably non-trivial (not flat-start defaults)?
 
 **3. DC OPF** — Can you express a linearized OPF with generation cost minimization, line flow limits, and nodal balance constraints without leaving the tool's native API? Does it expose LMPs and shadow prices natively?
 
 **4. AC PF feasibility check on DC OPF solution** — After solving DC OPF to obtain a generation dispatch, can the tool run a full AC PF on that solution to check voltage feasibility and surface violations (voltage magnitude out of bounds, line thermal limit violations, reactive power infeasibility)? Does it do this cleanly within the same network model, or does it require exporting and re-importing the dispatch result into a separate AC solver context?
 
-**5. SCUC** — Can the tool express unit commitment as a MILP natively? Does it support minimum up/down times, startup costs, ramp rates, and reserve requirements as built-in constraint types — or must the user implement those from scratch? This is evaluated against the tool's shipped package plus its official companion packages.
+**5. SCUC** — Can the tool express unit commitment as a MILP natively? Does it support minimum up/down times, startup costs, ramp rates, and reserve requirements as built-in constraint types — or must the user implement those from scratch? Does the formulation produce demonstrable generator cycling when the test data includes excess capacity and peaking units? This is evaluated against the tool's shipped package plus its official companion packages.
 
 **6. SCED** — Real-time economic dispatch, typically LP/QP. Can you solve SCED as a warm-started dispatch given a fixed commitment schedule? Does the tool separate UC and ED cleanly as a two-stage workflow?
 
@@ -141,7 +143,7 @@ This is distinct from sub-question 7: sub-question 7 tests post-hoc contingency 
 
 **Note on SCOPF feasibility:** Small test cases (e.g., IEEE 39-bus) may have tight thermal limits that make preventive SCOPF infeasible. Thermal rating relaxation is permitted for functional verification per the test protocol. This is a data finding, not a tool limitation.
 
-**10. Lossy DC OPF and LMP Decomposition** — Can the tool solve a DC OPF with loss approximation (iterative loss factors, quadratic loss terms, or penalty factors — any method acceptable)? Can LMPs be decomposed into energy, congestion, and loss components? A tool that produces only lossless DC OPF LMPs will systematically misrepresent congestion patterns on long transmission paths.
+**10. Lossy DC OPF and LMP Decomposition** — Can the tool solve a DC OPF with loss approximation (iterative loss factors, quadratic loss terms, or penalty factors — any method acceptable)? Can LMPs be decomposed into energy, congestion, and loss components? Are the loss components internally consistent (physically correct signs, total losses 0.5–3% of load, lossy objective exceeding lossless)? A tool that produces only lossless DC OPF LMPs will systematically misrepresent congestion patterns on long transmission paths.
 
 **11. Distributed Slack OPF** — Can the tool solve DC OPF with a distributed slack bus (load-proportional or generation-proportional) rather than a single slack bus? All ISOs use distributed slack in their market clearing engines — the reference bus is a weighted aggregate across participating loads or generators, not a single bus. This directly affects LMP computation: the System Marginal Energy Cost is defined at the distributed reference, and congestion/loss components are relative to it. A tool that only supports single-slack OPF will produce LMP decompositions that don't match ISO-published values.
 
@@ -151,8 +153,8 @@ This is distinct from sub-question 7: sub-question 7 tests post-hoc contingency 
 
 | Grade | Description |
 |-------|-------------|
-| **A** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. SCOPF expressible natively or through documented extension API. Loss-inclusive OPF supported with LMP decomposition into energy, congestion, and loss components. Distributed slack OPF supported natively. |
-| **B** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. Stochastic support may require wrapping in an external loop (tested separately under Extensibility). SCOPF achievable through extension API with moderate effort. Loss approximation possible but may require manual implementation. Distributed slack achievable through configuration or workaround. |
+| **A** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. ACPF convergence verifiable via residuals and iteration counts. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. SCUC produces demonstrable generator cycling on appropriately parameterized test cases. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. SCOPF expressible natively or through documented extension API. Loss-inclusive OPF supported with LMP decomposition into energy, congestion, and loss components, validated via internal consistency checks. Distributed slack OPF supported natively. |
+| **B** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. ACPF convergence may lack full diagnostics (iteration count or residual not directly exposed). Stochastic support may require wrapping in an external loop (tested separately under Extensibility). SCOPF achievable through extension API with moderate effort. Loss approximation possible but may require manual implementation. Distributed slack achievable through configuration or workaround. |
 | **C** | A target problem type is outside the tool's design scope entirely, or requires rebuilding core functionality from primitives in a general-purpose modeling language. |
 
 ---
@@ -171,7 +173,7 @@ This is distinct from Expressiveness. Expressiveness asks "can the tool solve th
 
 **3. Contingency loop construction** — Can you programmatically define a set of contingencies, solve each, and collect results without re-parsing or re-instantiating the base model each time? Is there a native contingency analysis workflow, or must you build it in a loop?
 
-**4. Stochastic scenario wrapping** — For tools that do not natively support stochastic optimization (as tested in Criterion 1), can you wrap the tool to run scenario ensembles with stochastic load, wind, and solar timeseries? Key factors: Can timeseries be injected via the API or must config files be rewritten per scenario? Can the model be re-solved with modified timeseries without full reconstruction? The stochastic inputs must use temporally correlated perturbations — not i.i.d. noise per interval — to test whether the tool's timeseries interface supports realistic scenario structures.
+**4. Stochastic scenario wrapping** — For tools that do not natively support stochastic optimization (as tested in Criterion 1), can you wrap the tool to run scenario ensembles with stochastic load, wind, and solar timeseries? Key factors: Can timeseries be injected via the API or must config files be rewritten per scenario? Can the model be re-solved with modified timeseries without full reconstruction? The stochastic inputs must use temporally correlated perturbations — not i.i.d. noise per interval — to test whether the tool's timeseries interface supports realistic scenario structures. Perturbation bounds must be calibrated to produce at most 20% infeasible scenarios on the target network.
 
 **5. Interoperability** — Can results be exported to standard formats (DataFrames, JSON, HDF5, CSV) for downstream analysis without custom serialization? Can the tool ingest outputs from other tools in the stack?
 
@@ -181,7 +183,7 @@ This is distinct from Expressiveness. Expressiveness asks "can the tool solve th
 
 **8. Reference bus control** — Can the analyst programmatically set or change the reference/slack bus? Does LMP computation respond correctly to reference bus changes? This affects LMP decomposition in ISO markets that use distributed load reference buses.
 
-**9. PTDF matrix extraction** — Can the tool expose or compute Power Transfer Distribution Factors as a programmatically accessible matrix or per-element query? This is the fundamental analytical primitive for congestion analysis. PTDFs may be exposed natively (e.g., MATPOWER's `makePTDF()`), extractable from the solved model's internal matrices, or computable via unit injection experiments. Document the method and effort level.
+**9. PTDF matrix extraction** — Can the tool expose or compute Power Transfer Distribution Factors as a programmatically accessible matrix or per-element query? This is the fundamental analytical primitive for congestion analysis. PTDFs may be exposed natively (e.g., MATPOWER's `makePTDF()`), extractable from the solved model's internal matrices, or computable via unit injection experiments. On networks with phase-shifting transformers, does the tool correctly account for Pbusinj/Pfinj correction terms in PTDF-based flow predictions? Document the method and effort level.
 
 ### Workaround Durability
 
@@ -193,14 +195,14 @@ When a sub-question is answered with a workaround, the workaround is classified:
 | **Fragile** | Depends on undocumented internals, private attributes, or behavior not guaranteed by the API. Could break on any minor version bump. |
 | **Blocking** | Requires forking the source, patching compiled code, or is simply not achievable. |
 
-Stable workarounds support a B-range grade. Fragile workarounds pull toward B- or C+. Blocking workarounds result in C or below.
+A test requiring any workaround (stable, fragile, or blocking) must be classified as `qualified_pass`, not `pass`. The workaround class determines the grade range: stable workarounds support a B-range grade, fragile workarounds pull toward B- or C+, and blocking workarounds result in C or below.
 
 ### Grading Standards
 
 | Grade | Description |
 |-------|-------------|
-| **A** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection. Results export to standard formats is trivial. Clean architecture with separation of concerns — a competent analyst can extend the tool in days, not weeks. Reference bus configurable via API. PTDF matrix accessible as a structured output. |
-| **B** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. Reference bus control possible with workaround. PTDF extraction requires manual computation from network data. |
+| **A** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection and calibrated perturbations (≤20% infeasibility). Results export to standard formats is trivial. Clean architecture with separation of concerns — a competent analyst can extend the tool in days, not weeks. Reference bus configurable via API. PTDF matrix accessible as a structured output with correct handling of phase-shifting transformer correction terms. |
+| **B** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. Reference bus control possible with workaround. PTDF extraction requires manual computation from network data; phase-shifter corrections may require user implementation. |
 | **C** | Extension requires forking or patching the core. Network topology not accessible as a graph. Contingency analysis requires full model rebuilds. Stochastic wrapping not feasible without major effort. Monolithic or thesis-project architecture with no meaningful separation of concerns. |
 
 ---
@@ -237,7 +239,7 @@ This criterion is purely about usability — the learning curve, API quality, do
 
 Note this is not just raw speed. Scale must be evaluated in the context of actual workflows: a tool that solves DC OPF on the ACTIVSg 10k case in 10 minutes is acceptable if it only runs once; a tool requiring 10 minutes per contingency across thousands of contingencies is not.
 
-All scalability measurements are taken on the reference workstation (128 GB RAM, 16 cores, no GPU) using open-source solvers only. No pre-defined time thresholds — results are recorded and compared across tools.
+All scalability measurements are taken on the reference workstation (128 GB RAM, 16 cores, no GPU) using open-source solvers only. No pre-defined time thresholds — results are recorded and compared across tools. All timings must be measured wall-clock times from actual test execution; estimated or projected timings cannot support pass or qualified_pass grades. Solver performance limitations are distinguished from tool capability limitations — a tool that expresses a formulation correctly but whose solver times out receives a scalability finding, not an expressiveness failure.
 
 ### Sub-questions
 
@@ -382,3 +384,4 @@ The following tools were identified during the landscape survey and considered f
 | v1 | TBD | Initial rubric | GRC |
 | v2 | 2026-03-05 | Added Phase 2 Context section (CAISO SCOPF/LMP research). Added Expressiveness sub-questions 9 (SCOPF), 10 (lossy DC OPF / LMP decomposition), 11 (distributed slack OPF) with grading note. Updated Expressiveness grading standards for A and B to reference new sub-questions. Added Extensibility sub-questions 8 (reference bus control) and 9 (PTDF matrix extraction). Updated Extensibility grading standards for A and B. Added Phase 2 Readiness Findings section (PSS/E RAW parsing, piecewise-linear cost curves). | GRC |
 | v3 | 2026-03-06 | Cost curve note updated to acknowledge polynomial costs in MATPOWER files (was "linear costs throughout"). Added SCOPF feasibility note for small test cases. Stochastic optimization sub-question clarified: independent perturbations by resource type, price extraction required. Aligned with protocol v4 changes. | GRC |
+| v4 | 2026-03-09 | Cross-tool sweep amendments aligned with protocol v5. ACPF sub-question requires convergence residual, iteration count, and non-flat-start verification. SCUC sub-question requires demonstrable cycling. Lossy DCOPF sub-question specifies internal consistency validation. PTDF sub-question addresses phase-shifter correction terms. Stochastic wrapping sub-question adds perturbation calibration requirement. Workaround scoring clarified: any workaround requires qualified_pass classification. Solver/tool separation: expressiveness grading distinguishes formulation capability from solver performance. Scalability grading requires measured wall-clock times. Reference network preprocessing noted. Extensibility grading standards updated for PTDF phase-shifter handling and calibrated stochastic perturbations. | GRC |
