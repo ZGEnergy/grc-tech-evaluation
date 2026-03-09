@@ -1,0 +1,306 @@
+probes:
+  # ============================================================
+  # PyPSA (5 probes)
+  # ============================================================
+  - id: probe-001
+    tool: pypsa
+    claim: "ACPF converges on 10k-bus network despite solver reporting non-convergence"
+    source_test: A-2
+    source_file: expressiveness/A-2_acpf_MEDIUM.md
+    probe_type: convergence_check
+    priority: high
+    finding_id: pypsa-F05
+
+  - id: probe-002
+    tool: pypsa
+    claim: "A-8 stochastic optimization is documented with dedicated page and example notebook, but A-8 test FAILs"
+    source_test: D-2
+    source_file: accessibility/D-2_documentation_audit.md
+    probe_type: claim_verification
+    priority: high
+    finding_id: pypsa-F08
+
+  - id: probe-003
+    tool: pypsa
+    claim: "Lossy DCOPF LMP decomposition not validated against MATPOWER reference rundcopf"
+    source_test: A-10
+    source_file: expressiveness/A-10_lossy_dcopf_lmp.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: pypsa-F09
+
+  - id: probe-004
+    tool: pypsa
+    claim: "Scalability wall-clock times dominated by linopy post-processing (10+ min), not HiGHS solver (6-21s)"
+    source_test: C-3
+    source_file: scalability/C-3_dcopf_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: medium
+    finding_id: pypsa-F12
+
+  - id: probe-005
+    tool: pypsa
+    claim: "C-10 distributed slack OPF passes at MEDIUM scale but PF comparison was not completed within time budget"
+    source_test: C-10
+    source_file: scalability/C-10_distributed_slack_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: medium
+    finding_id: pypsa-F17
+
+  # ============================================================
+  # pandapower (5 probes)
+  # ============================================================
+  - id: probe-006
+    tool: pandapower
+    claim: "Stochastic DCOPF wrapping qualified_pass despite 2.1% solver convergence rate (5 of 240 solves)"
+    source_test: C-6
+    source_file: scalability/C-6_stochastic_scale.md
+    probe_type: convergence_check
+    priority: high
+    finding_id: pandapower-F01
+
+  - id: probe-007
+    tool: pandapower
+    claim: "Uniform LMPs across all 10,000 buses (20.738 everywhere) suggest no binding constraints on MEDIUM DCOPF"
+    source_test: A-3
+    source_file: expressiveness/A-3_dcopf.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: pandapower-F02
+
+  - id: probe-008
+    tool: pandapower
+    claim: "PTDF flow predictions diverge from DCPF on MEDIUM (max diff 7.43 pu) but test still passes"
+    source_test: B-9
+    source_file: extensibility/B-9_ptdf_extraction.md
+    probe_type: convergence_check
+    priority: high
+    finding_id: pandapower-F03
+
+  - id: probe-009
+    tool: pandapower
+    claim: "PYPOWER interior point solver produces lambda values of 1e25 when generators decommitted via in_service=False"
+    source_test: P2-3
+    source_file: p2_readiness/P2-3_commitment_injection_TINY.md
+    probe_type: convergence_check
+    priority: high
+    finding_id: pandapower-F10
+
+  - id: probe-010
+    tool: pandapower
+    claim: "PTDF matrix correctly computed despite 7.43 pu max flow prediction error; divergence attributed to shunt/tap effects without verification"
+    source_test: B-9
+    source_file: extensibility/B-9_ptdf_extraction.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: pandapower-F03-EC
+
+  # ============================================================
+  # GridCal (4 probes)
+  # ============================================================
+  - id: probe-011
+    tool: gridcal
+    claim: "Contingency sweep correctness not verified against reference; pruning ratio of 0.0 on both networks"
+    source_test: A-7
+    source_file: results/expressiveness/A-7_contingency_sweep_TINY.md
+    probe_type: convergence_check
+    priority: medium
+    finding_id: gridcal-F03
+
+  - id: probe-012
+    tool: gridcal
+    claim: "PTDF flow predictions diverge from DCPF by up to 743 MW on MEDIUM; scored as qualified_pass"
+    source_test: C-9
+    source_file: results/extensibility/B-9_ptdf_extraction_MEDIUM.md
+    probe_type: convergence_check
+    priority: high
+    finding_id: gridcal-F04
+
+  - id: probe-013
+    tool: gridcal
+    claim: "Lossy DC OPF produces physically meaningful LMPs but not validated against MATPOWER reference"
+    source_test: A-10
+    source_file: results/expressiveness/A-10_lossy_dcopf_TINY.md
+    probe_type: claim_verification
+    priority: medium
+    finding_id: gridcal-F08
+
+  - id: probe-014
+    tool: gridcal
+    claim: "B-4 SMALL stochastic wrapping has 53% solve failure rate (113 of 240 solves succeeded)"
+    source_test: B-4
+    source_file: results/extensibility/B-4_stochastic_wrapping.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: gridcal-F10
+
+  # ============================================================
+  # PowerModels (5 probes)
+  # ============================================================
+  - id: probe-015
+    tool: powermodels
+    claim: "Distributed slack LMP validation defeated by uncongested network; both formulations produce identical results"
+    source_test: A-11
+    source_file: expressiveness/A-11_distributed_slack_opf_TINY.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: pm-F01
+
+  - id: probe-016
+    tool: powermodels
+    claim: "C-5 and C-8 scored as fail without execution, based on projected infeasibility estimates"
+    source_test: C-5
+    source_file: scalability/C-5_contingency_sweep_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: high
+    finding_id: pm-F03
+
+  - id: probe-017
+    tool: powermodels
+    claim: "ACPF MEDIUM failure lacks convergence diagnostics -- no iteration count, residual trajectory, or solver config"
+    source_test: A-2
+    source_file: expressiveness/A-2_acpf_MEDIUM.md
+    probe_type: convergence_check
+    priority: medium
+    finding_id: pm-F08
+
+  - id: probe-018
+    tool: powermodels
+    claim: "PTDF computation 6.6x faster at 10k-bus than 2k-bus due to JIT warm cache"
+    source_test: C-10
+    source_file: scalability/C-10_distributed_slack_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: medium
+    finding_id: pm-F16
+
+  - id: probe-019
+    tool: powermodels
+    claim: "SCOPF at MEDIUM with 500 contingencies would produce ~10M constraints, exceeding solver capacity"
+    source_test: C-8
+    source_file: scalability/C-8_scopf_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: medium
+    finding_id: pm-F03-EC
+
+  # ============================================================
+  # PowerSimulations (8 probes)
+  # ============================================================
+  - id: probe-020
+    tool: powersimulations
+    claim: "Four scalability tests (C-3, C-4, C-5, C-6) report estimated timings without actual measurement"
+    source_test: C-3
+    source_file: scalability/C-3_dcopf_scale.md
+    probe_type: timing_verification
+    priority: high
+    finding_id: psi-F01
+
+  - id: probe-021
+    tool: powersimulations
+    claim: "PSI dispatch values are ~100x larger than component limits (possible unit mismatch or labeling error)"
+    source_test: A-4
+    source_file: expressiveness/A-4_ac_feasibility.md
+    probe_type: claim_verification
+    priority: high
+    finding_id: psi-F02
+
+  - id: probe-022
+    tool: powersimulations
+    claim: "B-1 custom constraint dual value verified only for non-binding case (dual=0); binding case never demonstrated"
+    source_test: B-1
+    source_file: extensibility/B-1_custom_constraints.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: psi-F03
+
+  - id: probe-023
+    tool: powersimulations
+    claim: "Distributed slack qualified_pass on uncongested network where both formulations produce identical results"
+    source_test: A-11
+    source_file: expressiveness/A-11_distributed_slack.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: psi-F06
+
+  - id: probe-024
+    tool: powersimulations
+    claim: "ACPF scale failure at MEDIUM lacks diagnostic detail on convergence"
+    source_test: C-2
+    source_file: scalability/C-2_acpf_scale.md
+    probe_type: convergence_check
+    priority: medium
+    finding_id: psi-F10
+
+  - id: probe-025
+    tool: powersimulations
+    claim: "100% code coverage reported from Codecov badge without independent verification"
+    source_test: E-6
+    source_file: maturity/E-6_ci_test_coverage.md
+    probe_type: claim_verification
+    priority: medium
+    finding_id: psi-F12
+
+  - id: probe-026
+    tool: powersimulations
+    claim: "DCOPF on MEDIUM expected to solve in <60s (estimate, not measured)"
+    source_test: C-3
+    source_file: scalability/C-3_dcopf_scale.md
+    probe_type: timing_verification
+    priority: medium
+    finding_id: psi-F01-EC-C3
+
+  - id: probe-027
+    tool: powersimulations
+    claim: "SCUC on SMALL expected to take >300s with SCIP (estimate, not measured)"
+    source_test: C-4
+    source_file: scalability/C-4_scuc_scale.md
+    probe_type: timing_verification
+    priority: low
+    finding_id: psi-F01-EC-C4
+
+  # ============================================================
+  # MATPOWER (5 probes)
+  # ============================================================
+  - id: probe-028
+    tool: matpower
+    claim: "Distributed slack DC OPF on MEDIUM takes 66 minutes via opt_model/MIPS (400x slower than single-slack)"
+    source_test: C-10
+    source_file: scalability/C-10_distributed_slack_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: high
+    finding_id: matpower-F01
+
+  - id: probe-029
+    tool: matpower
+    claim: "Contingency sweep on MEDIUM takes 41 min but 97% of time is Octave containers.Map overhead, not MATPOWER"
+    source_test: C-5
+    source_file: scalability/C-5_contingency_sweep_scale_MEDIUM.md
+    probe_type: timing_verification
+    priority: high
+    finding_id: matpower-F02
+
+  - id: probe-030
+    tool: matpower
+    claim: "SCUC produces all-committed schedule; UC cycling logic never exercised"
+    source_test: A-5
+    source_file: expressiveness/A-5_scuc_TINY.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: matpower-F05
+
+  - id: probe-031
+    tool: matpower
+    claim: "Distributed slack LMP comparison lacks specific numerical values; sign convention issue in opt_model extraction"
+    source_test: A-11
+    source_file: expressiveness/A-11_distributed_slack_opf_TINY.md
+    probe_type: formulation_audit
+    priority: medium
+    finding_id: matpower-F08
+
+  - id: probe-032
+    tool: matpower
+    claim: "C-4, C-6, C-8 scalability failures attributed to solver capacity limits but actually failed at loadmd() data ingestion"
+    source_test: C-4
+    source_file: scalability/C-4_scuc_scale_SMALL.md
+    probe_type: claim_verification
+    priority: high
+    finding_id: matpower-F06

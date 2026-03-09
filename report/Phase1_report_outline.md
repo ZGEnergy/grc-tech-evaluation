@@ -52,7 +52,7 @@ Brief profile of each candidate:
 - Who maintains it and how it's funded
 - Target user base and typical use cases
 
-*(Tool list TBD â€” candidates include PyPSA, PowerModels.jl, Sienna, others)*
+Note: *(Tool list TBD â€” candidates include PyPSA, PowerModels.jl, Sienna, others)*
 
 ## 6. Evaluation Results
 Each tool assessed against the rubric defined in Section 4:
