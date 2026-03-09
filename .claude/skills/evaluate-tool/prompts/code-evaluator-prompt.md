@@ -5,7 +5,7 @@ You write and run test scripts, then produce structured result files for each te
 
 ## Inputs
 
-- **Dimension:** `{{dimension}}` (expressiveness, extensibility, or scalability)
+- **Dimension:** `{{dimension}}` (expressiveness, extensibility, scalability, or fnm_ingestion)
 - **Test IDs:** `{{test_ids}}`
 - **Network tier:** `{{network_tier}}`
 - **Tool:** `{{tool_name}}`
@@ -13,6 +13,7 @@ You write and run test scripts, then produce structured result files for each te
 - **Results directory:** `{{results_dir}}`
 - **Research context:** `{{research_context}}`
 - **Reference files:** `{{reference_files}}`
+- **FNM reference files:** `{{fnm_reference_files}}` (only for fnm_ingestion dimension)
 - **Observation tags (emit):** `{{observation_tags}}`
 - **Consumed observations:** `{{consumed_observations}}`
 
@@ -247,6 +248,79 @@ prior evaluation rounds. Apply them to all relevant tests.
   because its prerequisite expressiveness test failed (e.g., C-4 fails because A-5
   failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
   This distinguishes independent failures from cascaded ones.
+
+## FNM Ingestion (Suite G) Methodology
+
+When `{{dimension}}` is `fnm_ingestion`, apply these additional rules:
+
+### Data Source
+
+FNM data is loaded from the `FNM_PATH` environment variable inside the devcontainer. The
+intermediate format tables (Parquet or CSV) are at `$FNM_PATH/`. The manifest file listing
+expected record counts is at `data/fnm/manifest.json` on the host (mounted at
+`/workspace/data/fnm/manifest.json` in the devcontainer).
+
+### FNM Reference Files
+
+Read ALL of the following before writing any Suite G test:
+- `data/fnm/docs/intermediate-schema.md` — table definitions, field names, types
+- `data/fnm/docs/field-criticality-matrix.md` — DCPF-critical / ACPF-critical / Informational / Discardable tier per field
+- `data/fnm/reference/pass_conditions.json` — aggregate thresholds for DCPF/ACPF verification
+- `data/fnm/reference/excluded_buses.json` — buses to exclude from metric denominators
+- `data/fnm/docs/supplemental-csvs.md` — supplemental CSV field definitions and representability framework
+- `data/fnm/docs/supplemental-csv-representability.md` — cross-tool analytical classifications
+
+### Per-Test Guidance
+
+**G-FNM-1 (Intermediate format ingestion — gate):**
+- Load every table from the intermediate format at `FNM_PATH`
+- Count ingested records per table (buses, branches, generators, loads, transformers, shunts)
+- Compare against manifest expected counts — all must match exactly
+- If the tool merges record types (e.g., branches + transformers), the merged count must
+  equal the sum of constituent manifest counts
+- If any table fails → G-FNM-1 fails → skip G-FNM-2 through G-FNM-5 (write skip results
+  with `blocked_by: G-FNM-1`)
+
+**G-FNM-2 (Field coverage audit):**
+- For each table, enumerate fields present in the tool's data model after ingestion
+- Compare against field criticality matrix: compute coverage % per tier
+- 100% DCPF-critical coverage is required; gaps are Expressiveness findings
+- ACPF-critical gaps are documented findings, not hard failures
+- Fields carried via extension mechanisms (custom attributes) count as present
+
+**G-FNM-3 (DCPF verification):**
+- Solve DCPF on the ingested FNM model
+- Load reference solution from `data/fnm/reference/dcpf/`
+- Load bus exclusions from `data/fnm/reference/excluded_buses.json`
+- Compute aggregate deviation metrics per `pass_conditions.json` `dcpf` section
+- Classify outliers per the outlier rules in pass_conditions.json
+- 10-minute timeout; record failure mode (scale vs data model)
+- Emit `fnm-scale` observation if failure is scale-related, `fnm-data-model` if data-model
+
+**G-FNM-4 (ACPF verification):**
+- Same framework as G-FNM-3 but for ACPF (VM + VA)
+- Load reference from `data/fnm/reference/acpf/`
+- Apply pass_conditions.json `acpf` section thresholds
+- Classify outlier buses (switched shunt, Q-limit, slack, tap, island boundary)
+
+**G-FNM-5 (Supplemental CSV representability):**
+- For each of 7 supplemental CSVs, attempt to attach each field to the tool's network model
+- Classify each field as N (native), E (extension), or X (tool-external)
+- Compare against analytical classifications in `data/fnm/docs/supplemental-csvs.md`
+- No hard pass/fail — this is evidence collection for Extensibility grade
+- Highlight discrepancies between analytical and empirical classifications
+
+### Failure Attribution
+
+Suite G failures must be attributed to either **Expressiveness** or **Scalability**:
+- If the tool passes Suite A/B on MEDIUM but fails G-FNM-3/4 due to missing record types
+  → Expressiveness
+- If failure is solver timeout or OOM at ~30K-bus scale → Scalability
+
+### Test Script Location
+
+Suite G test scripts go in `{{tool_dir}}/tests/fnm_ingestion/` (not expressiveness/ or
+extensibility/). Result files go in `{{results_dir}}/fnm_ingestion/`.
 
 ## Consumed Observations
 

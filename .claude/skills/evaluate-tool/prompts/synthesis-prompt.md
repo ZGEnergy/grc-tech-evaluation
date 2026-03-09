@@ -79,6 +79,25 @@ State whether the tool passed the supply chain gate.>
 ### Criterion 6: Supply Chain (Gate)
 <same structure, plus explicit gate pass/fail determination>
 
+## FNM Ingestion Findings (Suite G)
+
+<If Suite G results exist in {{results_dir}}/fnm_ingestion/:>
+
+### Data Model Fidelity
+<G-FNM-1 and G-FNM-2 results: record counts, field coverage by criticality tier.
+State how these findings inform the Expressiveness grade.>
+
+### Power Flow Verification
+<G-FNM-3 (DCPF) and G-FNM-4 (ACPF) results: aggregate metrics, outlier breakdown.
+Attribute failures to Expressiveness or Scalability per the protocol.>
+
+### Supplemental Data Representability
+<G-FNM-5 results: N/E/X classification summary, discrepancies from analytical predictions.
+State how these findings inform the Extensibility grade.>
+
+<If Suite G was skipped (FNM_PATH not set):>
+Suite G skipped — FNM_PATH not set. Grades based on synthetic network evidence (Suites A-F) only.
+
 ## Cross-Cutting Observations
 
 ### API Friction Patterns
@@ -93,6 +112,9 @@ State whether the tool passed the supply chain gate.>
 ### Architecture Quality
 <Synthesized from arch-quality observations>
 
+### FNM Data Model
+<Synthesized from fnm-data-model observations, if any>
+
 ## Items Requiring Human Spot-Check
 
 Flag items that need manual verification before grades are finalized. Common patterns
@@ -106,8 +128,9 @@ to flag (but derive from actual results, not a hardcoded list):
 
 ## Methodology Notes
 
-- **Protocol version:** <version from result frontmatter, e.g., "v4">
+- **Protocol version:** <version from result frontmatter, e.g., "v6">
 - **Scale cap applied:** <TINY/SMALL/MEDIUM> (based on gate results)
+- **FNM status:** <"Suite G executed (FNM_PATH set)" or "Suite G skipped (FNM_PATH not set)">
 - **Tests skipped:** <list any skipped tests with reason>
 - **Solver versions:** <versions used>
 - **Tool version:** <version evaluated>
@@ -152,3 +175,8 @@ Use the 9-point scale from the rubric:
 - **Protocol version consistency.** If result files have mixed `protocol_version` values,
   note this in Methodology Notes and flag any tests where the version difference materially
   affects comparability (e.g., changed pass conditions, adjusted parameters).
+- **FNM grade integration.** Suite G results are additive evidence — they strengthen or
+  weaken the grade assigned by Suites A-F but do not independently determine it. Integrate
+  FNM findings into Expressiveness (G-FNM-1/2/3/4) and Extensibility (G-FNM-5) grade
+  rationales. A/B/C grade boundaries are unchanged. If Suite G was skipped, note it in
+  Methodology Notes and state that grades are based on synthetic network evidence only.

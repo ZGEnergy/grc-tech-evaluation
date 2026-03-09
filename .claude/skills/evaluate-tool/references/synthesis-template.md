@@ -64,6 +64,23 @@ When tabulating fails, distinguish independent failures from cascaded ones using
 rubric language (e.g., "Meets the B+ standard: 'Mostly strong, one meaningful gap
 with stable workaround'").
 
+### 3b. FNM Ingestion Findings (Suite G)
+
+If `fnm_ingestion/` results exist, include a dedicated section:
+
+- **Data Model Fidelity:** G-FNM-1 record counts + G-FNM-2 field coverage by criticality tier.
+  State whether 100% DCPF-critical coverage was achieved. Map to Expressiveness grade.
+- **Power Flow Verification:** G-FNM-3 (DCPF) and G-FNM-4 (ACPF) aggregate metrics and
+  outlier breakdown. Attribute failures to Expressiveness or Scalability.
+- **Supplemental Data Representability:** G-FNM-5 N/E/X summary and discrepancies from
+  analytical predictions. Map to Extensibility grade.
+
+If Suite G was skipped (FNM_PATH not set), state: "Suite G skipped — FNM_PATH not set.
+Grades based on synthetic network evidence (Suites A-F) only."
+
+FNM findings are **additive evidence** — they strengthen or weaken grades from Suites A-F
+but do not independently determine them. A/B/C boundaries are unchanged.
+
 ### 4. Cross-Cutting Observations
 
 Synthesize observation files into thematic sections:
@@ -71,6 +88,7 @@ Synthesize observation files into thematic sections:
 - **Documentation Gaps** — from `doc-gaps` tags
 - **Solver Ecosystem** — from `solver-issues` tags
 - **Architecture Quality** — from `arch-quality` tags
+- **FNM Data Model** — from `fnm-data-model` tags (if any)
 
 ### 5. Items Requiring Human Spot-Check
 
@@ -92,7 +110,9 @@ Always flag (derive from actual results, not a hardcoded list):
 ### 6. Methodology Notes
 
 - Scale cap applied and reason
+- FNM status: "Suite G executed (FNM_PATH set)" or "Suite G skipped (FNM_PATH not set)"
 - Tests skipped and reason
 - Solver versions used
 - Tool version evaluated
+- Protocol version(s) used (v5 for Suites A-F, v6 for Suite G — mixed-version is expected)
 - Devcontainer environment hash (if available)

@@ -19,14 +19,20 @@ orchestrator.
 
 ### Dimensions
 For each evaluation criterion, extract:
-- `name` — dimension slug (e.g., `expressiveness`, `extensibility`, `scalability`, `accessibility`, `maturity`, `supply_chain`)
-- `criterion_number` — from the rubric (1–6)
-- `suite` — test suite letter (A–F)
+- `name` — dimension slug (e.g., `expressiveness`, `extensibility`, `scalability`, `accessibility`, `maturity`, `supply_chain`, `fnm_ingestion`)
+- `criterion_number` — from the rubric (1–6; fnm_ingestion uses 0 like gate)
+- `suite` — test suite letter (A–G)
 - `archetype` — which agent template handles it:
-  - `code-evaluator` for expressiveness, extensibility, scalability
+  - `code-evaluator` for expressiveness, extensibility, scalability, fnm_ingestion
   - `audit-evaluator` for accessibility, maturity, supply_chain
   - `gate-evaluator` for gate tests (special, not a regular dimension)
 - `weight_rank` — priority order for tie-breaking (from rubric)
+
+**FNM Ingestion (Suite G):** If the protocol defines a Suite G (FNM Ingestion), extract it as
+a dimension with `name: fnm_ingestion`, `suite: G`, `archetype: code-evaluator`. All Suite G
+tests are gated by the `FNM_PATH` environment variable — mark the dimension with
+`fnm_path_gated: true`. G-FNM-1 is the Suite G gate test; if it fails, G-FNM-2 through
+G-FNM-5 are skipped. Suite G tests run on the LARGE network tier (FNM), not TINY/SMALL/MEDIUM.
 
 If the protocol defines a **Phase 2 Readiness Findings** section, extract those as a
 separate dimension:
@@ -52,6 +58,7 @@ For each test, extract:
 - `TINY` — name, bus count, file path in `data/networks/`
 - `SMALL` — name, bus count, file path
 - `MEDIUM` — name, bus count, file path
+- `LARGE` — name, bus count, source path (FNM_PATH-gated, intermediate format via `data/fnm/`)
 
 ### Reference Counts (for gate validation)
 Extract from the protocol where stated. If not stated, note "verify from .m file":
@@ -73,7 +80,8 @@ Infer cross-cutting observation routing:
 - Expressiveness also emits: `convergence-quality` (solver reports convergence but diagnostics disagree), `unit-mismatch` (MW vs pu inconsistency)
 - Extensibility also emits: `arch-quality` (software architecture observations)
 - Scalability also emits: `cascaded-failure` (test blocked by prerequisite failure)
-- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity, `convergence-quality` → scalability + accessibility, `unit-mismatch` → accessibility, `cascaded-failure` → synthesis
+- FNM ingestion emits: `fnm-data-model` (data model fidelity findings), `fnm-scale` (scale-related findings on LARGE network)
+- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity, `convergence-quality` → scalability + accessibility, `unit-mismatch` → accessibility, `cascaded-failure` → synthesis, `fnm-data-model` → expressiveness + synthesis, `fnm-scale` → scalability + synthesis
 - Supply chain audit emits: `license-flags`
 
 For each dimension, record:
@@ -87,6 +95,7 @@ Build an execution DAG that respects:
 3. Test dependencies (A-4 after A-3, A-6 after A-5)
 4. Audit dimensions can run in parallel with code dimensions on the same tier
 5. Observation consumers must run after their producers complete
+6. Suite G (FNM ingestion) runs after the gate step, in parallel with or after TINY functional tests. Suite G is independent of Suites A-F (no dependency in either direction). Mark the Suite G DAG step with `fnm_path_gated: true` so the orchestrator can skip it when FNM_PATH is not set.
 
 Structure as ordered steps, each listing dimensions + tier + test IDs that can run in parallel:
 
@@ -145,6 +154,11 @@ networks:
     name: "ACTIVSg 10000"
     buses: ~10000
     file: "data/networks/case_ACTIVSg10k.m"
+  LARGE:
+    name: "FNM Annual S01"
+    buses: ~30000
+    source: "FNM_PATH (intermediate format via data/fnm/)"
+    fnm_path_gated: true
 
 dimensions:
   - name: gate
@@ -175,6 +189,25 @@ dimensions:
         converges_ac: false
         recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
       # ... all A tests (extract ALL from protocol — do not omit any)
+
+  - name: fnm_ingestion
+    criterion_number: 0
+    suite: G
+    archetype: code-evaluator
+    fnm_path_gated: true
+    emits: [fnm-data-model, fnm-scale, workaround-needed]
+    consumes: []
+    tests:
+      - id: G-FNM-1
+        slug: intermediate_ingestion
+        description: "Intermediate format ingestion (FNM gate)"
+        functional_network: LARGE
+        grade_network: N/A
+        pass_condition: "All record counts match manifest exactly"
+        depends_on: []
+        converges_ac: false
+        recorded_metrics: [pass_fail, wall_clock, per_table_counts]
+      # ... all G-FNM tests (extract ALL from protocol)
 
   # ... all dimensions
 
@@ -224,6 +257,14 @@ observation_tags:
     description: "Software architecture observations (positive or negative)"
     emitted_by: [extensibility]
     consumed_by: [maturity]
+  fnm-data-model:
+    description: "Data model fidelity findings from FNM ingestion (missing record types, field gaps)"
+    emitted_by: [fnm_ingestion]
+    consumed_by: [expressiveness, synthesis]
+  fnm-scale:
+    description: "Scale-related findings on LARGE (~30K bus) FNM network"
+    emitted_by: [fnm_ingestion]
+    consumed_by: [scalability, synthesis]
 ```
 
 ## Critical Rules
