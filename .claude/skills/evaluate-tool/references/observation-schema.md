@@ -53,6 +53,9 @@ invalid bus types should be noted in the Accessibility audit (D-4).">
 | `doc-gaps` | Had to read source code or issues instead of documentation | expressiveness, extensibility | accessibility, maturity |
 | `workaround-needed` | Test required a workaround to pass | expressiveness, extensibility, scalability | extensibility |
 | `solver-issues` | Solver convergence, performance, or compatibility problems | expressiveness, scalability | scalability |
+| `convergence-quality` | Solver reports convergence but diagnostics indicate otherwise | expressiveness | scalability, accessibility |
+| `unit-mismatch` | MW vs per-unit inconsistency at analysis boundaries | expressiveness, extensibility | accessibility |
+| `cascaded-failure` | Scalability test blocked by prerequisite expressiveness failure | scalability | synthesis |
 | `license-flags` | Licensing or supply chain concerns encountered during testing | supply_chain | supply_chain |
 | `arch-quality` | Software architecture observations (positive or negative) | extensibility | maturity |
 

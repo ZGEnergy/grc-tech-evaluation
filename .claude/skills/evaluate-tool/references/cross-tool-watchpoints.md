@@ -70,3 +70,86 @@ are classified using cost curve slope as a proxy for fuel type:
 
 This classification method is documented in the protocol and referenced here for
 convenience.
+
+## PTDF Phase-Shifter Correction
+
+Networks containing phase-shifting transformers (nonzero SHIFT column in branch data)
+require bus injection and branch flow correction terms when validating PTDF-based flow
+predictions. The standard formula `flow = PTDF @ Pinj` omits these corrections.
+
+The full equation is: `flow = PTDF @ (Pinj - Pbusinj) + Pfinj`
+
+where `Pbusinj` and `Pfinj` are correction terms derived from the admittance matrix
+construction for branches with nonzero shift angles. Without these corrections, errors
+can reach hundreds of MW on networks like ACTIVSg10k (which has 5 phase-shifting
+transformers).
+
+When evaluating B-9/C-9 (PTDF extraction/validation):
+- Check whether the network has phase-shifting transformers
+- If present, either apply Pbusinj/Pfinj corrections or exclude phase-shifting
+  branches from the accuracy comparison
+- The PTDF matrix itself is typically correct; the error is in the flow reconstruction
+
+## ACTIVSg10k Congestion Characteristics
+
+The ACTIVSg10k network has no binding branch constraints in base-case DCOPF (maximum
+loading ~84-85%). This means:
+- LMPs are uniform across all buses (no congestion component)
+- Tests targeting congestion-driven capabilities (LMP decomposition, SCOPF cost premium,
+  distributed slack LMP differences) produce no discriminative signal at MEDIUM scale
+- If the protocol specifies preprocessing to tighten branch limits, apply it uniformly
+
+When evaluating tests that depend on congestion signal (A-3, A-9, A-11, B-8, C-3, C-10
+at MEDIUM scale), verify that branch constraints are actually binding before interpreting
+LMP results. Uniform LMPs may indicate an uncongested network rather than a tool limitation.
+
+## SCUC Generator Cycling
+
+The case39 network has a high capacity-to-load ratio (~7,367 MW vs ~6,254 MW peak) with
+uniform generator costs. All tools capable of SCUC report all generators committed for
+all 24 hours with zero startups. This makes A-5 a formulation existence test rather than
+a UC correctness test.
+
+When evaluating A-5 (SCUC) on case39:
+- Do not interpret "all generators on for all hours" as a test failure — it is the
+  economically optimal solution for this network
+- Verify that the tool can express UC binary variables, min up/down times, and startup
+  costs even if they are not exercised
+- If the protocol modifies case39 parameters to force cycling, verify that at least
+  some generators cycle on/off during the horizon
+
+## Convergence Verification
+
+For AC power flow tests (A-2), verify convergence quality beyond the solver's
+reported status:
+- **Convergence residual** must be reported and below the tool's stated tolerance
+- **Iteration count** must be reported (0 iterations indicates the solver did not
+  actually run Newton-Raphson)
+- **Voltage profile** must differ from flat-start defaults (1.0 pu) on >95% of buses
+- If the tool cannot report iteration count or residual, document this as a diagnostic
+  quality finding
+
+A tool that reports "converged" but shows 0 NR iterations and flat-start voltages has
+not actually solved the AC power flow.
+
+## Measured vs Estimated Timing
+
+All scalability grades must be based on measured wall-clock times, not estimates or
+projections:
+- Timings must come from actual execution (via `time.perf_counter()`, `@elapsed`,
+  `tic`/`toc`)
+- Estimated or projected timings must be clearly labeled as "estimated" and cannot
+  support pass or qualified_pass on scalability tests
+- If a test cannot be executed within the time budget, record fail with the projected
+  timing as supplementary context
+- JIT compilation overhead (Julia) must be excluded by using warm-up runs
+
+## Unit Consistency (MW vs Per-Unit)
+
+When transferring results between analyses (e.g., DC OPF dispatch to AC feasibility
+check), verify unit consistency:
+- Print and log `base_power` (base MVA) at each transfer point
+- Log dispatch units and limit units before transfer
+- Verify that the sending and receiving analyses use the same unit convention
+- A mismatch between MW and per-unit values can produce apparent errors of 100x that
+  are actually labeling errors, not solver failures

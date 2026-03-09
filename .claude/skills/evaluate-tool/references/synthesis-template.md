@@ -52,9 +52,12 @@ List with durability class:
 
 #### Evidence Summary Table
 
-| Test | Network | Status | Workaround | Time | LOC |
-|------|---------|--------|------------|------|-----|
-| A-1 | TINY | pass | — | 0.3s | 15 |
+| Test | Network | Status | Blocked By | Workaround | Time | LOC |
+|------|---------|--------|------------|------------|------|-----|
+| A-1 | TINY | pass | — | — | 0.3s | 15 |
+
+When tabulating fails, distinguish independent failures from cascaded ones using the
+`blocked_by` frontmatter field: "X independent fails + Y blocked."
 
 #### Grade Rationale
 2-3 sentences explaining the grade against rubric standards. Must reference specific

@@ -1,0 +1,356 @@
+tool: powermodels
+source_version: "v4"
+timestamp: "2026-03-07T12:00:00Z"
+evaluation_summary:
+  total_tests: 76
+  pass: 30
+  fail: 12
+  qualified_pass: 28
+  informational: 6
+
+findings:
+  - id: pm-F01
+    category: network_insufficiency
+    severity: medium
+    test_ids: [A-11]
+    title: "Distributed slack LMP validation defeated by uncongested network"
+    description: >
+      A-11 on both TINY and SMALL produces identical LMPs for single-slack and distributed-slack
+      because neither network has binding flow constraints. The distributed slack mechanism is
+      structurally implemented but never differentially validated -- the test cannot confirm that
+      LMP decomposition responds correctly to the slack distribution under congestion.
+    evidence:
+      - file: expressiveness/A-11_distributed_slack_opf_TINY.md
+        excerpt: "LMP range: 2.5e-6 (nearly uniform) ... The IEEE 39-bus network under uncongested conditions produces nearly uniform LMPs regardless of slack distribution."
+      - file: expressiveness/A-11_distributed_slack_opf_SMALL.md
+        excerpt: "Max LMP difference: 0.0 (identical) ... no binding flow constraints in the LP-relaxed (linearized cost) DC OPF"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: redesign_test
+
+  - id: pm-F02
+    category: misleading_result
+    severity: medium
+    test_ids: [A-9]
+    title: "A-9 SMALL SCOPF uses only 20 of 3,206 contingencies vs protocol's 50 requirement"
+    description: >
+      The protocol specifies 50 monitored branches for SMALL-scale SCOPF. The evaluation used
+      only 20 contingencies (the 20 most-loaded branches). While the SCOPF formulation is correct
+      and produces a meaningful security premium (4.74%), the reduced contingency count means the
+      test does not meet the stated protocol parameters, potentially understating the difficulty
+      of SCOPF at scale.
+    evidence:
+      - file: expressiveness/A-9_scopf_SMALL.md
+        excerpt: "Valid contingencies: 20 (no islanding excluded from top candidates)"
+      - file: eval-config.yaml
+        excerpt: "A-9 ... SMALL: 50 monitored branches"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F03
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [C-5, C-8]
+    title: "Scale tests C-5 and C-8 scored as fail without execution"
+    description: >
+      C-5 (contingency sweep MEDIUM) and C-8 (SCOPF MEDIUM) were recorded as fails based on
+      projected infeasibility estimates, not actual execution. While the estimates are
+      physically plausible, the results contain no runtime evidence. The combinatorial
+      estimates in C-5 assume worst-case BFS scope without verifying the actual branch count
+      at depth 5 on the 10k-bus network.
+    evidence:
+      - file: scalability/C-5_contingency_sweep_scale_MEDIUM.md
+        excerpt: "Result: NOT ATTEMPTED (expected timeout) ... Estimated 500-2,000 branches in scope (depending on seed bus connectivity)"
+      - file: scalability/C-8_scopf_scale_MEDIUM.md
+        excerpt: "Result: NOT ATTEMPTED (expected timeout) ... ~10,000,000 constraints and ~11,500,000 variables"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+  - id: pm-F04
+    category: test_design_gap
+    severity: high
+    test_ids: [A-5, A-6, C-4]
+    title: "SCUC/SCED failures conflate tool capability with open-source solver limitations"
+    description: >
+      A-5 SMALL, A-6 SMALL, and C-4 fail because HiGHS cannot solve the LP relaxation of a
+      ~500k constraint MILP within 300s. The evaluation correctly notes this is a solver
+      limitation not a PowerModels limitation, but the tests are scored as fails against
+      PowerModels. The protocol requires single-threaded open-source solvers, which creates
+      a confound: the test measures solver capability at scale rather than tool expressiveness
+      or scalability.
+    evidence:
+      - file: expressiveness/A-5_scuc_SMALL.md
+        excerpt: "The timeout is a solver capability issue, not a PowerModels expressiveness issue per se."
+      - file: scalability/C-4_scuc_scale_SMALL.md
+        excerpt: "HiGHS MIP is not competitive with commercial solvers (Gurobi, CPLEX) at this scale"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F05
+    category: scoring_inconsistency
+    severity: medium
+    test_ids: [A-8, B-4]
+    title: "A-8 blocking fail vs B-4 pass creates scoring tension"
+    description: >
+      A-8 is a blocking fail because PowerModels lacks native stochastic optimization (scenario
+      indexing, probability weighting, recourse structure). B-4 passes because the scenario
+      wrapping loop works cleanly. The protocol distinguishes these correctly (A-8 tests native
+      stochastic support, B-4 tests wrapping capability), but the grade impact is asymmetric:
+      A-8 fail pulls Expressiveness down significantly while B-4 pass contributes to a strong
+      Extensibility grade. The synthesis correctly handles this, but the extreme score
+      divergence on what is operationally the same workflow warrants attention.
+    evidence:
+      - file: expressiveness/A-8_stochastic_timeseries_TINY.md
+        excerpt: "PowerModels.jl does not natively support scenario-indexed stochastic optimization"
+      - file: extensibility/B-4_stochastic_wrapping_SMALL.md
+        excerpt: "Result: PASS ... Same deepcopy + replicate + solve_mn_opf pattern from TINY works identically at SMALL scale"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: pm-F06
+    category: missing_verification
+    severity: low
+    test_ids: [A-10]
+    title: "Lossy DCOPF MATPOWER reference comparison uses mismatched formulations"
+    description: >
+      The A-10 protocol requires validation against MATPOWER reference lossy DC OPF solution
+      with 1% LMP tolerance. The evaluation could not perform this comparison because the
+      MATPOWER reference used lossless DC OPF with post-hoc loss estimation, while PowerModels
+      used DCPLLPowerModel (losses in optimization). The result file acknowledges this
+      mismatch but the protocol's validation requirement is effectively unmet.
+    evidence:
+      - file: expressiveness/A-10_lossy_dcopf_lmp_TINY.md
+        excerpt: "Direct 1% LMP comparison is not applicable because MATPOWER used lossless DC OPF with post-hoc loss estimation"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: pm-F07
+    category: extraordinary_claim
+    severity: low
+    test_ids: [A-9]
+    title: "SCOPF cost comparison uses incompatible cost functions"
+    description: >
+      A-9 TINY compares SCOPF objective (1,878.27, linearized cost) to unconstrained DC OPF
+      objective (41,263.94, quadratic cost). The result acknowledges this mismatch and focuses
+      on dispatch differences rather than cost differences, but the cost comparison numbers in
+      the output could be misinterpreted by a reader who does not notice the footnote.
+    evidence:
+      - file: expressiveness/A-9_scopf_TINY.md
+        excerpt: "Direct cost comparison is not meaningful because SCOPF uses linearized costs while PowerModels' DC OPF uses the full quadratic cost function"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: pm-F08
+    category: missing_verification
+    severity: medium
+    test_ids: [A-2, C-2]
+    title: "ACPF MEDIUM failure lacks convergence diagnostics"
+    description: >
+      A-2 MEDIUM (and C-2 by reference) reports ACPF failure at 10k-bus but provides no
+      convergence diagnostics -- no iteration count, no residual trajectory, no indication
+      of whether NLsolve was diverging, oscillating, or simply running out of iterations.
+      PowerModels does not expose NLsolve configuration, making it impossible to determine
+      whether a tuning adjustment would resolve the convergence issue.
+    evidence:
+      - file: expressiveness/A-2_acpf_MEDIUM.md
+        excerpt: "PowerModels does not expose NLsolve iteration count or convergence diagnostics through its API"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: convergence_check
+    proposed_action: add_verification
+
+  - id: pm-F09
+    category: low_signal
+    severity: low
+    test_ids: [G-1, G-2, G-3]
+    title: "Gate tests have low discriminative value for MATPOWER-native tools"
+    description: >
+      PowerModels has a native MATPOWER parser, so G-1/G-2/G-3 are trivially passed with
+      parse_file(). These tests have minimal discriminative value for tools with native
+      .m format support. The gate tests primarily differentiate tools that require format
+      conversion.
+    evidence:
+      - file: gate/G-1_ingest_tiny.md
+        excerpt: "Load time: 0.738s ... All checks passed"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: pm-F10
+    category: missing_verification
+    severity: medium
+    test_ids: [A-4]
+    title: "A-4 MEDIUM AC feasibility check did not complete"
+    description: >
+      A-4 MEDIUM is scored as qualified_pass but neither the Newton-Raphson AC PF nor the
+      Ipopt AC PF fallback completed successfully. The NR failed to converge, and the Ipopt
+      solve was killed after 46 minutes. The test demonstrates that the workflow is
+      expressible (3-line pattern) but never actually verifies AC feasibility at MEDIUM scale.
+      No voltage violations or thermal violations were identified because no AC solution was
+      obtained.
+    evidence:
+      - file: expressiveness/A-4_ac_feasibility_MEDIUM.md
+        excerpt: "compute_ac_pf(data): did not converge (118.73s on flat start) ... solve_ac_pf(data, Ipopt): 23,874-variable NLP did not complete within 46 minutes (killed)"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F11
+    category: infrastructure_friction
+    severity: low
+    test_ids: [A-3, A-10, C-3, C-7, A-11]
+    title: "HiGHS QP failure on ACTIVSg2000 forces solver workarounds"
+    description: >
+      HiGHS QP consistently fails on the ACTIVSg2000 network (returns objective=0 or times
+      out), forcing Ipopt as a fallback or cost linearization as a workaround. This is a
+      solver-infrastructure issue that affects multiple tests, creating inconsistent cost
+      function comparisons across network sizes and complicating cross-tool comparison.
+    evidence:
+      - file: expressiveness/A-10_lossy_dcopf_lmp_SMALL.md
+        excerpt: "Lossless DC OPF objective: 0.0 (HiGHS QP failed on this network)"
+      - file: scalability/C-3_dcopf_scale_MEDIUM.md
+        excerpt: "HiGHS: TIME_LIMIT, 300.0s, QP ASM solver, 113k iterations at timeout"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: pm-F12
+    category: test_design_gap
+    severity: medium
+    test_ids: [A-7, C-5]
+    title: "N-M contingency sweep conflates combinatorial complexity with tool capability"
+    description: >
+      A-7 TINY passes (1,561 solves in 2.25s) but A-7 MEDIUM and C-5 fail due to
+      combinatorial explosion (millions of solve combinations). The test measures the
+      mathematical complexity of N-M enumeration at scale rather than the tool's
+      contingency analysis capability. N-1 contingency analysis (B-3) scales adequately
+      to MEDIUM (50 contingencies in 3.43s). The test design conflates a problem that no
+      tool can solve at high order with tool-specific limitations.
+    evidence:
+      - file: expressiveness/A-7_contingency_sweep_MEDIUM.md
+        excerpt: "Result: FAIL ... 333 lines of code ... infeasible at MEDIUM scale due to combinatorial explosion"
+      - file: extensibility/B-3_contingency_loop_MEDIUM.md
+        excerpt: "pass ... 50 N-1 in 3.43s on MEDIUM"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: pm-F13
+    category: redundant_test
+    severity: low
+    test_ids: [C-4, A-5]
+    title: "C-4 is a duplicate of A-5 SMALL with no additional measurement"
+    description: >
+      C-4 references the identical execution as A-5 SMALL (same script, same wall-clock,
+      same result). No additional scalability-specific measurements (CPU utilization, memory
+      profiling, parallel solver options) were collected. SCIP was also not attempted for
+      C-4 despite the protocol requiring it.
+    evidence:
+      - file: scalability/C-4_scuc_scale_SMALL.md
+        excerpt: "This test measures the scalability of 24-hour SCUC ... The result is derived from the A-5 SMALL test"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: pm-F14
+    category: missing_verification
+    severity: low
+    test_ids: [C-1, C-2, C-3, C-6, C-7, C-9, C-10]
+    title: "Peak memory not measured on several scalability tests"
+    description: >
+      Several scalability tests report peak_memory_mb as null despite it being a recorded
+      metric in the protocol. C-1, C-3, C-9, and C-10 do report memory, but C-2, C-4, C-5,
+      C-6, C-7, and C-8 do not. This makes cross-tool memory comparison incomplete.
+    evidence:
+      - file: scalability/C-6_stochastic_scale_SMALL.md
+        excerpt: "peak_memory_mb: null"
+      - file: scalability/C-7_solver_swap_MEDIUM.md
+        excerpt: "peak_memory_mb: null"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: pm-F15
+    category: scoring_inconsistency
+    severity: low
+    test_ids: [C-7]
+    title: "C-7 qualified_pass for solver swap mechanism that actually works trivially"
+    description: >
+      C-7 is scored as qualified_pass because some solvers struggle with the QP at 10k-bus
+      scale. But the test's pass condition is about whether solver swap requires
+      reformulation. The swap mechanism itself is a one-line change with no reformulation.
+      The qualification conflates solver performance with swap mechanism quality.
+    evidence:
+      - file: scalability/C-7_solver_swap_MEDIUM.md
+        excerpt: "Solver swapping is trivial from the API perspective. The qualification is due to solver-specific limitations, not PowerModels API friction."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F16
+    category: extraordinary_claim
+    severity: low
+    test_ids: [C-10]
+    title: "PTDF computation faster at MEDIUM than SMALL due to JIT warm cache"
+    description: >
+      C-10 reports PTDF computation at MEDIUM (10k-bus) taking 3.03s vs ~20s at SMALL
+      (2k-bus). The result attributes this to JIT warm cache from prior operations. This
+      timing anomaly makes scaling analysis unreliable -- the SMALL measurement likely
+      includes JIT compilation overhead while the MEDIUM measurement does not.
+    evidence:
+      - file: scalability/C-10_distributed_slack_scale_MEDIUM.md
+        excerpt: "PTDF compute: ~20s [SMALL] vs 3.03s [MEDIUM] ... warm JIT cache from prior Julia session operations"
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+extraordinary_claims:
+  - test_id: C-5
+    claim: "N-M contingency sweep at MEDIUM would take 28-70 hours based on extrapolation"
+    concern: >
+      The estimate assumes 0.2-0.5s per DCPF solve at 10k-bus and 500-2,000 branches in BFS
+      scope, but neither the actual BFS scope nor the per-solve time were measured at MEDIUM
+      scale. The estimate is an order-of-magnitude projection, not a measurement.
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: C-8
+    claim: "SCOPF at MEDIUM with 500 contingencies would produce ~10M constraints, exceeding solver capacity"
+    concern: >
+      The constraint count estimate is reasonable but was not verified by attempting model
+      construction. It is possible that iterative contingency screening (solve base OPF,
+      add violated contingencies) could produce a feasible workflow, as was done at SMALL scale.
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: timing_verification
+
+  - test_id: C-10
+    claim: "PTDF computation 6.6x faster at 10k-bus than 2k-bus"
+    concern: >
+      This violates expected O(n^2) to O(n^3) scaling. Attributed to JIT cache effects but
+      not verified with a cold-start measurement at MEDIUM scale.
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: timing_verification

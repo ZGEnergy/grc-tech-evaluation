@@ -11,11 +11,18 @@ Ensures consistent treatment across all tools under evaluation.
    This is the standard "cold start" that tests the solver's robustness.
 
 2. **Record convergence:** Document whether the flat start converges, including:
-   - Number of iterations
-   - Final mismatch (if available)
+   - Number of iterations (must be nonzero for valid convergence)
+   - Final mismatch / convergence residual (must be below solver tolerance)
    - Wall-clock time
 
-3. **If flat start fails:** Proceed to the DC warm start fallback.
+3. **Verify convergence quality:** Even if the solver reports "converged", check:
+   - Iteration count > 0 (zero iterations means the solver did not run)
+   - Voltage magnitudes differ from 1.0 pu on >95% of buses (flat-start values
+     persisting indicate no actual solution was computed)
+   - If the tool cannot report iteration count or residual, document this as a
+     diagnostic quality finding (not a convergence failure, but a limitation)
+
+4. **If flat start fails:** Proceed to the DC warm start fallback.
 
 ## DC Warm Start Fallback
 

@@ -143,6 +143,12 @@ Use the 9-point scale from the rubric:
 - **Supply chain is binary for gate purposes.** C or below = tool does not pass gate (C+ is the lowest passing grade).
 - **Cross-tool fairness.** Grade against the rubric standards, not against other tools.
   (Cross-tool comparison happens later in a separate synthesis.)
+- **Cascaded vs independent failures.** When tabulating outcomes, check result files for
+  `blocked_by` in frontmatter. Report "X independent fails + Y blocked" rather than a
+  single fail count. Blocked tests (those that fail solely because a prerequisite failed)
+  do not contribute to the criterion's fail count but are listed for completeness.
+- **Estimated timing.** Results with `timing_source: estimated` cannot support pass or
+  qualified_pass on scalability tests. Flag any such results in the spot-check section.
 - **Protocol version consistency.** If result files have mixed `protocol_version` values,
   note this in Methodology Notes and flag any tests where the version difference materially
   affects comparability (e.g., changed pass conditions, adjusted parameters).

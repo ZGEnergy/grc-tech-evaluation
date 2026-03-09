@@ -1,0 +1,281 @@
+themes:
+  - id: T01
+    title: "ACTIVSg10k has no binding constraints, producing uniform LMPs across all tools"
+    category: network_insufficiency
+    evidence_tools: [pypsa, pandapower, gridcal, powermodels, matpower]
+    evidence_count: 5
+    affected_tests: [A-3, A-9, A-11, B-8, C-3, C-10]
+    probe_evidence: [probe-006, probe-007, probe-023]
+    description: >
+      The ACTIVSg 10k DCOPF produces zero binding branch constraints (max loading
+      84-85%) and perfectly uniform LMPs ($20.064-20.738/MWh depending on tool's
+      cost function treatment). This is confirmed across pandapower, gridcal,
+      powermodels, and matpower, with pypsa unable to solve due to zero-s_nom
+      branches. Probe-007 verified that artificial congestion (reducing limits on
+      5 lines) immediately produces LMP spreads of 16.3-24.4 $/MWh. The
+      uncongested MEDIUM network means tests targeting congestion-related
+      capabilities (LMP decomposition, SCOPF cost premium, distributed slack LMP
+      differences) produce no discriminative signal at the grade-assessment scale.
+    proposed_protocol_impact: >
+      Modify ACTIVSg 10k data preparation to tighten 10-20 branch limits to
+      90% of base-case flow, forcing binding constraints and enabling congestion
+      signal in DCOPF tests.
+
+  - id: T02
+    title: "case39 uniform generator costs mask LMP and SCOPF cost comparison signals"
+    category: network_insufficiency
+    evidence_tools: [pypsa, pandapower, gridcal, powermodels, matpower]
+    evidence_count: 5
+    affected_tests: [A-3, A-9, B-8]
+    probe_evidence: []
+    description: >
+      IEEE 39-bus has all 10 generators with identical or near-identical linear
+      cost coefficients (0.3 $/MWh in MATPOWER format). Combined with no binding
+      constraints, this produces uniform LMPs at TINY scale across all tools.
+      SCOPF vs unconstrained OPF shows identical objectives (pypsa: $1876.269
+      both; matpower: identical dispatch). B-8 reference bus comparison is
+      trivially identical. The SMALL network (ACTIVSg2000) with heterogeneous
+      costs provides the actual signal for these tests.
+    proposed_protocol_impact: >
+      Perturb generator costs on case39 (e.g., scale c1 coefficients by
+      0.5x-2.0x across generators) to enable LMP differentiation testing at
+      TINY. Add 3-5 tightened branch limits to force congestion.
+
+  - id: T03
+    title: "SCUC on case39 produces no unit cycling -- network too small"
+    category: network_insufficiency
+    evidence_tools: [pypsa, powersimulations, matpower]
+    evidence_count: 3
+    affected_tests: [A-5, A-6]
+    probe_evidence: []
+    description: >
+      All three tools capable of SCUC (pypsa, powersimulations, matpower) report
+      all 10 generators committed for all 24 hours with zero startups and zero
+      cycling generators. The capacity-to-load ratio (7367 MW capacity vs 6254 MW
+      peak) means decommitment is never economically optimal. Min up/down time,
+      startup costs, and shutdown decisions are formulated but never exercised.
+      A-6 SCED comparison shows zero dispatch difference from UC. The test
+      verifies MILP formulation existence but not UC cycling correctness.
+    proposed_protocol_impact: >
+      Augment case39 generator fleet with 2-3 peakers at high startup cost and
+      low capacity, or increase generator PMIN to 30% of PMAX, to force at least
+      2-3 generators to cycle across the 24-hour horizon.
+
+  - id: T04
+    title: "Estimated timings without execution undermine scalability evidence"
+    category: extraordinary_claim_pattern
+    evidence_tools: [powersimulations, powermodels, gridcal]
+    evidence_count: 3
+    affected_tests: [C-3, C-4, C-5, C-6, C-8]
+    probe_evidence: [probe-016, probe-020]
+    description: >
+      PowerSimulations reports estimated timings for C-3 (<60s), C-4 (>300s),
+      C-5 (serial estimate), and C-6 (10-20 min) with wall_clock_seconds: null.
+      Probe-020 confirms C-3 was never measured (first run exceeded 600s timeout
+      including JIT). PowerModels C-5 and C-8 are scored as fail without execution
+      (projected infeasibility); probe-016 confirms the projections are directionally
+      correct but BFS scope was overestimated. GridCal D-1 timing is also an
+      estimate. The protocol explicitly requires "Record everything. Wall-clock
+      time (for scalability-relevant tests)." Unmeasured timings should not
+      receive pass or qualified_pass.
+    proposed_protocol_impact: >
+      Add explicit requirement: "Estimated timings must be clearly labeled as
+      such and cannot support a pass or qualified_pass on scalability tests.
+      If a test cannot be executed within the time budget, record fail with
+      the projected timing as context."
+
+  - id: T05
+    title: "Cascaded failures inflate fail counts without adding signal"
+    category: scoring_inconsistency
+    evidence_tools: [pandapower, gridcal, powersimulations, powermodels]
+    evidence_count: 4
+    affected_tests: [C-4, C-6, C-8, C-10, A-6]
+    probe_evidence: []
+    description: >
+      pandapower: C-4/C-8/C-10 fail solely because A-5/A-9/A-11 fail (3 cascaded
+      failures). GridCal: C-4/C-6 fail from TapPhaseControl bug cascading (2
+      cascaded). PowerSimulations: C-8/C-10 fail from upstream expressiveness gaps.
+      PowerModels: C-4 duplicates A-5 SMALL. These cascaded failures add no new
+      information but inflate raw fail counts (e.g., pandapower shows 14 fails but
+      only 11 are independent). The protocol should distinguish independent failures
+      from inherited ones.
+    proposed_protocol_impact: >
+      Add a "blocked_by" field to test result frontmatter. When tabulating outcomes,
+      report both total fails and independent fails. Cascaded failures should be
+      listed as "blocked" rather than "fail" in summary tables.
+
+  - id: T06
+    title: "PTDF flow prediction errors from phase-shifting transformers affect multiple tools"
+    category: protocol_gap
+    evidence_tools: [pandapower, gridcal, pypsa]
+    evidence_count: 3
+    affected_tests: [B-9, C-9]
+    probe_evidence: [probe-008, probe-010, probe-012]
+    description: >
+      Probe-010 identified that ACTIVSg10k has 5 phase-shifting transformers whose
+      nonzero shift angles create Pbusinj/Pfinj correction terms. The standard
+      PTDF = Bf * inv(Bbus) formulation omits these corrections, causing flow
+      prediction errors up to 743 MW (pandapower) and 743 MW (gridcal). Probe-010
+      showed that applying corrected_flow = PTDF @ (Pinj - Pbusinj) + Pfinj
+      eliminates ALL error to machine precision. pypsa's PTDF on MEDIUM also
+      showed 702 MW error from the same root cause. PowerModels' native PTDF
+      (error < 1e-11) presumably handles phase shifters correctly. The B-9 pass
+      condition ("flow predictions match DCPF results within 1e-6") is violated
+      on any network with phase-shifting transformers unless correction terms are
+      applied.
+    proposed_protocol_impact: >
+      B-9/C-9 pass condition should specify: "If the network contains phase-shifting
+      transformers (nonzero SHIFT column), either (a) the PTDF computation must
+      incorporate Pbusinj/Pfinj correction terms, or (b) the tool must document the
+      limitation and the test should verify accuracy on a transformer-free subnetwork."
+
+  - id: T07
+    title: "ACTIVSg10k zero-impedance branches cause inconsistent treatment across dimensions"
+    category: infrastructure_friction
+    evidence_tools: [pypsa, pandapower, gridcal, powermodels]
+    evidence_count: 4
+    affected_tests: [A-1, A-3, A-4, B-9, C-1, C-3, C-5, C-9]
+    probe_evidence: [probe-001]
+    description: >
+      ACTIVSg10k has 2,462 branches with zero thermal rating (s_nom=0 or RATE_A=0)
+      and 3 transformers with zero reactance. PyPSA interprets s_nom=0 as a
+      zero-capacity constraint, causing DCOPF infeasibility. Other tools treat
+      RATE_A=0 as unconstrained. The zero reactance causes singular B-matrix for
+      PyPSA's LPF (all flows NaN on MEDIUM). The evaluation applied data fixes
+      (x=0.0001, s_nom=9999) in scalability tests but NOT in expressiveness tests,
+      creating contradictory outcomes: A-3 MEDIUM fails but C-3 MEDIUM passes for
+      the same tool on the same network. This inconsistency affects cross-tool
+      comparison because tools handle the same data issues differently.
+    proposed_protocol_impact: >
+      Standardize ACTIVSg10k data preparation: (a) set zero-reactance transformers
+      to x=0.0001 pu, (b) set zero thermal rating branches to RATE_A=9999 MVA,
+      applied uniformly across all test dimensions. Document the preparation as a
+      protocol-level preprocessing step rather than leaving it to each evaluator.
+
+  - id: T08
+    title: "Stochastic scenario perturbations cause high solver failure rates across tools"
+    category: test_design_gap
+    evidence_tools: [pandapower, gridcal, powersimulations]
+    evidence_count: 3
+    affected_tests: [B-4, C-6]
+    probe_evidence: [probe-006]
+    description: >
+      pandapower: 2.1% convergence on SMALL (probe-006 confirms 0.42%). GridCal:
+      47% convergence on SMALL. PowerSimulations: 40% infeasibility on TINY (2 of
+      5 scenarios). The combination of load scaling AND generator capacity
+      perturbations drives infeasibility, particularly on SMALL where the tighter
+      network constraints amplify perturbation effects. Probe-006 showed the base
+      case converges and uniform load scaling (0.7x-1.1x) works, but combined
+      perturbations break the solver. This may be a protocol issue: the
+      perturbation methodology should be calibrated to avoid producing a majority
+      of infeasible scenarios.
+    proposed_protocol_impact: >
+      Specify perturbation bounds that produce at most 20% infeasible scenarios
+      on the target network, or require OPF formulations with slack variables for
+      load shedding. The current uncalibrated perturbations measure solver
+      robustness rather than tool stochastic capability.
+
+  - id: T09
+    title: "Missing MATPOWER lossy DCOPF reference validation across all tools"
+    category: missing_verification
+    evidence_tools: [pypsa, gridcal, powermodels, matpower]
+    evidence_count: 4
+    affected_tests: [A-10]
+    probe_evidence: []
+    description: >
+      The A-10 pass condition explicitly requires "Validate against MATPOWER
+      reference lossy DC OPF solution on same case (tolerance: 1% on total LMP,
+      directional consistency on loss component signs)." No tool's evaluation
+      performs this cross-validation. pypsa performs LMP reconciliation but no
+      MATPOWER comparison. GridCal has no reference validation. PowerModels notes
+      mismatched formulations prevent comparison. MATPOWER itself uses lossless
+      DC OPF with post-hoc loss estimation, not loss-inclusive optimization.
+      The reference validation is unachievable as specified because MATPOWER's
+      rundcopf does not have a loss option producing comparable LMPs.
+    proposed_protocol_impact: >
+      Either (a) specify a concrete MATPOWER command producing the reference
+      (e.g., rundcopf with specific loss options), (b) change the validation to
+      internal consistency (lossless-vs-lossy comparison within the same tool),
+      or (c) remove the MATPOWER reference requirement and replace with physical
+      consistency checks (loss components have correct signs, total losses are
+      0.5-3% of load).
+
+  - id: T10
+    title: "ACPF convergence on 10k-bus network is a genuine capability discriminator"
+    category: high_signal_test
+    evidence_tools: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+    evidence_count: 6
+    affected_tests: [A-2, C-2]
+    probe_evidence: [probe-001, probe-024]
+    description: >
+      ACPF on ACTIVSg10k produces 3 distinct outcomes: (1) converges with good
+      diagnostics (pandapower, gridcal, matpower), (2) fails with no diagnostics
+      (powermodels, powersimulations -- probe-024 confirms silent Missing return),
+      (3) reports false convergence (pypsa -- probe-001 confirms 0 iterations,
+      83% flat start). This test genuinely discriminates tools by NR solver
+      robustness, warm-start support, and diagnostic quality. The protocol should
+      strengthen convergence verification requirements.
+    proposed_protocol_impact: >
+      A-2 pass condition should require: (a) convergence residual reported and
+      below tolerance, (b) number of NR iterations reported, (c) voltage
+      magnitudes not at flat-start defaults on >95% of buses. This prevents
+      false convergence claims.
+
+  - id: T11
+    title: "Solver swap test conflates swap mechanism with solver performance"
+    category: scoring_inconsistency
+    evidence_tools: [pypsa, pandapower, powermodels, matpower]
+    evidence_count: 4
+    affected_tests: [C-7]
+    probe_evidence: []
+    description: >
+      The C-7 pass condition asks whether solver swap "requires reformulation
+      or just a parameter change." For pypsa, powermodels, and matpower, swap
+      is parameter-only. pandapower fails because it is locked to PYPOWER.
+      However, several tools receive qualified_pass because alternative solvers
+      were not installed or perform poorly -- this conflates solver availability
+      and performance with the swap mechanism itself. pypsa tested only HiGHS;
+      powermodels qualified because HiGHS QP failed; matpower tested only MIPS
+      and GLPK.
+    proposed_protocol_impact: >
+      Separate C-7 into two findings: (a) swap mechanism (parameter-only vs
+      reformulation required -- binary), (b) multi-solver comparison (timing
+      and objective consistency). Require at least 2 solvers installed in the
+      evaluation environment.
+
+  - id: T12
+    title: "Peak memory measurements missing or estimated across all tools"
+    category: missing_verification
+    evidence_tools: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+    evidence_count: 6
+    affected_tests: [C-1, C-2, C-3, C-4, C-5, C-6, C-7, C-8, C-9, C-10]
+    probe_evidence: []
+    description: >
+      The protocol requires peak_memory_mb for all C-tests. In practice:
+      pandapower expressiveness tests report "not measured". PowerModels has
+      6/10 C-tests with null memory. MATPOWER estimates memory from matrix
+      dimensions rather than process measurement. Octave lacks built-in
+      memory profiling. This makes cross-tool memory comparison unreliable.
+    proposed_protocol_impact: >
+      Specify a memory measurement methodology per language: Python (tracemalloc),
+      Julia (@allocated or /proc/self/status), Octave (/proc/self/status).
+      Require measured values, not estimates.
+
+  - id: T13
+    title: "N-M contingency sweep at x=5, m=4 on MEDIUM is infeasible for all tools"
+    category: test_design_gap
+    evidence_tools: [pypsa, powermodels, matpower]
+    evidence_count: 3
+    affected_tests: [A-7, C-5]
+    probe_evidence: [probe-016, probe-029]
+    description: >
+      N-4 on a 10k-bus network produces combinatorial explosion that no tool can
+      solve within the time budget. pypsa completed only 9/270 N-1 cases (3.3%).
+      PowerModels projected timeout and was confirmed by probe-016. MATPOWER
+      completed screening but 97% of time was Octave containers.Map overhead
+      (probe-029). pandapower and gridcal used reduced scope. The test measures
+      mathematical impossibility at high orders, not tool capability.
+    proposed_protocol_impact: >
+      Cap N-M sweep at N-2 for MEDIUM scale. Report N-1 performance as the
+      primary metric. N-3 and N-4 are informational only. This preserves the
+      graph-scoping and pruning test while making the test feasible.
