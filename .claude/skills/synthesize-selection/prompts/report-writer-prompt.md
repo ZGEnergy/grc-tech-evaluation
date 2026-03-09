@@ -133,9 +133,15 @@ git SHAs and timestamps after user approval:
   use a different grade than what was confirmed.
 - **Do not editorialize.** If the evidence doesn't support a claim, don't make it.
   "The evaluation did not test X" is better than speculating about X.
-- **MATPOWER treatment.** If MATPOWER is in the ranking, include a footnote about
-  Octave runtime viability for production deployment. MATPOWER is a full candidate,
-  not just a reference — but the Octave dependency is a real operational consideration.
+- **Reference-only tools.** Tools designated as "reference benchmark only" by the rubric
+  (e.g., MATPOWER — Octave/MATLAB runtime disqualifies for classified deployment) are
+  included in the grade table for comparison but excluded from primary ranking and the
+  head-to-head comparison. Include a footnote explaining the exclusion reason.
 - **Disqualified tools.** If any tools were disqualified by the Supply Chain gate,
   include them in the grade table with a footnote but exclude them from the
   Recommendation section's head-to-head comparison.
+- **No real markets or grids.** Never name specific ISOs, RTOs, utilities, or real
+  grid regions (e.g., do not mention CAISO, ERCOT, WECC, PJM, etc.) in the report.
+  Use generic terms like "the target ISO", "the customer's network", "the target
+  market", or "the full network model (FNM)". The rubric and protocol may reference
+  specific markets internally, but the deliverable report must not.

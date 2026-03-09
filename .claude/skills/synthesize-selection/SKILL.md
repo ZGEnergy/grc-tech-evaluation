@@ -168,13 +168,23 @@ the entire report.
 
 **Purpose:** Mechanical lexicographic ranking — no judgment calls, purely algorithmic.
 
-1. **Gate check.** Any tool with Supply Chain grade <= C+ is **disqualified**. The grade
-   ordering for the gate threshold:
-   - B- and above: passes gate
-   - C+ and below: disqualified
+1. **Gate checks.** Apply two gates in order:
 
-   Disqualified tools are marked with a footnote in the output table but excluded from
-   the ranking competition. If ALL tools are disqualified, inform the user and stop.
+   a. **Rubric exclusions.** The rubric may designate certain tools as "reference
+      benchmark only" (e.g., MATPOWER — MATLAB/Octave runtime disqualifies for
+      classified deployment). These tools are **excluded from primary ranking** but
+      retained in the grade table with a footnote for comparison. Read the rubric's
+      tool list and the "Addendum — Tools Considered but Ruled Out" section to
+      identify any such designations.
+
+   b. **Supply Chain gate.** Any remaining tool with Supply Chain grade <= C+ is
+      **disqualified**. The grade ordering for the gate threshold:
+      - B- and above: passes gate
+      - C+ and below: disqualified
+
+   Excluded and disqualified tools are marked with footnotes in the output table but
+   removed from the ranking competition. If ALL tools are excluded or disqualified,
+   inform the user and stop.
 
 2. **Lexicographic comparison.** Compare surviving tools in strict priority order:
    1. Expressiveness

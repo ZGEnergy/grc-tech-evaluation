@@ -88,3 +88,7 @@
 - **Synthesis files:** <list with git SHAs>
 - **Generated:** {{timestamp}}
 - **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability, Accessibility, Maturity] with Supply Chain gate (<=C+ disqualifies)
+
+<!-- STYLE RULE: Never name specific ISOs, RTOs, utilities, or real grid regions in this
+     report. Use generic terms: "the target ISO", "the customer's network", "the target
+     market", "the full network model (FNM)". -->

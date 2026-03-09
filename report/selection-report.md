@@ -8,73 +8,72 @@
 
 ## Methodology
 
-Six open-source power system modeling tools were evaluated against a six-criterion rubric (Expressiveness, Extensibility, Scalability, Accessibility, Maturity, Supply Chain) using standardized test suites on ACTIVSg 2k-bus and 10k-bus reference networks with open-source solvers only. Supply Chain serves as a gate criterion: any tool graded C+ or below is disqualified. The remaining five criteria are ranked by lexicographic priority — Expressiveness > Extensibility > Scalability > Accessibility > Maturity — with ties broken by the next criterion in sequence.
+Six open-source power system modeling tools were evaluated against a six-criterion rubric (Expressiveness, Extensibility, Scalability, Accessibility, Maturity, Supply Chain) using standardized test suites on ACTIVSg 2k-bus and 10k-bus reference networks with open-source solvers only (HiGHS, SCIP, Ipopt, GLPK). Supply Chain serves as a gate criterion: any tool graded C+ or below is disqualified. The remaining five criteria are ranked by lexicographic priority — Expressiveness > Extensibility > Scalability > Accessibility > Maturity — with ties broken by the next criterion in sequence. MATPOWER is designated reference benchmark only per the rubric: its canonical MATLAB runtime disqualifies it for classified network deployment, and it is excluded from primary ranking while retained in the grade table for comparison.
 
 ## Grade Comparison
 
 | Rank | Tool | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
 |------|------|---------------|---------------|-------------|---------------|----------|--------------|
-| 1 | MATPOWER | A- | A- | B- | B | C+ | A |
-| 2 | PyPSA | B+ | A- | B- | B+ | A- | A |
-| 3 | PowerModels | B- | A- | B- | B- | C+ | A |
-| 4 | PowerSimulations | B- | B+ | B- | C+ | B | A- |
-| 5 | pandapower | C+ | B | B- | B+ | A- | A |
-| 6 | GridCal | C+ | B | B- | C+ | B- | B |
+| 1 | PyPSA | B+ | A- | B- | B+ | A- | A |
+| 2 | PowerModels | B- | A- | B- | B- | C+ | A |
+| 3 | PowerSimulations | B- | B+ | B- | C+ | B | A- |
+| 4 | pandapower | C+ | B | B- | B+ | A- | A |
+| 5 | GridCal | C+ | B | B- | C+ | B- | B |
+| — | MATPOWER* | A- | A- | B- | B | C+ | A |
 
-All six tools passed the Supply Chain gate (all >= B). MATPOWER ranks first on Expressiveness (A-). PowerModels and PowerSimulations tie on Expressiveness (B-); PowerModels breaks the tie with Extensibility A- vs B+. pandapower and GridCal tie through Scalability; pandapower wins on Accessibility (B+ vs C+).
+All six tools passed the Supply Chain gate (all >= B). PyPSA leads on Expressiveness (B+), a full grade step above the B- tie between PowerModels and PowerSimulations. PowerModels breaks that tie with Extensibility A- vs B+. pandapower and GridCal tie through Scalability; pandapower wins on Accessibility (B+ vs C+).
 
-**Footnote — MATPOWER/Octave:** All testing used GNU Octave, not MATLAB. Octave lacks HiGHS MEX bindings (limiting MILP solver options) and has no production deployment precedent. This is a real Phase 2 operational consideration.
+*\*MATPOWER is included as a reference benchmark only. The MATLAB runtime is a proprietary binary incompatible with classified network authorization. All MATPOWER testing used GNU Octave, which lacks HiGHS MEX bindings and has no production deployment precedent. MATPOWER is excluded from primary ranking per rubric designation.*
 
 **Footnote — GridCal:** MPL-2.0 license may require legal review for government deployment.
 
 ## Sensitivity Analysis
 
-Three alternative ranking scenarios were proposed by the evaluator and confirmed by the GRC principal to test the robustness of the MATPOWER selection.
+Three alternative ranking scenarios were proposed by the evaluator and confirmed by the GRC principal, all with MATPOWER excluded per rubric designation.
 
-**Scenario 1 — Maturity as top priority** (Maturity > Expressiveness > Extensibility > Scalability > Accessibility): #1 changes to PyPSA. MATPOWER drops to #5 on C+ Maturity (bus factor 1, no institutional funding). PyPSA's A- Maturity with active multi-contributor development drives it to the top. Full order: PyPSA, pandapower, PowerSimulations, GridCal, MATPOWER, PowerModels.
+**Scenario 1 — Maturity as top priority** (Maturity > Expressiveness > Extensibility > Scalability > Accessibility): PyPSA holds #1. PyPSA's A- Maturity ties with pandapower for highest among eligible tools; Expressiveness B+ breaks the tie. Full order: PyPSA, pandapower, PowerSimulations, GridCal, PowerModels.
 
-**Scenario 2 — Equal-weight scoring** (sum of numeric grade values): #1 changes to PyPSA (35 vs 31). PyPSA's balanced profile outperforms MATPOWER's peak-but-trough distribution. Full order: PyPSA (35), MATPOWER (31), pandapower (30), PowerModels (27), PowerSimulations (27), GridCal (24).
+**Scenario 2 — Equal-weight scoring** (sum of numeric grade values, A=9, A-=8, B+=7, B=6, B-=5, C+=4): PyPSA holds #1 with 35 points. Full order: PyPSA (35), pandapower (30), PowerModels (27), PowerSimulations (27), GridCal (24).
 
-**Scenario 3 — Extensibility over Expressiveness** (Extensibility > Expressiveness > Scalability > Accessibility > Maturity): MATPOWER holds #1. Three tools tie on Extensibility A-; MATPOWER breaks the tie with Expressiveness A-. Full order: MATPOWER, PyPSA, PowerModels, PowerSimulations, pandapower, GridCal.
+**Scenario 3 — Extensibility over Expressiveness** (Extensibility > Expressiveness > Scalability > Accessibility > Maturity): PyPSA holds #1. PyPSA and PowerModels tie on Extensibility A-; PyPSA breaks the tie with Expressiveness B+ vs B-. Full order: PyPSA, PowerModels, PowerSimulations, pandapower, GridCal.
 
-**Summary:** MATPOWER holds #1 only under lexicographic ranking with Expressiveness on top. PyPSA takes #1 in two of three alternative scenarios.
+**Summary:** PyPSA holds #1 in all three alternative scenarios. The recommendation is robust to alternative criterion weightings.
 
 ---
 
 ## Recommendation
 
-### Selected Tool: MATPOWER
+### Selected Tool: PyPSA
 
-MATPOWER ranks first because it is the only tool that natively expresses the full suite of problems required for Phase 2 CAISO congestion reproduction. MOST provides native SCUC, SCED, stochastic multi-scenario optimization, and preventive SCOPF (A-5, A-6, A-8, A-9) — capabilities that require hundreds of lines of user-assembled code or are entirely absent in every other evaluated tool. Its `makePTDF()` function with distributed slack weighting (B-9) and native piecewise-linear cost curve support (P2-2) directly address CAISO market clearing primitives. The Expressiveness advantage (A- vs B+ for the runner-up) reflects not just breadth but depth: MATPOWER's formulations are the reference standard against which power systems tools are implicitly measured.
-
-The selection carries real risk. MATPOWER has a bus factor of 1 (E-3, E-4), C+ Maturity, and zero production deployments on Octave. These risks are addressable — see the Risk Register below — but they are not cosmetic.
+PyPSA wins decisively on criterion 1: Expressiveness B+ is a full grade step above the B- shared by the next two eligible tools. Beyond this primary differentiator, PyPSA has the strongest balanced profile among all eligible candidates — no grade below B-, with A- in both Extensibility and Maturity and B+ in Accessibility. It demonstrated first-class preventive SCOPF via `optimize_security_constrained()` (A-9), custom constraint injection in 2 lines of code via Linopy model split (B-1), and a mature multi-contributor development community backed by institutional funding at TU Berlin and KIT. The Python ecosystem ensures NRL analysts can integrate PyPSA into existing workflows without adopting a niche language runtime.
 
 ### Head-to-Head: Critical Phase 2 Capabilities
 
-| Capability | MATPOWER | PyPSA | PowerModels | PowerSimulations |
-|------------|----------|-------|-------------|------------------|
-| Preventive SCOPF | Native (A-9) | Native (A-9) | Extension (~140 LOC JuMP) | Gap |
-| Distributed Slack | Native, `makePTDF` weights (B-9) | Extension | Extension | Gap |
-| PWL Cost Curves | Native (P2-2) | Gap; SOS2 via `extra_functionality` ~50-100 LOC | Native (P2-2) | Native (P2-2) |
-| PSS/E RAW Parsing | Native `psse2mpc()` Rev 23-33+ (P2-1) | Gap; bridge via grg-psse 1-2 days (P2-1) | Native v33 parser (P2-1) | Native v30/32/33 (P2-1) |
-| Custom Constraint Injection | Native via MATPOWER callbacks (B-1) | Native, 2 LOC via Linopy model split (B-1) | Native, two-level JuMP API (B-1) | Extension |
-| UC/ED Pipeline | Native MOST (A-5, A-6) | SCUC times out at 2k-bus with HiGHS (A-5) | SCUC requires ~140 LOC JuMP (A-5) | Native rich formulations (A-5, A-6) |
-| Stochastic Optimization | Native MOST scenarios (A-8) | Gap (A-8) | Gap (A-8) | Gap (A-8) |
+| Capability | PyPSA | PowerModels | PowerSimulations | MATPOWER* |
+|------------|-------|-------------|------------------|-----------|
+| Preventive SCOPF | Native `optimize_security_constrained()` (A-9) | Extension, ~140 LOC JuMP | Gap | Native MOST (A-9) |
+| Distributed Slack | Extension via reference bus config | Extension via API | Gap | Native `makePTDF` weights (B-9) |
+| PWL Cost Curves | Gap; SOS2 via `extra_functionality` ~50-100 LOC | Native (P2-2) | Native (P2-2) | Native (P2-2) |
+| PSS/E RAW Parsing | Gap; bridge via grg-psse, 1-2 days (P2-1) | Native v33 parser (P2-1) | Native v30/32/33 (P2-1) | Native `psse2mpc()` Rev 23-33+ (P2-1) |
+| Custom Constraints | Native, 2 LOC Linopy model split (B-1) | Native, two-level JuMP API (B-1) | Extension | Native callbacks (B-1) |
+| UC/ED Pipeline | SCUC times out at 2k-bus with HiGHS (A-5) | SCUC requires ~140 LOC JuMP (A-5) | Native rich formulations (A-5, A-6) | Native MOST (A-5, A-6) |
 
-### Runner-Up: PyPSA
+*\*MATPOWER included as reference column only — excluded from primary ranking per rubric designation.*
 
-PyPSA is the strongest alternative and would be the selection under two of three sensitivity scenarios. Its balanced profile (no grade below B-), institutional backing (A- Maturity), and Python ecosystem make it the lowest-risk choice for a team prioritizing sustainability and workforce accessibility. PyPSA demonstrated native SCOPF via `optimize_security_constrained()` (A-9) and clean custom constraint injection in 2 LOC (B-1).
+### Runner-Up: PowerModels
 
-PyPSA was not selected because it lacks three capabilities MATPOWER provides natively: stochastic multi-scenario optimization (A-8, blocking), SCUC at operational scale (A-5, times out at 2k-bus with HiGHS), and piecewise-linear cost curves (P2-2, requires extension). The SCUC limitation is the most consequential — without viable unit commitment, PyPSA cannot serve as the single-tool backbone for the full SCUC-to-DCOPF-to-ACPF pipeline that Phase 2 requires. PyPSA should be reconsidered if MATPOWER's bus-factor risk materializes or if Octave runtime proves unworkable at CAISO FNM scale.
+PowerModels ranks second on the strength of its Extensibility (A-) and its JuMP foundation, which provides the most flexible constraint injection API among all evaluated tools (B-1). It demonstrated native PSS/E v33 parsing (P2-1), native piecewise-linear cost curves (P2-2), and PTDF computation with sub-1e-11 error at 10k-bus (B-9). PowerModels would pass all three Phase 2 readiness checks where PyPSA fails two.
+
+PowerModels was not selected for three reasons. First, its B- Expressiveness reflects the cost of that flexibility: 6 of 11 Suite A tests required user-assembled JuMP code averaging 269 lines per test — the tool provides primitives, not solutions. Second, C+ Maturity with a bus factor of 1 (ccoffrin, 82.4% of commits) and pre-1.0 status after 9+ years of development signals sustainability risk comparable to MATPOWER. Third, Julia remains a niche language for the government workforce; NRL analysts are far more likely to have Python experience than Julia fluency. PowerModels should be reconsidered if PyPSA's SCUC scalability limitation proves unresolvable or if the JuMP modeling layer becomes critical for Phase 2 custom formulations.
 
 ### Risk Register
 
 | Risk | Severity | Mitigation |
 |------|----------|-----------|
-| **Bus factor 1:** Zimmerman (98.5% of commits) has left Cornell with no announced successor. A health event or career change could halt development indefinitely. | HIGH | Pin to a specific MATPOWER release for Phase 2. Maintain a GRC fork with any Phase 2 patches. Document all extensions independently of upstream. Identify and engage potential community co-maintainers early. |
-| **Octave runtime viability at FNM scale:** MOST fails at SMALL/MEDIUM scale in testing (C-4, C-6, C-8). No HiGHS MEX bindings limit MILP solver options to GLPK on Octave. CAISO FNM (~6,000 buses with full topology) may exceed Octave's practical performance envelope. | HIGH | Conduct early Phase 2 spike: load CAISO FNM into MATPOWER on Octave and benchmark DCOPF solve time. If Octave proves unworkable, evaluate Julia bridge via MATPOWER.jl or fallback to PowerModels for optimization with MATPOWER for network analysis only. |
-| **No production deployment precedent:** MATPOWER has zero operational deployments (E-6). All adoption is academic. Failure modes in production workflows (long-running processes, error recovery, memory management) are undiscovered. | MED | Design Phase 2 architecture with explicit error boundaries around MATPOWER calls. Implement watchdog timeouts and result validation on every solve. Do not assume solver stability over multi-hour batch runs. |
-| **MOST monolithic formulations:** MOST constructs monolithic MILP formulations that do not decompose well. At CAISO scale with 24-hour horizons and contingency constraints, the formulation may exceed solver memory. | MED | Implement temporal decomposition (solve 4-6 hour blocks with overlap) outside MOST. Use MOST for formulation generation and extract the optimization model for manual decomposition if needed. Benchmark memory at FNM scale in the early Phase 2 spike. |
+| **SCUC scalability:** PyPSA SCUC times out at SMALL scale (2k-bus) with HiGHS single-threaded (A-5). The target FNM is ~6,000 buses. | HIGH | Evaluate commercial-grade open-source solver configurations (HiGHS parallel, SCIP). Implement temporal decomposition (4-6 hour blocks). If PyPSA SCUC remains intractable, use PowerModels/JuMP for commitment stage only, feeding dispatch back to PyPSA. |
+| **No native stochastic optimization:** PyPSA has no stochastic formulation — scenario trees, two-stage programs, and chance constraints are absent (A-8). This is a blocking gap for multi-scenario congestion analysis. | HIGH | Implement deterministic scenario loop with post-hoc aggregation for Phase 2 MVP. Evaluate Linopy-level stochastic extension feasibility. Accept that stochastic optimization is a Phase 3 capability if native support is not forthcoming. |
+| **PWL cost curves require extension:** Production market clearing uses piecewise-linear bid curves. PyPSA supports only linear/quadratic costs natively (P2-2). SOS2 formulation via `extra_functionality` is ~50-100 LOC. | MED | Implement SOS2 PWL extension early in Phase 2. The `extra_functionality` callback API is stable and documented (B-1). Validate against MATPOWER reference solutions with identical cost data. |
+| **Linopy post-processing bottleneck:** Shadow-price extraction via linopy creates 10+ minute overhead at 10k-bus scale. This affects LMP computation in operational-speed workflows. | MED | Profile linopy shadow-price path and identify optimization targets. Evaluate direct solver dual extraction bypassing linopy post-processing. If unresolvable, accept longer solve times for planning studies and implement caching for repeated analyses. |
 
 ---
 
@@ -84,26 +83,28 @@ PyPSA was not selected because it lacks three capabilities MATPOWER provides nat
 
 | Gap | Effort | Notes |
 |-----|--------|-------|
-| Octave solver ecosystem | weeks | Build or acquire HiGHS MEX bindings for Octave, or validate GLPK adequacy for Phase 2 MILP scale. SCIP MEX as fallback. |
-| MOST scalability remediation | weeks | Profile and diagnose MOST failures at SMALL/MEDIUM (C-4, C-6, C-8). May require formulation simplification or problem decomposition wrapper. |
-| Result export pipeline | days | MATPOWER returns Octave structs. Build serialization layer to export LMPs, flows, commitment schedules to HDF5/Parquet for downstream analysis. |
+| PSS/E RAW parser integration | days | Bridge via grg-psse Python package. PyPSA has no native parser (P2-1). grg-psse handles v33; FNM version compatibility requires validation. |
+| Piecewise-linear cost curves | days | SOS2 formulation via `extra_functionality` callback, ~50-100 LOC (P2-2). Stable API, well-documented extension point. |
+| SCUC scalability | weeks | Profile and resolve timeout at 2k-bus (A-5). Solver tuning (MIP gap, parallel threads), formulation tightening, or temporal decomposition. May require hybrid approach with JuMP for commitment stage. |
+| Stochastic optimization wrapper | weeks | No native support (A-8). Build scenario loop with correlated timeseries injection via PyPSA's timeseries API. Not a true stochastic program — deterministic solves with post-hoc aggregation. |
+| Linopy shadow-price performance | weeks | 10+ min overhead at 10k-bus for dual extraction. Profile and optimize, or implement direct solver dual access. |
 
 ### Tool-Adjacent Engineering
 
 | Work Item | Effort | Notes |
 |-----------|--------|-------|
-| FNM ingestion + imputation | months | CAISO FNM uses legacy PSS/E format. `psse2mpc()` handles Rev 23-33+ natively, but FNM-specific quirks (multi-section lines, switched shunts, area interchange) require validation and imputation of missing data. |
-| OASIS data pipeline | weeks | Ingest public CAISO OASIS data (binding constraints, LMPs, generation, load) for validation targets. Build automated refresh and alignment with FNM bus/branch numbering. |
-| PTDF calibration + validation | weeks | Compute PTDFs from solved AC base case using `makePTDF()`. Validate against CAISO-published shift factors where available. Calibrate loss factors against published MCL components. |
-| Contingency list curation | weeks | Build monitored contingency list from OASIS binding constraint data. Map CAISO constraint names to FNM branch IDs. Prioritize by historical binding frequency. |
+| FNM ingestion + imputation | months | Target FNM in legacy PSS/E format. Parse via grg-psse bridge, then validate and impute missing data (multi-section lines, switched shunts, area interchange). FNM-specific topology quirks require manual curation. |
+| OASIS data pipeline | weeks | Ingest public ISO OASIS data (binding constraints, LMPs, generation, load) for validation targets. Build automated refresh and alignment with FNM bus/branch numbering. |
+| PTDF calibration + validation | weeks | Compute PTDFs from solved AC base case. PyPSA exposes network matrices; validate against published shift factors where available. Calibrate loss factors against published MCL components. |
+| Contingency list curation | weeks | Build monitored contingency list from OASIS binding constraint data. Map published constraint names to FNM branch IDs. Prioritize by historical binding frequency. |
 
 ### Operational Workflow
 
 | Work Item | Effort | Notes |
 |-----------|--------|-------|
-| Scenario management framework | weeks | Build scenario definition, execution, and result storage layer around MATPOWER. Support parameter sweeps (load levels, contingency sets, generator outages) with reproducible configuration. |
-| LMP validation loop | weeks | Automated comparison of computed LMPs against CAISO-published values. Decompose discrepancies into energy, congestion, and loss components. Flag systematic biases for calibration. |
-| Result visualization | weeks | Interactive visualization of LMP heatmaps, binding constraint patterns, and contingency impact on the FNM topology. Likely Python-based (matplotlib/plotly) consuming exported MATPOWER results. |
+| Scenario management framework | weeks | Build scenario definition, execution, and result storage layer around PyPSA. Support parameter sweeps (load levels, contingency sets, generator outages) with reproducible configuration. |
+| LMP validation loop | weeks | Automated comparison of computed LMPs against ISO-published values. Decompose discrepancies into energy, congestion, and loss components. Flag systematic biases for calibration. |
+| Result visualization | weeks | Interactive visualization of LMP heatmaps, binding constraint patterns, and contingency impact on the FNM topology. Python-native (matplotlib/plotly) within PyPSA's ecosystem. |
 | Analyst workflow documentation | days | Runbooks for common Phase 2 workflows: running a day-ahead scenario, interpreting results, modifying contingency lists, adjusting network parameters. |
 
 ---
@@ -118,5 +119,5 @@ PyPSA was not selected because it lacks three capabilities MATPOWER provides nat
   - `worktree-eval/powermodels-v4:evaluations/powermodels/results/synthesis.md` @ 10c40c7
   - `worktree-eval/powersimulations-v4:evaluations/powersimulations/results/synthesis.md` @ e413b5d
   - `worktree-eval/matpower-v4:evaluations/matpower/results/synthesis.md` @ d5d90dc
-- **Generated:** 2026-03-09T21:15:00Z
-- **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability, Accessibility, Maturity] with Supply Chain gate (<=C+ disqualifies)
+- **Generated:** 2026-03-09T21:45:00Z
+- **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability, Accessibility, Maturity] with Supply Chain gate (<=C+ disqualifies). MATPOWER excluded per rubric designation (reference benchmark only).
