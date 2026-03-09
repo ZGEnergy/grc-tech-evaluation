@@ -12,6 +12,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.9",
+    "jsonschema>=4.21",
 ]
 
 [tool.ruff]
@@ -25,5 +26,6 @@ testpaths = ["scripts/tests"]
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.26.0",
     "ruff>=0.15.4",
 ]
