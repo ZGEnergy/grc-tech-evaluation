@@ -14,6 +14,7 @@ audit trail for all protocol/rubric changes.
 - **Output path:** `{{output_path}}`
 - **Report template:** `{{report_template}}`
 - **Mapping schema:** `{{mapping_schema}}`
+- **GitHub issues:** `{{github_issues_path}}`
 
 ## Task
 
@@ -26,6 +27,8 @@ audit trail for all protocol/rubric changes.
   - `{{aggregation_dir}}/low-signal-tests.yaml`
   - `{{aggregation_dir}}/comparison-matrices.md`
   - `{{aggregation_dir}}/proposed-changes.yaml`
+  - `{{aggregation_dir}}/deferred-issues.yaml` (if exists)
+- Read `{{github_issues_path}}` (if exists) for the full issue triage list
 - Read per-tool findings for evidence and context:
   - `{{per_tool_dir}}/*/findings.yaml` (all tools)
 - Read probe results (if any) from `{{probes_dir}}/`
@@ -75,9 +78,21 @@ Derive the mapping from:
 - `proposed-changes.yaml` (for redesigns, new tests, removed tests)
 - Tests not mentioned in proposed changes → `unchanged`
 
+#### GitHub Issue Triage
+If GitHub issues were queried during the sweep, include a section documenting:
+- Issues incorporated into proposed changes (with issue number, title, and the
+  proposed-change ID they map to)
+- Issues deferred due to insufficient cross-tool evidence (from
+  `deferred-issues.yaml`), with rationale for deferral and issue number
+- Issues triaged as out-of-scope, with a brief note on why
+
+This section provides the audit trail for issue resolution. Reviewers of the
+version-bump PR should be able to see exactly which issues were addressed.
+
 #### Deferred Items
 Include items from per-tool findings that were considered but not acted on,
-with rationale for deferral.
+with rationale for deferral. Also include deferred GitHub issues here (with
+issue numbers) so they aren't lost between sweep cycles.
 
 ### 3. Quality Checks
 
@@ -89,6 +104,7 @@ Before writing the final file, verify:
 - [ ] Probe results are integrated (or explicitly noted as skipped)
 - [ ] No unsupported assertions — every claim traces to evidence
 - [ ] Deferred items explain why they were deferred
+- [ ] Every in-scope GitHub issue is accounted for (incorporated or deferred with rationale)
 
 ## Critical Rules
 
