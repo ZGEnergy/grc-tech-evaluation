@@ -274,7 +274,7 @@ If only 1 tool survived the gate, skip this state entirely (no comparison possib
    - `{{tool_details}}` -> per-tool strengths/weaknesses/caveats/workarounds
    - `{{rubric_path}}` -> `{{RUBRIC_PATH}}`
    - `{{template_path}}` -> `{{SKILL_DIR}}/report-template.md`
-   - `{{output_path}}` -> `{{OUTPUT_DIR}}/selection-report.md`
+   - `{{output_path}}` -> `{{OUTPUT_DIR}}/selection-report-{{PROTOCOL_VERSION}}.md`
    - `{{date}}` -> today's date (YYYY-MM-DD)
 
    Launch via Agent tool with `subagent_type: "general-purpose"`.
@@ -287,7 +287,7 @@ If only 1 tool survived the gate, skip this state entirely (no comparison possib
 
 **Purpose:** Present the report for user approval and add provenance.
 
-1. **Display the report.** Read `{{OUTPUT_DIR}}/selection-report.md` and display
+1. **Display the report.** Read `{{OUTPUT_DIR}}/selection-report-{{PROTOCOL_VERSION}}.md` and display
    the full contents to the user.
 
 2. **Ask user.** Use AskUserQuestion:
@@ -305,7 +305,7 @@ If only 1 tool survived the gate, skip this state entirely (no comparison possib
    - Ranking algorithm description
 
 4. **Report completion.** Tell the user:
-   > "Selection report written to `{{OUTPUT_DIR}}/selection-report.md`."
+   > "Selection report written to `{{OUTPUT_DIR}}/selection-report-{{PROTOCOL_VERSION}}.md`."
 
 ---
 
