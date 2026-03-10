@@ -3,6 +3,141 @@ sidebar_position: 2
 title: "Expressiveness"
 ---
 
+import Placeholder from '@site/src/components/Placeholder';
+
 # Expressiveness
 
-Content for this page will be added in Phase 5.
+## Overview
+
+Expressiveness measures the breadth of power system analyses a tool can perform natively or with minimal extension. It is the **highest priority** criterion in the rubric, reflecting the core requirement that a selected tool must cover the analysis types ZGE needs without rewriting fundamental algorithms. The test suites A-1 through A-11 map to this criterion, spanning DC power flow (DCPF), AC power flow (ACPF), DC/AC optimal power flow (DCOPF/ACOPF), security-constrained variants (SCOPF, SCUC, SCED), and stochastic optimization.
+
+Each tool was tested at three network scales — TINY (5-bus), SMALL (IEEE 118-bus), and MEDIUM (ACTIVSg10k) — to expose both capability gaps and scale-dependent failures. Tools that pass at TINY but fail at SMALL or MEDIUM reveal API limitations that would surface in production use.
+
+<Placeholder title="Expressiveness Grade Comparison" />
+
+## Tool Results
+
+<details className="eval-details" open>
+<summary>
+
+### PyPSA — <span className="grade-b-plus">B+</span> (#1)
+
+</summary>
+
+PyPSA demonstrates strong native support for most target problem types including DCPF, ACPF, DCOPF, and SCED. It provides a clean high-level API through linopy for OPF formulations and natively supports SCOPF via iterative contingency screening. However, SCUC requires significant workaround effort and stochastic optimization is documented but non-functional (probe-002).
+
+ACPF convergence on MEDIUM (ACTIVSg10k) was debunked by probe-001: the solver reports convergence with 0 NR iterations and 83% of buses at flat start. This changed A-2 MEDIUM from pass to qualified\_pass but did not affect the overall B+ grade.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-1 | pass | pass | pass | DCPF converges on all scales |
+| A-2 | pass | pass | q\_pass | probe-001: false convergence on MEDIUM |
+| A-3 | pass | pass | fail | Zero-impedance branch handling (T07) |
+| A-4 | pass | — | fail | AC feasibility check |
+| A-5 | pass | fail | — | SCUC timeout (T12: solver limitation) |
+| A-6 | pass | fail | — | SCED |
+| A-7 | pass | — | fail | N-M contingency sweep |
+| A-8 | fail | fail | — | Stochastic (probe-002: documented but broken) |
+
+**Related Probes:** [probe-001](./probe-results#probe-001), [probe-002](./probe-results#probe-002)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerModels — <span className="grade-b">B</span> (#2)
+
+</summary>
+
+PowerModels provides the most mathematically rigorous OPF formulations among all evaluated tools, with native support for multiple AC OPF relaxations (SOC, QC, SDP) and SCOPF. Its JuMP-based architecture makes custom constraint injection straightforward. However, SCUC/SCED are not natively supported (requires PowerSimulations), and the Julia startup overhead impacts workflow iteration speed.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-1 | pass | pass | pass | DCPF |
+| A-2 | pass | pass | fail | ACPF fails at MEDIUM (NLsolve diverges) |
+| A-3 | pass | pass | pass | DCOPF with native LMP extraction |
+| A-4 | pass | — | — | AC feasibility check |
+| A-5 | skip | skip | skip | No native SCUC |
+| A-6 | skip | skip | skip | No native SCED |
+| A-7 | pass | — | fail | Contingency sweep |
+| A-8 | skip | skip | skip | No stochastic support |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### pandapower — <span className="grade-c-plus">C+</span> (#3)
+
+</summary>
+
+pandapower has a well-designed API for power flow analysis but limited OPF expressiveness. DCOPF is available through a PowerModels.jl bridge. Native SCUC/SCED are absent.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-1 | pass | pass | pass | |
+| A-2 | pass | pass | pass | |
+| A-3 | pass | pass | fail | |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### GridCal — <span className="grade-c">C</span> (#4)
+
+</summary>
+
+> **Note:** GridCal grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+GridCal provides basic power flow capability but has significant gaps in OPF expressiveness.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-1 | pass | pass | pass | |
+| A-2 | pass | pass | pass | |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerSimulations — <span className="grade-c-plus">C+</span> (#5)
+
+</summary>
+
+> **Note:** PowerSimulations grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+PowerSimulations specializes in unit commitment and economic dispatch, complementing PowerModels for OPF.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-5 | pass | fail | — | SCUC with generator cycling |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### MATPOWER — <span className="grade-a-minus">A-</span> (Reference Only)
+
+</summary>
+
+:::note[Reference Implementation]
+MATPOWER served as the reference implementation for validating test protocols and network data. It is not a candidate for Phase 2 selection. Grades reflect protocol validation performance only.
+:::
+
+MATPOWER provides the broadest native expressiveness among all evaluated tools, serving as the baseline against which other tools are compared.
+
+| Test ID | TINY | SMALL | MEDIUM | Notes |
+|---------|------|-------|--------|-------|
+| A-1 | pass | pass | pass | |
+| A-2 | pass | pass | pass | |
+| A-3 | pass | pass | pass | |
+
+</details>
+
+---
+
+**Previous:** [Results Overview](./index) | **Next:** [Extensibility](./extensibility)
