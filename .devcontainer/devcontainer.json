@@ -15,7 +15,7 @@
   ],
   "containerEnv": {
     "JULIA_DEPOT_PATH": "/opt/julia-depot",
-    "FNM_PATH": "/workspace/data/fnm"
+    "FNM_PATH": "/data/fnm-source"
   },
   "customizations": {
     "vscode": {
