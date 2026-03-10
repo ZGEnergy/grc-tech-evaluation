@@ -472,6 +472,7 @@ def classify_generator(
     thresholds: list[CapacityBandThreshold],
     heuristic_thresholds: HeuristicThresholds,
     gentype_field: str | None = None,
+    gen_index_at_bus: int = 0,
 ) -> GenFuelClassificationRow:
     """Classify a single generator by fuel type, unit type, and capacity band.
 
@@ -486,6 +487,7 @@ def classify_generator(
         thresholds: Capacity band thresholds.
         heuristic_thresholds: Thresholds for the heuristic classifier.
         gentype_field: Optional gentype string from the .m file.
+        gen_index_at_bus: 0-based index among generators at the same bus.
 
     Returns:
         A GenFuelClassificationRow with the full classification.
@@ -502,9 +504,6 @@ def classify_generator(
         # Three-level priority chain
         genfuel_result = classify_fuel_from_genfuel(gen.fuel_type)
 
-        # Count generators at same bus that come before this one
-        # (for companion label lookup)
-        gen_index_at_bus = 0  # simplified; companion labels handle this
         companion_result = classify_fuel_from_companion(
             gen.gen_bus, gen_index_at_bus, companion_labels
         )
@@ -644,7 +643,13 @@ def classify_network(
     classifications: list[GenFuelClassificationRow] = []
     warnings: list[str] = []
 
+    # Track per-bus generator count for correct companion CSV lookup
+    bus_gen_count: dict[int, int] = {}
+
     for i, gen in enumerate(case_data.generators):
+        gen_index_at_bus = bus_gen_count.get(gen.gen_bus, 0)
+        bus_gen_count[gen.gen_bus] = gen_index_at_bus + 1
+
         row = classify_generator(
             gen=gen,
             gen_index=i,
@@ -652,6 +657,7 @@ def classify_network(
             companion_labels=companion_labels,
             thresholds=thresholds,
             heuristic_thresholds=heuristic_thresholds,
+            gen_index_at_bus=gen_index_at_bus,
         )
         classifications.append(row)
 
