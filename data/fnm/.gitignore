@@ -12,6 +12,9 @@ reference/**
 !reference/
 !reference/*/
 !reference/**/summary_*.json
+!reference/cleaned/intermediate/
+!reference/cleaned/intermediate/*.csv
+!reference/cleaned/intermediate/manifest.json
 
 # Allow tracked infrastructure files
 !manifest.json
