@@ -5,4 +5,119 @@ title: "Probe Results"
 
 # Probe Results
 
-Content for this page will be added in Phase 5.
+During the v4-to-v5 sweep, 18 targeted probes were executed to verify extraordinary claims, reproduce specific numerical results, and validate evaluation methodology. Each probe re-ran the relevant test or audit step independently, using the same tool versions and network data as the original evaluation.
+
+Probes fall into three categories: **Debunked** (4 probes where the original claim was contradicted by evidence), **Supported with Protocol Implications** (10 probes where the claim was confirmed but the finding revealed a gap in test design or protocol specification), and **No Impact** (4 probes where the claim was confirmed with no further action needed). The debunked probes are presented with full methodology and findings below; the remaining probes are summarized in compact tables.
+
+## Summary Table
+
+| Probe ID | Tool | Category | Finding | Theme |
+|----------|------|----------|---------|-------|
+| [probe-001](#probe-001) | PyPSA | **Debunked** | Solver reports converged=False with 0 NR iterations; 83% of buses at flat start | [T10](./sweep-findings) |
+| probe-002 | PyPSA | Supported | Stochastic API documented but non-functional; both D-2 and A-8 findings valid | -- |
+| probe-006 | pandapower | Supported | Convergence rate 0.42% confirmed; uniform load scaling alone converges reliably | [T01](./sweep-findings), [T08](./sweep-findings) |
+| probe-007 | pandapower | Supported | LMPs uniform to machine precision (std=6e-12); no binding constraints on MEDIUM | [T01](./sweep-findings) |
+| probe-008 | pandapower | Supported | PTDF divergence of 7.43 pu reproduced exactly; error is scale-dependent | [T06](./sweep-findings) |
+| [probe-009](#probe-009) | pandapower | **Debunked** | No lambda values of 1e25 observed; both decommitment methods have identical convergence | -- |
+| probe-010 | pandapower | Supported | Phase-shifter Pfinj correction eliminates all PTDF error to machine precision | [T06](./sweep-findings) |
+| probe-012 | GridCal | Supported | 743.46 MW PTDF divergence reproduced; same root cause as pandapower | [T06](./sweep-findings) |
+| probe-016 | PowerModels | Supported | SCOPF with 5 contingencies timed out at 567s; projected infeasibility at 500 confirmed | [T04](./sweep-findings), [T13](./sweep-findings) |
+| probe-020 | PowerSimulations | Supported | C-3 timing was never measured; first execution exceeded 600s timeout | [T04](./sweep-findings) |
+| [probe-021](#probe-021) | PowerSimulations | **Debunked** | Dispatch values are in MW, not pu; ~100x factor is the base_power conversion | -- |
+| probe-022 | PowerSimulations | Supported | Binding dual extraction works correctly via JuMP.dual() | -- |
+| probe-023 | PowerSimulations | Supported | Distributed slack structurally correct but no-op on uncongested IEEE 39-bus | [T01](./sweep-findings) |
+| probe-024 | PowerSimulations | Supported | ACPF returns Missing silently with zero diagnostic info on 10k-bus | [T10](./sweep-findings) |
+| [probe-025](#probe-025) | PowerSimulations | **Debunked** | Codecov badge shows 78% coverage, not 100% as reported | [T12](./sweep-findings) |
+| probe-028 | MATPOWER | Supported | MIPS 141s per iteration confirmed; dense PTDF 400x slower than sparse | -- |
+| probe-029 | MATPOWER | Supported | containers.Map overhead confirmed as dominant bottleneck; LODF screening completes in 0.81s | -- |
+| probe-032 | MATPOWER | Supported | loadmd() fails with non-consecutive bus numbering; ext2int resolves but exposes further issues | -- |
+
+## Debunked Claims -- Detailed Findings
+
+### probe-001 {#probe-001}
+
+<details className="eval-details" open>
+<summary>probe-001: ACPF convergence on ACTIVSg10k (PyPSA)</summary>
+
+**Original Claim:** PyPSA's `n.pf()` (Newton-Raphson AC power flow) runs on the 10,000-bus ACTIVSg10k network in ~15.7s. Despite a convergence warning, the test code reports `converged: true` because the flat-start iteration produces usable voltage magnitude and flow results. Result: PASS.
+
+**Methodology:** Loaded ACTIVSg10k via `matpowercaseframes` + `import_from_pypower_ppc` (same method as evaluation tests). Ran `n.pf()` and inspected convergence status, iteration count, voltage magnitudes across all buses, line/transformer flows, and flat-start residual analysis.
+
+**Finding:** The solver performed **zero** Newton-Raphson iterations (`n_iter: 0`) and returned `converged: False`. 8,274 of 10,000 buses (83%) retained their flat-start voltage magnitude of exactly 1.0 pu. 8,870 of 9,726 lines (91%) had exactly zero power flow. The original claim that results are "usable" is misleading -- the voltage and flow ranges cited come from the small minority of components in a connected sub-network with active generators. The solver never attempted to solve the full network, likely due to a singularity or initialization failure. Transformer losses reported as NaN further indicate incomplete computation.
+
+**Grade Impact:** A-2 MEDIUM should be reclassified from PASS to FAIL. The original evaluation's convergence check logic appears to have had a bug (reporting `converged: true` when the solver returns `converged: False`). This strengthens Theme T10 (ACPF at 10k-bus as a genuine discriminator).
+
+</details>
+
+### probe-009 {#probe-009}
+
+<details className="eval-details">
+<summary>probe-009: Lambda values of 1e25 with in_service=False (pandapower)</summary>
+
+**Original Claim:** Setting `in_service=False` on generators causes the PYPOWER interior point solver to diverge numerically on case39, producing lambda values on the order of 1e25. The `max_p_mw=0` approach was used as a workaround.
+
+**Methodology:** Loaded case39 and systematically tested all 9 generators with both decommitment approaches (`in_service=False` and `max_p_mw=0`). For each generator and each method, solved DC OPF and recorded convergence status, lambda values, and objective function value.
+
+**Finding:** No lambda values anywhere near 1e25 were observed. When `in_service=False` converges, lambda values are physically reasonable (16--29 range). When it does not converge, the solver throws an exception rather than returning astronomical values. Critically, the **exact same generators** fail with both methods -- generators 1,2,3,4,5,8 fail regardless of approach, and generators 0,6,7 succeed with identical lambda values and objectives. The convergence pattern is determined by network topology when certain generators are removed, not by the decommitment API choice.
+
+**Grade Impact:** The P2-3 finding that `max_p_mw=0` is a necessary workaround for `in_service=False` is weakened. Both approaches are equivalent; the failure is a solver robustness issue on certain topological configurations.
+
+</details>
+
+### probe-021 {#probe-021}
+
+<details className="eval-details">
+<summary>probe-021: Dispatch values ~100x larger than component limits (PowerSimulations)</summary>
+
+**Original Claim:** PowerSimulations dispatch values from `read_variables()` are ~100x larger than Pmax. For example, gen-1 shows Dispatch (pu) = 660.85 vs Pmax (pu) = 10.40. The evaluation concluded that "the user must understand PSI's internal unit conventions to correctly interpret optimization results" and that ACPF could not converge because dispatch values were "physically unrealistic."
+
+**Methodology:** Wrote a Julia script that loads IEEE 39-bus, builds and solves DCOPF with PTDFPowerModel + HiGHS, then extracts dispatch values via both the `read_variables()` API and direct JuMP variable access. Compared dispatch values to component Pmax in both pu and MW unit systems.
+
+**Finding:** The `read_variables()` API returns values in **MW** while `get_active_power_limits()` returns values in **system-base pu** (100 MVA base). The ~100x factor is simply the base_power conversion: 660.85 MW / 100 = 6.6085 pu, which is within gen-1's Pmax of 10.40 pu (1,040 MW). Generators at their dispatch limit (gen-2, gen-4, gen-5, gen-7, gen-8) show API dispatch exactly equal to Pmax in MW. The A-4 evaluation mislabeled MW values as "pu" in its comparison table. The ACPF non-convergence was caused by passing MW values to `set_active_power!()` which interprets them as pu -- a unit-unaware transfer error in the evaluation script, not a PSI defect. The A-3 evaluation of the same DCOPF correctly identified dispatch as MW with no mismatch.
+
+**Grade Impact:** A-4 finding of "dispatch exceeds limits" and B-7 dual-extraction concerns need revision. The API inconsistency (one function returns MW, another returns pu) is a real usability issue, but dispatch values are correct.
+
+</details>
+
+### probe-025 {#probe-025}
+
+<details className="eval-details">
+<summary>probe-025: 100% code coverage claim (PowerSimulations)</summary>
+
+**Original Claim:** From E-6: "Code coverage is reported at 100% on the Codecov badge" and "Codecov badge: 100% (as of 2026-03-06)."
+
+**Methodology:** Fetched the Codecov badge SVG from the URL referenced in the PowerSimulations.jl README. Cross-referenced with the Codecov dashboard for both NREL-Sienna and legacy NREL-SIIP organizations. Assessed plausibility given repository size (143 source files, 48 test files).
+
+**Finding:** The Codecov badge displays **78%** coverage, not 100%. This is a 22 percentage point discrepancy, not a rounding issue. 78% line coverage is reasonable for a 143-file Julia package and represents respectable test maturity, but it is materially different from the claimed 100%. The evaluator likely misread a cached badge rendering or confused PowerSimulations.jl with another Sienna package. The legacy NREL-SIIP badge shows "unknown" (coverage data no longer available under the old org name).
+
+**Grade Impact:** E-6 is marked informational (no pass/fail grade), so the incorrect number does not change scoring. However, it affects the narrative about test maturity -- 78% is good but not exceptional, and the misreport demonstrates the risk of accepting badge metrics without verification.
+
+</details>
+
+## Supported Probes with Protocol Implications
+
+| Probe ID | Tool | Finding | Theme |
+|----------|------|---------|-------|
+| probe-002 | PyPSA | Stochastic API is documented but non-functional due to optimizer integration bugs; both D-2 (docs exist) and A-8 (FAIL) findings are valid | -- |
+| probe-006 | pandapower | Convergence rate on perturbed ACTIVSg2000 is 0.42% (lower than claimed 2.1%); uniform load scaling alone converges reliably | [T01](./sweep-findings), [T08](./sweep-findings) |
+| probe-007 | pandapower | LMPs uniform to machine precision (std=6e-12) on MEDIUM; artificial congestion immediately produces meaningful spread (16.3--24.4 $/MWh) | [T01](./sweep-findings) |
+| probe-008 | pandapower | PTDF flow divergence of 7.43 pu reproduced exactly on ACTIVSg10k; case39 matches perfectly (0.0 diff); error is scale-dependent | [T06](./sweep-findings) |
+| probe-010 | pandapower | Phase-shifter Pbusinj/Pfinj correction eliminates ALL PTDF error to machine precision (1e-12); root cause is phase shifters, not shunts | [T06](./sweep-findings) |
+| probe-012 | GridCal | Max diff of 743.46 MW reproduced exactly; same phase-shifter root cause as pandapower | [T06](./sweep-findings) |
+| probe-016 | PowerModels | BFS scope sizes bracket claimed range; SCOPF with 5 contingencies timed out at 567s confirming infeasibility at 500 | [T04](./sweep-findings), [T13](./sweep-findings) |
+| probe-020 | PowerSimulations | C-3 reported wall_clock_seconds=null with estimated timing; first actual execution exceeded 600s timeout (includes JIT) | [T04](./sweep-findings) |
+| probe-023 | PowerSimulations | PTDF formulation is structurally distributed-slack; but on uncongested IEEE 39-bus, PTDF and DCP produce identical dispatch (max diff 1.5e-7) | [T01](./sweep-findings) |
+| probe-024 | PowerSimulations | ACPF on 10k-bus returns Missing in 5.5s with zero diagnostic info; no iteration count, no residual, no configurable tolerances | [T10](./sweep-findings) |
+
+## No-Impact Probes
+
+| Probe ID | Tool | Finding |
+|----------|------|---------|
+| probe-022 | PowerSimulations | Binding flow gate constraint produces non-zero dual (-0.1398); dual extraction via JuMP.dual() works for both binding and non-binding cases |
+| probe-028 | MATPOWER | MIPS solve confirmed at 141s per iteration; 65-min total for convergence is plausible; dense PTDF matrix is 400x slower than sparse formulation |
+| probe-029 | MATPOWER | containers.Map overhead confirmed as dominant bottleneck; LODF screening of 12,706 N-1 cases completes in 0.81s while Map adjacency build times out at 300s |
+| probe-032 | MATPOWER | loadmd() confirmed to fail with non-consecutive bus numbering on ACTIVSg2000; ext2int resolves bus issue but reveals further MOST input requirements |
+
+---
+
+[← Sweep Findings](./sweep-findings) | [Results Overview →](./)
