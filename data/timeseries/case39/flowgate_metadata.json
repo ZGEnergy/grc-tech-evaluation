@@ -1,0 +1,91 @@
+{
+  "script_version": "0.1.0",
+  "congestion_threshold": 0.8,
+  "derate_factor": 0.95,
+  "load_levels": {
+    "peak": 1.0,
+    "shoulder": 0.75,
+    "valley": 0.55
+  },
+  "num_flowgates": 3,
+  "flowgates": [
+    {
+      "flowgate_id": "FG_01",
+      "name": "FG_01_2-3_2-30",
+      "branches": [
+        2,
+        4
+      ],
+      "from_buses": [
+        2,
+        2
+      ],
+      "to_buses": [
+        3,
+        30
+      ],
+      "weights": [
+        1.0,
+        1.0
+      ],
+      "limit_mw": 475.0,
+      "binding_load_level": "peak",
+      "max_loading_pct": 130.56932966319343
+    },
+    {
+      "flowgate_id": "FG_02",
+      "name": "FG_02_6-11",
+      "branches": [
+        12
+      ],
+      "from_buses": [
+        6
+      ],
+      "to_buses": [
+        11
+      ],
+      "weights": [
+        1.0
+      ],
+      "limit_mw": 456.0,
+      "binding_load_level": "peak",
+      "max_loading_pct": 67.26127800690496
+    },
+    {
+      "flowgate_id": "FG_03",
+      "name": "FG_03_10-32",
+      "branches": [
+        19
+      ],
+      "from_buses": [
+        10
+      ],
+      "to_buses": [
+        32
+      ],
+      "weights": [
+        1.0
+      ],
+      "limit_mw": 855.0,
+      "binding_load_level": "peak",
+      "max_loading_pct": 68.38780673574348
+    }
+  ],
+  "branch_flow_summary": {
+    "peak": {
+      "num_branches": 46,
+      "max_loading_pct": 130.56932966319343,
+      "num_congested": 2
+    },
+    "shoulder": {
+      "num_branches": 46,
+      "max_loading_pct": 97.92699724739508,
+      "num_congested": 1
+    },
+    "valley": {
+      "num_branches": 46,
+      "max_loading_pct": 71.8131313147564,
+      "num_congested": 0
+    }
+  }
+}

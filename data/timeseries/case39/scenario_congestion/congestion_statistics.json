@@ -1,0 +1,257 @@
+{
+  "script_version": "0.1.0",
+  "n_scenarios": 50,
+  "n_hours": 24,
+  "n_branches": 46,
+  "summary": {
+    "total_scenario_hour_pairs": 1200,
+    "n_branches_ever_congested_80pct": 2,
+    "n_branches_ever_congested_100pct": 1,
+    "n_flowgate_violation_events": 1200,
+    "n_scenarios_with_violations": 50,
+    "scenario_peak_loading_min": 128.25,
+    "scenario_peak_loading_max": 129.71,
+    "scenario_peak_loading_mean": 128.9,
+    "scenario_peak_loading_std": 0.29,
+    "high_variability_branches": [
+      {
+        "branch": "16-19",
+        "branch_index": 26,
+        "loading_std_pct": 14.13,
+        "mean_loading_pct": 42.17,
+        "p95_loading_pct": 66.75,
+        "max_loading_pct": 69.0
+      },
+      {
+        "branch": "2-3",
+        "branch_index": 2,
+        "loading_std_pct": 11.54,
+        "mean_loading_pct": 104.36,
+        "p95_loading_pct": 128.09,
+        "max_loading_pct": 129.71
+      },
+      {
+        "branch": "2-30",
+        "branch_index": 4,
+        "loading_std_pct": 9.29,
+        "mean_loading_pct": 75.91,
+        "p95_loading_pct": 92.0,
+        "max_loading_pct": 92.88
+      },
+      {
+        "branch": "10-32",
+        "branch_index": 19,
+        "loading_std_pct": 6.47,
+        "mean_loading_pct": 52.92,
+        "p95_loading_pct": 64.13,
+        "max_loading_pct": 64.75
+      },
+      {
+        "branch": "6-11",
+        "branch_index": 12,
+        "loading_std_pct": 6.2,
+        "mean_loading_pct": 47.66,
+        "p95_loading_pct": 59.22,
+        "max_loading_pct": 60.37
+      },
+      {
+        "branch": "22-35",
+        "branch_index": 36,
+        "loading_std_pct": 6.13,
+        "mean_loading_pct": 50.15,
+        "p95_loading_pct": 60.77,
+        "max_loading_pct": 61.35
+      },
+      {
+        "branch": "19-33",
+        "branch_index": 32,
+        "loading_std_pct": 5.82,
+        "mean_loading_pct": 47.59,
+        "p95_loading_pct": 57.67,
+        "max_loading_pct": 58.23
+      },
+      {
+        "branch": "29-38",
+        "branch_index": 45,
+        "loading_std_pct": 5.79,
+        "mean_loading_pct": 47.35,
+        "p95_loading_pct": 57.39,
+        "max_loading_pct": 57.94
+      },
+      {
+        "branch": "21-22",
+        "branch_index": 34,
+        "loading_std_pct": 5.53,
+        "mean_loading_pct": 44.83,
+        "p95_loading_pct": 54.56,
+        "max_loading_pct": 55.14
+      },
+      {
+        "branch": "23-36",
+        "branch_index": 38,
+        "loading_std_pct": 5.18,
+        "mean_loading_pct": 42.34,
+        "p95_loading_pct": 51.31,
+        "max_loading_pct": 51.8
+      },
+      {
+        "branch": "25-37",
+        "branch_index": 40,
+        "loading_std_pct": 5.04,
+        "mean_loading_pct": 41.17,
+        "p95_loading_pct": 49.89,
+        "max_loading_pct": 50.37
+      },
+      {
+        "branch": "10-11",
+        "branch_index": 17,
+        "loading_std_pct": 5.0,
+        "mean_loading_pct": 38.81,
+        "p95_loading_pct": 48.08,
+        "max_loading_pct": 48.94
+      }
+    ]
+  },
+  "top_congested_branches": [
+    {
+      "branch_index": 2,
+      "from_bus": 2,
+      "to_bus": 3,
+      "rate_a_mw": 500.0,
+      "mean_loading_pct": 104.36109953678688,
+      "p50_loading_pct": 101.67648332102056,
+      "p95_loading_pct": 128.08704768232755,
+      "max_loading_pct": 129.70620567685734,
+      "prob_congested_80": 1.0,
+      "prob_congested_100": 0.655,
+      "worst_scenario": 34,
+      "worst_hour": 19
+    },
+    {
+      "branch_index": 4,
+      "from_bus": 2,
+      "to_bus": 30,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 75.91209416622993,
+      "p50_loading_pct": 77.03210134600782,
+      "p95_loading_pct": 91.99662081476394,
+      "max_loading_pct": 92.87888619052534,
+      "prob_congested_80": 0.39666666666666667,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 26,
+      "from_bus": 16,
+      "to_bus": 19,
+      "rate_a_mw": 600.0,
+      "mean_loading_pct": 42.17153617530171,
+      "p50_loading_pct": 39.245188243980905,
+      "p95_loading_pct": 66.75301114690171,
+      "max_loading_pct": 69.0049132365687,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 26,
+      "worst_hour": 14
+    },
+    {
+      "branch_index": 19,
+      "from_bus": 10,
+      "to_bus": 32,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 52.91948872165067,
+      "p50_loading_pct": 53.70026295755352,
+      "p95_loading_pct": 64.13225970259985,
+      "max_loading_pct": 64.74730046935659,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 36,
+      "from_bus": 22,
+      "to_bus": 35,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 50.14577758865381,
+      "p50_loading_pct": 50.88562848529553,
+      "p95_loading_pct": 60.770844711291176,
+      "max_loading_pct": 61.35364885854894,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 12,
+      "from_bus": 6,
+      "to_bus": 11,
+      "rate_a_mw": 480.0,
+      "mean_loading_pct": 47.661995171263925,
+      "p50_loading_pct": 47.61393724734987,
+      "p95_loading_pct": 59.22189481756986,
+      "max_loading_pct": 60.36669073059513,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 48,
+      "worst_hour": 19
+    },
+    {
+      "branch_index": 32,
+      "from_bus": 19,
+      "to_bus": 33,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 47.59104365036722,
+      "p50_loading_pct": 48.29320199768951,
+      "p95_loading_pct": 57.67480458771738,
+      "max_loading_pct": 58.22791711175241,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 45,
+      "from_bus": 29,
+      "to_bus": 38,
+      "rate_a_mw": 1200.0,
+      "mean_loading_pct": 47.35381835609776,
+      "p50_loading_pct": 48.05247668098324,
+      "p95_loading_pct": 57.38731514767124,
+      "max_loading_pct": 57.93767059240703,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 34,
+      "from_bus": 21,
+      "to_bus": 22,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 44.82650154897178,
+      "p50_loading_pct": 45.45785076256147,
+      "p95_loading_pct": 54.56061681102082,
+      "max_loading_pct": 55.13892941371314,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    },
+    {
+      "branch_index": 38,
+      "from_bus": 23,
+      "to_bus": 36,
+      "rate_a_mw": 900.0,
+      "mean_loading_pct": 42.33559097732054,
+      "p50_loading_pct": 42.960210366042816,
+      "p95_loading_pct": 51.3058077620799,
+      "max_loading_pct": 51.79784037548528,
+      "prob_congested_80": 0.0,
+      "prob_congested_100": 0.0,
+      "worst_scenario": 8,
+      "worst_hour": 18
+    }
+  ]
+}

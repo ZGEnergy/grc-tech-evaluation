@@ -1,0 +1,434 @@
+{
+  "script_version": "0.1.0",
+  "summary": {
+    "total_opfs_solved": 1224,
+    "scenario_opfs_converged": 1200,
+    "scenario_opfs_failed": 0,
+    "lmp_spread_mean": 30.8128,
+    "lmp_spread_std": 11.8468,
+    "lmp_spread_max": 41.9348,
+    "base_case_peak_lmps": {
+      "1": 38.8192,
+      "2": 6.098,
+      "3": 46.9348,
+      "4": 43.9528,
+      "5": 43.2201,
+      "6": 43.1467,
+      "7": 42.979,
+      "8": 42.8952,
+      "9": 41.1808,
+      "10": 43.0254,
+      "11": 43.0646,
+      "12": 43.0254,
+      "13": 42.9863,
+      "14": 42.8852,
+      "15": 40.872,
+      "16": 40.0,
+      "17": 39.1743,
+      "18": 42.1341,
+      "19": 40.0,
+      "20": 40.0,
+      "21": 40.0,
+      "22": 40.0,
+      "23": 40.0,
+      "24": 40.0,
+      "25": 10.0,
+      "26": 24.6552,
+      "27": 31.3249,
+      "28": 24.6552,
+      "29": 24.6552,
+      "30": 5.0,
+      "31": 43.1467,
+      "32": 43.0254,
+      "33": 40.0,
+      "34": 40.0,
+      "35": 40.0,
+      "36": 40.0,
+      "37": 10.0,
+      "38": 24.6552,
+      "39": 40.0
+    }
+  },
+  "bus_lmp_statistics": [
+    {
+      "bus_id": 1,
+      "mean_lmp": 30.0803,
+      "std_lmp": 15.1729,
+      "min_lmp": 10.0,
+      "max_lmp": 43.8955,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.8955
+    },
+    {
+      "bus_id": 2,
+      "mean_lmp": 8.0633,
+      "std_lmp": 0.9746,
+      "min_lmp": 6.098,
+      "max_lmp": 10.0,
+      "p5_lmp": 6.098,
+      "p95_lmp": 10.0
+    },
+    {
+      "bus_id": 3,
+      "mean_lmp": 28.0353,
+      "std_lmp": 9.2794,
+      "min_lmp": 10.0,
+      "max_lmp": 46.9348,
+      "p5_lmp": 10.0,
+      "p95_lmp": 46.9348
+    },
+    {
+      "bus_id": 4,
+      "mean_lmp": 27.3674,
+      "std_lmp": 8.52,
+      "min_lmp": 10.0,
+      "max_lmp": 43.9528,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.9528
+    },
+    {
+      "bus_id": 5,
+      "mean_lmp": 27.4563,
+      "std_lmp": 8.5197,
+      "min_lmp": 10.0,
+      "max_lmp": 43.2201,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.2201
+    },
+    {
+      "bus_id": 6,
+      "mean_lmp": 27.4357,
+      "std_lmp": 8.5107,
+      "min_lmp": 10.0,
+      "max_lmp": 43.1467,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.1467
+    },
+    {
+      "bus_id": 7,
+      "mean_lmp": 27.5606,
+      "std_lmp": 8.5998,
+      "min_lmp": 10.0,
+      "max_lmp": 42.979,
+      "p5_lmp": 10.0,
+      "p95_lmp": 42.979
+    },
+    {
+      "bus_id": 8,
+      "mean_lmp": 27.6231,
+      "std_lmp": 8.6546,
+      "min_lmp": 10.0,
+      "max_lmp": 42.8952,
+      "p5_lmp": 10.0,
+      "p95_lmp": 42.8952
+    },
+    {
+      "bus_id": 9,
+      "mean_lmp": 28.6567,
+      "std_lmp": 10.6059,
+      "min_lmp": 10.0,
+      "max_lmp": 41.1808,
+      "p5_lmp": 10.0,
+      "p95_lmp": 41.1808
+    },
+    {
+      "bus_id": 10,
+      "mean_lmp": 27.1749,
+      "std_lmp": 8.3826,
+      "min_lmp": 10.0,
+      "max_lmp": 43.0254,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.0254
+    },
+    {
+      "bus_id": 11,
+      "mean_lmp": 27.2591,
+      "std_lmp": 8.4213,
+      "min_lmp": 10.0,
+      "max_lmp": 43.0646,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.0646
+    },
+    {
+      "bus_id": 12,
+      "mean_lmp": 27.1749,
+      "std_lmp": 8.3826,
+      "min_lmp": 10.0,
+      "max_lmp": 43.0254,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.0254
+    },
+    {
+      "bus_id": 13,
+      "mean_lmp": 27.0907,
+      "std_lmp": 8.3465,
+      "min_lmp": 10.0,
+      "max_lmp": 42.9863,
+      "p5_lmp": 10.0,
+      "p95_lmp": 42.9863
+    },
+    {
+      "bus_id": 14,
+      "mean_lmp": 26.8733,
+      "std_lmp": 8.2657,
+      "min_lmp": 10.0,
+      "max_lmp": 42.8852,
+      "p5_lmp": 10.0,
+      "p95_lmp": 42.8852
+    },
+    {
+      "bus_id": 15,
+      "mean_lmp": 25.5749,
+      "std_lmp": 7.7107,
+      "min_lmp": 10.0,
+      "max_lmp": 40.872,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.872
+    },
+    {
+      "bus_id": 16,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 17,
+      "mean_lmp": 24.48,
+      "std_lmp": 7.2871,
+      "min_lmp": 10.0,
+      "max_lmp": 39.1743,
+      "p5_lmp": 10.0,
+      "p95_lmp": 39.1743
+    },
+    {
+      "bus_id": 18,
+      "mean_lmp": 25.836,
+      "std_lmp": 8.0413,
+      "min_lmp": 10.0,
+      "max_lmp": 42.1341,
+      "p5_lmp": 10.0,
+      "p95_lmp": 42.1341
+    },
+    {
+      "bus_id": 19,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 20,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 21,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 22,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 23,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 24,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 25,
+      "mean_lmp": 10.0,
+      "std_lmp": 0.0,
+      "min_lmp": 10.0,
+      "max_lmp": 10.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 10.0
+    },
+    {
+      "bus_id": 26,
+      "mean_lmp": 17.2738,
+      "std_lmp": 3.6605,
+      "min_lmp": 10.0,
+      "max_lmp": 24.6552,
+      "p5_lmp": 10.0,
+      "p95_lmp": 24.6552
+    },
+    {
+      "bus_id": 27,
+      "mean_lmp": 20.5841,
+      "std_lmp": 5.3265,
+      "min_lmp": 10.0,
+      "max_lmp": 31.3249,
+      "p5_lmp": 10.0,
+      "p95_lmp": 31.3249
+    },
+    {
+      "bus_id": 28,
+      "mean_lmp": 17.2738,
+      "std_lmp": 3.6605,
+      "min_lmp": 10.0,
+      "max_lmp": 24.6552,
+      "p5_lmp": 10.0,
+      "p95_lmp": 24.6552
+    },
+    {
+      "bus_id": 29,
+      "mean_lmp": 17.2738,
+      "std_lmp": 3.6605,
+      "min_lmp": 10.0,
+      "max_lmp": 24.6552,
+      "p5_lmp": 10.0,
+      "p95_lmp": 24.6552
+    },
+    {
+      "bus_id": 30,
+      "mean_lmp": 5.0,
+      "std_lmp": 0.0,
+      "min_lmp": 5.0,
+      "max_lmp": 5.0,
+      "p5_lmp": 5.0,
+      "p95_lmp": 5.0
+    },
+    {
+      "bus_id": 31,
+      "mean_lmp": 27.4357,
+      "std_lmp": 8.5107,
+      "min_lmp": 10.0,
+      "max_lmp": 43.1467,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.1467
+    },
+    {
+      "bus_id": 32,
+      "mean_lmp": 27.1749,
+      "std_lmp": 8.3826,
+      "min_lmp": 10.0,
+      "max_lmp": 43.0254,
+      "p5_lmp": 10.0,
+      "p95_lmp": 43.0254
+    },
+    {
+      "bus_id": 33,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 34,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 35,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 36,
+      "mean_lmp": 25.0125,
+      "std_lmp": 7.4875,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    },
+    {
+      "bus_id": 37,
+      "mean_lmp": 10.0,
+      "std_lmp": 0.0,
+      "min_lmp": 10.0,
+      "max_lmp": 10.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 10.0
+    },
+    {
+      "bus_id": 38,
+      "mean_lmp": 17.2738,
+      "std_lmp": 3.6605,
+      "min_lmp": 10.0,
+      "max_lmp": 24.6552,
+      "p5_lmp": 10.0,
+      "p95_lmp": 24.6552
+    },
+    {
+      "bus_id": 39,
+      "mean_lmp": 29.3685,
+      "std_lmp": 12.72,
+      "min_lmp": 10.0,
+      "max_lmp": 40.0,
+      "p5_lmp": 10.0,
+      "p95_lmp": 40.0
+    }
+  ],
+  "branch_shadow_statistics": [
+    {
+      "branch_index": 0,
+      "branch": "1-2",
+      "rate_a_mw": 600.0,
+      "mean_shadow": 23.187245,
+      "std_shadow": 19.920684,
+      "max_shadow": 42.195784,
+      "prob_binding": 0.5833
+    },
+    {
+      "branch_index": 2,
+      "branch": "2-3",
+      "rate_a_mw": 500.0,
+      "mean_shadow": -22.942474,
+      "std_shadow": 12.453723,
+      "max_shadow": 48.401196,
+      "prob_binding": 0.8758
+    },
+    {
+      "branch_index": 4,
+      "branch": "2-30",
+      "rate_a_mw": 900.0,
+      "mean_shadow": 3.063328,
+      "std_shadow": 0.97463,
+      "max_shadow": 5.0,
+      "prob_binding": 1.0
+    }
+  ]
+}
