@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <title>Stage 2: Two-Bus System with Transmission</title>
+  <desc>Two buses connected by a transmission line, with a generator at bus 1 and a load at bus 2. Power flows from the generator bus to the load bus through the line. Elements from stage 1 are dimmed while the new bus, line, and flow arrows are highlighted.</desc>
+
+  <!-- === Dimmed Stage 1 elements === -->
+
+  <!-- Bus 1 (dimmed) -->
+  <circle cx="200" cy="250" r="25" fill="none" stroke="#333" stroke-width="1" opacity="0.35" />
+  <text x="200" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" opacity="0.35" font-weight="bold">B1</text>
+
+  <!-- Generator G1 (dimmed) -->
+  <line x1="80" y1="250" x2="175" y2="250" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <circle cx="50" cy="250" r="25" fill="none" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <text x="50" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#2e7d32" opacity="0.35">~</text>
+  <text x="50" y="296" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#2e7d32" opacity="0.35">G1</text>
+
+  <!-- === Highlighted Stage 2 elements === -->
+
+  <!-- Transmission Line B1 -> B2 -->
+  <line x1="225" y1="250" x2="575" y2="250" stroke="#1565c0" stroke-width="2" />
+
+  <!-- Flow arrow on line -->
+  <polygon points="410,240 430,250 410,260" fill="#1565c0" stroke="none" />
+  <text x="400" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#1565c0">P flow →</text>
+
+  <!-- Line label -->
+  <text x="400" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#1565c0" font-style="italic">Line 1-2</text>
+
+  <!-- Bus 2 (new) -->
+  <circle cx="600" cy="250" r="25" fill="none" stroke="#333" stroke-width="2" />
+  <text x="600" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" font-weight="bold">B2</text>
+
+  <!-- Load L1 at Bus 2 (new position) -->
+  <line x1="625" y1="250" x2="700" y2="250" stroke="#c62828" stroke-width="2" />
+  <polygon points="720,220 740,220 730,260" fill="none" stroke="#c62828" stroke-width="2" />
+  <line x1="730" y1="200" x2="730" y2="222" stroke="#c62828" stroke-width="2" />
+  <text x="730" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#c62828" font-weight="bold">L1</text>
+
+  <!-- Annotation -->
+  <text x="400" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Power flows from generation (B1) to load (B2) through transmission line</text>
+</svg>

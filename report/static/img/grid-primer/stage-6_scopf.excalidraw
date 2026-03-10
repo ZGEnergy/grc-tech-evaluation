@@ -1,0 +1,78 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "hand-crafted",
+  "elements": [
+    {
+      "type": "ellipse",
+      "id": "bus1",
+      "x": 175,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B1" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus2",
+      "x": 575,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B2" }
+    },
+    {
+      "type": "line",
+      "id": "line12-tripped",
+      "x": 225,
+      "y": 150,
+      "width": 350,
+      "height": 0,
+      "strokeColor": "#b71c1c",
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "text",
+      "id": "tripped-label",
+      "x": 365,
+      "y": 170,
+      "text": "TRIPPED",
+      "strokeColor": "#b71c1c"
+    },
+    {
+      "type": "text",
+      "id": "g1-redispatch",
+      "x": 20,
+      "y": 100,
+      "text": "G1: 180 → 140 MW",
+      "strokeColor": "#b71c1c"
+    },
+    {
+      "type": "text",
+      "id": "g2-redispatch",
+      "x": 20,
+      "y": 300,
+      "text": "G2: 120 → 160 MW",
+      "strokeColor": "#2e7d32"
+    },
+    {
+      "type": "rectangle",
+      "id": "n1-box",
+      "x": 540,
+      "y": 400,
+      "width": 230,
+      "height": 60,
+      "strokeColor": "#1565c0",
+      "backgroundColor": "#e3f2fd",
+      "label": { "text": "N-1 Security Criterion" }
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}
