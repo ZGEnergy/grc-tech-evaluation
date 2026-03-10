@@ -267,8 +267,20 @@ Read ALL of the following before writing any Suite G test:
 - `data/fnm/docs/field-criticality-matrix.md` — DCPF-critical / ACPF-critical / Informational / Discardable tier per field
 - `data/fnm/reference/pass_conditions.json` — aggregate thresholds for DCPF/ACPF verification
 - `data/fnm/reference/excluded_buses.json` — buses to exclude from metric denominators
+- `data/fnm/reference/cleaned/summary_cleaning.json` — cleaning steps applied to produce the solved case
+- `data/fnm/reference/acpf/summary_acpf.json` — ACPF failure analysis (MATPOWER cannot solve)
 - `data/fnm/docs/supplemental-csvs.md` — supplemental CSV field definitions and representability framework
 - `data/fnm/docs/supplemental-csv-representability.md` — cross-tool analytical classifications
+
+### Cleaned Case (for G-FNM-3/4 power flow tests)
+
+G-FNM-3 and G-FNM-4 load from the pre-cleaned MATPOWER case at
+`data/fnm/reference/cleaned/fnm_main_island.mat` (mounted at
+`/workspace/data/fnm/reference/cleaned/fnm_main_island.mat` in the devcontainer).
+This is the 27,862-bus main island with all data fixes pre-applied:
+negative-X coercion, zero-X/R/RATE_A fixes, island extraction, single-slack reduction.
+See `summary_cleaning.json` for details. **Do NOT re-implement cleaning in test code** —
+the cleaned case is the canonical input for power flow verification.
 
 ### Per-Test Guidance
 
@@ -289,19 +301,26 @@ Read ALL of the following before writing any Suite G test:
 - Fields carried via extension mechanisms (custom attributes) count as present
 
 **G-FNM-3 (DCPF verification):**
-- Solve DCPF on the ingested FNM model
+- Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- Ingest into the tool's data model (e.g., via `import_from_pypower_ppc`, `loadcase`, etc.)
+- Solve DCPF on the cleaned case
 - Load reference solution from `data/fnm/reference/dcpf/`
-- Load bus exclusions from `data/fnm/reference/excluded_buses.json`
 - Compute aggregate deviation metrics per `pass_conditions.json` `dcpf` section
 - Classify outliers per the outlier rules in pass_conditions.json
 - 10-minute timeout; record failure mode (scale vs data model)
 - Emit `fnm-scale` observation if failure is scale-related, `fnm-data-model` if data-model
 
-**G-FNM-4 (ACPF verification):**
-- Same framework as G-FNM-3 but for ACPF (VM + VA)
-- Load reference from `data/fnm/reference/acpf/`
-- Apply pass_conditions.json `acpf` section thresholds
-- Classify outlier buses (switched shunt, Q-limit, slack, tap, island boundary)
+**G-FNM-4 (ACPF convergence capability):**
+- Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- Attempt ACPF solve — **no reference solution exists** (MATPOWER 8.1 fails on all variants;
+  see `data/fnm/reference/acpf/summary_acpf.json` for failure analysis)
+- Record: convergence yes/no, solver algorithm, residual, iteration count
+- If converged: record VM/VA statistics (min, max, mean), total losses
+- **Convergence is a positive finding, not a requirement** — tools with robust initialization
+  (homotopy, voltage regulation heuristics) may succeed where MATPOWER cannot
+- If multiple tools converge, apply `pass_conditions.json` `acpf` thresholds for cross-tool
+  consistency checking
+- Do NOT penalize failure to converge — emit as informational observation
 
 **G-FNM-5 (Supplemental CSV representability):**
 - For each of 7 supplemental CSVs, attempt to attach each field to the tool's network model

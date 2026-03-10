@@ -1,0 +1,27 @@
+{
+  "success": 0,
+  "failure_reason": "Voltage collapse at ~30% load — MATPOWER cannot solve flat-start FNM ACPF",
+  "methods_attempted": [
+    "NR (flat start, all variants: NR, NR-IC, NR-SP, NR-SH, NR-IH)",
+    "FDXB/FDBX (1000 iterations)",
+    "Manual continuation (1%→30% converged, fails at 35%)",
+    "runcpf continuation power flow (stuck at nose point ~30%)"
+  ],
+  "max_load_reached_pct": 30,
+  "data_fixes_applied": [
+    "negative_x_to_abs (541 branches — series capacitors)",
+    "zero_x_to_0.0001 (zero-impedance branches)",
+    "zero_r_to_0.0001 (7170 branches — transformers)",
+    "zero_rate_a_to_9999 (28 branches)"
+  ],
+  "root_cause": "FNM RAW file is a planning model with flat start (all VM=1.0, VA=0.0, Vg=1.0). No solved voltage profile exists. 86 islands detected (main: 27862 buses). 541 series capacitors (negative X). MATPOWER solvers cannot initialize from this state at full load.",
+  "n_buses_main_island": 27862,
+  "n_branches_main_island": 32606,
+  "n_gens_main_island": 5741,
+  "n_islands_total": 86,
+  "all_vg_flat": true,
+  "all_vm_flat": true,
+  "solver": "MATPOWER 8.1",
+  "main_island_only": true,
+  "note": "G-FNM-4 should test whether evaluated tools can converge where MATPOWER cannot, rather than comparing to a reference solution"
+}

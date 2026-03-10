@@ -1,0 +1,12 @@
+{
+  "success": 1,
+  "wall_clock_seconds": 0.1348,
+  "total_gen_mw": 165491.5460,
+  "total_load_mw": 165491.5460,
+  "slack_bus": 29421,
+  "slack_angle": 0.00000000,
+  "n_buses": 27862,
+  "n_branches": 32532,
+  "n_gens": 5741,
+  "main_island_only": true
+}
