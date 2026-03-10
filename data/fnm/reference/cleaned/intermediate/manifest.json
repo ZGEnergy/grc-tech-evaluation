@@ -1,0 +1,159 @@
+{
+  "sbase": 100.0,
+  "basfrq": 60.0,
+  "rev": 31.0,
+  "case_id": "fnm_main_island",
+  "canonical_parser": "matpower",
+  "tables": [
+    {
+      "table_name": "bus",
+      "record_type": "Bus",
+      "file_name": "bus.csv",
+      "record_count": 27862,
+      "column_count": 13,
+      "schema_file": "bus.schema.json"
+    },
+    {
+      "table_name": "load",
+      "record_type": "Load",
+      "file_name": "load.csv",
+      "record_count": 8624,
+      "column_count": 13,
+      "schema_file": "load.schema.json"
+    },
+    {
+      "table_name": "fixed_shunt",
+      "record_type": "Fixed Shunt",
+      "file_name": "fixed_shunt.csv",
+      "record_count": 3110,
+      "column_count": 5,
+      "schema_file": "fixed_shunt.schema.json"
+    },
+    {
+      "table_name": "generator",
+      "record_type": "Generator",
+      "file_name": "generator.csv",
+      "record_count": 5741,
+      "column_count": 28,
+      "schema_file": "generator.schema.json"
+    },
+    {
+      "table_name": "branch",
+      "record_type": "Branch",
+      "file_name": "branch.csv",
+      "record_count": 23076,
+      "column_count": 24,
+      "schema_file": "branch.schema.json"
+    },
+    {
+      "table_name": "transformer",
+      "record_type": "Transformer",
+      "file_name": "transformer.csv",
+      "record_count": 9530,
+      "column_count": 83,
+      "schema_file": "transformer.schema.json"
+    },
+    {
+      "table_name": "area",
+      "record_type": "Area",
+      "file_name": "area.csv",
+      "record_count": 0,
+      "column_count": 5,
+      "schema_file": "area.schema.json"
+    },
+    {
+      "table_name": "two_terminal_dc",
+      "record_type": "Two-Terminal DC",
+      "file_name": "two_terminal_dc.csv",
+      "record_count": 0,
+      "column_count": 46,
+      "schema_file": "two_terminal_dc.schema.json"
+    },
+    {
+      "table_name": "vsc_dc",
+      "record_type": "VSC DC",
+      "file_name": "vsc_dc.csv",
+      "record_count": 0,
+      "column_count": 41,
+      "schema_file": "vsc_dc.schema.json"
+    },
+    {
+      "table_name": "impedance_correction",
+      "record_type": "Impedance Correction",
+      "file_name": "impedance_correction.csv",
+      "record_count": 0,
+      "column_count": 23,
+      "schema_file": "impedance_correction.schema.json"
+    },
+    {
+      "table_name": "multi_terminal_dc",
+      "record_type": "Multi-Terminal DC",
+      "file_name": "multi_terminal_dc.csv",
+      "record_count": 0,
+      "column_count": 8,
+      "schema_file": "multi_terminal_dc.schema.json"
+    },
+    {
+      "table_name": "multi_section_line",
+      "record_type": "Multi-Section Line",
+      "file_name": "multi_section_line.csv",
+      "record_count": 0,
+      "column_count": 13,
+      "schema_file": "multi_section_line.schema.json"
+    },
+    {
+      "table_name": "zone",
+      "record_type": "Zone",
+      "file_name": "zone.csv",
+      "record_count": 74,
+      "column_count": 2,
+      "schema_file": "zone.schema.json"
+    },
+    {
+      "table_name": "interarea_transfer",
+      "record_type": "Interarea Transfer",
+      "file_name": "interarea_transfer.csv",
+      "record_count": 0,
+      "column_count": 4,
+      "schema_file": "interarea_transfer.schema.json"
+    },
+    {
+      "table_name": "owner",
+      "record_type": "Owner",
+      "file_name": "owner.csv",
+      "record_count": 1,
+      "column_count": 2,
+      "schema_file": "owner.schema.json"
+    },
+    {
+      "table_name": "facts",
+      "record_type": "FACTS",
+      "file_name": "facts.csv",
+      "record_count": 0,
+      "column_count": 14,
+      "schema_file": "facts.schema.json"
+    },
+    {
+      "table_name": "switched_shunt",
+      "record_type": "Switched Shunt",
+      "file_name": "switched_shunt.csv",
+      "record_count": 0,
+      "column_count": 26,
+      "schema_file": "switched_shunt.schema.json"
+    }
+  ],
+  "total_records": 78018,
+  "total_tables": 17,
+  "non_empty_record_types": [
+    "Bus",
+    "Load",
+    "Fixed Shunt",
+    "Generator",
+    "Branch",
+    "Transformer",
+    "Zone",
+    "Owner"
+  ],
+  "schema_version": "1.0",
+  "generated_timestamp": "2026-03-10T22:31:40.428773+00:00"
+}
