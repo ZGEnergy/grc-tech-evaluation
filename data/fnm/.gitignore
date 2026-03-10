@@ -9,6 +9,9 @@
 # Intermediate and reference output directories
 intermediate/**
 reference/**
+!reference/
+!reference/*/
+!reference/**/summary_*.json
 
 # Allow tracked infrastructure files
 !manifest.json
