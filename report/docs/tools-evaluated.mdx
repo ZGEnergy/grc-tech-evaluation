@@ -3,6 +3,257 @@ sidebar_position: 4
 title: "Tools Evaluated"
 ---
 
+import Placeholder from '@site/src/components/Placeholder';
+
 # Tools Evaluated
 
-Content for this page will be added in Phase 3.
+This page profiles the six open-source power system modeling tools evaluated under
+Protocol v4. Each tool was tested against a standardized rubric covering six criteria:
+Problem Expressiveness, Extensibility, Scalability, Workforce Accessibility, Maturity
+& Sustainability, and Supply Chain. Supply Chain serves as a gate criterion -- any
+tool graded below C+ is disqualified.
+
+Tools are ordered by overall rank. The top-ranked tool (PyPSA) is expanded by default;
+collapse or expand any card to compare profiles side by side. MATPOWER is included as
+a reference benchmark only and is excluded from primary ranking -- see the
+[footnote](#matpower-exclusion) at the bottom of this page for details.
+
+<Placeholder title="Tool Comparison Radar" />
+
+{/* ------------------------------------------------------------------ */}
+{/* #1 -- PyPSA                                                        */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details" open>
+<summary>
+
+### #1 -- PyPSA
+
+</summary>
+
+> Python-based open energy system modelling framework with native support for power
+> flow, optimal power flow, unit commitment, and security-constrained dispatch.
+
+| | |
+|---|---|
+| **Language / Runtime** | Python 3.9+ |
+| **Solver Ecosystem** | HiGHS, GLPK, SCIP, Gurobi, CPLEX (via Linopy) |
+| **Maintainer** | TU Berlin / Open Energy Transition |
+| **Funding** | Academic (TU Berlin, KIT) + commercial (Open Energy Transition) |
+| **License** | MIT |
+| **Target Users** | Energy system researchers, grid planners, policy analysts |
+
+<Placeholder title="PyPSA Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-b-plus">B+</span> | Passes 9 of 11 expressiveness tests at TINY with strong native DCPF, ACPF, DCOPF, SCOPF, lossy DCOPF, and distributed slack. The one blocking failure is stochastic optimization (A-8) -- the `n.scenarios` data model exists but is not wired to the optimizer. SCUC/SCED failures at SMALL are solver-bound (HiGHS single-threaded), not tool-bound. |
+| Extensibility | <span className="grade-a-minus">A-</span> | Custom constraints via the Linopy `create_model()`/`solve_model()` split require only 2 lines of code with full dual extraction. Zero-friction NetworkX graph access, clean stochastic wrapping via `n.copy()`, and native PTDF extraction demonstrate strong architectural extensibility. The sole caveat is a broken `lpf_contingency()` method in v1.1.2 with a stable manual workaround. |
+| Scalability | <span className="grade-b-minus">B-</span> | DCPF, ACPF, and DCOPF scale to 10k-bus with solver times well within budget. However, SCUC fails at SMALL (2k-bus) due to HiGHS single-threaded MILP limitations, and Linopy shadow-price post-processing creates a 10+ minute overhead at 10k-bus that blocks several MEDIUM tests from completing. |
+| Accessibility | <span className="grade-b-plus">B+</span> | Single-command install with bundled HiGHS solver; 3 steps to first solve. Core workflows have dedicated doc pages and working examples. Documentation gaps in advanced features (SCED workflow, LMP decomposition, PTDF column ordering) prevent an A-level grade. |
+| Maturity | <span className="grade-a-minus">A-</span> | 24 releases in 24 months with strict SemVer and a v1.0.0 milestone. 327 commits from 32 contributors in 12 months, 84% test coverage, and confirmed adoption by IEA, ACER, ENTSO-E, and TransnetBW. Contributor concentration risk is mitigated by institutional backing and multiple PyPI maintainers. |
+| Supply Chain | <span className="grade-a">A</span> | MIT license throughout the critical path. 87 dependencies all open-source and air-gap installable. Sigstore cryptographic attestations on PyPI releases. No commercial solver required -- HiGHS (MIT) covers all optimization modes. One trivially replaceable GPL dependency (Levenshtein, used only for developer UX). |
+
+</details>
+
+{/* ------------------------------------------------------------------ */}
+{/* #2 -- PowerModels                                                  */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details">
+<summary>
+
+### #2 -- PowerModels
+
+</summary>
+
+> Julia-based power network optimization framework from Los Alamos National Laboratory,
+> built on JuMP for formulation-flexible optimal power flow.
+
+| | |
+|---|---|
+| **Language / Runtime** | Julia 1.6+ |
+| **Solver Ecosystem** | HiGHS, Ipopt, GLPK, SCIP, Gurobi, CPLEX (via JuMP/MOI) |
+| **Maintainer** | Los Alamos National Laboratory (LANL) |
+| **Funding** | DOE/LANL contract DE-AC52-06NA25396 |
+| **License** | BSD-3-Clause |
+| **Target Users** | Power systems optimization researchers, DOE national lab teams |
+
+<Placeholder title="PowerModels Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-b-minus">B-</span> | Core PF/OPF is strong with native DCPF, ACPF, DCOPF, and built-in lossy DC OPF (DCPLLPowerModel). However, 6 of 11 tests required user-assembled JuMP formulations averaging 269 lines of code. Stochastic OPF is a blocking failure -- the multi-network framework lacks scenario indexing. SCUC/SCED fail at SMALL due to solver timeouts. |
+| Extensibility | <span className="grade-a-minus">A-</span> | The two-level API (`instantiate_model`/`optimize_model!`) exposes the JuMP model for arbitrary constraint injection without source patching -- one of the cleanest extension patterns among evaluated tools. Native PTDF computation with sub-1e-11 flow prediction error at 10k-bus. The sole caveat is no native graph library, requiring ~15 lines of manual adjacency construction. |
+| Scalability | <span className="grade-b-minus">B-</span> | DCPF and DCOPF scale cleanly to 10k-bus. PTDF computation handles 127M-element matrices in under 4 seconds. However, ACPF fails at 10k-bus (NLsolve non-convergence), SCUC times out at SMALL, and contingency sweep is infeasible at MEDIUM due to combinatorial explosion. Ipopt is the most reliable solver at scale; HiGHS QP struggles. |
+| Accessibility | <span className="grade-b-minus">B-</span> | Core PF/OPF is well-documented with stable 7-year-old examples. But there is a sharp accessibility cliff beyond built-in problems: 4 of 11 tests have no documentation support and require JuMP expertise plus source code reading. Julia startup overhead (2-5s per invocation) and poor data-level error messages add friction. |
+| Maturity | <span className="grade-c-plus">C+</span> | Healthy quarterly release cadence and strong CI with 94% code coverage. But bus factor is effectively 1 (ccoffrin holds 82.4% of lifetime commits), there is no evidence of operational/production deployment, and the project is pre-1.0 after 9+ years. DOE funding and an informal maintainer transition to odow provide mitigants. |
+| Supply Chain | <span className="grade-a">A</span> | BSD-3-Clause core with pure Julia source. HiGHS (MIT) and Ipopt (EPL-2.0) cover all formulation types without proprietary solvers. Air-gap installable via Julia depot cloning. GLPK (GPL-3.0) and SCIP (ZIB Academic) are optional and removable without losing functionality. |
+
+</details>
+
+{/* ------------------------------------------------------------------ */}
+{/* #3 -- PowerSimulations                                             */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details">
+<summary>
+
+### #3 -- PowerSimulations
+
+</summary>
+
+> Julia-based production cost modeling framework from NREL, part of the Sienna ecosystem,
+> designed for multi-period simulation with rich device formulations.
+
+| | |
+|---|---|
+| **Language / Runtime** | Julia 1.6+ |
+| **Solver Ecosystem** | HiGHS, SCIP, Gurobi, CPLEX (via JuMP/MOI) |
+| **Maintainer** | National Renewable Energy Laboratory (NREL) |
+| **Funding** | DOE/NREL funded |
+| **License** | BSD-3-Clause |
+| **Target Users** | Production cost modelers, capacity expansion analysts, NREL collaborators |
+
+<Placeholder title="PowerSimulations Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-b-minus">B-</span> | Native multi-period SCUC with rich device formulations (ThermalStandardUnitCommitment, ramp limits, min up/down) is a genuine differentiator. However, stochastic optimization (A-8) and lossy DC OPF (A-10) are blocking failures. SCOPF and distributed slack require manual JuMP assembly. Mandatory time-series boilerplate (~30 lines) adds friction to every optimization test. |
+| Extensibility | <span className="grade-b-plus">B+</span> | JuMP model access via `get_jump_model()` enables constraint injection and dual extraction. Clean separation of concerns across the Sienna stack (PowerSystems, PowerFlows, PowerSimulations). No native graph library integration, and the unit convention mismatch between PSI dispatch (MW) and PowerSystems limits (pu) creates a real interoperability friction point. |
+| Scalability | <span className="grade-b-minus">B-</span> | DCPF scales to 10k-bus in 9.4 seconds and PTDF computation completes in 6.4 seconds. However, 4 of 10 scalability tests lack measured wall-clock times (estimates only), ACPF fails on MEDIUM with no diagnostics, and SCOPF/distributed-slack scale tests fail due to absent native formulations. |
+| Accessibility | <span className="grade-c-plus">C+</span> | Julia JIT compilation overhead and mandatory time-series boilerplate create a high barrier to entry. Only 4 of 11 Suite A tests are completable from documentation alone. The Sienna tutorial ecosystem covers ~20% of evaluation use cases. Error quality is mixed -- zero-rate lines are silently accepted with no validation warning. |
+| Maturity | <span className="grade-b">B</span> | 22 releases in 24 months under active DOE/NREL development. 1,040 commits from 21 contributors in 12 months with 78% code coverage (corrected from initially reported 100%). Bus factor is improving but remains concentrated. Limited adoption outside NREL collaborators. |
+| Supply Chain | <span className="grade-a-minus">A-</span> | BSD-3-Clause core with all open-source solvers sufficient. Air-gap installable via Julia depot copy. GLPK (GPL-3.0) is optional and removable. The 183-package dependency tree with 51 JLL binary wrappers is the largest among evaluated tools, creating a wider supply chain surface area. |
+
+</details>
+
+{/* ------------------------------------------------------------------ */}
+{/* #4 -- pandapower                                                   */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details">
+<summary>
+
+### #4 -- pandapower
+
+</summary>
+
+> Python-based steady-state power system analysis tool with a pandas-native data model,
+> optimized for distribution network planning and power flow analysis.
+
+| | |
+|---|---|
+| **Language / Runtime** | Python 3.10+ |
+| **Solver Ecosystem** | PYPOWER interior point (bundled); no external solver swap |
+| **Maintainer** | University of Kassel / Fraunhofer IEE |
+| **Funding** | Academic (University of Kassel, Fraunhofer IEE) + commercial (Retoflow spin-off) |
+| **License** | BSD-3-Clause |
+| **Target Users** | Distribution network planners, grid operators, Python data scientists |
+
+<Placeholder title="pandapower Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-c-plus">C+</span> | Passes 5 of 11 expressiveness tests with strong DCPF, ACPF, basic DC OPF, and contingency analysis. However, 6 tests fail with blocking architectural limitations -- no MILP optimization means no SCUC, SCED, stochastic OPF, SCOPF, lossy DC OPF, or distributed slack OPF. The tool excels within its steady-state power flow scope but cannot express market-operations optimization problems. |
+| Extensibility | <span className="grade-b">B</span> | Clean NetworkX integration, efficient in-place branch switching for contingency loops, and trivial DataFrame interoperability. However, OPF-related extension points (custom constraints, dual values, PTDF) require fragile access to PYPOWER internals via `net._ppc`. The solver is locked to PYPOWER with no ability to swap. |
+| Scalability | <span className="grade-b-minus">B-</span> | Power flow and contingency analysis scale well to 10k-bus with competitive times (ACPF in 2.5s, 10k contingencies at 0.054s/case). But 4 of 10 scalability tests fail due to absent expressiveness features, the solver swap test fails due to architectural lock-in, and stochastic DC OPF shows only 2.1% convergence rate. |
+| Accessibility | <span className="grade-b-plus">B+</span> | Low barrier to entry: 5 lines of code to first solve, pure Python install, all 8 tested tutorials run without modification. Pandas-native data model is immediately accessible to any Python data scientist. OPF documentation gaps and silent error handling for missing cost curves prevent an A-level grade. |
+| Maturity | <span className="grade-a-minus">A-</span> | 15 releases in 24 months with dual institutional backing from University of Kassel and Fraunhofer IEE plus a commercial spin-off (Retoflow). 891 commits from 21 committers, 1.9-day median issue close time, and European DSO adoption (10+ DSOs via pandapowerpro). No ISO/RTO adoption found. |
+| Supply Chain | <span className="grade-a">A</span> | BSD-3-Clause with all-permissive dependencies. Pure Python core with no compiled extensions. Sigstore attestations via GitHub Actions trusted publishing. Fully air-gap installable with only 38 total packages -- the smallest dependency footprint among evaluated tools. |
+
+</details>
+
+{/* ------------------------------------------------------------------ */}
+{/* #5 -- GridCal                                                      */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details">
+<summary>
+
+### #5 -- GridCal
+
+</summary>
+
+> Python-based power system simulation tool with a GUI-first design, supporting
+> steady-state analysis, OPF, and time-series simulation.
+
+| | |
+|---|---|
+| **Language / Runtime** | Python 3.10+ |
+| **Solver Ecosystem** | HiGHS, SCIP (via PuLP); internal Newton-Raphson for PF |
+| **Maintainer** | Santiago Penate Vera (SanPen) |
+| **Funding** | Individual maintainer; no institutional backing identified |
+| **License** | MPL-2.0 |
+| **Target Users** | Distribution engineers, power system students, GUI-oriented analysts |
+
+<Placeholder title="GridCal Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-c-plus">C+</span> | Passes DCPF, ACPF, DC OPF, AC feasibility, and lossy DC OPF with built-in loss approximation. However, a single TapPhaseControl bug cascades into failures across SCUC, SCED, and stochastic tests. SCOPF's `consider_contingencies` flag is non-functional, and distributed slack is available in PF only, not OPF. Five of eleven tests fail with blocking limitations. |
+| Extensibility | <span className="grade-b">B</span> | Native NetworkX MultiDiGraph integration and efficient contingency loops via in-place branch switching. Clean 3-tier architecture with good DataFrame interoperability. But the PuLP optimization model is not exposed, making custom constraint injection impossible -- a blocking gap for advanced OPF workflows. |
+| Scalability | <span className="grade-b-minus">B-</span> | DCPF (1.8s), ACPF (12.7s), and DC OPF (15.2s) all scale to 10k-bus with modest memory. Solver swap between HiGHS and SCIP is a one-line change. However, 4 scalability tests fail due to inherited expressiveness gaps, and PTDF flow predictions diverge by 743 MW on MEDIUM (a scale-dependent island-handling issue). |
+| Accessibility | <span className="grade-c-plus">C+</span> | Installation works but SolverType naming confusion adds friction. Only 2 of 11 Suite A tests are completable from documentation alone. All three tested error scenarios (missing costs, infeasible OPF, invalid bus type) are silently accepted with no validation warning. The TapPhaseControl bug blocks several getting-started examples. |
+| Maturity | <span className="grade-b-minus">B-</span> | High release cadence (~40 releases in 24 months) and 2,434 commits from ~30 contributors. However, 70.3% of commits come from a single maintainer (SanPen) with no institutional backing, creating a bus factor of 1. One distribution utility deployment identified. The recent license change to MPL-2.0 may require legal review for government use. |
+| Supply Chain | <span className="grade-b">B</span> | MPL-2.0 license is weak copyleft at the file level -- compatible with commercial use but requires awareness. Pure Python core with full execution path traceability. Air-gap installable. However, the 83-package dependency tree includes unusual entries (opencv) and lacks signed release tags, SLSA provenance, or SBOM. |
+
+</details>
+
+{/* ------------------------------------------------------------------ */}
+{/* Reference -- MATPOWER                                              */}
+{/* ------------------------------------------------------------------ */}
+
+<details className="eval-details">
+<summary>
+
+### Reference -- MATPOWER
+
+</summary>
+
+:::note[Reference Benchmark Only]
+MATPOWER is included as a reference benchmark and is **excluded from primary ranking**.
+The MATLAB runtime is a proprietary binary incompatible with classified network
+authorization requirements. All MATPOWER testing used GNU Octave. See the
+[exclusion footnote](#matpower-exclusion) below.
+:::
+
+> The canonical open-source power system analysis toolbox, providing the reference
+> MATPOWER case file format used by all other evaluated tools as test input.
+
+| | |
+|---|---|
+| **Language / Runtime** | MATLAB / GNU Octave |
+| **Solver Ecosystem** | MIPS (bundled), GLPK; HiGHS requires MEX compilation |
+| **Maintainer** | Ray Zimmerman (independent, formerly Cornell) |
+| **Funding** | Unfunded volunteer work since mid-2024; former NSF/DOE grants |
+| **License** | BSD-3-Clause |
+| **Target Users** | Power systems researchers, MATLAB users, academic coursework |
+
+<Placeholder title="MATPOWER Radar" />
+
+| Criterion | Grade | Summary |
+|-----------|-------|---------|
+| Expressiveness | <span className="grade-a-minus">A-</span> | The broadest native feature set among evaluated tools: DCPF, ACPF, DCOPF, SCUC, SCED, contingency sweep, stochastic OPF, and SCOPF all pass at TINY via the MOST extension. Lossy DC OPF is absent (post-hoc loss estimation only) and distributed slack OPF requires manual opt_model assembly. SCUC produces no unit cycling on case39 due to capacity-to-load ratio, reducing discriminative value. |
+| Extensibility | <span className="grade-a-minus">A-</span> | The opt_model framework enables custom constraint injection with callback functions. Native PTDF/LODF computation, BFS graph traversal, and efficient in-place contingency switching. Clean separation between core MATPOWER and the MOST temporal extension. The main caveat is Octave's interpreted overhead for data structure operations (containers.Map 400x slower than sparse matrix). |
+| Scalability | <span className="grade-b-minus">B-</span> | DCPF, ACPF, and DCOPF scale to 10k-bus with the built-in MIPS solver. PTDF computation handles the full 12,706 x 10,000 matrix. However, SCUC and stochastic OPF fail at SMALL due to a MOST `loadmd()` bug with non-consecutive bus numbering (not a solver limit). Only 2 of 4 specified solvers were testable due to missing MEX bindings. |
+| Accessibility | <span className="grade-b">B</span> | Comprehensive documentation for core functions with 65% of getting-started examples passing on Octave. The MATLAB/Octave environment is familiar to power systems academics. MOST documentation is sparse, and error messages range from excellent (2/10) to poor (9/10 on the quality scale). LOC counts are inflated by Octave boilerplate. |
+| Maturity | <span className="grade-c-plus">C+</span> | Only 2 releases in 24 months and 93% of commits from a single developer (Zimmerman). Unfunded volunteer work since mid-2024 with no institutional backing. Bus factor is 1 (98.5% lifetime). 462 test files but no coverage metric. Zero evidence of production deployment. Despite deep historical significance, the sustainability outlook is concerning. |
+| Supply Chain | <span className="grade-a">A</span> | BSD-3-Clause with zero external dependencies -- the smallest supply chain footprint possible. All solvers are bundled and BSD-licensed. Pure interpreted code with no compiled extensions. Fully air-gap compatible. The case file format carve-out in the license covers contributed test networks. |
+
+</details>
+
+---
+
+## MATPOWER Exclusion Footnote {#matpower-exclusion}
+
+MATPOWER is designated as a **reference benchmark only** and is excluded from primary
+tool ranking. The MATLAB runtime is a proprietary commercial binary that cannot receive
+authorization for use on classified networks. All MATPOWER evaluation testing was
+conducted using GNU Octave, an open-source MATLAB-compatible interpreter. However,
+Octave lacks HiGHS MEX bindings, has no production deployment precedent for power system
+analysis at scale, and introduces interpreter-specific performance overhead (e.g.,
+`containers.Map` operations are 400x slower than equivalent sparse matrix operations).
+MATPOWER's grades are retained in the comparison table to provide a familiar reference
+point for power systems professionals, but they do not factor into the tool selection
+ranking or recommendation.
