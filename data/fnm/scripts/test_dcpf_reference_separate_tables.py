@@ -14,7 +14,8 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from dcpf_reference import (
+
+from fnm.scripts.dcpf_reference import (
     load_manifest,
     load_transformer_table,
     main,
