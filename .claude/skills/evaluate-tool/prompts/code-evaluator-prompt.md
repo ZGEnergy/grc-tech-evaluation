@@ -249,6 +249,21 @@ prior evaluation rounds. Apply them to all relevant tests.
   failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
   This distinguishes independent failures from cascaded ones.
 
+- **MATPOWER case ingestion fidelity (all suites):** After loading any MATPOWER `.m`
+  or `.mat` case file, verify ingested component counts (buses, branches, generators)
+  match the source case. Many tools' importers silently drop data — e.g., PyPSA's
+  `import_from_pypower_ppc` ignores switched shunts and crashes on bus type 4,
+  pandapower's `from_ppc` may drop branch columns. If the importer drops data:
+  1. Do NOT record a hard failure immediately. Work around to maximize fidelity.
+  2. Try alternative loading: read the `.mat`/`.m` via scipy or direct parser,
+     construct the network programmatically through the tool's lower-level API.
+  3. Supplement missing fields by reading MATPOWER matrices directly.
+  4. Document each workaround with durability class (stable/fragile/blocking).
+  5. Record the maximum data fidelity achievable, even with workarounds.
+  6. If power flow deviations trace to ingestion loss (not solver error), attribute
+     to Expressiveness (data model gap), not Scalability.
+  This applies to all network tiers (TINY, SMALL, MEDIUM, LARGE).
+
 ## FNM Ingestion (Suite G) Methodology
 
 When `{{dimension}}` is `fnm_ingestion`, apply these additional rules:
@@ -302,7 +317,8 @@ the cleaned case is the canonical input for power flow verification.
 
 **G-FNM-3 (DCPF verification):**
 - Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
-- Ingest into the tool's data model (e.g., via `import_from_pypower_ppc`, `loadcase`, etc.)
+- Ingest into the tool's data model — apply the MATPOWER ingestion fidelity guardrail
+  (verify counts against `summary_cleaning.json`: buses 27862, branches 32606, gens 5741)
 - Solve DCPF on the cleaned case
 - Load reference solution from `data/fnm/reference/dcpf/`
 - Compute aggregate deviation metrics per `pass_conditions.json` `dcpf` section
@@ -312,6 +328,7 @@ the cleaned case is the canonical input for power flow verification.
 
 **G-FNM-4 (ACPF convergence capability):**
 - Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- Apply the MATPOWER ingestion fidelity guardrail
 - Attempt ACPF solve — **no reference solution exists** (MATPOWER 8.1 fails on all variants;
   see `data/fnm/reference/acpf/summary_acpf.json` for failure analysis)
 - Record: convergence yes/no, solver algorithm, residual, iteration count
