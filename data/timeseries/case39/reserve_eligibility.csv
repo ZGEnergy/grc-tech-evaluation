@@ -1,0 +1,11 @@
+gen_uid,gen_index,bus_id,fuel_type,rts_gmlc_class,pmax_mw,ramp_rate_mw_per_hr,spinning_eligible,non_spinning_eligible,max_spinning_pct,max_non_spinning_pct
+case39_bus30_gen1,0,30,hydro,Hydro,1040.0,62400.0,True,True,1.0,1.0
+case39_bus31_gen2,1,31,nuclear,Nuclear,646.0,1938.0,True,True,0.05,0.1
+case39_bus32_gen3,2,32,nuclear,Nuclear,725.0,2175.0,True,True,0.05,0.1
+case39_bus33_gen4,3,33,ng,Coal/Steam,652.0,447.0857,True,True,0.114286,0.342857
+case39_bus34_gen5,4,34,ng,Coal/Steam,508.0,348.3429,True,True,0.114286,0.342857
+case39_bus35_gen6,5,35,nuclear,Nuclear,687.0,2061.0,True,True,0.05,0.1
+case39_bus36_gen7,6,36,ng,Gas/CC,580.0,405.8366,True,True,0.11662,0.349859
+case39_bus37_gen8,7,37,nuclear,Nuclear,564.0,1692.0,True,True,0.05,0.1
+case39_bus38_gen9,8,38,nuclear,Nuclear,865.0,2595.0,True,True,0.05,0.1
+case39_bus39_gen10,9,39,ng,Gas/CC (flexible),1100.0,1154.5352,True,True,0.17493,0.524789
