@@ -1,10 +1,81 @@
 ---
 sidebar_position: 2
 title: "Grid Operations Primer"
+description: "A practitioner-level walkthrough of power grid operations, building from a single bus to contingency analysis in six progressive stages."
 ---
 
-# Grid Operations Primer
+import Placeholder from '@site/src/components/Placeholder';
 
-Content for this page will be added in Phase 4.
+## Introduction
 
-<Placeholder title="Interactive Grid — Single Bus System" />
+{/* Introductory content written by Deliverable 3 */}
+
+## Stage 1: Single Generator, Single Load
+
+{/* Synopsis: A single bus with one generator and one load demonstrates the fundamental power balance equation: generation must equal demand plus losses at every instant. This is the simplest possible "grid" — no transmission, no optimization, just the core constraint that makes power systems unique among commodity markets. */}
+{/* Key concept: power balance */}
+{/* Diagram: stage-1_single-bus.svg — One bus node, one generator icon, one load icon, power flow arrow */}
+{/* New elements: bus, generator, load */}
+{/* Prior elements: none */}
+{/* Rubric connection: Expressiveness A-1 (DCPF basic) */}
+
+<Placeholder title="Set generator output and load demand; see real-time power balance" />
+
+## Stage 2: Two Buses Connected by a Line
+
+{/* Synopsis: Adding a second bus and a transmission line between them introduces impedance, voltage angles, and the physics of power flow. Power doesn't take the "shortest path" — it distributes according to Kirchhoff's laws and line impedance. This stage shows why AC and DC power flow formulations exist and when each is appropriate. */}
+{/* Key concept: transmission and impedance */}
+{/* Diagram: stage-2_two-bus.svg — Two bus nodes, one line, generator on bus 1, load on bus 2 */}
+{/* New elements: second bus, transmission line with impedance label */}
+{/* Prior elements: bus 1 generator and load (dimmed) */}
+{/* Rubric connection: Expressiveness A-1 (DCPF), A-2 (ACPF) */}
+
+<Placeholder title="Adjust line impedance and see how power flow changes" />
+
+## Stage 3: Meshed Network
+
+{/* Synopsis: With three or more buses and multiple paths between them, power flow becomes non-trivial. Parallel paths mean that adding a line can paradoxically increase flow on existing lines (Braess's paradox). Power Transfer Distribution Factors (PTDFs) quantify how injection changes at one bus redistribute across all lines — the key to understanding congestion management. */}
+{/* Key concept: parallel paths, PTDFs, loop flow */}
+{/* Diagram: stage-3_meshed-network.svg — Three+ bus nodes forming a loop, multiple lines, generators and loads distributed */}
+{/* New elements: third bus, parallel paths, PTDF annotations */}
+{/* Prior elements: two-bus topology (dimmed) */}
+{/* Rubric connection: Expressiveness A-1 through A-3 */}
+
+<Placeholder title="Change injection at one bus and watch power redistribute across parallel paths" />
+
+## Stage 4: Economic Dispatch and OPF
+
+{/* Synopsis: Given multiple generators with different cost curves, economic dispatch finds the cheapest way to meet demand. Optimal Power Flow (OPF) adds network constraints — line limits, voltage bounds — to the dispatch problem. The result is Locational Marginal Prices (LMPs) that reflect both generation cost and delivery congestion. This is where power systems become optimization problems. */}
+{/* Key concept: cost curves, merit order, OPF, LMP */}
+{/* Diagram: stage-4_opf-dispatch.svg — Multi-bus network with cost curves on generators, LMP labels on buses */}
+{/* New elements: cost curve annotations, LMP values at buses */}
+{/* Prior elements: meshed network topology (dimmed) */}
+{/* Rubric connection: Expressiveness A-3 (DCOPF), A-4 (ACOPF) */}
+
+<Placeholder title="Set generator costs and load level; see the optimal dispatch and resulting LMPs" />
+
+## Stage 5: Transmission Limits and Congestion
+
+{/* Synopsis: When a transmission line reaches its thermal limit, it creates congestion — the price separation between buses that drives the entire market for transmission rights. Congestion is not a failure; it's the normal state of a stressed grid. LMP decomposition into energy, loss, and congestion components reveals where value is created and destroyed. */}
+{/* Key concept: thermal limits, LMP decomposition */}
+{/* Diagram: stage-5_congestion.svg — Network with one congested line highlighted, divergent LMPs */}
+{/* New elements: line limit indicator (red), divergent LMP callouts */}
+{/* Prior elements: OPF network with costs (dimmed) */}
+{/* Rubric connection: Expressiveness A-5 (UC), A-6 (SCUC) */}
+
+<Placeholder title="Toggle line limits on and off; watch LMPs diverge as congestion binds" />
+
+## Stage 6: Contingency Analysis and SCOPF
+
+{/* Synopsis: Real grids must survive the unexpected loss of any single element (the N-1 criterion). Security-Constrained OPF (SCOPF) solves the dispatch problem while ensuring the grid remains feasible under every credible contingency. This is the most computationally intensive problem in power systems — and the ultimate test of a modeling tool's capability. */}
+{/* Key concept: N-1 security, SCOPF */}
+{/* Diagram: stage-6_scopf.svg — Network with a tripped line (dashed), re-dispatch arrows showing preventive action */}
+{/* New elements: contingency line (dashed/removed), re-dispatch arrows */}
+{/* Prior elements: congested network (dimmed) */}
+{/* Rubric connection: Expressiveness A-7 through A-11 */}
+
+<Placeholder title="Trip a line and see how preventive SCOPF re-dispatches to maintain N-1 security" />
+
+## From Primer to Evaluation
+
+{/* Bridge content written by Deliverable 3 — connects the primer concepts to the evaluation criteria */}
