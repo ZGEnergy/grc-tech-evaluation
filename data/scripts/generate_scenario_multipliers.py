@@ -839,10 +839,10 @@ def main(
             # Match generator IDs between correlation matrix and forecast profiles
             gen_indices = []
             for inp in inputs:
-                # Try to find matching generator in correlation matrix
+                # Try to find matching generator in correlation matrix (exact match)
                 matched = False
                 for idx, cid in enumerate(corr_gen_ids):
-                    if inp.gen_uid in cid or cid in inp.gen_uid:
+                    if inp.gen_uid == cid:
                         gen_indices.append(idx)
                         matched = True
                         break
