@@ -249,6 +249,16 @@ prior evaluation rounds. Apply them to all relevant tests.
   failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
   This distinguishes independent failures from cascaded ones.
 
+- **Version-specific capability coverage:** Check the research context for a "Version
+  Capabilities Inventory" section. If present, ensure test scripts exercise capabilities
+  flagged as available in the installed version. Do not test only against a general
+  understanding of the tool — if the research identifies version-specific features
+  (new formulations, new solver support, new APIs), write tests that use them where
+  they are relevant to the test's pass condition. If a version-specific capability is
+  relevant to a test but marked "not verified in environment," attempt it anyway and
+  document the outcome. If no capabilities inventory exists in the research context,
+  note the gap as an observation with tag `doc-gaps`.
+
 ## FNM Ingestion (Suite G) Methodology
 
 When `{{dimension}}` is `fnm_ingestion`, apply these additional rules:

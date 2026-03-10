@@ -315,13 +315,23 @@ This matters because Phase 2 and any follow-on work builds on whatever stack Pha
 
 **7. Governance model** — Is there a formal governance structure (foundation, steering committee, published roadmap) or is direction set informally by a single maintainer? This is a secondary signal — good governance without engineering discipline is theater; engineering discipline without governance is a risk to be noted, not a disqualifier.
 
+**8. Reviewer and approval concentration** — How many people review and approve code changes? A project can have multiple contributors but a single merge gatekeeper. If only one person reviews PRs, the project loses its quality gate if that person leaves — even if contributors remain active. Reviewer bus factor = 1 is equivalent risk to committer bus factor = 1.
+
+### Weighting Guidance
+
+Sub-questions 1-3 and 5-6 (release discipline, test coverage, issue responsiveness, CI health, operational adoption) constitute **track record** evidence and establish the base grade. Sub-questions 4, 7, and 8 (contributor concentration, governance, reviewer concentration) constitute **sustainability risk** evidence.
+
+Sustainability risk is secondary to track record. When track record evidence clearly supports a grade, sustainability concerns alone should not override it by more than one grade step in normal cases. Evaluators may apply greater adjustment with explicit justification when evidence warrants it (e.g., sole maintainer with no succession plan and no institutional backing). The rationale must be documented in the grade narrative.
+
+Project longevity modulates sustainability risk: a bus-factor-1 project with 20+ years of continuous delivery represents a categorically different risk profile than a bus-factor-1 project with 3 years of history. Evaluators should note project age when assessing contributor and reviewer concentration.
+
 ### Grading Standards
 
 | Grade | Description |
 |-------|-------------|
-| **A** | Regular versioned releases with substantive improvements. CI green with meaningful test coverage. Multiple active contributors with no single point of failure. Institutionally backed with stable funding. Evidence of operational deployment. Issues addressed promptly. Published examples run on the current release. |
-| **B** | Active but smaller contributor base. CI exists but coverage is partial. Funding tied to ongoing research programs likely to continue but not guaranteed. Some evidence of operational use. Issues addressed with variable response times. Minor staleness in examples or documentation. |
-| **C** | Development driven by one or two individuals with no institutional backing. No CI or test suite, or CI is broken. No recent versioned releases or only dependency maintenance. No evidence of operational deployment. Issue tracker inactive or backlogged. Published examples broken on current release. |
+| **A** | Regular versioned releases with substantive improvements. CI green with meaningful test coverage. Multiple active contributors with no single point of failure. Multiple active reviewers with no single merge gatekeeper. Institutionally backed with stable funding. Evidence of operational deployment. Issues addressed promptly. Published examples run on the current release. |
+| **B** | Active but smaller contributor base. CI exists but coverage is partial. Funding tied to ongoing research programs likely to continue but not guaranteed. Review process exists but may be concentrated in 1-2 people. Some evidence of operational use. Issues addressed with variable response times. Minor staleness in examples or documentation. |
+| **C** | Development driven by one or two individuals with no institutional backing. No CI or test suite, or CI is broken. No formal review process, or single gatekeeper with no backup. No recent versioned releases or only dependency maintenance. No evidence of operational deployment. Issue tracker inactive or backlogged. Published examples broken on current release. |
 
 ---
 
@@ -414,3 +424,4 @@ The following tools were identified during the landscape survey and considered f
 | v3 | 2026-03-06 | Cost curve note updated to acknowledge polynomial costs in MATPOWER files (was "linear costs throughout"). Added SCOPF feasibility note for small test cases. Stochastic optimization sub-question clarified: independent perturbations by resource type, price extraction required. Aligned with protocol v4 changes. | GRC |
 | v4 | 2026-03-09 | Cross-tool sweep amendments aligned with protocol v5. ACPF sub-question requires convergence residual, iteration count, and non-flat-start verification. SCUC sub-question requires demonstrable cycling. Lossy DCOPF sub-question specifies internal consistency validation. PTDF sub-question addresses phase-shifter correction terms. Stochastic wrapping sub-question adds perturbation calibration requirement. Workaround scoring clarified: any workaround requires qualified_pass classification. Solver/tool separation: expressiveness grading distinguishes formulation capability from solver performance. Scalability grading requires measured wall-clock times. Reference network preprocessing noted. Extensibility grading standards updated for PTDF phase-shifter handling and calibrated stochastic perturbations. | GRC |
 | v5 | 2026-03-09 | FNM scope expansion: added FNM Scope Expansion section incorporating FNM Annual S01 as LARGE reference network (~30K buses, PSS/E v31 via intermediate format, FNM_PATH-gated). Added FNM data model fidelity grading note under Expressiveness (record type coverage, power flow verification, scale-vs-expressiveness attribution). Added supplemental CSV representability grading note under Extensibility (3-tier field classification, sub-question mapping). FNM results inform but do not override primary sub-questions or alter grade boundaries. Full justification: `data/fnm/docs/rubric-v4-justification.md`. | GRC |
+| v6 | 2026-03-09 | Maturity restructuring: added sub-question 8 (reviewer/approval concentration). Added Weighting Guidance section separating track record evidence (primary) from sustainability risk evidence (secondary modifier with bounded adjustment). Updated A/B/C grading standards to include reviewer concentration language. Aligned with protocol v8. | GRC |

@@ -153,3 +153,25 @@ check), verify unit consistency:
 - Verify that the sending and receiving analyses use the same unit convention
 - A mismatch between MW and per-unit values can produce apparent errors of 100x that
   are actually labeling errors, not solver failures
+
+## Ingestion Fidelity Verification
+
+After loading any MATPOWER `.m` or `.mat` case file, verify ingested component counts
+before interpreting power flow results:
+
+1. **Extract source counts** from the MATPOWER case: number of buses, branches,
+   generators (rows in bus/branch/gen matrices).
+2. **Extract ingested counts** from the tool's internal model after import.
+3. **Compare counts.** Some tools legitimately re-classify components during import
+   (e.g., pandapower splits MATPOWER branches into lines + transformers based on tap
+   ratio). In these cases, the sum of constituent counts must equal the source count.
+4. **Log discrepancies** with the specific component type and count delta.
+5. **Attribute deviations correctly:** If power flow results deviate from reference and
+   the tool's ingested counts don't match the source, the deviation is an ingestion
+   fidelity issue (Expressiveness finding), not a solver error (Scalability finding).
+   Do not attribute to Scalability until ingestion fidelity is confirmed.
+6. **Document workarounds:** If the native importer drops data and a workaround is used
+   (programmatic construction, supplemental field loading), classify the workaround
+   durability (stable/fragile/blocking) per `workaround-classification.md`.
+
+This verification applies to all network tiers (TINY, SMALL, MEDIUM, LARGE).

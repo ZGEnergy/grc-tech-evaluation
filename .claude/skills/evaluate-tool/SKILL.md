@@ -156,18 +156,19 @@ skip to the first incomplete DAG step.
 
 1. **Read config.** Load `{{CONFIG_PATH}}` to determine research focus areas.
 
-2. **Dispatch 3 research agents in parallel.** Read `{{SKILL_DIR}}/prompts/research-prompt.md`,
-   launch 3 instances with different `{{research_focus}}` values:
+2. **Dispatch 4 research agents in parallel.** Read `{{SKILL_DIR}}/prompts/research-prompt.md`,
+   launch 4 instances with different `{{research_focus}}` values:
 
    - **Agent 1 — API & Formulations:** `"API surface, supported problem formulations, solver interfaces, data model (bus/branch/gen abstractions), input/output formats"`
    - **Agent 2 — Extensions & Architecture:** `"Extension mechanisms, plugin/callback APIs, internal architecture (separation of concerns), graph access, interoperability with DataFrames/NetworkX/Graphs.jl"`
    - **Agent 3 — Limitations & Ecosystem:** `"Known limitations, open issues related to evaluation tests, ecosystem packages, community size, documentation quality, recent release history"`
+   - **Agent 4 — Version-Specific Capabilities:** `"Installed version identification, changelog/release notes analysis, version-specific capabilities inventory, execution environment compatibility (Python 3.12 / Julia 1.10 / GNU Octave)"`
 
    All agents receive:
    - `{{tool_name}}` → `{{TOOL_NAME}}`
    - `{{output_path}}` → `{{RESULTS_DIR}}/research-{focus_slug}.md`
 
-3. **Merge research.** Concatenate the 3 research output files into `{{RESEARCH_PATH}}`
+3. **Merge research.** Concatenate the 4 research output files into `{{RESEARCH_PATH}}`
    with section headers.
 
 4. **Thin-research warning.** If any research file is < 500 words, flag it:

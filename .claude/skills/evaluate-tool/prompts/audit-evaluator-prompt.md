@@ -134,6 +134,20 @@ naming convention from the config.
 - Search for utility, ISO, or government deployment evidence
 - Distinguish documented production use from academic citations
 
+**E-8 — Review/approval concentration:**
+- Use `gh api` to enumerate PRs with reviews over the last 24 months
+- Count unique reviewers/approvers, compute concentration (% by top reviewer)
+- If the project has <10 PRs with formal reviews in 24 months, record
+  "no formal review process" — score as equivalent to reviewer bus factor = 1
+- For projects using direct-push workflows (no PR-based review), document the
+  workflow and flag the absence of a review gate as a sustainability risk finding
+
+**Maturity grading note:** When synthesizing E-1 through E-8 into a grade
+recommendation, treat track record evidence (E-1, E-2, E-5, E-6, E-7) as primary
+and sustainability risk evidence (E-3, E-4, E-8) as a secondary modifier. See the
+rubric's Weighting Guidance for the bounded-modifier rule. Always document project
+longevity when assessing contributor and reviewer concentration.
+
 ### Supply Chain (Suite F) — GATE CRITERION
 
 **F-1 — Core license:**

@@ -91,3 +91,17 @@ Write a structured markdown document to `{{output_path}}`:
 - Release history (frequency, recency, changelog quality)
 - Operational deployment evidence (utility/ISO/government)
 - License and dependency licensing
+
+**If focus includes "version" or "capabilities":**
+- Identify the exact installed version (pip show / Pkg.status / check source)
+- Read that version's changelog, release notes, or CHANGES file
+- For each notable capability added in the installed version or its recent predecessors:
+  - Name the feature
+  - Categorize: new formulation, new solver support, new API, performance improvement, data model change
+  - Note whether it is verified to work in the evaluation execution environment (Python 3.12 / Julia 1.10 / GNU Octave — not MATLAB)
+  - Flag any capability that exists in release notes but may not work in the evaluation runtime
+- Output a structured "Version Capabilities Inventory" section with:
+  - Tool version
+  - Execution environment
+  - Table: capability | category | verified-in-environment (yes/no/untested)
+- If no structured changelog exists, note this as a finding and attempt to infer capabilities from commit history and documentation
