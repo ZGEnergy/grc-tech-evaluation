@@ -3,6 +3,8 @@
 @import '@fontsource/inter/600.css';
 @import '@fontsource/inter/700.css';
 
+@import './evaluation.css';
+
 :root {
   --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
   --ifm-heading-font-family: 'Inter', system-ui, -apple-system, sans-serif;

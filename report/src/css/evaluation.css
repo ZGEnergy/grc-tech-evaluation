@@ -1,0 +1,85 @@
+/* Grade color classes — applied to <td> and <span> elements */
+
+/* Light mode */
+.grade-a { background-color: #1b7a3d; color: #fff; }
+.grade-a-minus { background-color: #2e9e52; color: #fff; }
+.grade-b-plus { background-color: #5bb576; color: #fff; }
+.grade-b { background-color: #7ec8a0; color: #1a1a1a; }
+.grade-b-minus { background-color: #a8d8b9; color: #1a1a1a; }
+.grade-c-plus { background-color: #e8d44d; color: #1a1a1a; }
+.grade-c { background-color: #e8b44d; color: #1a1a1a; }
+.grade-d { background-color: #d4764e; color: #fff; }
+.grade-f { background-color: #c0392b; color: #fff; }
+
+/* Dark mode — adjusted brightness for dark backgrounds */
+[data-theme='dark'] .grade-a { background-color: #145c2e; color: #e0e0e0; }
+[data-theme='dark'] .grade-a-minus { background-color: #1e7a3e; color: #e0e0e0; }
+[data-theme='dark'] .grade-b-plus { background-color: #3d8f5a; color: #e0e0e0; }
+[data-theme='dark'] .grade-b { background-color: #5a9f78; color: #1a1a1a; }
+[data-theme='dark'] .grade-b-minus { background-color: #7ab89a; color: #1a1a1a; }
+[data-theme='dark'] .grade-c-plus { background-color: #c4b240; color: #1a1a1a; }
+[data-theme='dark'] .grade-c { background-color: #c49840; color: #1a1a1a; }
+[data-theme='dark'] .grade-d { background-color: #b05c3a; color: #e0e0e0; }
+[data-theme='dark'] .grade-f { background-color: #9e2d22; color: #e0e0e0; }
+
+/* Grade cells — shared table cell styling */
+.grade-a,
+.grade-a-minus,
+.grade-b-plus,
+.grade-b,
+.grade-b-minus,
+.grade-c-plus,
+.grade-c,
+.grade-d,
+.grade-f {
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+  min-width: 2.5rem;
+}
+
+/* Collapsible details styling */
+details.eval-details {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+details.eval-details > summary {
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+details.eval-details[open] > summary {
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  padding-bottom: 0.5rem;
+}
+
+/* Grade table layout */
+.grade-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.grade-table th {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 2px solid var(--ifm-color-emphasis-300);
+  font-weight: 600;
+}
+
+.grade-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.grade-table .reference-row {
+  font-style: italic;
+  opacity: 0.85;
+}
