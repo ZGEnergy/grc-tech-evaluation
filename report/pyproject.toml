@@ -7,6 +7,7 @@ dependencies = [
     "plotly>=6.0",
     "kaleido>=0.4",
     "pandas>=2.0",
+    "pytest>=8.0",
 ]
 
 [build-system]
