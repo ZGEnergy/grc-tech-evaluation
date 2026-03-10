@@ -3,6 +3,229 @@ sidebar_position: 3
 title: "Use Cases & Criteria"
 ---
 
-# Use Cases & Criteria
+# Use Cases & Evaluation Criteria
 
-Content for this page will be added in Phase 3.
+## Introduction
+
+This evaluation assesses six open-source power system modeling tools for contract FA714626C0006 (Grid Research Company LLC). The goal is to select a tool for deployment at NRL Philadelphia that can support OECIF's power grid analysis mission — from basic power flow studies to full security-constrained unit commitment on production-scale networks.
+
+The audience for this evaluation includes the OECIF technical team making the selection decision and the NRL engineering staff who will use the selected tool in classified and unclassified environments. Both groups need confidence that the recommended tool can handle real operational workflows, not just academic toy problems.
+
+## Use Cases
+
+### UC-1: FNM Ingestion
+Parse, validate, and faithfully represent a ~6,000-bus PSS/E RAW Full Network Model (FNM) — the production network data format used by ISOs. The tool must ingest complex record types (3-winding transformers, switched shunts, multi-section lines) without data loss and produce valid power flow solutions on the ingested model.
+
+### UC-2: Power Flow Analysis
+Run DC and AC power flow on networks ranging from 39-bus test cases to 10,000+ bus production models. The tool must converge reliably, report meaningful diagnostics on failure, and expose results (bus voltages, line flows, losses) as structured outputs.
+
+### UC-3: Optimal Power Flow
+Solve DCOPF and ACOPF with generation cost minimization, line flow limits, and nodal balance constraints. The tool must expose Locational Marginal Prices (LMPs) and shadow prices natively. Loss-inclusive OPF and LMP decomposition (energy + congestion + loss components) are Phase 2 readiness indicators.
+
+### UC-4: Unit Commitment & Economic Dispatch
+Formulate and solve Security-Constrained Unit Commitment (SCUC) as a MILP with minimum up/down times, startup costs, ramp rates, and reserve requirements. Solve Security-Constrained Economic Dispatch (SCED) as a warm-started dispatch given a fixed commitment schedule. The tool must produce demonstrable generator cycling on appropriately parameterized networks.
+
+### UC-5: Contingency Analysis
+Enumerate N-1 and N-M contingencies, re-solve power flow or OPF for each contingency case, and identify violations. For Phase 2 readiness: express Security-Constrained OPF (SCOPF) where contingency flow constraints are part of the optimization formulation, not checked post-hoc.
+
+### UC-6: Operational Toolkit
+Deploy the tool as a portable, reproducible computational environment on both classified and unclassified networks. The tool must be open-source with inspectable dependencies, compatible with air-gapped deployment, and usable by analysts with power systems backgrounds (not deep software engineering expertise).
+
+## Use Case → Criterion Mapping
+
+| Use Case | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
+|----------|:---:|:---:|:---:|:---:|:---:|:---:|
+| UC-1: FNM Ingestion | | ● | | ○ | | |
+| UC-2: Power Flow | ● | | ○ | | | |
+| UC-3: Optimal Power Flow | ● | ○ | ○ | | | |
+| UC-4: Unit Commitment & Dispatch | ● | ○ | ○ | | | |
+| UC-5: Contingency Analysis | ● | ● | ○ | | | |
+| UC-6: Operational Toolkit | | | | ○ | ○ | ● |
+
+● = Primary relevance | ○ = Secondary relevance
+
+## Grading Scale
+
+| Letter | Numeric | Description |
+|--------|---------|-------------|
+| A | 4.0 | Strong native support, well-tested at scale |
+| A- | 3.7 | Strong overall, one minor caveat |
+| B+ | 3.3 | Mostly strong, one meaningful gap with workaround |
+| B | 3.0 | Supported with caveats, moderate friction |
+| B- | 2.7 | Functional but multiple workarounds needed |
+| C+ | 2.3 | Significant gaps but not disqualifying |
+| C | 2.0 | Weak, significant gaps |
+| D | 1.0 | Major deficiencies |
+| F | 0.0 | Non-functional or disqualifying |
+
+## Evaluation Scope
+
+Tools are evaluated as their **shipped package plus official companion packages** maintained by the same team. For example, PyPSA includes linopy, atlite, and powerplantmatching. PowerModels.jl includes PowerModelsAnnex.jl. PowerSimulations.jl includes PowerSystems.jl and InfrastructureSystems.jl. Third-party packages are noted but do not contribute to grades.
+
+All testing uses open-source solvers exclusively (HiGHS, SCIP, Ipopt, GLPK). All scalability measurements are taken on a reference workstation: 128 GB RAM, 16 cores, no GPU.
+
+## Criteria
+
+### Supply Chain (Gate Criterion)
+
+A grade of C+ or below on Supply Chain is disqualifying regardless of performance on all other criteria. This reflects the contract's primary requirement: the customer cannot recommend a tool for classified network authorization if any component in the execution stack is opaque, uninspectable, or legally encumbered.
+
+<details className="eval-details">
+<summary>Grading Standards — Supply Chain</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | Fully open-source under permissive license (MIT, BSD, Apache). All dependencies inspectable. No binary-only components. Compatible with air-gapped deployment. Minimal runtime requirements. |
+| B+ / B / B- | Open-source but with caveats — some dependencies may be large or complex to audit. Air-gap deployment possible with effort. |
+| C+ / C | **Disqualifying.** Non-inspectable components, restrictive licensing, or runtime requirements incompatible with classified environments. |
+
+**Sub-Questions**
+1. What license governs the tool and its dependencies?
+2. How many transitive dependencies exist? Are they all inspectable?
+3. Are there any binary-only or pre-compiled components?
+4. What runtime environment is required (Python, Julia, MATLAB)?
+5. Can the tool operate in an air-gapped environment without network access?
+
+</details>
+
+### 1. Expressiveness (Highest Priority)
+
+Expressiveness measures the breadth and depth of power system analyses the tool can express natively — without fighting the abstraction or working around missing primitives. "Naturally" means the code reads like the problem, not like a workaround.
+
+<details className="eval-details">
+<summary>Grading Standards — Expressiveness</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | All target problem types (DCPF, ACPF, DCOPF, SCUC, SCED, contingency, stochastic, SCOPF) expressible natively. Core constraints are built-in primitives. ACPF convergence verifiable. LMPs and structured outputs accessible. Loss-inclusive OPF and distributed slack supported. |
+| B+ / B / B- | Most problem types supported but one or two require companion packages or workarounds. SCOPF achievable through extension API. Loss approximation possible with effort. |
+| C+ / C | A target problem type is outside the tool's design scope or requires rebuilding core functionality from primitives. |
+
+**Sub-Questions**
+1. DC Power Flow (A-1)
+2. AC Power Flow (A-2)
+3. DC OPF with LMPs (A-3)
+4. AC feasibility check on DC OPF solution (A-4)
+5. SCUC with generator cycling (A-5)
+6. SCED as warm-started dispatch (A-6)
+7. N-M Contingency Sweep (A-7)
+8. Stochastic Timeseries Optimization (A-8)
+9. Security-Constrained OPF (A-9) — Phase 2 readiness
+10. Lossy DC OPF and LMP Decomposition (A-10) — Phase 2 readiness
+11. Distributed Slack OPF (A-11) — Phase 2 readiness
+
+**Special Notes**
+
+Sub-questions 9-11 are Phase 2 readiness indicators. They inform the grade narrative but do not automatically override sub-questions 1-8.
+
+</details>
+
+### 2. Extensibility
+
+Extensibility measures how hard it is to go beyond built-in problem types — adding custom constraints, querying the network graph, generating stochastic scenarios, or building a contingency sweep pipeline.
+
+<details className="eval-details">
+<summary>Grading Standards — Extensibility</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | Documented extension API for custom constraints. Network as traversable graph. Contingency loops without model reconstruction. Stochastic wrapping straightforward. Clean architecture. PTDF matrix accessible with phase-shifter corrections. |
+| B+ / B / B- | Extension possible but requires understanding internals. Graph access via workaround. Contingency looping with some overhead. Architecture partially structured. |
+| C+ / C | Extension requires forking or patching. No graph access. Full model rebuilds for contingencies. Monolithic architecture. |
+
+**Sub-Questions**
+1. Custom constraint injection (B-1)
+2. Network graph access (B-2)
+3. Contingency loop construction (B-3)
+4. Stochastic scenario wrapping (B-4)
+5. Interoperability and export (B-5)
+6. Code architecture quality (B-6)
+7. AC feasibility as extension (B-7)
+8. Reference bus control (B-8)
+9. PTDF matrix extraction (B-9)
+
+</details>
+
+### 3. Scalability
+
+Scalability measures whether the tool performs at WECC-relevant scale — 10k+ buses, realistic contingency counts, operational time horizons — on the reference workstation with open-source solvers.
+
+<details className="eval-details">
+<summary>Grading Standards — Scalability</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | Demonstrated performance on 10k+ bus networks. Solver interface cleanly abstracted. Contingency re-solves with warm-starting. Clear HPC path. |
+| B+ / B / B- | Adequate at 10k buses with caveats. Contingency sweeps require batching. HPC path exists but undocumented. |
+| C+ / C | Performance degrades significantly at 10k+ buses. No warm-start. Solver tightly coupled. No HPC path. |
+
+**Sub-Questions**
+1. Power flow at scale (C-1, C-2)
+2. DC OPF and AC feasibility at scale (C-3, C-4)
+3. SCUC/SCED at scale (C-5, C-6)
+4. Solver backend flexibility (C-7)
+5. Contingency sweep performance (C-8, C-9, C-10)
+6. Memory and hardware requirements (C-11, C-12)
+
+</details>
+
+### 4. Accessibility
+
+Accessibility measures whether a new analyst at NRL can pick up the tool, run scenarios, and trust the results — the learning curve, API quality, documentation, and error handling.
+
+<details className="eval-details">
+<summary>Grading Standards — Accessibility</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | Clean API with realistic examples. Productive within days. Errors surface meaningfully. |
+| B+ / B / B- | Learnable but rough edges. Documentation covers basics with gaps. Learning curve in weeks. |
+| C+ / C | Steep learning curve. Documentation sparse or outdated. Errors fail silently. |
+
+**Sub-Questions**
+1. API design quality (D-1)
+2. Documentation quality and accuracy (D-2)
+3. Learning curve (D-3)
+4. Error transparency and diagnostics (D-4)
+
+</details>
+
+### 5. Maturity
+
+Maturity measures whether the tool will still be maintained in three years — development history, community health, funding stability, and operational adoption.
+
+<details className="eval-details">
+<summary>Grading Standards — Maturity</summary>
+
+**Grade Boundaries**
+
+| Grade Range | Requirements |
+|-------------|-------------|
+| A / A- | Disciplined releases with CI. Active contributor base. Durable institutional backing. Operational adoption beyond academia. |
+| B+ / B / B- | Regular releases but with gaps. Concentrated contributor base. Stable funding but limited adoption. |
+| C+ / C | Irregular releases. Bus factor of one. Funding uncertain. No operational adoption. |
+
+**Sub-Questions**
+1. Release engineering discipline (E-1)
+2. Test coverage and CI health (E-2)
+3. Issue responsiveness (E-3)
+4. Contributor concentration and bus factor (E-4)
+5. Funding stability (E-5)
+6. Operational adoption (E-6)
+7. Governance model (E-7)
+
+</details>
+
+---
+
+See [Tools Evaluated](/tools-evaluated) for how each tool scored against these criteria.
