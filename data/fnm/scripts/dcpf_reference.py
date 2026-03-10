@@ -269,6 +269,16 @@ _BRANCH_COLUMN_MAP: dict[str, list[str]] = {
     "CKT": ["ckt", "circuit"],
 }
 
+_TRANSFORMER_COLUMN_MAP: dict[str, list[str]] = {
+    "I": ["i", "from_bus", "f_bus", "fbus"],
+    "J": ["j", "to_bus", "t_bus", "tbus"],
+    "X1_2": ["x1_2", "x12", "br_x", "x"],
+    "WINDV1": ["windv1", "tap", "wind1"],
+    "ANG1": ["ang1", "shift", "angle1"],
+    "STAT": ["stat", "status", "st", "br_status"],
+    "CKT": ["ckt", "circuit"],
+}
+
 
 def _resolve_columns(
     headers: list[str],
@@ -475,6 +485,122 @@ def load_branch_table(branch_csv_path: Path) -> list[BranchRecord]:
             )
         )
     return result
+
+
+def load_transformer_table(transformer_csv_path: Path) -> list[BranchRecord]:
+    """Load a separate transformer table and map it to BranchRecord instances.
+
+    Reads PSS/E-style transformer columns (I, J, X1_2, WINDV1, ANG1, STAT, CKT)
+    and maps them to the unified BranchRecord structure used by the DCPF solver.
+
+    A WINDV1 value of 0.0 is normalized to 1.0 (nominal tap ratio), matching
+    the MATPOWER convention used by ``load_branch_table``.
+
+    STAT mapping follows PSS/E conventions:
+    - 0: out-of-service (status=0)
+    - 1: in-service (status=1)
+    - 2: only winding 1 in-service (status=1 for two-winding DCPF)
+    - 3: only winding 2 in-service (status=1 for two-winding DCPF)
+    - 4: in-service (status=1)
+
+    Args:
+        transformer_csv_path: Path to the transformer CSV file.
+
+    Returns:
+        List of BranchRecord instances for all transformers.
+
+    Raises:
+        FileNotFoundError: If the CSV does not exist.
+        ValueError: If required columns cannot be identified.
+    """
+    if not transformer_csv_path.exists():
+        raise FileNotFoundError(f"Transformer CSV not found: {transformer_csv_path}")
+
+    with open(transformer_csv_path, encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if not rows:
+        raise ValueError(f"Transformer CSV is empty: {transformer_csv_path}")
+
+    headers = rows[0]
+    col_map = _resolve_columns(
+        headers, _TRANSFORMER_COLUMN_MAP, required=["I", "J", "X1_2", "STAT"]
+    )
+    data_rows = rows[1:]
+
+    result: list[BranchRecord] = []
+    for row in data_rows:
+        if not row or all(cell.strip() == "" for cell in row):
+            continue
+
+        tap_raw = float(row[col_map["WINDV1"]].strip()) if "WINDV1" in col_map else 0.0
+        tap = tap_raw if tap_raw != 0.0 else 1.0
+
+        shift = float(row[col_map["ANG1"]].strip()) if "ANG1" in col_map else 0.0
+
+        # PSS/E STAT: 0=out-of-service, 1-4=in-service for two-winding DCPF
+        stat_raw = int(float(row[col_map["STAT"]].strip()))
+        status = 0 if stat_raw == 0 else 1
+
+        result.append(
+            BranchRecord(
+                from_bus=int(float(row[col_map["I"]].strip())),
+                to_bus=int(float(row[col_map["J"]].strip())),
+                circuit_id=row[col_map["CKT"]].strip() if "CKT" in col_map else "1",
+                x_pu=float(row[col_map["X1_2"]].strip()),
+                tap_ratio=tap,
+                shift_deg=shift,
+                status=status,
+                is_transformer=True,
+            )
+        )
+    return result
+
+
+def load_manifest(manifest_path: Path) -> dict:
+    """Load a manifest JSON sidecar file.
+
+    Args:
+        manifest_path: Path to the manifest.json file.
+
+    Returns:
+        Parsed manifest as a dict.
+
+    Raises:
+        FileNotFoundError: If the manifest file does not exist.
+        ValueError: If the manifest is not valid JSON.
+    """
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Manifest file not found: {manifest_path}")
+
+    try:
+        return json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in manifest: {manifest_path}: {exc}") from exc
+
+
+def resolve_base_mva(
+    cli_base_mva: float | None,
+    manifest: dict | None,
+    default: float = 100.0,
+) -> tuple[float, str]:
+    """Resolve the system MVA base with precedence: CLI > manifest > default.
+
+    Args:
+        cli_base_mva: Value from ``--base-mva`` CLI argument, or None if not provided.
+        manifest: Parsed manifest dict (may contain ``sbase`` key), or None.
+        default: Fallback value if neither CLI nor manifest provides one.
+
+    Returns:
+        Tuple of (base_mva, source_description) where source_description is one of
+        ``"cli"``, ``"manifest"``, or ``"default"``.
+    """
+    if cli_base_mva is not None:
+        return cli_base_mva, "cli"
+    if manifest is not None and "sbase" in manifest:
+        return float(manifest["sbase"]), "manifest"
+    return default, "default"
 
 
 def load_excluded_buses(exclusion_csv_path: Path) -> set[int]:
@@ -1249,11 +1375,14 @@ def run_dcpf_reference(
     *,
     base_mva: float = 100.0,
     canonical_parser: str = "",
+    transformer_csv_path: Path | None = None,
 ) -> DCPFSolution:
     """Orchestrate the full DCPF reference computation pipeline.
 
     Steps:
     1. Load bus, generator, and branch tables from CSVs.
+       If ``transformer_csv_path`` is provided, load transformers from a
+       separate file and concatenate them with the branch list.
     2. Load excluded bus set from D1 exclusion registry.
     3. Filter to active buses.
     4. Identify the slack bus.
@@ -1272,6 +1401,10 @@ def run_dcpf_reference(
         output_dir: Directory for output files. Created if it does not exist.
         base_mva: System MVA base (default 100.0).
         canonical_parser: Name of the canonical parser (for metadata).
+        transformer_csv_path: Optional path to a separate transformer CSV.
+            When provided, transformers are loaded from this file and
+            appended to the branch list instead of being embedded in the
+            branch CSV.
 
     Returns:
         The DCPFSolution (also written to disk).
@@ -1284,6 +1417,11 @@ def run_dcpf_reference(
     buses = load_bus_table(bus_csv_path)
     generators = load_generator_table(gen_csv_path)
     branches = load_branch_table(branch_csv_path)
+
+    # 1b. Optionally load and concatenate separate transformer table
+    if transformer_csv_path is not None:
+        transformers = load_transformer_table(transformer_csv_path)
+        branches = branches + transformers
 
     # 2. Load exclusion set
     excluded = load_excluded_buses(exclusion_csv_path)
@@ -1414,8 +1552,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--base-mva",
         type=float,
-        default=100.0,
-        help="System MVA base (default: 100.0).",
+        default=None,
+        help="System MVA base. Overrides manifest sbase. Default: 100.0.",
     )
     parser.add_argument(
         "--canonical-parser",
@@ -1423,10 +1561,30 @@ def main(argv: list[str] | None = None) -> None:
         default="",
         help="Name of the canonical parser (for metadata).",
     )
+    parser.add_argument(
+        "--transformer-csv",
+        type=Path,
+        default=None,
+        help="Path to a separate transformer table CSV (PSS/E column format).",
+    )
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+        help="Path to manifest.json sidecar for baseMVA and metadata.",
+    )
 
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
     output_dir: Path = args.output_dir or Path("data/fnm/reference/dcpf")
+
+    # Resolve baseMVA: --base-mva > manifest.sbase > 100.0
+    manifest: dict | None = None
+    if args.manifest is not None:
+        manifest = load_manifest(args.manifest)
+
+    base_mva, base_mva_source = resolve_base_mva(args.base_mva, manifest)
+    logger.info("baseMVA = %.1f (source: %s)", base_mva, base_mva_source)
 
     try:
         solution = run_dcpf_reference(
@@ -1435,8 +1593,9 @@ def main(argv: list[str] | None = None) -> None:
             branch_csv_path=args.branch_csv,
             exclusion_csv_path=args.exclusion_csv,
             output_dir=output_dir,
-            base_mva=args.base_mva,
+            base_mva=base_mva,
             canonical_parser=args.canonical_parser,
+            transformer_csv_path=args.transformer_csv,
         )
     except (ValueError, FileNotFoundError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
