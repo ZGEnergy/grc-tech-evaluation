@@ -1,0 +1,48 @@
+{
+  "system_peak_load_mw": 6097.0,
+  "total_renewable_mw": 1219.4,
+  "penetration_pct": 20.0,
+  "wind_buses": [
+    6,
+    16,
+    2
+  ],
+  "solar_buses": [
+    5,
+    19
+  ],
+  "total_wind_mw": 731.64,
+  "total_solar_mw": 487.76,
+  "units": [
+    {
+      "gen_uid": "WIND_1",
+      "bus_id": 6,
+      "type": "wind",
+      "pmax_mw": 243.88
+    },
+    {
+      "gen_uid": "WIND_2",
+      "bus_id": 16,
+      "type": "wind",
+      "pmax_mw": 243.88
+    },
+    {
+      "gen_uid": "WIND_3",
+      "bus_id": 2,
+      "type": "wind",
+      "pmax_mw": 243.88
+    },
+    {
+      "gen_uid": "SOLAR_1",
+      "bus_id": 5,
+      "type": "solar",
+      "pmax_mw": 243.88
+    },
+    {
+      "gen_uid": "SOLAR_2",
+      "bus_id": 19,
+      "type": "solar",
+      "pmax_mw": 243.88
+    }
+  ]
+}
