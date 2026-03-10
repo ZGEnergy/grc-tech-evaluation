@@ -13,9 +13,9 @@
   "mounts": [
     "source=${localEnv:FNM_PATH},target=/data/fnm-source,type=bind,readonly"
   ],
-  "remoteEnv": {
+  "containerEnv": {
     "JULIA_DEPOT_PATH": "/opt/julia-depot",
-    "FNM_PATH": "/data/fnm-source"
+    "FNM_PATH": "/workspace/data/fnm"
   },
   "customizations": {
     "vscode": {
