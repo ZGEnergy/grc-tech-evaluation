@@ -1,0 +1,6 @@
+gen_uid,bus_id,type,pmax_mw,area
+WIND_1,6,wind,243.88,1
+WIND_2,16,wind,243.88,3
+WIND_3,2,wind,243.88,2
+SOLAR_1,5,solar,243.88,1
+SOLAR_2,19,solar,243.88,3

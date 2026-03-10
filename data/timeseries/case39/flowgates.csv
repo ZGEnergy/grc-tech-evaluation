@@ -1,0 +1,4 @@
+flowgate_id,name,branches,weights,limit_mw,binding_load_level,max_loading_pct
+FG_01,FG_01_2-3_2-30,2-3;2-30,1.00;1.00,475.00,peak,130.57
+FG_02,FG_02_6-11,6-11,1.00,456.00,peak,67.26
+FG_03,FG_03_10-32,10-32,1.00,855.00,peak,68.39
