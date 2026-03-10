@@ -297,11 +297,16 @@ def compute_min_times(
     Returns:
         Tuple of (min_up_time_hr, min_down_time_hr).
     """
-    if not is_flexible:
-        return template_min_up_hr, template_min_down_hr
+    if is_flexible:
+        min_up = template_min_up_hr * FLEXIBLE_MIN_TIME_FRACTION
+        min_down = template_min_down_hr * FLEXIBLE_MIN_TIME_FRACTION
+    else:
+        min_up = template_min_up_hr
+        min_down = template_min_down_hr
 
-    min_up = max(template_min_up_hr * FLEXIBLE_MIN_TIME_FRACTION, MIN_UP_DOWN_TIME_FLOOR_HR)
-    min_down = max(template_min_down_hr * FLEXIBLE_MIN_TIME_FRACTION, MIN_UP_DOWN_TIME_FLOOR_HR)
+    # Apply floor for all generators (hydro templates have 0.0 min times)
+    min_up = max(min_up, MIN_UP_DOWN_TIME_FLOOR_HR)
+    min_down = max(min_down, MIN_UP_DOWN_TIME_FLOOR_HR)
     return min_up, min_down
 
 
@@ -390,6 +395,11 @@ def assign_temporal_params(
 
     gen_uid = build_gen_uid(classification.bus_id, classification.gen_number)
 
+    # Enforce startup cost ordering: cold >= warm >= hot
+    cold = template.startup_cost_cold_dollar
+    warm = min(template.startup_cost_warm_dollar, cold)
+    hot = min(template.startup_cost_hot_dollar, warm)
+
     return GenTemporalParams(
         gen_uid=gen_uid,
         gen_index=classification.gen_index,
@@ -401,9 +411,9 @@ def assign_temporal_params(
         ramp_rate_mw_per_hr=scaled_ramp * 60.0,
         min_up_time_hr=min_up,
         min_down_time_hr=min_down,
-        startup_cost_cold_dollar=template.startup_cost_cold_dollar,
-        startup_cost_warm_dollar=template.startup_cost_warm_dollar,
-        startup_cost_hot_dollar=template.startup_cost_hot_dollar,
+        startup_cost_cold_dollar=cold,
+        startup_cost_warm_dollar=warm,
+        startup_cost_hot_dollar=hot,
         no_load_cost_dollar_per_hr=no_load,
     )
 

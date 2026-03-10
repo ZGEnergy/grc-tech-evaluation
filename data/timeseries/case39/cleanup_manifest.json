@@ -1,0 +1,1006 @@
+{
+  "networks": [
+    {
+      "network_id": "case39",
+      "source_m_file": "/workspace/data/networks/case39.m",
+      "cleaned_m_file": "/workspace/data/timeseries/case39/case39.m",
+      "bus_count": 39,
+      "generator_count": 10,
+      "fuel_type_summary": [
+        {
+          "category": "hydro",
+          "count": 1,
+          "pmax_total_mw": 1040.0
+        },
+        {
+          "category": "ng",
+          "count": 4,
+          "pmax_total_mw": 2840.0
+        },
+        {
+          "category": "nuclear",
+          "count": 5,
+          "pmax_total_mw": 3487.0
+        }
+      ],
+      "rule_summary": [
+        {
+          "rule": "hydro_reservoir_pmin",
+          "modification_count": 1
+        },
+        {
+          "rule": "pg_reset",
+          "modification_count": 10
+        },
+        {
+          "rule": "qg_reset",
+          "modification_count": 10
+        },
+        {
+          "rule": "va_normalize",
+          "modification_count": 38
+        },
+        {
+          "rule": "vm_normalize",
+          "modification_count": 39
+        }
+      ],
+      "generator_classifications": [
+        {
+          "gen_index": 0,
+          "gen_bus": 30,
+          "fuel_type_raw": null,
+          "fuel_category": "hydro",
+          "classification_source": "case39_header_map",
+          "pmax": 1040.0,
+          "hydro_subclass": "reservoir"
+        },
+        {
+          "gen_index": 1,
+          "gen_bus": 31,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "pmax": 646.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 2,
+          "gen_bus": 32,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "pmax": 725.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 3,
+          "gen_bus": 33,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "pmax": 652.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 4,
+          "gen_bus": 34,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "pmax": 508.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 5,
+          "gen_bus": 35,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "pmax": 687.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 6,
+          "gen_bus": 36,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "pmax": 580.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 7,
+          "gen_bus": 37,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "pmax": 564.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 8,
+          "gen_bus": 38,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "pmax": 865.0,
+          "hydro_subclass": null
+        },
+        {
+          "gen_index": 9,
+          "gen_bus": 39,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "pmax": 1100.0,
+          "hydro_subclass": null
+        }
+      ],
+      "generator_modifications": [
+        {
+          "gen_index": 0,
+          "gen_bus": 30,
+          "fuel_type_raw": null,
+          "fuel_category": "hydro",
+          "classification_source": "case39_header_map",
+          "rule": "hydro_reservoir_pmin",
+          "field_name": "Pmin",
+          "before_value": 0.0,
+          "after_value": 260.0
+        },
+        {
+          "gen_index": 0,
+          "gen_bus": 30,
+          "fuel_type_raw": null,
+          "fuel_category": "hydro",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 250.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 0,
+          "gen_bus": 30,
+          "fuel_type_raw": null,
+          "fuel_category": "hydro",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 161.762,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 1,
+          "gen_bus": 31,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 677.871,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 1,
+          "gen_bus": 31,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 221.574,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 2,
+          "gen_bus": 32,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 650.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 2,
+          "gen_bus": 32,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 206.965,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 3,
+          "gen_bus": 33,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 632.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 3,
+          "gen_bus": 33,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 108.293,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 4,
+          "gen_bus": 34,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 508.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 4,
+          "gen_bus": 34,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 166.688,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 5,
+          "gen_bus": 35,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 650.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 5,
+          "gen_bus": 35,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 210.661,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 6,
+          "gen_bus": 36,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 560.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 6,
+          "gen_bus": 36,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 100.165,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 7,
+          "gen_bus": 37,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 540.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 7,
+          "gen_bus": 37,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": -1.36945,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 8,
+          "gen_bus": 38,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 830.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 8,
+          "gen_bus": 38,
+          "fuel_type_raw": null,
+          "fuel_category": "nuclear",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 21.7327,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 9,
+          "gen_bus": 39,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "pg_reset",
+          "field_name": "Pg",
+          "before_value": 1000.0,
+          "after_value": 0.0
+        },
+        {
+          "gen_index": 9,
+          "gen_bus": 39,
+          "fuel_type_raw": null,
+          "fuel_category": "ng",
+          "classification_source": "case39_header_map",
+          "rule": "qg_reset",
+          "field_name": "Qg",
+          "before_value": 78.4674,
+          "after_value": 0.0
+        }
+      ],
+      "bus_modifications": [
+        {
+          "bus_index": 0,
+          "bus_id": 1,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0393836,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 0,
+          "bus_id": 1,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -13.536602,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 1,
+          "bus_id": 2,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0484941,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 1,
+          "bus_id": 2,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -9.7852666,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 2,
+          "bus_id": 3,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0307077,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 2,
+          "bus_id": 3,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -12.276384,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 3,
+          "bus_id": 4,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.00446,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 3,
+          "bus_id": 4,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -12.626734,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 4,
+          "bus_id": 5,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0060063,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 4,
+          "bus_id": 5,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -11.192339,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 5,
+          "bus_id": 6,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0082256,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 5,
+          "bus_id": 6,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -10.40833,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 6,
+          "bus_id": 7,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.99839728,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 6,
+          "bus_id": 7,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -12.755626,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 7,
+          "bus_id": 8,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.99787232,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 7,
+          "bus_id": 8,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -13.335844,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 8,
+          "bus_id": 9,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.038332,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 8,
+          "bus_id": 9,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -14.178442,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 9,
+          "bus_id": 10,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0178431,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 9,
+          "bus_id": 10,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -8.170875,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 10,
+          "bus_id": 11,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0133858,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 10,
+          "bus_id": 11,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -8.9369663,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 11,
+          "bus_id": 12,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.000815,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 11,
+          "bus_id": 12,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -8.9988236,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 12,
+          "bus_id": 13,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.014923,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 12,
+          "bus_id": 13,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -8.9299272,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 13,
+          "bus_id": 14,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.012319,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 13,
+          "bus_id": 14,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -10.715295,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 14,
+          "bus_id": 15,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0161854,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 14,
+          "bus_id": 15,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -11.345399,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 15,
+          "bus_id": 16,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0325203,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 15,
+          "bus_id": 16,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -10.033348,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 16,
+          "bus_id": 17,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0342365,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 16,
+          "bus_id": 17,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -11.116436,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 17,
+          "bus_id": 18,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0315726,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 17,
+          "bus_id": 18,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -11.986168,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 18,
+          "bus_id": 19,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0501068,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 18,
+          "bus_id": 19,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -5.4100729,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 19,
+          "bus_id": 20,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.99101054,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 19,
+          "bus_id": 20,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -6.8211783,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 20,
+          "bus_id": 21,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0323192,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 20,
+          "bus_id": 21,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -7.6287461,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 21,
+          "bus_id": 22,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0501427,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 21,
+          "bus_id": 22,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -3.1831199,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 22,
+          "bus_id": 23,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0451451,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 22,
+          "bus_id": 23,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -3.3812763,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 23,
+          "bus_id": 24,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.038001,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 23,
+          "bus_id": 24,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -9.9137585,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 24,
+          "bus_id": 25,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0576827,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 24,
+          "bus_id": 25,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -8.3692354,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 25,
+          "bus_id": 26,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0525613,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 25,
+          "bus_id": 26,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -9.4387696,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 26,
+          "bus_id": 27,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0383449,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 26,
+          "bus_id": 27,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -11.362152,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 27,
+          "bus_id": 28,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0503737,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 27,
+          "bus_id": 28,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -5.9283592,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 28,
+          "bus_id": 29,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0501149,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 28,
+          "bus_id": 29,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -3.1698741,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 29,
+          "bus_id": 30,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0499,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 29,
+          "bus_id": 30,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -7.3704746,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 30,
+          "bus_id": 31,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.982,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 31,
+          "bus_id": 32,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.9841,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 31,
+          "bus_id": 32,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -0.1884374,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 32,
+          "bus_id": 33,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 0.9972,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 32,
+          "bus_id": 33,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -0.19317445,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 33,
+          "bus_id": 34,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0123,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 33,
+          "bus_id": 34,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -1.631119,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 34,
+          "bus_id": 35,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0494,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 34,
+          "bus_id": 35,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": 1.7765069,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 35,
+          "bus_id": 36,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0636,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 35,
+          "bus_id": 36,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": 4.4684374,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 36,
+          "bus_id": 37,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0275,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 36,
+          "bus_id": 37,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -1.5828988,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 37,
+          "bus_id": 38,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.0265,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 37,
+          "bus_id": 38,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": 3.8928177,
+          "after_value": 0.0
+        },
+        {
+          "bus_index": 38,
+          "bus_id": 39,
+          "rule": "vm_normalize",
+          "field_name": "Vm",
+          "before_value": 1.03,
+          "after_value": 1.0
+        },
+        {
+          "bus_index": 38,
+          "bus_id": 39,
+          "rule": "va_normalize",
+          "field_name": "Va",
+          "before_value": -14.535256,
+          "after_value": 0.0
+        }
+      ]
+    }
+  ],
+  "script_version": "0.1.0",
+  "generated_at": "2026-03-10T19:28:40.563697+00:00",
+  "cleanup_rules_doc": {
+    "renewable_pmin_reset": "Wind and solar generators: Pmin set to 0 MW",
+    "hydro_run_of_river_pmin": "Hydro generators with Pmax < threshold: Pmin set to 0 MW",
+    "hydro_reservoir_pmin": "Hydro generators with Pmax >= threshold: Pmin set to fraction * Pmax",
+    "pg_reset": "All generators: Pg set to 0 MW",
+    "qg_reset": "All generators: Qg set to 0 MVAr",
+    "vm_normalize": "All buses: Vm set to 1.0 pu",
+    "va_normalize": "All buses: Va set to 0 degrees"
+  },
+  "hydro_threshold_mw": 30.0,
+  "hydro_reservoir_pmin_fraction": 0.25
+}

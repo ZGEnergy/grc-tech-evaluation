@@ -887,7 +887,7 @@ def print_summary(result: ReferenceTableResult) -> None:
 def main(
     output_dir: Path | None = None,
     *,
-    commit_hash: str = "v3.2",
+    commit_hash: str = "master",
 ) -> ReferenceTableResult:
     """Entry point: download gen.csv, build reference table, write output.
 

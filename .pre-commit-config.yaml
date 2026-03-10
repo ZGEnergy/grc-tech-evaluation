@@ -62,7 +62,7 @@ repos:
         language: python
         additional_dependencies: ['miss_hit==0.9.44']
         files: '\.m$'
-        exclude: 'data/networks/'
+        exclude: 'data/(networks|timeseries)/'
         types: [file]
 
       - id: mh-lint
@@ -71,7 +71,7 @@ repos:
         language: python
         additional_dependencies: ['miss_hit==0.9.44']
         files: '\.m$'
-        exclude: 'data/networks/'
+        exclude: 'data/(networks|timeseries)/'
         types: [file]
 
   # Julia formatting
