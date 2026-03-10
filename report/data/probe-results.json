@@ -1,0 +1,196 @@
+{
+    "_provenance": {
+        "sources": [
+            "sweep-data/v4-to-v5/probes/pypsa/probe-001.md",
+            "sweep-data/v4-to-v5/probes/pypsa/probe-002.md",
+            "sweep-data/v4-to-v5/probes/pandapower/probe-006.md",
+            "sweep-data/v4-to-v5/probes/pandapower/probe-007.md",
+            "sweep-data/v4-to-v5/probes/pandapower/probe-008.md",
+            "sweep-data/v4-to-v5/probes/pandapower/probe-009.md",
+            "sweep-data/v4-to-v5/probes/pandapower/probe-010.md",
+            "sweep-data/v4-to-v5/probes/gridcal/probe-012.md",
+            "sweep-data/v4-to-v5/probes/powermodels/probe-016.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-020.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-021.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-022.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-023.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-024.md",
+            "sweep-data/v4-to-v5/probes/powersimulations/probe-025.md",
+            "sweep-data/v4-to-v5/probes/matpower/probe-028.md",
+            "sweep-data/v4-to-v5/probes/matpower/probe-029.md",
+            "sweep-data/v4-to-v5/probes/matpower/probe-032.md",
+            "sweep-data/v4-to-v5/aggregation/themes.md"
+        ],
+        "extracted": "2026-03-10"
+    },
+    "summary": {
+        "total": 18,
+        "debunked": 4,
+        "supported_with_protocol_implications": 10,
+        "no_impact": 4
+    },
+    "probes": [
+        {
+            "id": "P01",
+            "probe_id": "probe-001",
+            "claim": "PyPSA ACPF passes on ACTIVSg10k (MEDIUM)",
+            "verdict": "DEBUNKED",
+            "evidence_summary": "Solver reports converged=False with 0 NR iterations; 83% of buses remain at flat start. Original PASS classification is not supported.",
+            "affected_tools": ["pypsa"],
+            "source_file": "sweep-data/v4-to-v5/probes/pypsa/probe-001.md"
+        },
+        {
+            "id": "P02",
+            "probe_id": "probe-002",
+            "claim": "PyPSA stochastic optimization documentation vs functionality discrepancy",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "D-2 correctly states stochastic API is documented; A-8 correctly concludes FAIL due to optimizer integration bugs. Both findings are valid -- documentation exists but functionality does not work.",
+            "affected_tools": ["pypsa"],
+            "source_file": "sweep-data/v4-to-v5/probes/pypsa/probe-002.md"
+        },
+        {
+            "id": "P03",
+            "probe_id": "probe-006",
+            "claim": "pandapower stochastic DCOPF 2.1% convergence rate on ACTIVSg2000",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "Probe confirms extremely low convergence rate (0.42% vs claimed 2.1%) for PYPOWER interior point on perturbed ACTIVSg2000. Uniform load scaling alone converges reliably.",
+            "affected_tools": ["pandapower"],
+            "source_file": "sweep-data/v4-to-v5/probes/pandapower/probe-006.md"
+        },
+        {
+            "id": "P04",
+            "probe_id": "probe-007",
+            "claim": "Uniform LMPs across all 10,000 buses on MEDIUM DCOPF",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "LMPs are truly uniform (std=6e-12); no branch exceeds 85% loading. Artificial congestion produces LMP spread (16.3-24.4 $/MWh), confirming base case simply has no binding constraints.",
+            "affected_tools": ["pandapower"],
+            "source_file": "sweep-data/v4-to-v5/probes/pandapower/probe-007.md"
+        },
+        {
+            "id": "P05",
+            "probe_id": "probe-008",
+            "claim": "pandapower PTDF flow divergence from DCPF on MEDIUM (7.43 pu)",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "Probe reproduces exact max diff of 7.43 pu on ACTIVSg10k; case39 matches perfectly (0.0 diff). Error is real and scale-dependent.",
+            "affected_tools": ["pandapower"],
+            "source_file": "sweep-data/v4-to-v5/probes/pandapower/probe-008.md"
+        },
+        {
+            "id": "P06",
+            "probe_id": "probe-009",
+            "claim": "pandapower lambda values of 1e25 with in_service=False",
+            "verdict": "DEBUNKED",
+            "evidence_summary": "No lambda values of 1e25 observed; in_service=False either converges with normal lambdas or throws exception. Convergence pattern identical to max_p_mw=0 approach.",
+            "affected_tools": ["pandapower"],
+            "source_file": "sweep-data/v4-to-v5/probes/pandapower/probe-009.md"
+        },
+        {
+            "id": "P07",
+            "probe_id": "probe-010",
+            "claim": "pandapower PTDF error attribution to shunt elements",
+            "verdict": "PARTIALLY_CONFIRMED",
+            "evidence_summary": "7.43 pu error reproduced; caused by missing Pbusinj/Pfinj correction terms from phase shifters, not shunt elements (which have zero MW). Applying correction eliminates ALL error to machine precision.",
+            "affected_tools": ["pandapower"],
+            "source_file": "sweep-data/v4-to-v5/probes/pandapower/probe-010.md"
+        },
+        {
+            "id": "P08",
+            "probe_id": "probe-012",
+            "claim": "GridCal PTDF flow predictions diverge from DCPF by up to 743 MW on MEDIUM",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "Reproduced max diff of 743.46 MW (LA vs DCPF) and 15,139.36 MW (PTDF@Sbus vs DCPF), matching original claim exactly. Same root cause as pandapower (phase-shifter correction).",
+            "affected_tools": ["gridcal"],
+            "source_file": "sweep-data/v4-to-v5/probes/gridcal/probe-012.md"
+        },
+        {
+            "id": "P09",
+            "probe_id": "probe-016",
+            "claim": "PowerModels C-5/C-8 projected infeasibility on ACTIVSg10k",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "BFS scope sizes bracket claimed range; per-contingency DCPF time matches claims; SCOPF with 5 contingencies timed out at 567s confirming infeasibility at 500.",
+            "affected_tools": ["powermodels"],
+            "source_file": "sweep-data/v4-to-v5/probes/powermodels/probe-016.md"
+        },
+        {
+            "id": "P10",
+            "probe_id": "probe-020",
+            "claim": "PowerSimulations C-3 DCOPF scale timing was estimated, not measured",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "C-3 reported wall_clock_seconds=null with estimated <60s; probe confirmed no actual timing was done. First run timed out at 600s (includes JIT).",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-020.md"
+        },
+        {
+            "id": "P11",
+            "probe_id": "probe-021",
+            "claim": "PowerSimulations dispatch values ~100x larger than component limits",
+            "verdict": "DEBUNKED",
+            "evidence_summary": "Dispatch values from read_variables() are in MW, not pu; they match Pmax when compared in the same units. The A-4 evaluation mislabeled MW values as pu, creating a false appearance of ~100x mismatch.",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-021.md"
+        },
+        {
+            "id": "P12",
+            "probe_id": "probe-022",
+            "claim": "PowerSimulations custom constraint binding dual extraction",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "Binding flow gate constraint produces non-zero dual (-0.1398); dual extraction via JuMP.dual() works for both binding and non-binding cases.",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-022.md"
+        },
+        {
+            "id": "P13",
+            "probe_id": "probe-023",
+            "claim": "PowerSimulations distributed slack qualified_pass on uncongested network",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "PTDF is structurally distributed-slack (0 angle vars); but on uncongested IEEE 39-bus, both PTDF and DCP formulations produce identical dispatch (max diff 1.5e-7), making the distinction a no-op.",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-023.md"
+        },
+        {
+            "id": "P14",
+            "probe_id": "probe-024",
+            "claim": "PowerSimulations ACPF scale failure diagnostics on ACTIVSg10k",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "ACPF on 10k-bus network returns Missing (silent failure) in 5.5s with zero diagnostic info; no iteration count, no residual, no configurable tolerances.",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-024.md"
+        },
+        {
+            "id": "P15",
+            "probe_id": "probe-025",
+            "claim": "PowerSimulations 100% code coverage",
+            "verdict": "DEBUNKED",
+            "evidence_summary": "Codecov badge shows 78% coverage, not 100% as reported in E-6; the evaluation misread or cited a stale badge.",
+            "affected_tools": ["powersimulations"],
+            "source_file": "sweep-data/v4-to-v5/probes/powersimulations/probe-025.md"
+        },
+        {
+            "id": "P16",
+            "probe_id": "probe-028",
+            "claim": "MATPOWER distributed slack DC OPF on MEDIUM takes 66 minutes via opt_model/MIPS",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "MIPS solve is confirmed extremely slow (141s for 1 iteration); 65-min total for convergence is plausible given the per-iteration cost. Dense PTDF matrix is 400x slower than sparse formulation.",
+            "affected_tools": ["matpower"],
+            "source_file": "sweep-data/v4-to-v5/probes/matpower/probe-028.md"
+        },
+        {
+            "id": "P17",
+            "probe_id": "probe-029",
+            "claim": "MATPOWER contingency sweep on MEDIUM has 97% time in Octave containers.Map overhead",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "containers.Map overhead confirmed as dominant bottleneck; LODF screening of 12,706 N-1 cases completes in 0.81s while Map adjacency build times out at 300s.",
+            "affected_tools": ["matpower"],
+            "source_file": "sweep-data/v4-to-v5/probes/matpower/probe-029.md"
+        },
+        {
+            "id": "P18",
+            "probe_id": "probe-032",
+            "claim": "MATPOWER MOST loadmd() fails at data ingestion on ACTIVSg2000",
+            "verdict": "CONFIRMED",
+            "evidence_summary": "loadmd() confirmed to fail with exact error message about non-consecutive bus numbering on ACTIVSg 2000; ext2int resolves bus issue but reveals further MOST input requirements.",
+            "affected_tools": ["matpower"],
+            "source_file": "sweep-data/v4-to-v5/probes/matpower/probe-032.md"
+        }
+    ]
+}
