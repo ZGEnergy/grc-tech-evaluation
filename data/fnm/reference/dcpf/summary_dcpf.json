@@ -1,6 +1,6 @@
 {
   "success": 1,
-  "wall_clock_seconds": 0.1345,
+  "wall_clock_seconds": 0.1348,
   "total_gen_mw": 165491.5460,
   "total_load_mw": 165491.5460,
   "slack_bus": 29421,
