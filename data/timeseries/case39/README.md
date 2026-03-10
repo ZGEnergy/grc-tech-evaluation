@@ -125,7 +125,7 @@ pieces so that evaluation tests can probe those capabilities.
   | Field | Value |
   |-------|-------|
   | `unit_id` | `BESS_1` |
-  | `bus_id` | 25 |
+  | `bus_id` | 5 (co-located with SOLAR_1 for midday arbitrage) |
   | `power_mw` | 150 (charge and discharge limit) |
   | `energy_mwh` | 600 |
   | `efficiency` | 0.874 (round-trip: 92% charge × 95% discharge) |
@@ -254,6 +254,17 @@ With both modifications, the QP-based DC OPF produces:
 Without the 70% derating, only branch 2→3 binds, and shadow prices are
 nearly identical across all scenarios.
 
+## Reference implementation
+
+**[`example_pypsa_dcopf.py`](example_pypsa_dcopf.py)** — Standalone PyPSA script
+that loads the augmented case39 data and runs 6 progressively harder DCOPF
+analyses (differentiated costs → 24h multi-period → BESS → DR → congestion →
+stochastic scenarios). Run directly (`python example_pypsa_dcopf.py`) or as
+pytest tests (`python example_pypsa_dcopf.py test`). The `chart` subcommand
+generates a 3-panel timeseries chart (LMPs, BESS dispatch, SoC) — use
+`plot_congestion_results()` from your own evaluation scripts to produce the
+same visualization for any solved network.
+
 ## Quick-start: building a network from these files
 
 The general recipe for any tool:
@@ -273,7 +284,7 @@ The general recipe for any tool:
    maximum output.
 
 4. **Add the BESS.** Read `bess_units.csv` and add a storage unit at
-   bus 25. For multi-period: set power, energy, efficiency, and SoC bounds
+   bus 5 (co-located with SOLAR_1). For multi-period: set power, energy, efficiency, and SoC bounds
    as specified. For single-period: model as a dispatchable generator with
    `Pmin = −150`, `Pmax = 150`.
 
