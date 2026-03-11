@@ -123,6 +123,21 @@ class TestWorkflowIntegration:
         assert python_step is not None, "Python setup step not found"
         assert python_step.get("with", {}).get("python-version") == "3.12"
 
+    def test_pages_configuration_present(self, workflow_config: dict) -> None:
+        """Build job configures GitHub Pages before artifact upload."""
+        steps = workflow_config["jobs"]["build"]["steps"]
+        configure_step = _find_step(steps, "actions/configure-pages")
+        assert configure_step is not None, "configure-pages step not found"
+
+    def test_upload_pages_artifact_uses_current_major(
+        self, workflow_config: dict
+    ) -> None:
+        """Build job uses the current upload-pages-artifact major version."""
+        steps = workflow_config["jobs"]["build"]["steps"]
+        upload_step = _find_step(steps, "actions/upload-pages-artifact")
+        assert upload_step is not None, "upload-pages-artifact step not found"
+        assert upload_step.get("uses") == "actions/upload-pages-artifact@v4"
+
     def test_validate_step_present(self, workflow_config: dict) -> None:
         """T-D6.04-11: Workflow runs `make validate` between build and deploy."""
         steps = workflow_config["jobs"]["build"]["steps"]
