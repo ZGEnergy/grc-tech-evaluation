@@ -948,7 +948,7 @@ def build_manifest(
 
     return ExportManifest(
         sbase=case.baseMVA,
-        basfrq=60.0,  # ERCOT is 60 Hz
+        basfrq=60.0,  # North American grids use 60 Hz
         rev=31.0,
         case_id="fnm_main_island",
         canonical_parser="matpower",

@@ -291,7 +291,7 @@ INTERFACE.csv does not join directly to any intermediate format network table. I
 | Field | Type | Semantic Description | Example | Join Key |
 |-------|------|---------------------|---------|----------|
 | INTERFACE_ID | integer | Unique numeric identifier for the interface. Referenced by INTERFACE_ELEMENT.csv to associate branch elements with this interface. | 15 | yes |
-| INTERFACE_NAME | string | Human-readable name of the interface, typically referencing the transmission corridor or NERC path designation. Some names are publicly known (e.g., Path 15, Path 26). | Path_15 | no |
+| INTERFACE_NAME | string | Human-readable name of the interface, typically referencing a transmission corridor or internal path designation. Some names are publicly known (e.g., Path 15, Path 26). | Path_15 | no |
 | NORMAL_LIMIT_MW | float | Normal (continuous) flow limit for the interface in MW. The maximum aggregate power transfer across all member elements under normal operating conditions. | 2500.0 | no |
 | EMERGENCY_LIMIT_MW | float | Emergency flow limit for the interface in MW. The maximum aggregate power transfer permitted during contingency conditions for limited duration. | 3000.0 | no |
 | DIRECTION | enum | Flow direction convention: FORWARD or REVERSE. Defines the positive flow direction for limit enforcement. | FORWARD | no |
