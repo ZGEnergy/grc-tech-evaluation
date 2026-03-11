@@ -56,6 +56,33 @@ For each test, extract:
 - `solver` — required solver(s), if specified (e.g., "Ipopt", "HiGHS, GLPK")
 - `recorded_metrics` — what to record (wall-clock, memory, LOC, etc.)
 - `converges_ac` — whether this test involves AC power flow and needs the convergence protocol (boolean, inferred from test description)
+- `test_hash` — a short hash of this test's **definition** (see below), used to detect whether this specific test changed between protocol versions
+
+**Computing `test_hash`:** After extracting all fields for a test, compute an 8-character hex hash
+of its definitional fields. Run this Python snippet for each test:
+
+```python
+import hashlib, json
+
+def test_hash(test: dict) -> str:
+    key = {
+        "id": test["id"],
+        "pass_condition": test["pass_condition"],
+        "functional_network": test.get("functional_network"),
+        "grade_network": test.get("grade_network"),
+        "tiny_params": test.get("tiny_params"),
+        "parameters": test.get("parameters"),
+    }
+    canonical = json.dumps(key, sort_keys=True)
+    return hashlib.sha256(canonical.encode()).hexdigest()[:8]
+```
+
+Use the Bash tool to run this for each test, or compute all hashes in a single script.
+Record the result as `test_hash: <8-char hex>` on each test entry.
+
+The hash covers only the fields that define what the test measures. Cosmetic fields
+(`description`, `recorded_metrics`, `solver`, `converges_ac`, `depends_on`) are excluded
+so editorial protocol changes don't force unnecessary re-runs.
 
 ### Network Tiers
 - `TINY` — name, bus count, file path in `data/networks/`
@@ -195,6 +222,7 @@ dimensions:
         depends_on: []
         converges_ac: false
         recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
+        test_hash: "a1b2c3d4"  # 8-char SHA256 of definitional fields
       - id: A-3
         slug: dcopf
         description: "Solve DC OPF with gen costs and line flow limits"

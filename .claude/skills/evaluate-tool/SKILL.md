@@ -141,14 +141,20 @@ this is a fresh run or an incremental update of previously merged results.
    already exist in `{{RESULTS_DIR}}`. Results are present when a previous evaluation was
    merged to main and the current worktree was branched from that state.
 
-   Read `protocol_version` from `{{CONFIG_PATH}}` and `skill_version` from this file's
-   frontmatter. For each test ID in the config, classify its result file (if any):
+   Read `skill_version` from this file's frontmatter. For each test ID in the config,
+   compare the `test_hash` in the config against the `test_hash` in the existing result
+   file (if any). Classify each test as:
 
    - **`run`** — no result file exists (new test or first-ever run)
-   - **`skip`** — result file exists with matching `protocol_version` AND `skill_version`
-   - **`stale`** — result file exists but either version doesn't match; needs re-run
+   - **`skip`** — result file exists with matching `test_hash` AND `skill_version`
+   - **`stale`** — result file exists but `test_hash` differs (pass condition or tiers
+     changed) OR `skill_version` differs (skill evaluation logic changed); needs re-run
    - **`orphan`** — a result file exists in `{{RESULTS_DIR}}` for a test ID not in the
      current config (test was removed from the protocol)
+
+   Using `test_hash` rather than `protocol_version` means a protocol bump that adds a
+   comment, renames a slug, or changes only unrelated tests will not force a re-run of
+   tests whose definitions didn't change.
 
    If any existing results are found, present a summary and ask the user via AskUserQuestion:
    - header: "Run mode"
@@ -353,10 +359,10 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
 2. **Validate frontmatter.** For each result file:
    - Required fields present: `test_id`, `tool`, `dimension`, `network`, `status`,
-     `workaround_class`, `timestamp`, `protocol_version`, `skill_version`
+     `workaround_class`, `timestamp`, `protocol_version`, `skill_version`, `test_hash`
    - `status` value is one of: `pass`, `fail`, `qualified_pass`, `informational`
    - `workaround_class` value is one of: `null`, `stable`, `fragile`, `blocking`
-   - `protocol_version` is present and non-empty
+   - `test_hash` matches the `test_hash` for that test ID in `{{CONFIG_PATH}}`
    - If `status` is `qualified_pass`, the Workarounds section must be non-empty
 
 3. **Validate naming.** Each result file must follow either:
