@@ -32,7 +32,9 @@ test_id: <test_id>
 tool: <tool_name>
 dimension: <dimension>
 network: <TINY|SMALL|MEDIUM|N/A>
-protocol_version: <version from eval-config>
+protocol_version: <version from eval-config>    # metadata only
+skill_version: <version from evaluate-tool SKILL.md frontmatter>
+test_hash: <8-char hex from eval-config test entry>  # used for stale detection
 status: pass|fail|qualified_pass|informational
 workaround_class: null|stable|fragile|blocking
 blocked_by: null|<test_id>          # If this test failed solely because a prerequisite failed
@@ -137,7 +139,9 @@ the tool's API or a workaround.>
 
 Before finalizing a result file, verify:
 - [ ] YAML frontmatter is valid and all required fields are present
-- [ ] `protocol_version` is present and matches the protocol revision used
+- [ ] `protocol_version` is present (metadata)
+- [ ] `skill_version` is present and matches the `skill_version` in the evaluate-tool SKILL.md frontmatter
+- [ ] `test_hash` is present and matches the `test_hash` for this test ID in `eval-config.yaml`
 - [ ] Status accurately reflects whether the pass condition was met
 - [ ] Workaround class is correct per `workaround-classification.md`
 - [ ] Timing data is recorded (or explicitly noted as unmeasured)
