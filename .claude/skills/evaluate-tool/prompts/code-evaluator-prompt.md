@@ -16,6 +16,10 @@ You write and run test scripts, then produce structured result files for each te
 - **FNM reference files:** `{{fnm_reference_files}}` (only for fnm_ingestion dimension)
 - **Observation tags (emit):** `{{observation_tags}}`
 - **Consumed observations:** `{{consumed_observations}}`
+- **Version capability report:** `{{version_capability_report}}` — Structured capability
+  report from Agent 4 (version-awareness research). Contains installed version, capability
+  table mapping features to support status, and breaking changes. See research-prompt.md
+  for schema.
 
 ## Execution Environment
 
@@ -249,16 +253,72 @@ prior evaluation rounds. Apply them to all relevant tests.
   failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
   This distinguishes independent failures from cascaded ones.
 
+### Formulation Difference Classification (G-FNM-3)
+
+When G-FNM-3 DCPF deviations exceed pass condition thresholds, apply this decision
+procedure before recording the result status:
+
+1. **Identify exceeding buses.** List all buses whose voltage angle deviation exceeds the
+   DCPF threshold from `pass_conditions.json`.
+
+2. **Compute transformer adjacency.** For each exceeding bus, determine whether it is
+   adjacent to at least one transformer (a branch with tap ratio != 1.0 or phase-shift
+   angle != 0). Compute the transformer-adjacent fraction:
+   `transformer_adjacent_buses / total_exceeding_buses`.
+
+3. **Check maximum deviation.** Verify that the maximum absolute deviation does not
+   exceed `formulation_difference_max_abs` from `pass_conditions.json`. If it does,
+   the deviation is too large for a formulation difference — classify as
+   `data_ingestion_error`.
+
+4. **Classify the deviation cluster.**
+   - If transformer-adjacent fraction >= 0.80 AND max deviation within bound:
+     Tag as `formulation_difference`. Record status as `qualified_pass`.
+   - If transformer-adjacent fraction < 0.80 OR deviations scattered across all bus
+     types: Tag as `data_ingestion_error`. Record status as `fail`.
+
+5. **Record evidence.** In the result file's Output section, record:
+   - Total buses exceeding threshold
+   - Transformer-adjacent count and fraction
+   - Max and median deviation (MW)
+   - Classification and rationale
+
+6. **Reference.** See `cross-tool-watchpoints.md#formulation-sophistication-catalog` for
+   background on why DCPF formulation differences arise between tools.
+
+### Version-Gated Test Execution
+
+Before attempting any test that exercises a feature listed in the capability table of
+`{{version_capability_report}}`:
+
+1. Look up the feature's `supported` field in the capability table.
+2. If `supported: no` — record the test as `fail` with
+   `failure_reason: unsupported_in_installed_version` in the result frontmatter.
+   Do not attempt execution. Note the `since_version` if available.
+3. If `supported: partial` — attempt the test. In the Approach section, note which
+   subset of the feature is supported per the capability report.
+4. If `supported: yes` — proceed normally.
+
+If `{{version_capability_report}}` is not provided (Agent 4 did not run), proceed with
+all tests normally — version gating is informational, not blocking.
+
 ## FNM Ingestion (Suite G) Methodology
 
 When `{{dimension}}` is `fnm_ingestion`, apply these additional rules:
 
 ### Data Source
 
-FNM data is loaded from the `FNM_PATH` environment variable inside the devcontainer. The
-intermediate format tables (Parquet or CSV) are at `$FNM_PATH/`. The manifest file listing
-expected record counts is at `data/fnm/manifest.json` on the host (mounted at
-`/workspace/data/fnm/manifest.json` in the devcontainer).
+FNM data is loaded from the `FNM_PATH` environment variable inside the devcontainer.
+The **primary input** for G-FNM-1 through G-FNM-5 is the intermediate CSV directory at
+`$FNM_PATH/intermediate/`. This directory contains 17 CSV tables (one per PSS/E v31
+record type) plus a `manifest.json` sidecar file with expected record counts.
+
+The manifest file is at `$FNM_PATH/intermediate/manifest.json` inside the devcontainer
+(host path: `data/fnm/reference/cleaned/intermediate/manifest.json`).
+
+For G-FNM-3 and G-FNM-4 power flow tests, the pre-cleaned MATPOWER `.m` case file
+serves as a documented fallback if the tool cannot ingest intermediate CSVs directly.
+See the Cleaned Case section below for details.
 
 ### FNM Reference Files
 
@@ -272,9 +332,11 @@ Read ALL of the following before writing any Suite G test:
 - `data/fnm/docs/supplemental-csvs.md` — supplemental CSV field definitions and representability framework
 - `data/fnm/docs/supplemental-csv-representability.md` — cross-tool analytical classifications
 
-### Cleaned Case (for G-FNM-3/4 power flow tests)
+### Cleaned Case (G-FNM-3/4 fallback for power flow tests)
 
-G-FNM-3 and G-FNM-4 load from the pre-cleaned MATPOWER case at
+G-FNM-3 and G-FNM-4 should first attempt to load from the intermediate CSVs at
+`$FNM_PATH/intermediate/`. If the tool cannot ingest the CSV tables directly (e.g.,
+it only supports MATPOWER `.m` import), fall back to the pre-cleaned MATPOWER case at
 `data/fnm/reference/cleaned/fnm_main_island.mat` (mounted at
 `/workspace/data/fnm/reference/cleaned/fnm_main_island.mat` in the devcontainer).
 This is the 27,862-bus main island with all data fixes pre-applied:
@@ -282,16 +344,38 @@ negative-X coercion, zero-X/R/RATE_A fixes, island extraction, single-slack redu
 See `summary_cleaning.json` for details. **Do NOT re-implement cleaning in test code** —
 the cleaned case is the canonical input for power flow verification.
 
+Record which input path was used in the result frontmatter:
+- `input_path: csv` — loaded from intermediate CSVs (primary)
+- `input_path: matpower` — loaded from pre-cleaned `.m` file (fallback)
+
 ### Per-Test Guidance
 
 **G-FNM-1 (Intermediate format ingestion — gate):**
-- Load every table from the intermediate format at `FNM_PATH`
-- Count ingested records per table (buses, branches, generators, loads, transformers, shunts)
+- Load `manifest.json` from `$FNM_PATH/intermediate/manifest.json` to obtain expected
+  record counts per table
+- Load every CSV table from the intermediate format at `$FNM_PATH/intermediate/`
+- Count ingested records per table (buses, branches, generators, loads, transformers,
+  shunts, zones, owners, and all other record types in the manifest)
 - Compare against manifest expected counts — all must match exactly
-- If the tool merges record types (e.g., branches + transformers), the merged count must
-  equal the sum of constituent manifest counts
-- If any table fails → G-FNM-1 fails → skip G-FNM-2 through G-FNM-5 (write skip results
-  with `blocked_by: G-FNM-1`)
+- If the tool merges record types (e.g., branches + transformers into a unified branch
+  table), the merged count must equal the sum of constituent manifest counts
+  (e.g., branch 23,076 + transformer 9,530 = 32,606)
+- Produce a structured per-table pass/fail report in the Output section:
+
+  | Table | Expected | Actual | Status |
+  |-------|----------|--------|--------|
+  | bus | 27862 | ... | PASS/FAIL |
+  | load | 8624 | ... | PASS/FAIL |
+  | ... | ... | ... | ... |
+
+  For merged tables, show the constituent counts and their sum:
+
+  | Table | Expected | Actual | Status | Note |
+  |-------|----------|--------|--------|------|
+  | branch+transformer | 32606 | ... | PASS/FAIL | merged: branch(23076)+transformer(9530) |
+
+- If any table shows FAIL → G-FNM-1 fails → skip G-FNM-2 through G-FNM-5 (write skip
+  results with `blocked_by: G-FNM-1`)
 
 **G-FNM-2 (Field coverage audit):**
 - For each table, enumerate fields present in the tool's data model after ingestion
@@ -301,7 +385,10 @@ the cleaned case is the canonical input for power flow verification.
 - Fields carried via extension mechanisms (custom attributes) count as present
 
 **G-FNM-3 (DCPF verification):**
-- Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- **Primary:** Load the network from intermediate CSVs at `$FNM_PATH/intermediate/`
+- **Fallback:** If the tool cannot ingest CSVs directly, load the pre-cleaned MATPOWER
+  case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- Record `input_path: csv` or `input_path: matpower` in the result frontmatter
 - Ingest into the tool's data model (e.g., via `import_from_pypower_ppc`, `loadcase`, etc.)
 - Solve DCPF on the cleaned case
 - Load reference solution from `data/fnm/reference/dcpf/`
@@ -311,7 +398,10 @@ the cleaned case is the canonical input for power flow verification.
 - Emit `fnm-scale` observation if failure is scale-related, `fnm-data-model` if data-model
 
 **G-FNM-4 (ACPF convergence capability):**
-- Load the pre-cleaned MATPOWER case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- **Primary:** Load the network from intermediate CSVs at `$FNM_PATH/intermediate/`
+- **Fallback:** If the tool cannot ingest CSVs directly, load the pre-cleaned MATPOWER
+  case from `data/fnm/reference/cleaned/fnm_main_island.mat`
+- Record `input_path: csv` or `input_path: matpower` in the result frontmatter
 - Attempt ACPF solve — **no reference solution exists** (MATPOWER 8.1 fails on all variants;
   see `data/fnm/reference/acpf/summary_acpf.json` for failure analysis)
 - Record: convergence yes/no, solver algorithm, residual, iteration count
