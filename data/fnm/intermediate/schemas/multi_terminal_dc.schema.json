@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/multi_terminal_dc.schema.json",
+  "title": "Multi-Terminal DC",
+  "description": "PSS/E v31 Multi-Terminal DC line header record type.",
+  "type": "object",
+  "properties": {
+    "NAME": {
+      "type": "string",
+      "description": "MT DC line name",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NCONV": {
+      "type": "integer",
+      "description": "Number of AC converters",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NDCBS": {
+      "type": "integer",
+      "description": "Number of DC buses",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NDCLN": {
+      "type": "integer",
+      "description": "Number of DC links",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MDC": {
+      "type": "integer",
+      "description": "Control mode",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VCONV": {
+      "type": "integer",
+      "description": "DC voltage ctrl converter",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VCMOD": {
+      "type": "number",
+      "description": "Mode switch DC voltage",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VCONVN": {
+      "type": "integer",
+      "description": "New voltage ctrl converter",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "NAME",
+    "NCONV",
+    "NDCBS",
+    "NDCLN"
+  ],
+  "additionalProperties": false
+}

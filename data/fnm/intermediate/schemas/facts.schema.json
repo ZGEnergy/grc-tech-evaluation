@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/facts.schema.json",
+  "title": "FACTS",
+  "description": "PSS/E v31 FACTS device record type.",
+  "type": "object",
+  "properties": {
+    "NAME": {
+      "type": "string",
+      "description": "FACTS device name",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "I": {
+      "type": "integer",
+      "description": "Sending end bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "J": {
+      "type": "integer",
+      "description": "Terminal bus (0=shunt)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MODE": {
+      "type": "integer",
+      "description": "FACTS control mode",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SET1": {
+      "type": "number",
+      "description": "Control setpoint 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SET2": {
+      "type": "number",
+      "description": "Control setpoint 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VSREF": {
+      "type": "number",
+      "description": "Series voltage reference",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "REMOT": {
+      "type": "integer",
+      "description": "Remote bus for V control",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MESSION": {
+      "type": "number",
+      "description": "Sending end impedance",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "LINX": {
+      "type": "number",
+      "description": "Series reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.05,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMPCT": {
+      "type": "number",
+      "description": "MVAR pct for remote reg",
+      "x-psse-unit": "%",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "OWNER": {
+      "type": "integer",
+      "description": "Owner number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SET3": {
+      "type": "number",
+      "description": "Control setpoint 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SET4": {
+      "type": "number",
+      "description": "Control setpoint 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "NAME",
+    "I",
+    "J",
+    "MODE"
+  ],
+  "additionalProperties": false
+}

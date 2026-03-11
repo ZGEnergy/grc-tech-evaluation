@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/bus.schema.json",
+  "title": "Bus",
+  "description": "PSS/E v31 Bus record type. Each row represents one bus in the network model.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Bus number (1-999997)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        999997
+      ]
+    },
+    "NAME": {
+      "type": "string",
+      "description": "Bus name (up to 12 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "            ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "BASKV": {
+      "type": "number",
+      "description": "Bus base voltage",
+      "x-psse-unit": "kV",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        null
+      ]
+    },
+    "IDE": {
+      "type": "integer",
+      "description": "Bus type code (1-4)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        4
+      ]
+    },
+    "AREA": {
+      "type": "integer",
+      "description": "Area number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        null
+      ]
+    },
+    "ZONE": {
+      "type": "integer",
+      "description": "Zone number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        null
+      ]
+    },
+    "OWNER": {
+      "type": "integer",
+      "description": "Owner number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        null
+      ]
+    },
+    "VM": {
+      "type": "number",
+      "description": "Bus voltage magnitude",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        2.0
+      ]
+    },
+    "VA": {
+      "type": "number",
+      "description": "Bus voltage angle",
+      "x-psse-unit": "deg",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NVHI": {
+      "type": "number",
+      "description": "Normal voltage high limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        2.0
+      ]
+    },
+    "NVLO": {
+      "type": "number",
+      "description": "Normal voltage low limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        2.0
+      ]
+    },
+    "EVHI": {
+      "type": "number",
+      "description": "Emergency voltage high limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        2.0
+      ]
+    },
+    "EVLO": {
+      "type": "number",
+      "description": "Emergency voltage low limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        2.0
+      ]
+    }
+  },
+  "required": [
+    "I",
+    "NAME",
+    "BASKV",
+    "IDE",
+    "AREA",
+    "ZONE",
+    "OWNER",
+    "VM",
+    "VA"
+  ],
+  "additionalProperties": false
+}

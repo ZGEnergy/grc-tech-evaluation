@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/interarea_transfer.schema.json",
+  "title": "Interarea Transfer",
+  "description": "PSS/E v31 Interarea Transfer record type.",
+  "type": "object",
+  "properties": {
+    "ARFROM": {
+      "type": "integer",
+      "description": "From area number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ARTO": {
+      "type": "integer",
+      "description": "To area number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "TRID": {
+      "type": "string",
+      "description": "Transfer ID (2 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PTRAN": {
+      "type": "number",
+      "description": "Transfer amount",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "ARFROM",
+    "ARTO",
+    "TRID",
+    "PTRAN"
+  ],
+  "additionalProperties": false
+}

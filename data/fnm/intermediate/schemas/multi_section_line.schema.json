@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/multi_section_line.schema.json",
+  "title": "Multi-Section Line",
+  "description": "PSS/E v31 Multi-Section Line grouping record type. DUM fields define intermediate buses.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "From bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "J": {
+      "type": "integer",
+      "description": "To bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ID": {
+      "type": "string",
+      "description": "Line identifier",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MET": {
+      "type": "integer",
+      "description": "Metered end flag",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        2
+      ]
+    },
+    "DUM1": {
+      "type": "integer",
+      "description": "Intermediate bus 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM2": {
+      "type": "integer",
+      "description": "Intermediate bus 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM3": {
+      "type": "integer",
+      "description": "Intermediate bus 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM4": {
+      "type": "integer",
+      "description": "Intermediate bus 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM5": {
+      "type": "integer",
+      "description": "Intermediate bus 5",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM6": {
+      "type": "integer",
+      "description": "Intermediate bus 6",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM7": {
+      "type": "integer",
+      "description": "Intermediate bus 7",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM8": {
+      "type": "integer",
+      "description": "Intermediate bus 8",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "DUM9": {
+      "type": "integer",
+      "description": "Intermediate bus 9",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "J",
+    "ID",
+    "DUM1",
+    "DUM2",
+    "DUM3",
+    "DUM4",
+    "DUM5",
+    "DUM6",
+    "DUM7",
+    "DUM8",
+    "DUM9"
+  ],
+  "additionalProperties": false
+}
