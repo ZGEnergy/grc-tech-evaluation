@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GRC report favicon">
+  <rect width="64" height="64" rx="12" fill="#12344d" />
+  <path d="M16 44V20h14c7 0 12 5 12 12s-5 12-12 12H16Zm8-8h6c2.3 0 4-1.7 4-4s-1.7-4-4-4h-6v8Z" fill="#f4f1de" />
+  <path d="M46 20h-8l10 24h8L46 20Z" fill="#6fb98f" />
+</svg>

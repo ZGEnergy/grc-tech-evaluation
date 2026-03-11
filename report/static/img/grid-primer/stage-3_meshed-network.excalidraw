@@ -1,0 +1,81 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "hand-crafted",
+  "elements": [
+    {
+      "type": "ellipse",
+      "id": "bus1",
+      "x": 175,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B1" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus2",
+      "x": 575,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B2" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus3",
+      "x": 175,
+      "y": 325,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "label": { "text": "B3" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus4",
+      "x": 575,
+      "y": 325,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "label": { "text": "B4" }
+    },
+    {
+      "type": "ellipse",
+      "id": "gen2",
+      "x": 20,
+      "y": 320,
+      "width": 60,
+      "height": 60,
+      "strokeColor": "#2e7d32",
+      "label": { "text": "G2 ~" }
+    },
+    {
+      "type": "diamond",
+      "id": "load2",
+      "x": 700,
+      "y": 320,
+      "width": 40,
+      "height": 50,
+      "strokeColor": "#c62828",
+      "label": { "text": "L2" }
+    },
+    {
+      "type": "text",
+      "id": "ptdf-label",
+      "x": 350,
+      "y": 130,
+      "text": "PTDF = 0.40",
+      "strokeColor": "#ff8f00"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

@@ -1,0 +1,67 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "hand-crafted",
+  "elements": [
+    {
+      "type": "ellipse",
+      "id": "bus1",
+      "x": 175,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B1" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus2",
+      "x": 575,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B2" }
+    },
+    {
+      "type": "line",
+      "id": "line12-congested",
+      "x": 225,
+      "y": 150,
+      "width": 350,
+      "height": 0,
+      "strokeColor": "#e65100",
+      "strokeWidth": 3
+    },
+    {
+      "type": "text",
+      "id": "binding-label",
+      "x": 330,
+      "y": 120,
+      "text": "100/100 MW (BINDING)",
+      "strokeColor": "#e65100"
+    },
+    {
+      "type": "text",
+      "id": "lmp-decomp-b1",
+      "x": 145,
+      "y": 60,
+      "text": "LMP=$25\nSMEC=$30\nMCC=-$5",
+      "strokeColor": "#ff8f00"
+    },
+    {
+      "type": "text",
+      "id": "lmp-decomp-b2",
+      "x": 545,
+      "y": 60,
+      "text": "LMP=$45\nSMEC=$30\nMCC=+$15",
+      "strokeColor": "#ff8f00"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

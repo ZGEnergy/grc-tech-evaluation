@@ -8,7 +8,7 @@
 
 ## Methodology
 
-Six open-source power system modeling tools were evaluated against a six-criterion rubric (Expressiveness, Extensibility, Scalability, Accessibility, Maturity, Supply Chain) using standardized test suites on ACTIVSg 2k-bus and 10k-bus reference networks with open-source solvers only (HiGHS, SCIP, Ipopt, GLPK). Supply Chain serves as a gate criterion: any tool graded C+ or below is disqualified. The remaining five criteria are ranked by lexicographic priority — Expressiveness > Extensibility > Scalability > Accessibility > Maturity — with ties broken by the next criterion in sequence. MATPOWER is designated reference benchmark only per the rubric: its canonical MATLAB runtime disqualifies it for classified network deployment, and it is excluded from primary ranking while retained in the grade table for comparison.
+Six open-source power system modeling tools were evaluated against a six-criterion rubric (Expressiveness, Extensibility, Scalability, Accessibility, Maturity, Supply Chain) using standardized test suites on ACTIVSg 2k-bus and 10k-bus reference networks with open-source solvers only (HiGHS, SCIP, Ipopt, GLPK). Supply Chain serves as a gate criterion: any tool graded C+ or below is disqualified. The remaining five criteria are ranked by lexicographic priority — Expressiveness > Extensibility > Scalability > Accessibility > Maturity — with ties broken by the next criterion in sequence. MATPOWER is designated reference benchmark only per the rubric: its canonical MATLAB runtime disqualifies it for restricted-network deployment, and it is excluded from primary ranking while retained in the grade table for comparison.
 
 ## Grade Comparison
 
