@@ -1,0 +1,761 @@
+{
+    "_provenance": {
+        "sources": [
+            "sweep-data/v4-to-v5/aggregation/comparison-matrices.md",
+            "sweep-reports/v4-to-v5.md",
+            ".claude/worktrees/eval/pypsa-v4/evaluations/pypsa/results/synthesis.md",
+            ".claude/worktrees/eval/pandapower-v4/evaluations/pandapower/results/synthesis.md",
+            ".claude/worktrees/eval/powermodels-v4/evaluations/powermodels/results/synthesis.md",
+            ".claude/worktrees/eval/matpower-v4/evaluations/matpower/results/synthesis.md"
+        ],
+        "extracted": "2026-03-10",
+        "_note": "Results aggregated from comparison-matrices.md test outcome matrix. 'P' and 'QP' counted as pass; 'F' counted as fail; '--' and 'I' counted as skip. Each test ID at each scale tier counts as one test."
+    },
+    "suites": ["gate", "expressiveness", "extensibility", "scalability", "accessibility", "maturity", "supply_chain"],
+    "tools": [
+        {
+            "tool": "pypsa",
+            "total_pass": 57,
+            "total_fail": 15,
+            "total_skip": 4,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 14, "fail": 8, "skip": 0,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "pass", "_note": "Debunked by probe-001; should be fail"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "fail"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "fail"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "pass"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "fail"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "pass"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "fail"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "fail"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "fail"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "fail"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "pass"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "pass"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "pass"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "pass"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "pass"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 14, "fail": 3, "skip": 1,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "pass"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "fail"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "pass"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "fail"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "pass"},
+                        {"id": "B-6", "name": "Code architecture", "result": "skip"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "pass"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "pass"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "fail"},
+                        {"id": "B-6", "name": "API stability", "result": "skip", "_note": "Informational only"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 7, "fail": 3, "skip": 0,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "pass"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "fail"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "pass"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "pass"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "pass"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 3, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "pass"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "pass"},
+                        {"id": "D-3", "name": "Example verification", "result": "pass"},
+                        {"id": "D-4", "name": "Error quality", "result": "pass"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 0, "fail": 0, "skip": 7,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "skip"},
+                        {"id": "E-2", "name": "Commit activity", "result": "skip"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "skip"},
+                        {"id": "E-4", "name": "Funding model", "result": "skip"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "skip"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "skip"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "skip"}
+                    ],
+                    "_note": "PyPSA maturity tests recorded as informational (I) in comparison matrix"
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 8, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "pass"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "pass"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "pass"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "pass"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "pass"}
+                    ]
+                }
+            ]
+        },
+        {
+            "tool": "pandapower",
+            "total_pass": 42,
+            "total_fail": 18,
+            "total_skip": 5,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 8, "fail": 12, "skip": 2,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "pass"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "pass"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "pass"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "fail"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "fail"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "fail"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "fail"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "pass"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "fail"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "fail"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "fail"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "fail"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "fail"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "fail"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "fail"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "fail"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 15, "fail": 0, "skip": 2,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "pass"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "pass"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "pass"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "pass"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "pass"},
+                        {"id": "B-6", "name": "Code architecture", "result": "pass"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "pass"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "pass"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 5, "fail": 5, "skip": 0,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "pass"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "fail"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "pass"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "pass"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "fail"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "fail"}
+                    ]
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 4, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "pass"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "pass"},
+                        {"id": "D-3", "name": "Example verification", "result": "pass"},
+                        {"id": "D-4", "name": "Error quality", "result": "pass"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 7, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "pass"},
+                        {"id": "E-2", "name": "Commit activity", "result": "pass"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "pass"},
+                        {"id": "E-4", "name": "Funding model", "result": "pass"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "pass"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "pass"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 9, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "pass"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "pass"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "pass"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "pass"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "pass"}
+                    ]
+                }
+            ]
+        },
+        {
+            "tool": "powermodels",
+            "total_pass": 48,
+            "total_fail": 13,
+            "total_skip": 8,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 14, "fail": 6, "skip": 2,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "fail"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "pass"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "pass"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "pass"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "fail"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "pass"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "fail"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "fail"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "fail"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "fail"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "pass"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "pass"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "pass"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "pass"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "pass"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 16, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "pass"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "pass"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "pass"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "pass"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "pass"},
+                        {"id": "B-6", "name": "Code architecture", "result": "pass"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "pass"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "pass"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 5, "fail": 5, "skip": 0,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "fail"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "fail"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "fail"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "pass"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "pass"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 4, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "pass"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "pass"},
+                        {"id": "D-3", "name": "Example verification", "result": "pass"},
+                        {"id": "D-4", "name": "Error quality", "result": "pass"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 3, "fail": 2, "skip": 2,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "pass"},
+                        {"id": "E-2", "name": "Commit activity", "result": "pass"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "fail"},
+                        {"id": "E-4", "name": "Funding model", "result": "skip"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "pass"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "pass"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "fail"}
+                    ]
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 7, "fail": 0, "skip": 2,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "skip"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "pass"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "pass"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "pass"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "pass"}
+                    ]
+                }
+            ]
+        },
+        {
+            "tool": "matpower",
+            "total_pass": 45,
+            "total_fail": 5,
+            "total_skip": 15,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 19, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "pass"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "pass"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "pass"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "pass"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "pass"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "pass"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "pass"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "pass"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "pass"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "skip"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "pass"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "pass"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "pass"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "pass"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "pass"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 9, "fail": 0, "skip": 1,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "pass"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "pass"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "pass"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "pass"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "pass"},
+                        {"id": "B-6", "name": "Code architecture", "result": "skip"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "pass"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "pass"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 5, "fail": 4, "skip": 1,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "pass"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "fail"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "pass"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "fail"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "pass"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 0, "fail": 0, "skip": 5,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "skip"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "skip"},
+                        {"id": "D-3", "name": "Example verification", "result": "skip"},
+                        {"id": "D-4", "name": "Error quality", "result": "skip"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ],
+                    "_note": "MATPOWER accessibility tests recorded as informational (I) in comparison matrix"
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 0, "fail": 0, "skip": 7,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "skip"},
+                        {"id": "E-2", "name": "Commit activity", "result": "skip"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "skip"},
+                        {"id": "E-4", "name": "Funding model", "result": "skip"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "skip"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "skip"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "skip"}
+                    ],
+                    "_note": "MATPOWER maturity tests recorded as informational (I) in comparison matrix"
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 6, "fail": 0, "skip": 3,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "skip"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "skip"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "skip"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "pass"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "pass"}
+                    ]
+                }
+            ]
+        },
+        {
+            "tool": "gridcal",
+            "total_pass": 39,
+            "total_fail": 16,
+            "total_skip": 7,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 9, "fail": 11, "skip": 2,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "pass"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "pass"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "pass"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "fail"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "fail"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "fail"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "fail"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "pass"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "fail"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "fail"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "fail"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "fail"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "pass"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "pass"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "fail"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "fail"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 13, "fail": 2, "skip": 2,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "fail"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "fail"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "pass"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "pass"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "pass"},
+                        {"id": "B-6", "name": "Code architecture", "result": "pass"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "pass"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "pass"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 5, "fail": 5, "skip": 0,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "pass"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "fail"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "pass"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "fail"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "pass"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "fail"}
+                    ]
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 2, "fail": 1, "skip": 2,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "pass"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "skip"},
+                        {"id": "D-3", "name": "Example verification", "result": "pass"},
+                        {"id": "D-4", "name": "Error quality", "result": "fail"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 4, "fail": 0, "skip": 3,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "pass"},
+                        {"id": "E-2", "name": "Commit activity", "result": "pass"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "pass"},
+                        {"id": "E-4", "name": "Funding model", "result": "fail"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "pass"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "pass"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 6, "fail": 1, "skip": 2,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "skip"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "pass"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "skip"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "fail"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "pass"}
+                    ]
+                }
+            ]
+        },
+        {
+            "tool": "powersimulations",
+            "total_pass": 37,
+            "total_fail": 10,
+            "total_skip": 18,
+            "by_suite": [
+                {
+                    "suite": "gate",
+                    "pass": 3, "fail": 0, "skip": 0,
+                    "tests": [
+                        {"id": "G-1", "name": "TINY ingest", "result": "pass"},
+                        {"id": "G-2", "name": "SMALL ingest", "result": "pass"},
+                        {"id": "G-3", "name": "MEDIUM ingest", "result": "pass"}
+                    ]
+                },
+                {
+                    "suite": "expressiveness",
+                    "pass": 10, "fail": 5, "skip": 7,
+                    "tests": [
+                        {"id": "A-1 TINY", "name": "DCPF", "result": "pass"},
+                        {"id": "A-1 MED", "name": "DCPF at scale", "result": "pass"},
+                        {"id": "A-2 TINY", "name": "ACPF", "result": "pass"},
+                        {"id": "A-2 MED", "name": "ACPF at scale", "result": "fail"},
+                        {"id": "A-3 TINY", "name": "DCOPF", "result": "pass"},
+                        {"id": "A-3 MED", "name": "DCOPF at scale", "result": "skip"},
+                        {"id": "A-4 TINY", "name": "AC feasibility", "result": "pass"},
+                        {"id": "A-4 MED", "name": "AC feasibility at scale", "result": "skip"},
+                        {"id": "A-5 TINY", "name": "SCUC", "result": "pass"},
+                        {"id": "A-5 SMALL", "name": "SCUC at scale", "result": "skip"},
+                        {"id": "A-6 TINY", "name": "SCED", "result": "pass"},
+                        {"id": "A-6 SMALL", "name": "SCED at scale", "result": "skip"},
+                        {"id": "A-7 TINY", "name": "N-M contingency sweep", "result": "pass"},
+                        {"id": "A-7 MED", "name": "N-M contingency at scale", "result": "skip"},
+                        {"id": "A-8 TINY", "name": "Stochastic optimization", "result": "fail"},
+                        {"id": "A-8 SMALL", "name": "Stochastic at scale", "result": "skip"},
+                        {"id": "A-9 TINY", "name": "SCOPF", "result": "pass"},
+                        {"id": "A-9 SMALL", "name": "SCOPF at scale", "result": "skip"},
+                        {"id": "A-10 TINY", "name": "Lossy DCOPF LMP", "result": "fail"},
+                        {"id": "A-10 SMALL", "name": "Lossy DCOPF at scale", "result": "fail"},
+                        {"id": "A-11 TINY", "name": "Distributed slack OPF", "result": "pass"},
+                        {"id": "A-11 SMALL", "name": "Distributed slack at scale", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "extensibility",
+                    "pass": 13, "fail": 0, "skip": 4,
+                    "tests": [
+                        {"id": "B-1 TINY", "name": "Custom constraints", "result": "pass"},
+                        {"id": "B-1 MED", "name": "Custom constraints at scale", "result": "skip"},
+                        {"id": "B-2 TINY", "name": "Graph access", "result": "pass"},
+                        {"id": "B-2 MED", "name": "Graph access at scale", "result": "skip"},
+                        {"id": "B-3 TINY", "name": "Contingency loop", "result": "pass"},
+                        {"id": "B-3 MED", "name": "Contingency loop at scale", "result": "skip"},
+                        {"id": "B-4 TINY", "name": "Stochastic wrapping", "result": "pass"},
+                        {"id": "B-4 SMALL", "name": "Stochastic wrapping at scale", "result": "pass"},
+                        {"id": "B-5 TINY", "name": "Interoperability", "result": "pass"},
+                        {"id": "B-5 MED", "name": "Interoperability at scale", "result": "skip"},
+                        {"id": "B-6", "name": "Code architecture", "result": "pass"},
+                        {"id": "B-7 TINY", "name": "AC feasibility extension", "result": "pass"},
+                        {"id": "B-7 MED", "name": "AC feasibility ext. at scale", "result": "skip"},
+                        {"id": "B-8 TINY", "name": "Reference bus config", "result": "pass"},
+                        {"id": "B-8 SMALL", "name": "Reference bus at scale", "result": "skip"},
+                        {"id": "B-9 TINY", "name": "PTDF extraction", "result": "pass"},
+                        {"id": "B-9 MED", "name": "PTDF at scale", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "scalability",
+                    "pass": 6, "fail": 4, "skip": 0,
+                    "tests": [
+                        {"id": "C-1 MED", "name": "DCPF scale", "result": "pass"},
+                        {"id": "C-2 MED", "name": "ACPF scale", "result": "fail"},
+                        {"id": "C-3 MED", "name": "DCOPF scale", "result": "pass"},
+                        {"id": "C-4 SMALL", "name": "SCUC scale", "result": "pass"},
+                        {"id": "C-5 MED", "name": "Contingency sweep scale", "result": "pass"},
+                        {"id": "C-6 SMALL", "name": "Stochastic scale", "result": "pass"},
+                        {"id": "C-7 MED", "name": "Solver swap", "result": "pass"},
+                        {"id": "C-8 MED", "name": "SCOPF scale", "result": "fail"},
+                        {"id": "C-9 MED", "name": "PTDF scale", "result": "pass"},
+                        {"id": "C-10 MED", "name": "Distributed slack scale", "result": "fail"}
+                    ],
+                    "_note": "C-3/C-4/C-5/C-6 had estimated timings only (probe-020); counted as pass per comparison matrix"
+                },
+                {
+                    "suite": "accessibility",
+                    "pass": 2, "fail": 0, "skip": 3,
+                    "tests": [
+                        {"id": "D-1", "name": "Install to first solve", "result": "pass"},
+                        {"id": "D-2", "name": "Documentation audit", "result": "skip"},
+                        {"id": "D-3", "name": "Example verification", "result": "skip"},
+                        {"id": "D-4", "name": "Error quality", "result": "pass"},
+                        {"id": "D-5", "name": "Code volume", "result": "skip"}
+                    ]
+                },
+                {
+                    "suite": "maturity",
+                    "pass": 0, "fail": 0, "skip": 7,
+                    "tests": [
+                        {"id": "E-1", "name": "Release cadence", "result": "skip"},
+                        {"id": "E-2", "name": "Commit activity", "result": "skip"},
+                        {"id": "E-3", "name": "Contributor concentration", "result": "skip"},
+                        {"id": "E-4", "name": "Funding model", "result": "skip"},
+                        {"id": "E-5", "name": "Issue tracker health", "result": "skip"},
+                        {"id": "E-6", "name": "CI/test coverage", "result": "skip"},
+                        {"id": "E-7", "name": "Operational adoption", "result": "skip"}
+                    ],
+                    "_note": "PowerSimulations maturity tests recorded as informational (I) in comparison matrix"
+                },
+                {
+                    "suite": "supply_chain",
+                    "pass": 6, "fail": 0, "skip": 3,
+                    "tests": [
+                        {"id": "F-1", "name": "Core license", "result": "pass"},
+                        {"id": "F-2", "name": "Dependency tree", "result": "skip"},
+                        {"id": "F-3", "name": "Dependency license audit", "result": "skip"},
+                        {"id": "F-4", "name": "Compiled extension audit", "result": "pass"},
+                        {"id": "F-5", "name": "Code inspectability", "result": "pass"},
+                        {"id": "F-6", "name": "Distribution integrity", "result": "pass"},
+                        {"id": "F-7", "name": "Air-gap installability", "result": "pass"},
+                        {"id": "F-8", "name": "Solver dependency", "result": "pass"},
+                        {"id": "F-9", "name": "Getting started integrity", "result": "skip"}
+                    ]
+                }
+            ]
+        }
+    ]
+}

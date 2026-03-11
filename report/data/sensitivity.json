@@ -1,0 +1,82 @@
+{
+    "_provenance": {
+        "source": "report/selection-report-v4.md",
+        "lines": "30-40",
+        "extracted": "2026-03-10"
+    },
+    "scenarios": [
+        {
+            "name": "Baseline (lexicographic priority)",
+            "description": "Expressiveness > Extensibility > Scalability > Accessibility > Maturity, with Supply Chain as gate. MATPOWER excluded per rubric designation.",
+            "weights": {
+                "expressiveness": "lexicographic_1",
+                "extensibility": "lexicographic_2",
+                "scalability": "lexicographic_3",
+                "accessibility": "lexicographic_4",
+                "maturity": "lexicographic_5"
+            },
+            "rankings": [
+                {"tool": "pypsa", "score": null, "rank": 1},
+                {"tool": "powermodels", "score": null, "rank": 2},
+                {"tool": "powersimulations", "score": null, "rank": 3},
+                {"tool": "pandapower", "score": null, "rank": 4},
+                {"tool": "gridcal", "score": null, "rank": 5}
+            ]
+        },
+        {
+            "name": "Scenario 1: Maturity as top priority",
+            "description": "Maturity > Expressiveness > Extensibility > Scalability > Accessibility. MATPOWER excluded per rubric designation.",
+            "weights": {
+                "maturity": "lexicographic_1",
+                "expressiveness": "lexicographic_2",
+                "extensibility": "lexicographic_3",
+                "scalability": "lexicographic_4",
+                "accessibility": "lexicographic_5"
+            },
+            "rankings": [
+                {"tool": "pypsa", "score": null, "rank": 1},
+                {"tool": "pandapower", "score": null, "rank": 2},
+                {"tool": "powersimulations", "score": null, "rank": 3},
+                {"tool": "gridcal", "score": null, "rank": 4},
+                {"tool": "powermodels", "score": null, "rank": 5}
+            ]
+        },
+        {
+            "name": "Scenario 2: Equal-weight scoring",
+            "description": "Sum of numeric grade values using A=9, A-=8, B+=7, B=6, B-=5, C+=4 scale. MATPOWER excluded per rubric designation.",
+            "weights": {
+                "expressiveness": 1.0,
+                "extensibility": 1.0,
+                "scalability": 1.0,
+                "accessibility": 1.0,
+                "maturity": 1.0,
+                "supply_chain": 1.0
+            },
+            "rankings": [
+                {"tool": "pypsa", "score": 35, "rank": 1},
+                {"tool": "pandapower", "score": 30, "rank": 2},
+                {"tool": "powermodels", "score": 27, "rank": 3},
+                {"tool": "powersimulations", "score": 27, "rank": 3},
+                {"tool": "gridcal", "score": 24, "rank": 5}
+            ]
+        },
+        {
+            "name": "Scenario 3: Extensibility over Expressiveness",
+            "description": "Extensibility > Expressiveness > Scalability > Accessibility > Maturity. MATPOWER excluded per rubric designation.",
+            "weights": {
+                "extensibility": "lexicographic_1",
+                "expressiveness": "lexicographic_2",
+                "scalability": "lexicographic_3",
+                "accessibility": "lexicographic_4",
+                "maturity": "lexicographic_5"
+            },
+            "rankings": [
+                {"tool": "pypsa", "score": null, "rank": 1},
+                {"tool": "powermodels", "score": null, "rank": 2},
+                {"tool": "powersimulations", "score": null, "rank": 3},
+                {"tool": "pandapower", "score": null, "rank": 4},
+                {"tool": "gridcal", "score": null, "rank": 5}
+            ]
+        }
+    ]
+}

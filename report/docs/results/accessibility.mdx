@@ -1,0 +1,156 @@
+---
+sidebar_position: 5
+title: "Accessibility"
+---
+
+import Placeholder from '@site/src/components/Placeholder';
+
+# Accessibility
+
+## Overview
+
+Accessibility measures how easy it is for a new user to install, learn, and productively use each tool. The Suite D tests evaluate documentation quality (D-2), API consistency (D-4), onboarding friction (D-1: time from install to first successful solve), example verification (D-3), and code volume required for standard tasks (D-5). This criterion carries **moderate priority** in the rubric — a tool with outstanding expressiveness but poor accessibility creates adoption risk and ongoing maintenance burden.
+
+The six tools split into three tiers. PyPSA and pandapower share the top tier (B+) with mature Python ecosystems, extensive documentation, and low onboarding friction. PowerModels earns B- due to strong API documentation offset by the Julia ecosystem learning curve. MATPOWER (B, reference only) benefits from decades of textbook references. GridCal and PowerSimulations share the bottom tier (C+), each with meaningful documentation gaps that raise the barrier to programmatic use.
+
+<Placeholder title="Accessibility Grade Comparison" />
+
+## Tool Results
+
+<details className="eval-details" open>
+<summary>
+
+### PyPSA — <span className="grade-b-plus">B+</span> (#1)
+
+</summary>
+
+PyPSA offers the lowest onboarding friction of any evaluated tool. Its pandas-like API means that users familiar with the Python data science ecosystem can begin constructing networks immediately — buses are DataFrame rows, components are added via `n.add()` calls that mirror pandas conventions. The official documentation includes quick-start tutorials, a comprehensive examples gallery with Jupyter notebooks, and detailed API reference pages auto-generated from docstrings.
+
+Error messages are generally informative, reporting which component or constraint caused a failure with enough context to diagnose the issue. The main accessibility weakness is that advanced OPF formulations (SCOPF, SCUC) require linopy knowledge that is not well-covered in the PyPSA documentation itself, pushing users to a second documentation ecosystem.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | pass | Install to first solve under 15 minutes with pip/conda |
+| D-2 | pass | Comprehensive docs with tutorials, examples, API reference |
+| D-3 | pass | Published examples run without modification |
+| D-4 | pass | Informative error messages with component context |
+| D-5 | skip | Code volume metric not evaluated in protocol |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### pandapower — <span className="grade-b-plus">B+</span> (#2)
+
+</summary>
+
+pandapower's element-based API is arguably the most intuitive of all evaluated tools for users with a power systems background. Creating a network reads like assembling a one-line diagram: `pp.create_bus()`, `pp.create_line()`, `pp.create_ext_grid()`. The documentation includes an extensive tutorial series with Jupyter notebooks that walk through progressively complex scenarios, from a simple radial feeder to meshed transmission networks.
+
+The tool has strong accessibility for power flow analysis but weaker documentation for OPF use cases, which rely on a PowerModels.jl bridge that is less thoroughly documented. Error messages from the PYPOWER backend can be cryptic when solver convergence fails, though the pandapower wrapper typically adds diagnostic context.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | pass | Install to first solve straightforward with pip |
+| D-2 | pass | Extensive tutorials with Jupyter notebook examples |
+| D-3 | pass | Example notebooks verified to run correctly |
+| D-4 | pass | Error messages include diagnostic context for common failures |
+| D-5 | skip | Code volume metric not evaluated in protocol |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerModels — <span className="grade-b-minus">B-</span> (#3)
+
+</summary>
+
+PowerModels has well-structured API documentation and a clear mathematical formulation reference that maps JuMP model variables to their power system equivalents. For users already comfortable with Julia and JuMP, the learning curve is manageable — the API is consistent and the formulation hierarchy (ACPPowerModel, DCPPowerModel, SOCWRPowerModel, etc.) is well-documented.
+
+The primary accessibility barrier is the Julia ecosystem itself: first-time Julia users must learn the package manager, understand precompilation (which adds minutes to first use), and adapt to Julia's dispatch-based programming model. The JuMP DSL for custom constraints, while powerful, requires familiarity with mathematical programming abstractions that are not part of the PowerModels documentation. Error messages from Ipopt and HiGHS solvers pass through with minimal PowerModels-specific context.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | pass | Install via Pkg.add; first solve requires Pkg.instantiate overhead |
+| D-2 | pass | Good API docs; mathematical formulation reference is a strength |
+| D-3 | pass | Tutorial examples run after Pkg.instantiate |
+| D-4 | pass | Solver errors pass through with limited PowerModels context |
+| D-5 | skip | Code volume metric not evaluated in protocol |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### GridCal — <span className="grade-c-plus">C+</span> (#4)
+
+</summary>
+
+> **Note:** GridCal grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+GridCal's primary interface is a GUI application, which provides excellent visual feedback for network construction and power flow analysis but creates a significant barrier for programmatic use. The scripting API documentation is sparse compared to the GUI documentation, and several API functions lack docstrings or usage examples. Users attempting to automate workflows must often reverse-engineer the GUI's behavior to find the correct API calls.
+
+Installation is straightforward via pip, and the GUI-driven workflow can produce a first solve quickly. However, error messages from the scripting API are inconsistent — some failures produce informative exceptions while others return silent incorrect results (D-4 fail), which is the most concerning accessibility gap for production use.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | pass | pip install; GUI provides fast first solve |
+| D-2 | skip | Documentation audit not completed for this tool |
+| D-3 | pass | GUI examples verified; scripting examples limited |
+| D-4 | fail | Inconsistent error handling; some silent failures |
+| D-5 | skip | Code volume metric not evaluated in protocol |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerSimulations — <span className="grade-c-plus">C+</span> (#5)
+
+</summary>
+
+> **Note:** PowerSimulations grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+PowerSimulations shares the Julia ecosystem barrier with PowerModels but adds additional complexity through its layered architecture: users must understand PowerSystems.jl (data model), PowerSimulations.jl (simulation engine), and InfrastructureSystems.jl (base infrastructure) as three interacting packages. The documentation quality is variable — some components have detailed examples while others have only auto-generated API stubs.
+
+The Sienna project (NREL's umbrella for PowerSimulations and related packages) provides some tutorial material, but coverage is uneven. Unit conventions between API functions are inconsistent (some return MW, others return per-unit), as demonstrated by [probe-021](./probe-results#probe-021), creating a subtle but dangerous accessibility trap for new users.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | pass | Pkg.add works; multi-package dependency chain adds setup time |
+| D-2 | skip | Documentation audit not completed for this tool |
+| D-3 | skip | Example verification not completed for this tool |
+| D-4 | pass | Exceptions raised on error; but unit inconsistency is a trap |
+| D-5 | skip | Code volume metric not evaluated in protocol |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### MATPOWER — <span className="grade-b">B</span> (Reference Only)
+
+</summary>
+
+:::note[Reference Implementation]
+MATPOWER served as the reference implementation for validating test protocols and network data. It is not a candidate for Phase 2 selection. Grades reflect protocol validation performance only.
+:::
+
+MATPOWER benefits from over two decades of academic use, with extensive textbook references, published tutorials, and a large body of example scripts. The Octave/MATLAB environment is familiar to many power systems engineers from graduate coursework. The `runpf()` and `runopf()` functions provide a simple entry point, and the MATPOWER case format (.m files) is a de facto standard for network data exchange.
+
+The primary accessibility limitation is the Octave/MATLAB runtime requirement, which is less accessible than Python or Julia for software engineering workflows. Error messages from the MIPS solver are terse but the MATPOWER manual provides extensive troubleshooting guidance.
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| D-1 | skip | Reference tool; accessibility tests not formally scored |
+| D-2 | skip | Reference tool |
+| D-3 | skip | Reference tool |
+| D-4 | skip | Reference tool |
+| D-5 | skip | Reference tool |
+
+</details>
+
+---
+
+**Previous:** [Scalability](./scalability) | **Next:** [Maturity](./maturity)
