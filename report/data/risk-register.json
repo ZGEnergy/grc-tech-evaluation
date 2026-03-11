@@ -1,0 +1,37 @@
+{
+    "_provenance": {
+        "source": "report/selection-report-v4.md",
+        "lines": "69-77",
+        "extracted": "2026-03-10"
+    },
+    "risks": [
+        {
+            "id": "R1",
+            "title": "SCUC scalability",
+            "severity": "HIGH",
+            "description": "PyPSA SCUC times out at SMALL scale (2k-bus) with HiGHS single-threaded (A-5). The target FNM is ~6,000 buses.",
+            "mitigation": "Evaluate commercial-grade open-source solver configurations (HiGHS parallel, SCIP). Implement temporal decomposition (4-6 hour blocks). If PyPSA SCUC remains intractable, use PowerModels/JuMP for commitment stage only, feeding dispatch back to PyPSA."
+        },
+        {
+            "id": "R2",
+            "title": "No native stochastic optimization",
+            "severity": "HIGH",
+            "description": "PyPSA has no stochastic formulation -- scenario trees, two-stage programs, and chance constraints are absent (A-8). This is a blocking gap for multi-scenario congestion analysis.",
+            "mitigation": "Implement deterministic scenario loop with post-hoc aggregation for Phase 2 MVP. Evaluate Linopy-level stochastic extension feasibility. Accept that stochastic optimization is a Phase 3 capability if native support is not forthcoming."
+        },
+        {
+            "id": "R3",
+            "title": "PWL cost curves require extension",
+            "severity": "MEDIUM",
+            "description": "Production market clearing uses piecewise-linear bid curves. PyPSA supports only linear/quadratic costs natively (P2-2). SOS2 formulation via extra_functionality is ~50-100 LOC.",
+            "mitigation": "Implement SOS2 PWL extension early in Phase 2. The extra_functionality callback API is stable and documented (B-1). Validate against MATPOWER reference solutions with identical cost data."
+        },
+        {
+            "id": "R4",
+            "title": "Linopy post-processing bottleneck",
+            "severity": "MEDIUM",
+            "description": "Shadow-price extraction via linopy creates 10+ minute overhead at 10k-bus scale. This affects LMP computation in operational-speed workflows.",
+            "mitigation": "Profile linopy shadow-price path and identify optimization targets. Evaluate direct solver dual extraction bypassing linopy post-processing. If unresolvable, accept longer solve times for planning studies and implement caching for repeated analyses."
+        }
+    ]
+}

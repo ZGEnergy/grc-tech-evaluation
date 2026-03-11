@@ -1,0 +1,194 @@
+---
+sidebar_position: 6
+title: "Maturity"
+---
+
+import Placeholder from '@site/src/components/Placeholder';
+
+# Maturity
+
+## Overview
+
+Maturity measures the long-term health and sustainability of each tool's development ecosystem. The Suite E tests evaluate release cadence (E-1), commit activity (E-2), contributor concentration and bus factor (E-3), funding model sustainability (E-4), issue tracker health (E-5), CI/testing practices (E-6), and evidence of operational adoption (E-7). This criterion carries **low priority** in the rubric — it does not directly affect technical capability but indicates whether a tool will remain viable over a multi-year adoption horizon.
+
+An important caveat applies to all maturity assessments: as identified in [T13](./sweep-findings#t13), maturity metrics were sourced from tool documentation, README badges, and GitHub statistics without independent verification. Probe-025 demonstrated the risk of this approach — PowerSimulations' claimed 100% code coverage was actually 78% when the Codecov badge was checked directly. Maturity grades should therefore be interpreted as directional indicators rather than precise measurements.
+
+<Placeholder title="Maturity Grade Comparison" />
+
+## Tool Results
+
+<details className="eval-details" open>
+<summary>
+
+### PyPSA — <span className="grade-a-minus">A-</span> (#1)
+
+</summary>
+
+PyPSA demonstrates the strongest maturity profile among all evaluated tools. It is actively developed by a multi-maintainer team at the Technical University of Berlin and Karlsruhe Institute of Technology, with consistent release cadence and a broad contributor base that mitigates bus-factor risk. The project has strong institutional backing through European research funding and is used in production by multiple energy system modeling groups.
+
+CI/CD practices are well-established with automated testing on multiple Python versions. The project maintains a clear deprecation policy and semantic versioning. Community engagement through GitHub issues and discussions is active, with maintainer response times typically under 48 hours.
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | skip | Release cadence assessed via desk research |
+| E-2 | skip | Commit activity assessed via desk research |
+| E-3 | skip | Multi-maintainer team; low bus-factor risk |
+| E-4 | skip | European research funding model |
+| E-5 | skip | Active issue tracker with maintainer engagement |
+| E-6 | skip | CI on multiple Python versions |
+| E-7 | skip | Operational adoption in European energy modeling |
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### pandapower — <span className="grade-a-minus">A-</span> (#2)
+
+</summary>
+
+pandapower matches PyPSA in maturity with an equally strong development ecosystem. Maintained by the Fraunhofer IEE institute, it benefits from stable institutional funding and a professional development team. The project has the broadest operational adoption among the evaluated tools, with documented use in German utility grid planning and academic research worldwide.
+
+All seven E-series tests pass for pandapower — it is the only tool with a complete maturity assessment. Release cadence is regular, the contributor base is diverse, the issue tracker is actively maintained, and CI/testing infrastructure is comprehensive. The Fraunhofer backing provides long-term sustainability that is not dependent on individual contributors.
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | pass | Regular release cadence |
+| E-2 | pass | Active commit history |
+| E-3 | pass | Diverse contributor base with institutional backing |
+| E-4 | pass | Fraunhofer IEE funding model |
+| E-5 | pass | Actively maintained issue tracker |
+| E-6 | pass | Comprehensive CI/testing infrastructure |
+| E-7 | pass | Documented operational adoption in utility grid planning |
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerSimulations — <span className="grade-b">B</span> (#3)
+
+</summary>
+
+> **Note:** PowerSimulations grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+PowerSimulations is developed by NREL's Sienna team as part of a broader Julia-based power systems modeling suite. The NREL institutional backing provides funding stability, but the project's contributor concentration is narrower than PyPSA or pandapower. The Sienna ecosystem is ambitious in scope (PowerSystems.jl, PowerSimulations.jl, PowerFlows.jl, PowerNetworkMatrices.jl) but this breadth creates maintenance surface area.
+
+A notable finding from [probe-025](./probe-results#probe-025): the claimed 100% test coverage is actually ~78% as shown by the Codecov badge. While 78% coverage is respectable for a Julia package of this size (143 source files), the 22-point discrepancy illustrates the risk of relying on unverified documentation claims — a pattern highlighted in [T13](./sweep-findings#t13).
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | skip | Release cadence assessed via desk research |
+| E-2 | skip | Commit activity assessed via desk research |
+| E-3 | skip | NREL Sienna team; moderate contributor concentration |
+| E-4 | skip | NREL institutional funding |
+| E-5 | skip | Issue tracker active but response times variable |
+| E-6 | skip | probe-025: coverage is 78%, not 100% as claimed |
+| E-7 | skip | Adoption primarily in NREL research projects |
+
+**Related Probes:** [probe-025](./probe-results#probe-025)
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### GridCal — <span className="grade-b-minus">B-</span> (#4)
+
+</summary>
+
+> **Note:** GridCal grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+
+GridCal has an active development history with regular releases and a growing contributor base. The project is primarily maintained by Santiago Penate Vera with contributions from a small community. While the bus factor is higher than PyPSA or pandapower, the project has demonstrated sustained development over multiple years. The funding model relies primarily on consulting and commercial support rather than institutional research grants, which introduces different sustainability characteristics.
+
+CI and testing practices are in place, with automated builds and a test suite. Issue tracker health is reasonable, with maintainer responsiveness on bug reports. Operational adoption is documented in consulting contexts and academic research.
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | pass | Regular release cadence |
+| E-2 | pass | Active commit history from primary maintainer |
+| E-3 | pass | Growing contributor base; moderate bus-factor risk |
+| E-4 | fail | No institutional funding; consulting-based model |
+| E-5 | pass | Responsive issue tracker |
+| E-6 | pass | CI with automated testing |
+| E-7 | pass | Adoption in consulting and academic contexts |
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerModels — <span className="grade-c-plus">C+</span> (#5)
+
+</summary>
+
+PowerModels is developed primarily by Carleton Coffrin at Los Alamos National Laboratory (LANL). The tool has strong academic credentials with a well-cited research paper and adoption in the optimization research community. However, it faces two significant maturity concerns: high contributor concentration (bus-factor-1 risk with a single primary developer) and dependency on LANL institutional priorities, which can shift with funding cycles.
+
+Operational adoption outside of academic research is limited. The Julia ecosystem's smaller user base compared to Python means fewer external contributors and less community pressure for maintenance. Release cadence has been consistent but issue tracker response times can be long when the primary maintainer is occupied with other LANL projects.
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | pass | Consistent release cadence |
+| E-2 | pass | Active development by primary maintainer |
+| E-3 | fail | Bus-factor-1 risk; single primary developer |
+| E-4 | skip | LANL funding; subject to institutional priorities |
+| E-5 | pass | Issue tracker active; response times variable |
+| E-6 | pass | CI in place with test coverage |
+| E-7 | fail | Limited operational adoption outside academia |
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### MATPOWER — <span className="grade-c-plus">C+</span> (Reference Only)
+
+</summary>
+
+:::note[Reference Implementation]
+MATPOWER served as the reference implementation for validating test protocols and network data. It is not a candidate for Phase 2 selection. Grades reflect protocol validation performance only.
+:::
+
+MATPOWER has the longest track record of any evaluated tool, with over 25 years of continuous development and deep roots in power systems education and research. The MATPOWER case format is a de facto standard, and the tool is cited in thousands of academic papers. However, the Octave/MATLAB niche limits its contributor base, and development is concentrated around a small team at Cornell (primarily Ray Zimmerman).
+
+The maturity grade reflects the tension between MATPOWER's exceptional track record and its narrow development ecosystem. As a reference implementation, its long-term viability matters less for this evaluation than for the candidate tools, but the pattern of single-maintainer dependency is notable.
+
+Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+
+| Test ID | Result | Notes |
+|---------|--------|-------|
+| E-1 | skip | Reference tool; maturity tests not formally scored |
+| E-2 | skip | Reference tool |
+| E-3 | skip | Reference tool; single-maintainer pattern |
+| E-4 | skip | Reference tool |
+| E-5 | skip | Reference tool |
+| E-6 | skip | Reference tool |
+| E-7 | skip | Reference tool |
+
+**Related Themes:** [T13](./sweep-findings#t13)
+
+</details>
+
+---
+
+**Previous:** [Accessibility](./accessibility) | **Next:** [Supply Chain](./supply-chain)

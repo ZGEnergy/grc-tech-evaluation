@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <title>Stage 4: Optimal Power Flow Dispatch</title>
+  <desc>The same four-bus meshed network with cost curve annotations on generators, MW dispatch values, and Locational Marginal Price (LMP) values at each bus. The network topology is dimmed while economic dispatch annotations are highlighted.</desc>
+
+  <!-- === Dimmed network topology === -->
+
+  <!-- Bus 1 (dimmed) -->
+  <circle cx="200" cy="150" r="25" fill="none" stroke="#333" stroke-width="1" opacity="0.35" />
+  <text x="200" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" opacity="0.35" font-weight="bold">B1</text>
+
+  <!-- Generator G1 (dimmed) -->
+  <line x1="100" y1="150" x2="175" y2="150" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <circle cx="70" cy="150" r="25" fill="none" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <text x="70" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#2e7d32" opacity="0.35">~</text>
+
+  <!-- Bus 2 (dimmed) -->
+  <circle cx="600" cy="150" r="25" fill="none" stroke="#333" stroke-width="1" opacity="0.35" />
+  <text x="600" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" opacity="0.35" font-weight="bold">B2</text>
+
+  <!-- Load L1 (dimmed) -->
+  <line x1="625" y1="150" x2="690" y2="150" stroke="#c62828" stroke-width="1" opacity="0.35" />
+  <polygon points="710,125 725,125 717,155" fill="none" stroke="#c62828" stroke-width="1" opacity="0.35" />
+  <line x1="717" y1="110" x2="717" y2="127" stroke="#c62828" stroke-width="1" opacity="0.35" />
+
+  <!-- Bus 3 (dimmed) -->
+  <circle cx="200" cy="350" r="25" fill="none" stroke="#333" stroke-width="1" opacity="0.35" />
+  <text x="200" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" opacity="0.35" font-weight="bold">B3</text>
+
+  <!-- Generator G2 (dimmed) -->
+  <line x1="100" y1="350" x2="175" y2="350" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <circle cx="70" cy="350" r="25" fill="none" stroke="#2e7d32" stroke-width="1" opacity="0.35" />
+  <text x="70" y="358" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#2e7d32" opacity="0.35">~</text>
+
+  <!-- Bus 4 (dimmed) -->
+  <circle cx="600" cy="350" r="25" fill="none" stroke="#333" stroke-width="1" opacity="0.35" />
+  <text x="600" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" opacity="0.35" font-weight="bold">B4</text>
+
+  <!-- Load L2 (dimmed) -->
+  <line x1="625" y1="350" x2="690" y2="350" stroke="#c62828" stroke-width="1" opacity="0.35" />
+  <polygon points="710,325 725,325 717,355" fill="none" stroke="#c62828" stroke-width="1" opacity="0.35" />
+  <line x1="717" y1="310" x2="717" y2="327" stroke="#c62828" stroke-width="1" opacity="0.35" />
+
+  <!-- Lines (dimmed) -->
+  <line x1="225" y1="150" x2="575" y2="150" stroke="#1565c0" stroke-width="1" opacity="0.35" />
+  <line x1="200" y1="175" x2="200" y2="325" stroke="#1565c0" stroke-width="1" opacity="0.35" />
+  <line x1="600" y1="175" x2="600" y2="325" stroke="#1565c0" stroke-width="1" opacity="0.35" />
+  <line x1="225" y1="350" x2="575" y2="350" stroke="#1565c0" stroke-width="1" opacity="0.35" />
+  <line x1="218" y1="170" x2="582" y2="330" stroke="#1565c0" stroke-width="1" opacity="0.35" stroke-dasharray="8,4" />
+
+  <!-- === Highlighted OPF annotations === -->
+
+  <!-- G1 dispatch and cost -->
+  <rect x="20" y="100" width="100" height="40" rx="4" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" />
+  <text x="70" y="116" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2e7d32" font-weight="bold">G1: 180 MW</text>
+  <text x="70" y="132" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#2e7d32">$25/MWh</text>
+
+  <!-- G2 dispatch and cost -->
+  <rect x="20" y="300" width="100" height="40" rx="4" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" />
+  <text x="70" y="316" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#2e7d32" font-weight="bold">G2: 120 MW</text>
+  <text x="70" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#2e7d32">$35/MWh</text>
+
+  <!-- Load L1 value -->
+  <rect x="695" y="80" width="90" height="24" rx="4" fill="#ffebee" stroke="#c62828" stroke-width="1.5" />
+  <text x="740" y="97" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#c62828" font-weight="bold">200 MW</text>
+
+  <!-- Load L2 value -->
+  <rect x="695" y="280" width="90" height="24" rx="4" fill="#ffebee" stroke="#c62828" stroke-width="1.5" />
+  <text x="740" y="297" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#c62828" font-weight="bold">100 MW</text>
+
+  <!-- LMP at Bus 1 -->
+  <rect x="170" y="95" width="60" height="22" rx="3" fill="#fff8e1" stroke="#ff8f00" stroke-width="2" />
+  <text x="200" y="111" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ff8f00" font-weight="bold">$25</text>
+
+  <!-- LMP at Bus 2 -->
+  <rect x="570" y="95" width="60" height="22" rx="3" fill="#fff8e1" stroke="#ff8f00" stroke-width="2" />
+  <text x="600" y="111" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ff8f00" font-weight="bold">$30</text>
+
+  <!-- LMP at Bus 3 -->
+  <rect x="170" y="375" width="60" height="22" rx="3" fill="#fff8e1" stroke="#ff8f00" stroke-width="2" />
+  <text x="200" y="391" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ff8f00" font-weight="bold">$35</text>
+
+  <!-- LMP at Bus 4 -->
+  <rect x="570" y="375" width="60" height="22" rx="3" fill="#fff8e1" stroke="#ff8f00" stroke-width="2" />
+  <text x="600" y="391" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ff8f00" font-weight="bold">$32</text>
+
+  <!-- LMP label -->
+  <text x="400" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ff8f00" font-weight="bold">LMP ($/MWh)</text>
+
+  <!-- Legend -->
+  <text x="400" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">Cheapest generator dispatched first; LMPs reflect marginal cost at each bus</text>
+</svg>

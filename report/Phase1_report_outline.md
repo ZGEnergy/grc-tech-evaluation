@@ -9,7 +9,7 @@
 - Report audience: OECIF technical team, NRL Philly engineering staff
 
 ## 2. How the Grid Operates
-Educational foundation for the evaluation that follows. Build practical intuition for how CAISO solves the market and operates the grid:
+Educational foundation for the evaluation that follows. Build practical intuition for how an organized market solves dispatch and operates the grid:
 - DC power flow with AC feasibility checking
 - Unit commitment and economic dispatch
 - Contingency screening â€” what the grid operator actually models vs. the full problem space
@@ -18,7 +18,7 @@ Educational foundation for the evaluation that follows. Build practical intuitio
 
 ## 3. Use Cases for This Project
 Concrete problem statements derived from stakeholder discussions:
-- Ingest a real transmission topology at scale (10k+ buses, CAISO FNM in PSS/E RAW format)
+- Ingest a large transmission topology at scale (10k+ buses in PSS/E RAW format)
 - Solve DC/AC power flow and optimal power flow
 - Run security-constrained unit commitment (SCUC) and economic dispatch (SCED)
 - Sweep N-minus-M contingencies radiating outward from a point of interest to identify load-loss risk
@@ -37,7 +37,7 @@ How hard is it for a user to go from a solved power flow to custom analysis â�
 API design, code inspectability, documentation quality, learning curve. Can a new analyst at NRL pick this up and run their own scenarios? Includes inspectability requirements for security authorization on classified networks.
 
 ### 4.4 Scalability
-Performance at WECC-relevant scale (10k+ buses). Solver interface flexibility â€” support for major commercial (Gurobi, CPLEX) and open-source (HiGHS, SCIP) solvers.
+Performance at production-relevant scale (10k+ buses). Solver interface flexibility â€” support for major commercial (Gurobi, CPLEX) and open-source (HiGHS, SCIP) solvers.
 
 ### 4.5 Maturity & Sustainability
 Development velocity, funding stability, community health, governance model. Risk that the framework stalls or pivots away from operational relevance.
