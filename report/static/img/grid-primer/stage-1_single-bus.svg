@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <title>Stage 1: Single Generator, Single Load</title>
+  <desc>A single bus connected to one generator and one load, illustrating the simplest possible power system: generation equals demand at a single node.</desc>
+
+  <!-- Bus 1 -->
+  <circle cx="400" cy="250" r="25" fill="none" stroke="#333" stroke-width="2" />
+  <text x="400" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333" font-weight="bold">B1</text>
+
+  <!-- Generator G1 -->
+  <line x1="250" y1="250" x2="375" y2="250" stroke="#2e7d32" stroke-width="2" />
+  <circle cx="210" cy="250" r="30" fill="none" stroke="#2e7d32" stroke-width="2" />
+  <text x="210" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#2e7d32">~</text>
+  <text x="210" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#2e7d32" font-weight="bold">G1</text>
+
+  <!-- Load L1 -->
+  <line x1="425" y1="250" x2="540" y2="250" stroke="#c62828" stroke-width="2" />
+  <!-- Load arrow (downward) -->
+  <polygon points="570,220 590,220 580,260" fill="none" stroke="#c62828" stroke-width="2" />
+  <line x1="580" y1="200" x2="580" y2="222" stroke="#c62828" stroke-width="2" />
+  <text x="580" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#c62828" font-weight="bold">L1</text>
+
+  <!-- Legend -->
+  <text x="400" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">P_gen = P_load (power balance at single node)</text>
+</svg>

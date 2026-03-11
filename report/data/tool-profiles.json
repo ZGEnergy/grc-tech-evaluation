@@ -1,0 +1,90 @@
+{
+    "_provenance": {
+        "sources": [
+            ".claude/worktrees/eval/pypsa-v4/evaluations/pypsa/results/synthesis.md",
+            ".claude/worktrees/eval/pandapower-v4/evaluations/pandapower/results/synthesis.md",
+            ".claude/worktrees/eval/powermodels-v4/evaluations/powermodels/results/synthesis.md",
+            ".claude/worktrees/eval/matpower-v4/evaluations/matpower/results/synthesis.md",
+            "sweep-data/v4-to-v5/per-tool/gridcal/findings.md",
+            "sweep-data/v4-to-v5/per-tool/powersimulations/findings.md",
+            "report/selection-report-v4.md"
+        ],
+        "extracted": "2026-03-10"
+    },
+    "tools": [
+        {
+            "id": "pypsa",
+            "name": "PyPSA",
+            "full_name": "Python for Power System Analysis",
+            "language": "Python",
+            "license": "MIT",
+            "maintainer": "TU Berlin / Open Energy Transition",
+            "funding": "Academic (TU Berlin, KIT) + commercial (Open Energy Transition)",
+            "repository": "https://github.com/PyPSA/PyPSA",
+            "version_tested": "1.1.2",
+            "profile_source": "synthesis"
+        },
+        {
+            "id": "pandapower",
+            "name": "pandapower",
+            "full_name": "pandapower",
+            "language": "Python",
+            "license": "BSD-3-Clause",
+            "maintainer": "University of Kassel / Fraunhofer IEE",
+            "funding": "Academic (University of Kassel, Fraunhofer IEE) + commercial (Retoflow spin-off)",
+            "repository": "https://github.com/e2nIEE/pandapower",
+            "version_tested": "3.4.0",
+            "profile_source": "synthesis"
+        },
+        {
+            "id": "powermodels",
+            "name": "PowerModels",
+            "full_name": "PowerModels.jl",
+            "language": "Julia",
+            "license": "BSD-3-Clause",
+            "maintainer": "Los Alamos National Laboratory (LANL)",
+            "funding": "DOE/LANL contract DE-AC52-06NA25396",
+            "repository": "https://github.com/lanl-ansi/PowerModels.jl",
+            "version_tested": "0.21.5",
+            "profile_source": "synthesis"
+        },
+        {
+            "id": "matpower",
+            "name": "MATPOWER",
+            "full_name": "MATPOWER",
+            "language": "MATLAB/Octave",
+            "license": "BSD-3-Clause",
+            "maintainer": "Ray Zimmerman (independent, formerly Cornell)",
+            "funding": "Unfunded volunteer work since mid-2024; former NSF/DOE grants",
+            "repository": "https://github.com/MATPOWER/matpower",
+            "version_tested": "8.1",
+            "profile_source": "synthesis"
+        },
+        {
+            "id": "gridcal",
+            "name": "GridCal",
+            "full_name": "GridCal",
+            "language": "Python",
+            "license": "MPL-2.0",
+            "maintainer": "Santiago Penate Vera (SanPen)",
+            "funding": "Individual maintainer; no institutional backing identified",
+            "repository": "https://github.com/SanPen/GridCal",
+            "version_tested": "5.6.28",
+            "profile_source": "reconstructed",
+            "_comment": "No synthesis file available; profile reconstructed from sweep findings and selection report grades"
+        },
+        {
+            "id": "powersimulations",
+            "name": "PowerSimulations",
+            "full_name": "PowerSimulations.jl",
+            "language": "Julia",
+            "license": "BSD-3-Clause",
+            "maintainer": "National Renewable Energy Laboratory (NREL)",
+            "funding": "DOE/NREL funded",
+            "repository": "https://github.com/NREL-Sienna/PowerSimulations.jl",
+            "version_tested": "0.27.x",
+            "profile_source": "reconstructed",
+            "_comment": "No synthesis file available; profile reconstructed from sweep findings and selection report grades. Version approximated from evaluation date."
+        }
+    ]
+}
