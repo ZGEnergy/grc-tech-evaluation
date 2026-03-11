@@ -43,7 +43,7 @@
             "language": "Julia",
             "license": "BSD-3-Clause",
             "maintainer": "Los Alamos National Laboratory (LANL)",
-            "funding": "DOE/LANL contract DE-AC52-06NA25396",
+            "funding": "U.S. national-laboratory support",
             "repository": "https://github.com/lanl-ansi/PowerModels.jl",
             "version_tested": "0.21.5",
             "profile_source": "synthesis"

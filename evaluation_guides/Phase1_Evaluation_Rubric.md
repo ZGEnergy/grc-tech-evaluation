@@ -1,15 +1,15 @@
 # Phase 1 Technology Evaluation Rubric
-## Contract  | Grid Research Company LLC
+## Phase 1 Tool Selection
 
 ---
 
 ## Overview
 
-This rubric defines the evaluation criteria and grading standards used to assess open-source power modeling tools for Phase 1 of contract . Each tool is graded against six criteria organized into two tiers.
+This rubric defines the evaluation criteria and grading standards used to assess open-source power modeling tools for the Phase 1 technology evaluation. Each tool is graded against six criteria organized into two tiers.
 
 ### Gate Criterion
 
-**Supply Chain, Inspectability & Licensing Risk (Criterion 6)** is a gate criterion. A grade of C+ or below is disqualifying regardless of performance on all other criteria. This reflects the contract's primary motivation: the customer cannot recommend a tool for classified network authorization if any component in the execution stack is opaque, uninspectable, or legally encumbered.
+**Supply Chain, Inspectability & Licensing Risk (Criterion 6)** is a gate criterion. A grade of C+ or below is disqualifying regardless of performance on all other criteria. This reflects the program's primary motivation: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
 
 ### Weighted Criteria
 
@@ -18,7 +18,7 @@ The remaining criteria are evaluated in priority order. When two tools have comp
 1. **Problem Expressiveness** — Can it solve the problems we need?
 2. **Extensibility** — Can analysts build beyond the built-in problems?
 3. **Scalability** — Does it perform at large regional scale?
-4. **Workforce Accessibility** — Can NRL analysts use it productively?
+4. **Workforce Accessibility** — Can the analyst team use it productively?
 5. **Maturity & Sustainability** — Will it still be maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk)
 
 ### Grading Scale
@@ -239,7 +239,7 @@ A test requiring any workaround (stable, fragile, or blocking) must be classifie
 
 ## Criterion 3 — Workforce Accessibility
 
-**Core question:** Can a new analyst at NRL pick this tool up, run their own scenarios, and trust what it's doing?
+**Core question:** Can a new analyst pick this tool up, run their own scenarios, and trust what it's doing?
 
 This criterion is purely about usability — the learning curve, API quality, documentation, and error handling. Inspectability and security authorization concerns are evaluated under Criterion 6 (Supply Chain, Inspectability & Licensing Risk).
 
@@ -299,7 +299,7 @@ All scalability measurements are taken on the reference workstation (128 GB RAM,
 
 **Core question:** Is this tool going to be here in three years, actively maintained, and moving in a direction that stays relevant to operational power systems analysis — or is it a research project that could stall, pivot, or lose its key maintainer?
 
-This matters because Phase 2 and any follow-on work builds on whatever stack Phase 1 selects. A tool that degrades or goes unmaintained mid-contract is a serious operational risk for NRL.
+This matters because Phase 2 and any follow-on work builds on whatever stack Phase 1 selects. A tool that degrades or goes unmaintained mid-program is a serious operational risk for the sponsor.
 
 ### 5a — Demonstrated Maturity
 
@@ -311,7 +311,7 @@ Sub-questions under 5a evaluate backward-looking evidence of engineering discipl
 
 **5a E-3. Issue responsiveness** — How quickly are bugs and issues addressed? Is the issue tracker active and managed, or is it a graveyard of unacknowledged reports? Sample the last 20 closed and 10 open issues.
 
-**5a E-4. Operational adoption** — Has the tool been used in production or near-production settings by utilities, ISOs, or government entities — not just academic research? Operational adoption is a strong signal of maturity that academic citation counts don't capture.
+**5a E-4. Operational adoption** — Has the tool been used in production or near-production settings by utilities, ISOs, public-sector operators, or other real-world operators — not just academic research? Operational adoption is a strong signal of maturity that academic citation counts don't capture.
 
 #### 5a Grading Standards
 
@@ -359,19 +359,19 @@ Within each two-grade cell, select the higher grade when the sub-criterion score
 
 **GATE CRITERION — A grade of C+ or below is disqualifying.**
 
-**Core question:** Is every component in the execution stack open-source, inspectable, and legally unencumbered for government use — including deployment on classified networks? Can every line of code that executes during a solve be read, audited, and authorized?
+**Core question:** Is every component in the execution stack open-source, inspectable, and legally unencumbered for restricted-environment use? Can every line of code that executes during a solve be read, audited, and authorized?
 
-This is the criterion that motivated the entire contract. A tool can score well on every other dimension and still be disqualifying here. The customer cannot recommend a tool for classified network authorization if any component in the dependency tree is a proprietary binary, an opaquely licensed library, or a package with unclear provenance.
+This is the criterion that motivated the entire evaluation. A tool can score well on every other dimension and still be disqualifying here. The evaluation cannot recommend a tool for restricted-environment deployment if any component in the dependency tree is a proprietary binary, an opaquely licensed library, or a package with unclear provenance.
 
 ### Sub-questions
 
-**1. License of core package** — Is the tool itself licensed under a permissive open-source license (MIT, BSD-3, Apache-2)? Copyleft licenses (GPL, LGPL, MPL) require legal review before government deployment and may create downstream obligations that complicate a government-controlled toolkit.
+**1. License of core package** — Is the tool itself licensed under a permissive open-source license (MIT, BSD-3, Apache-2)? Copyleft licenses (GPL, LGPL, MPL) require legal review before restricted-environment deployment and may create downstream obligations that complicate a controlled-distribution toolkit.
 
 **2. Dependency tree transparency and stability** — Can the full dependency tree be enumerated completely and unambiguously? Are all dependencies themselves open-source with known, auditable provenance? Are dependency versions pinned in the package's release artifacts, or can a dependency upgrade silently change runtime behavior without a version bump in the tool itself? An unpinned dependency tree means you cannot guarantee that two installs of the same version are running the same code.
 
 **3. Compiled extensions** — Are there compiled binary components (C extensions, Cython, Fortran) in the execution path? If so, is the source code for those components publicly available and buildable from source? A compiled extension with available source is auditable; one without is not.
 
-**4. Distribution integrity** — Are releases versioned, signed, and distributed through a verifiable channel (PyPI with hashes, Julia General Registry, GitHub releases with signed tags)? Are getting-started examples and tutorials pinned to a specific release, or do they point to unversioned tarballs or blob store artifacts that could change or be substituted without notice? Asking a new user to execute an unversioned, unverifiable artifact to get started is a meaningful security concern for classified network deployment and a red flag in any authorization review.
+**4. Distribution integrity** — Are releases versioned, signed, and distributed through a verifiable channel (PyPI with hashes, Julia General Registry, GitHub releases with signed tags)? Are getting-started examples and tutorials pinned to a specific release, or do they point to unversioned tarballs or blob store artifacts that could change or be substituted without notice? Asking a new user to execute an unversioned, unverifiable artifact to get started is a meaningful security concern for restricted-network deployment and a red flag in any authorization review.
 
 **5. Code inspectability** — Is the full execution path readable Python or Julia source? Are there compiled extensions, Cython modules, or binary dependencies that execute during a solve without readable source? Can every line that touches network data or solves an optimization problem be read and audited by a government analyst? Trace the execution path from the API call to solver invocation and identify every module that executes.
 
@@ -390,7 +390,7 @@ This is the criterion that motivated the entire contract. A tool can score well 
 | **A** | Permissive license (MIT or BSD-3). Full dependency tree is open-source, auditable, and version-pinned in release artifacts. Full execution path is readable source with no opaque binaries. Any compiled extensions have publicly available, buildable source. Functional on open-source solvers alone for all target use cases. Releases versioned, signed, and distributed through standard trustworthy channels. Getting-started examples pinned to a specific release. Dependency tree shallow enough for tractable audit. All components installable offline. |
 | **B** | Copyleft license (LGPL, MPL) requiring legal review but not inherently disqualifying. Dependency tree mostly clean with one or two items needing scrutiny. Most execution path is inspectable but one or two compiled extensions exist with readable source available. Security authorization achievable but requires effort. Some unpinned dependencies but behavior is predictable in practice. |
 | **C+** | **Disqualifying.** Significant inspectability gaps that may be remediable with substantial effort — e.g., a compiled extension with source available but no build system, or a dependency with an ambiguous license that could potentially be replaced. |
-| **C or below** | **Disqualifying.** Proprietary runtime or binary component anywhere in the execution path with no available source. License terms incompatible with government deployment. Dependency tree not fully enumerable or contains opaque dependencies. Full execution path not auditable. Requires commercial solver to be functional for target use cases. |
+| **C or below** | **Disqualifying.** Proprietary runtime or binary component anywhere in the execution path with no available source. License terms incompatible with restricted-environment deployment. Dependency tree not fully enumerable or contains opaque dependencies. Full execution path not auditable. Requires commercial solver to be functional for target use cases. |
 
 ---
 
@@ -428,7 +428,7 @@ The following tools were identified during the landscape survey and considered f
 |-----------|------|--------------|
 | 1. Problem Expressiveness | Weighted (priority 1) | Can it formulate the problems we need to solve? |
 | 2. Extensibility | Weighted (priority 2) | Can analysts build on top of solved problems? |
-| 3. Workforce Accessibility | Weighted (priority 4) | Can NRL analysts use it productively? |
+| 3. Workforce Accessibility | Weighted (priority 4) | Can the analyst team use it productively? |
 | 4. Scalability | Weighted (priority 3) | Does it perform at large regional scale with open-source solvers? |
 | 5. Maturity & Sustainability (5a/5b) | Weighted (priority 5) | Will it still be here and maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk) |
 | 6. Supply Chain, Inspectability & Licensing Risk | **Gate** | Is every component in the stack auditable, inspectable, and legally clean? |

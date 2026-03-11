@@ -7,9 +7,9 @@ title: "Use Cases & Criteria"
 
 ## Introduction
 
-This evaluation assesses six open-source power system modeling tools for contract  (Grid Research Company LLC). The goal is to select a tool for deployment at NRL Philadelphia that can support OECIF's power grid analysis mission — from basic power flow studies to full security-constrained unit commitment on production-scale networks.
+This evaluation assesses six open-source power system modeling tools for a Phase 1 tool-selection effort. The goal is to select a tool for deployment by the sponsor's engineering team that can support production power grid analysis workflows — from basic power flow studies to full security-constrained unit commitment on production-scale networks.
 
-The audience for this evaluation includes the OECIF technical team making the selection decision and the NRL engineering staff who will use the selected tool in classified and unclassified environments. Both groups need confidence that the recommended tool can handle real operational workflows, not just academic toy problems.
+The audience for this evaluation includes the selection team making the decision and the engineering staff who will use the selected tool in connected and air-gapped environments. Both groups need confidence that the recommended tool can handle real operational workflows, not just academic toy problems.
 
 ## Use Cases
 
@@ -29,7 +29,7 @@ Formulate and solve Security-Constrained Unit Commitment (SCUC) as a MILP with m
 Enumerate N-1 and N-M contingencies, re-solve power flow or OPF for each contingency case, and identify violations. For Phase 2 readiness: express Security-Constrained OPF (SCOPF) where contingency flow constraints are part of the optimization formulation, not checked post-hoc.
 
 ### UC-6: Operational Toolkit
-Deploy the tool as a portable, reproducible computational environment on both classified and unclassified networks. The tool must be open-source with inspectable dependencies, compatible with air-gapped deployment, and usable by analysts with power systems backgrounds (not deep software engineering expertise).
+Deploy the tool as a portable, reproducible computational environment across both connected and air-gapped networks. The tool must be open-source with inspectable dependencies, compatible with restricted deployment, and usable by analysts with power systems backgrounds (not deep software engineering expertise).
 
 ## Use Case → Criterion Mapping
 
@@ -68,7 +68,7 @@ All testing uses open-source solvers exclusively (HiGHS, SCIP, Ipopt, GLPK). All
 
 ### Supply Chain (Gate Criterion)
 
-A grade of C+ or below on Supply Chain is disqualifying regardless of performance on all other criteria. This reflects the contract's primary requirement: the customer cannot recommend a tool for classified network authorization if any component in the execution stack is opaque, uninspectable, or legally encumbered.
+A grade of C+ or below on Supply Chain is disqualifying regardless of performance on all other criteria. This reflects the program's primary requirement: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
 
 <details className="eval-details">
 <summary>Grading Standards — Supply Chain</summary>
@@ -179,7 +179,7 @@ Scalability measures whether the tool performs at production-relevant scale — 
 
 ### 4. Accessibility
 
-Accessibility measures whether a new analyst at NRL can pick up the tool, run scenarios, and trust the results — the learning curve, API quality, documentation, and error handling.
+Accessibility measures whether a new analyst on the team can pick up the tool, run scenarios, and trust the results — the learning curve, API quality, documentation, and error handling.
 
 <details className="eval-details">
 <summary>Grading Standards — Accessibility</summary>

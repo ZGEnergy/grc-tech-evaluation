@@ -1,6 +1,6 @@
 # Cross-Tool Comparison Matrices
 
-## Contract  | v4-to-v5 Aggregation
+## Phase 1 Tool Selection | v4-to-v5 Aggregation
 
 ---
 

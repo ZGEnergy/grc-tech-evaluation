@@ -1,5 +1,5 @@
 # Phase 1 Test Protocol
-## Contract  | Grid Research Company LLC
+## Phase 1 Tool Selection
 
 ---
 
@@ -316,7 +316,7 @@ Audit-based. No runtime tests.
 | E-4 | Funding model | Research institutional backing. | Funding source(s), grant dependency, institutional affiliation. Assess durability. |
 | E-5 | Issue tracker health | Sample last 20 closed issues and last 10 open issues. | Median time-to-close, ratio of acknowledged to ignored issues, quality of responses. |
 | E-6 | CI/CD and test coverage | Examine CI configuration and test suite. | CI exists (yes/no), test suite exists (yes/no), approximate coverage if measurable, whether tests pass on current release. |
-| E-7 | Operational adoption | Search for evidence of use by utilities, ISOs, government entities, or in production contexts. | Documented deployments, case studies, or credible references. Distinguish from academic-only citation. |
+| E-7 | Operational adoption | Search for evidence of use by utilities, ISOs, public-sector operators, or in production contexts. | Documented deployments, case studies, or credible references. Distinguish from academic-only citation. |
 
 ---
 

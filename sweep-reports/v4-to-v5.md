@@ -1,7 +1,7 @@
 # Evaluation Sweep: v4 → v5
 
 **Date:** 2026-03-09
-**Contract:** 
+**Evaluation:** Phase 1 technology assessment
 **Tools evaluated:** PyPSA, pandapower, GridCal, PowerModels, PowerSimulations, MATPOWER (6 of 6)
 **Protocol version:** v4 (source) → v5 (target)
 
