@@ -10,7 +10,7 @@ Capture user intent, research the domain and codebase, resolve ambiguities throu
 ## Invocation
 
 Accept `$ARGUMENTS` as either:
-1. A description of what to plan (e.g., "add CIM topology support to ercot-power-flow-poc")
+1. A description of what to plan (e.g., "add CIM topology support to power-flow-poc")
 2. Empty — ask the user what they want to build
 
 If `$ARGUMENTS` is provided, use it as the starting point for INTAKE. If empty, prompt the user for a description before proceeding.
@@ -120,11 +120,12 @@ Identify and resolve ambiguities before any plan writing.
    - Reference research findings that inform the options
    - Affect the plan structure if resolved differently
 
-2. Present gray areas to the user one at a time via AskUserQuestion. For each:
-   - Frame the trade-off clearly in the question text
-   - Provide 2-4 research-informed options (not generic "A or B")
-   - Include a recommendation as the first option (with "(Recommended)" suffix) if the research supports one
-   - Include context from research findings in the option descriptions
+2. Present gray areas to the user one at a time using the `AskUserQuestion` tool with structured options. For each:
+   - Use `header` like "Gray area 1" or a short topic tag
+   - Frame the trade-off clearly in the `question` field
+   - Provide 2-4 research-informed `options` with `label` and `description` (not generic "A or B")
+   - Put the recommended option first with "(Recommended)" appended to its `label` if the research supports one
+   - Include context from research findings in each option's `description` field
 
 3. **Lock decisions** into a `DECISIONS` list. Each decision records:
    - The gray area question
@@ -143,10 +144,11 @@ Identify and resolve ambiguities before any plan writing.
    - Non-goals and deferred ideas
    - What success looks like
 
-6. **Present Position Paper for Review.** Display the full position paper to the user. Then ask via AskUserQuestion how to proceed:
-   - **"Approve — move to DEBATE" (Recommended)**: Position paper is ready for adversarial stress-testing. Transition to DEBATE.
-   - **"I have edits"**: User provides corrections/additions. Apply edits to the position paper and DECISIONS list, re-present. Loop within this step until approved.
-   - **"Need more research"**: User identifies gaps. Capture new research question(s), run RESEARCH for only those questions, return to DISCUSS step 1 to check for new gray areas from the research, then back to step 5 to re-synthesize.
+6. **Present Position Paper for Review.** Display the full position paper to the user. Then use the `AskUserQuestion` tool (header: "Review") with these options:
+   - label: "Approve — move to DEBATE (Recommended)", description: "Position paper is ready for adversarial stress-testing."
+   - label: "I have edits", description: "Provide corrections or additions to the position paper before proceeding."
+   - label: "Need more research", description: "Identify gaps that require additional research before proceeding."
+   If "I have edits": apply edits, re-present, loop until approved. If "Need more research": capture new questions, run RESEARCH, return to step 1.
 
 7. Transition to **DEBATE** with the approved position paper.
 
@@ -203,7 +205,7 @@ Collect all critiques and:
    - **Out-of-scope** (valid concern but beyond this plan) → add to Deferred Ideas
    - **Disagreed** (critics contradict each other) → present both positions to user
 3. Present the categorized findings to the user with a summary of what was found and what actions will be taken.
-4. For **decision-required** findings, use AskUserQuestion (batches of 1-4). Frame each as a trade-off with options informed by the critic's analysis.
+4. For **decision-required** findings, use the `AskUserQuestion` tool (batches of 1-4 questions per call). Each question must have structured `options` with `label` and `description` fields informed by the critic's analysis.
 5. **Update the position paper** with actionable fixes and user decisions.
 6. **Update DECISIONS** with any new locked decisions from the user.
 
@@ -214,21 +216,21 @@ After triage (Step 4.2) is complete and the position paper is updated, present a
 - Key changes made (actionable fixes applied, decisions locked)
 - Remaining open concerns, if any
 
-Then ask via AskUserQuestion how to proceed. The "(Recommended)" tag moves based on context:
+Then use the `AskUserQuestion` tool (header: "Next step") with options that vary based on context. The "(Recommended)" suffix moves to the first option's label based on which path is most appropriate:
 
-**When no HIGH-severity findings remain** — recommend "Proceed to draft":
-- **"Proceed to draft" (Recommended)**: Transition to Step 4.4 (Debate Summary) → Step 4.5 (Choose Exit Path) → DRAFT.
-- **"Another debate round"**: Re-synthesize the position paper from scratch and run critics again. *(Only available if < 3 rounds have been run.)*
-- **"Revisit decisions — back to DISCUSS"**: Debate revealed that earlier decisions need reconsideration. Transition to DISCUSS (step 1). Flow returns through the REVIEW checkpoint (step 6) before re-entering DEBATE.
+**When no HIGH-severity findings remain** — put "Proceed to draft (Recommended)" first:
+- label: "Proceed to draft (Recommended)", description: "Move to debate summary and then draft the plan."
+- label: "Another debate round", description: "Re-synthesize position paper and run critics again." *(Only include if < 3 rounds run.)*
+- label: "Revisit decisions", description: "Go back to DISCUSS to reconsider earlier decisions."
 
-**When HIGH-severity findings were addressed this round** — recommend "Another debate round":
-- **"Another debate round" (Recommended)**: Re-synthesize the position paper from scratch and run critics again. *(Only available if < 3 rounds have been run.)*
-- **"Proceed to draft"**: Transition to Step 4.4 (Debate Summary) → Step 4.5 (Choose Exit Path) → DRAFT.
-- **"Revisit decisions — back to DISCUSS"**: Transition to DISCUSS (step 1). Flow returns through the REVIEW checkpoint (step 6) before re-entering DEBATE.
+**When HIGH-severity findings were addressed this round** — put "Another debate round (Recommended)" first:
+- label: "Another debate round (Recommended)", description: "Re-synthesize position paper and run critics again." *(Only include if < 3 rounds run.)*
+- label: "Proceed to draft", description: "Move to debate summary and then draft the plan."
+- label: "Revisit decisions", description: "Go back to DISCUSS to reconsider earlier decisions."
 
-**When round 3 is reached** — remove "Another debate round" option:
-- **"Proceed to draft" (Recommended)**: Transition to Step 4.4 → Step 4.5 → DRAFT.
-- **"Revisit decisions — back to DISCUSS"**: Transition to DISCUSS (step 1). Flow returns through the REVIEW checkpoint (step 6) before re-entering DEBATE.
+**When round 3 is reached** — remove "Another debate round":
+- label: "Proceed to draft (Recommended)", description: "Move to debate summary and then draft the plan."
+- label: "Revisit decisions", description: "Go back to DISCUSS to reconsider earlier decisions."
 
 **Critical invariant**: Each new debate round re-synthesizes the position paper from scratch. Debate subagents in round N never see the critiques from round N-1. They see only the improved position paper.
 
@@ -244,10 +246,10 @@ This summary is included in the executive plan for downstream visibility.
 
 #### Step 4.5: Choose Exit Path
 
-After the debate summary is complete, ask the user which exit path to take via AskUserQuestion:
+After the debate summary is complete, use the `AskUserQuestion` tool (header: "Exit path") with these options:
 
-- **"Executive plan for /decompose-plan" (Recommended)**: Produces a structured executive plan file ready for the full decomposition pipeline. Best for multi-phase work that benefits from PRD-level detail.
-- **"Native Claude Code plan mode"**: Enters Claude Code's built-in plan mode with all accumulated context. Best for smaller features where you want research/debate value but plan to implement directly without PRD decomposition.
+- label: "Executive plan for /decompose-plan (Recommended)", description: "Produces a structured executive plan file for the full decomposition pipeline. Best for multi-phase work."
+- label: "Native Claude Code plan mode", description: "Enters built-in plan mode with all accumulated context. Best for smaller features you'll implement directly."
 
 Record the choice and transition to **DRAFT**.
 
@@ -347,6 +349,19 @@ Keep the orchestrator's context lean:
 - Research findings translate into specific file paths, function references, and code patterns in the implementation steps.
 - Deferred ideas are listed as explicit non-goals so plan mode doesn't scope-creep during implementation.
 - The debate summary informs the Risks section of the plan.
+
+## AskUserQuestion Usage
+
+Every user-facing question in this workflow MUST use the `AskUserQuestion` tool with structured `options` so the user can select answers via keypad instead of typing. Never print options as plain text and wait for the user to type or copy/paste a response.
+
+Pattern for every question:
+- Use the `questions` array with `options` containing `label` and `description` fields
+- Use `header` for a short tag (max 12 chars) like "Gray area", "Next step", "Exit path"
+- Put the recommended option first with "(Recommended)" appended to its `label`
+- Set `multiSelect: false` unless the question explicitly allows multiple selections
+- The user always gets an automatic "Other" option for free-text input, so don't add one manually
+
+This applies to ALL interaction points: INTAKE repo identification, DISCUSS gray areas, REVIEW checkpoint, DEBATE triage decisions, DEBATE branching, and exit path selection.
 
 ## Guardrails
 
