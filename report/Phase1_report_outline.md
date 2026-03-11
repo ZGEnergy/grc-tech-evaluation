@@ -1,12 +1,12 @@
 # Phase 1 Technology Evaluation Report Outline
-## Contract FA714626C0006 | Grid Research Company LLC
+## Phase 1 Tool Selection
 
 ---
 
 ## 1. Introduction
 - Contract context and project background
 - Purpose of this report and what it enables for Phase 2
-- Report audience: OECIF technical team, NRL Philly engineering staff
+- Report audience: selection team, engineering staff
 
 ## 2. How the Grid Operates
 Educational foundation for the evaluation that follows. Build practical intuition for how an organized market solves dispatch and operates the grid:
@@ -23,7 +23,7 @@ Concrete problem statements derived from stakeholder discussions:
 - Run security-constrained unit commitment (SCUC) and economic dispatch (SCED)
 - Sweep N-minus-M contingencies radiating outward from a point of interest to identify load-loss risk
 - Operate on a 3-7 day forward-looking operational window
-- Deliver as a portable, inspectable, extensible toolkit for government analysts
+- Deliver as a portable, inspectable, extensible toolkit for operational analysts
 
 ## 4. Evaluation Criteria
 
@@ -34,7 +34,7 @@ How naturally does the tool formulate DC/AC PF, DC/AC OPF, SCUC, and SCED on a r
 How hard is it for a user to go from a solved power flow to custom analysis â€” contingency sweeps, graph-based search from a point of interest, scenario generation â€” at 10k+ bus scale without fighting the tool?
 
 ### 4.3 Workforce Accessibility
-API design, code inspectability, documentation quality, learning curve. Can a new analyst at NRL pick this up and run their own scenarios? Includes inspectability requirements for security authorization on classified networks.
+API design, code inspectability, documentation quality, learning curve. Can a new analyst pick this up and run their own scenarios? Includes inspectability requirements for restricted-network deployment.
 
 ### 4.4 Scalability
 Performance at production-relevant scale (10k+ buses). Solver interface flexibility â€” support for major commercial (Gurobi, CPLEX) and open-source (HiGHS, SCIP) solvers.
