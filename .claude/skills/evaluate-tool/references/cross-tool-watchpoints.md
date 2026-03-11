@@ -110,13 +110,22 @@ uniform generator costs. All tools capable of SCUC report all generators committ
 all 24 hours with zero startups. This makes A-5 a formulation existence test rather than
 a UC correctness test.
 
+Modified Tiny's differentiated costs (from `gen_temporal_params.csv`) address the
+"all generators on" problem by assigning distinct marginal costs to each generator
+class (hydro $5, nuclear $10, coal $25, gas $40). With differentiated costs, the UC
+optimizer has an economic incentive to decommit expensive generators during low-load
+hours. The 24-hour load profile from `load_24h.csv` provides sufficient load variation
+to drive cycling.
+
 When evaluating A-5 (SCUC) on case39:
-- Do not interpret "all generators on for all hours" as a test failure — it is the
-  economically optimal solution for this network
+- Use Modified Tiny data (differentiated costs + temporal params) as the primary
+  augmentation
+- Do not interpret "all generators on for all hours" as a test failure if using
+  vanilla case39 — it is the economically optimal solution for uniform costs
+- With Modified Tiny data, at least 2 generators should cycle — if they don't,
+  apply fallback augmentation recipes from test-methodology-notes.md
 - Verify that the tool can express UC binary variables, min up/down times, and startup
   costs even if they are not exercised
-- If the protocol modifies case39 parameters to force cycling, verify that at least
-  some generators cycle on/off during the horizon
 
 ## Convergence Verification
 
@@ -306,7 +315,7 @@ When evaluating G-FNM-1 and G-FNM-4:
 - Verify the tool reads baseMVA from `manifest.json` or the data header, not from a
   hardcoded default
 - Check that total system load sums to a physically plausible value (tens of GW for
-  the ERCOT FNM)
+  the reference FNM)
 - If ACPF fails to converge, check Q-limit interpretation before concluding the
   solver is inadequate
 
@@ -342,3 +351,36 @@ When evaluating G-FNM-3:
   (check baseMVA, bus types, and generator/load status flags)
 - A trivial solution combined with correct ingestion counts (G-FNM-1 passing) points
   to a formulation or solver configuration issue rather than a data problem
+
+## A-12 Multi-Period DCOPF with Storage
+
+A-12 exercises multi-period DCOPF with inter-temporal storage constraints. Key
+cross-tool watchpoints:
+
+**Quadratic cost support:** HiGHS supports QP natively, but some tool bindings may
+not expose QP to the solver. If the tool's DCOPF formulation silently drops quadratic
+cost terms and solves a pure LP, shadow prices will be non-unique and the BESS
+arbitrage timing assertion may produce misleading results. Verify that the solver
+reports a QP (not LP) solution when quadratic costs are specified.
+
+**MATPOWER (Octave):** MATPOWER lacks native multi-period optimization and storage
+modeling. A-12 is expected to fail for MATPOWER with `failure_reason: no_multi_period`.
+This is an expressiveness finding, not a bug.
+
+**Julia tools (PowerModels, PowerSimulations):**
+- PowerModels.jl does not natively support multi-period OPF or storage. A-12 will
+  likely fail unless the evaluator builds a custom JuMP model.
+- PowerSimulations.jl has native multi-period support via `DecisionModel` and storage
+  via `GenericBattery` / `BatteryEMS`. It is the Julia tool most likely to pass A-12.
+  However, Julia startup overhead means the first A-12 run may be slow — use the REPL
+  for accurate timing.
+
+**Storage sign conventions:** Tools differ on whether positive P means charge or
+discharge. PyPSA uses positive = discharge. pandapower uses positive = generation
+(discharge). PowerSimulations uses separate charge/discharge variables. The energy
+balance check in pass condition 3 must account for the tool's sign convention.
+
+**Cyclic SoC implementation:** Some tools support cyclic SoC natively (e.g., PyPSA's
+`cyclic_state_of_charge=True`). Others require manual constraint addition (e.g.,
+`SoC[0] == SoC[T]`). If the tool requires manual constraint addition, this is a
+workaround to document, not a failure.

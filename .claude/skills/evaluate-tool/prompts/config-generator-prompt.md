@@ -141,15 +141,16 @@ grouped semantically (e.g., by shared setup requirements or dependency chains).
 # Generated: <timestamp>
 
 tool: {{tool_name}}
-protocol_version: "v8"
+protocol_version: "v9"
 
 networks:
   TINY:
-    name: "IEEE 39-bus (New England)"
+    name: "IEEE 39-bus (New England) — Modified Tiny"
     buses: 39
     branches: 46
     generators: 10
     file: "data/networks/case39.m"
+    timeseries_dir: "data/timeseries/case39"
   SMALL:
     name: "ACTIVSg 2000"
     buses: ~2000
@@ -194,6 +195,34 @@ dimensions:
         depends_on: []
         converges_ac: false
         recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
+      - id: A-3
+        slug: dcopf
+        description: "Solve DC OPF with gen costs and line flow limits"
+        functional_network: TINY
+        grade_network: MEDIUM
+        pass_condition: "Converges. Optimal dispatch and LMPs/shadow prices extractable. TINY additional: differentiated costs + 70% derating, ≥2 binding branches."
+        depends_on: []
+        converges_ac: false
+        recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
+        tiny_params:
+          differentiated_costs: true
+          branch_derating: 0.70
+          binding_branches_min: 2
+      - id: A-12
+        slug: multiperiod_dcopf_storage
+        description: "Multi-Period DCOPF with Storage and Congestion"
+        functional_network: TINY
+        grade_network: null
+        pass_condition: "Three behavioral conditions: (1) ≥2 hours with ≥2 binding branches, (2) BESS discharge LMP > charge LMP, (3) SoC feasibility with energy balance tolerance <1.0 MWh"
+        depends_on: []
+        converges_ac: false
+        recorded_metrics: [pass_fail, wall_clock, loc, output_format, workarounds]
+        parameters:
+          quadratic_costs: true
+          branch_derating: 0.70
+          cyclic_soc: true
+          eta_charge: 0.92
+          eta_discharge: 0.95
       # ... all A tests (extract ALL from protocol — do not omit any)
 
   - name: fnm_ingestion
