@@ -56,6 +56,12 @@ repos:
   # miss_hit has no official pre-commit repo.
   - repo: local
     hooks:
+      - id: forbid-real-grid-names
+        name: forbid real grid/operator names
+        entry: python -m scripts.check_no_real_grid_names
+        language: python
+        pass_filenames: true
+
       - id: mh-style
         name: mh_style (MATLAB/Octave)
         entry: mh_style
