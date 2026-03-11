@@ -100,11 +100,23 @@ def pipeline_output(tmp_path_factory: pytest.TempPathFactory) -> Path:
     generate_charts.MANIFEST_PATH = tmp_img / "chart-manifest.json"
 
     try:
-        # Import renderers to register them (idempotent due to Python import cache)
-        import renderers.radar  # noqa: F401
+        # Ensure renderer modules are importable, then clear any stale/mock
+        # registrations left by other test modules and reload to re-register.
+        import importlib
+
         import renderers.heatmap  # noqa: F401
         import renderers.matrix  # noqa: F401
+        import renderers.radar  # noqa: F401
         import renderers.scalability  # noqa: F401
+
+        generate_charts._RENDERERS.clear()
+        for mod_name in (
+            "renderers.radar",
+            "renderers.heatmap",
+            "renderers.matrix",
+            "renderers.scalability",
+        ):
+            importlib.reload(sys.modules[mod_name])
 
         # Mock write_image to avoid requiring Chrome/Kaleido.
         # Writes minimal valid SVG/PNG stubs so format validation passes.

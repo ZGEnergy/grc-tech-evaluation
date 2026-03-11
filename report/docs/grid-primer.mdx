@@ -20,7 +20,7 @@ interpret the evaluation criteria, and no more. The target audience is someone w
 energy, manages a portfolio, or builds analytics — someone comfortable with market mechanics
 but not necessarily with the transmission physics underneath. If you already build power flow
 models for a living, you can safely skip to the
-[evaluation results](/docs/criteria/expressiveness).
+[evaluation results](/results/expressiveness).
 
 The primer is organized as six progressive stages. Each stage adds one new element to the
 grid, building cumulatively from the simplest possible system to full contingency analysis.
@@ -98,12 +98,10 @@ tool that supports only one formulation limits the analyses you can perform.
 
 In the DC approximation, the power flow on a line from bus $i$ to bus $j$ reduces to:
 
-$$
-P_{ij} = \frac{\theta_i - \theta_j}{x_{ij}}
-$$
+$$P_\{ij\} = \frac\{\theta_i - \theta_j\}\{x_\{ij\}\}$$
 
-Where $P_{ij}$ is the real power flow on the line, $\theta_i$ and $\theta_j$ are the voltage
-angles at buses $i$ and $j$ (in radians), and $x_{ij}$ is the line's reactance in per-unit.
+Where $P_\{ij\}$ is the real power flow on the line, $\theta_i$ and $\theta_j$ are the voltage
+angles at buses $i$ and $j$ (in radians), and $x_\{ij\}$ is the line's reactance in per-unit.
 This linear relationship is what makes DC power flow solvable as a matrix equation and is
 the foundation of shift factors used in market clearing.
 
@@ -188,15 +186,13 @@ constraints are handled through supplemental studies.
 
 The optimal power flow minimizes total generation cost subject to network constraints:
 
-$$
-\min \sum_{g \in \mathcal{G}} C_g(P_g) \quad \text{s.t.} \quad \sum_{g \in \mathcal{G}_n} P_g - P_n^d = \sum_{(n,m) \in \mathcal{L}} P_{nm} \quad \forall n
-$$
+$$\min \sum_\{g \in \mathcal\{G\}\} C_g(P_g) \quad \text\{s.t.\} \quad \sum_\{g \in \mathcal\{G\}_n\} P_g - P_n^d = \sum_\{(n,m) \in \mathcal\{L\}\} P_\{nm\} \quad \forall n$$
 
 Where $C_g(P_g)$ is the cost function of generator $g$, $P_g$ is its output,
-$P_n^d$ is the demand at bus $n$, and $P_{nm}$ is the flow on line $(n, m)$. The constraint
+$P_n^d$ is the demand at bus $n$, and $P_\{nm\}$ is the flow on line $(n, m)$. The constraint
 enforces power balance at every bus. Additional constraints on generator limits
-($P_g^{\min} \leq P_g \leq P_g^{\max}$) and line flow limits
-($|P_{nm}| \leq P_{nm}^{\max}$) complete the formulation. The dual variable of each bus's
+($P_g^\{\min\} \leq P_g \leq P_g^\{\max\}$) and line flow limits
+($|P_\{nm\}| \leq P_\{nm\}^\{\max\}$) complete the formulation. The dual variable of each bus's
 power balance constraint is that bus's LMP.
 
 </details>
@@ -284,7 +280,7 @@ distribution (Stage 3), economic dispatch and OPF (Stage 4), congestion and LMP 
 (Stage 5), to contingency-constrained security analysis (Stage 6). Each stage maps directly
 to one or more Expressiveness test cases that we ran against all six tools.
 
-The [Expressiveness criterion page](/docs/criteria/expressiveness) presents the results of
+The [Expressiveness criterion page](/results/expressiveness) presents the results of
 those tests. When you see that a tool passes test A-3 (DC-OPF) but fails A-4 (AC-OPF), you
 can now map that result back to the physics: the tool can optimize dispatch using the linear
 DC approximation from Stage 2, but cannot handle the full nonlinear AC formulation. That
