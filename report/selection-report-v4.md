@@ -1,5 +1,5 @@
 # Phase 1 Tool Selection Report
-## Contract FA714626C0006 | Grid Research Company LLC
+## Phase 1 Tool Selection
 
 **Protocol version:** v4
 **Date:** 2026-03-09
@@ -23,9 +23,9 @@ Six open-source power system modeling tools were evaluated against a six-criteri
 
 All six tools passed the Supply Chain gate (all >= B). PyPSA leads on Expressiveness (B+), a full grade step above the B- tie between PowerModels and PowerSimulations. PowerModels breaks that tie with Extensibility A- vs B+. pandapower and GridCal tie through Scalability; pandapower wins on Accessibility (B+ vs C+).
 
-*\*MATPOWER is included as a reference benchmark only. The MATLAB runtime is a proprietary binary incompatible with classified network authorization. All MATPOWER testing used GNU Octave, which lacks HiGHS MEX bindings and has no production deployment precedent. MATPOWER is excluded from primary ranking per rubric designation.*
+*\*MATPOWER is included as a reference benchmark only. The MATLAB runtime is a proprietary binary incompatible with restricted-network deployment. All MATPOWER testing used GNU Octave, which lacks HiGHS MEX bindings and has no production deployment precedent. MATPOWER is excluded from primary ranking per rubric designation.*
 
-**Footnote — GridCal:** MPL-2.0 license may require legal review for government deployment.
+**Footnote — GridCal:** MPL-2.0 license may require legal review for restricted-environment deployment.
 
 ## Sensitivity Analysis
 
@@ -45,7 +45,7 @@ Three alternative ranking scenarios were proposed by the evaluator and confirmed
 
 ### Selected Tool: PyPSA
 
-PyPSA wins decisively on criterion 1: Expressiveness B+ is a full grade step above the B- shared by the next two eligible tools. Beyond this primary differentiator, PyPSA has the strongest balanced profile among all eligible candidates — no grade below B-, with A- in both Extensibility and Maturity and B+ in Accessibility. It demonstrated first-class preventive SCOPF via `optimize_security_constrained()` (A-9), custom constraint injection in 2 lines of code via Linopy model split (B-1), and a mature multi-contributor development community backed by institutional funding at TU Berlin and KIT. The Python ecosystem ensures NRL analysts can integrate PyPSA into existing workflows without adopting a niche language runtime.
+PyPSA wins decisively on criterion 1: Expressiveness B+ is a full grade step above the B- shared by the next two eligible tools. Beyond this primary differentiator, PyPSA has the strongest balanced profile among all eligible candidates — no grade below B-, with A- in both Extensibility and Maturity and B+ in Accessibility. It demonstrated first-class preventive SCOPF via `optimize_security_constrained()` (A-9), custom constraint injection in 2 lines of code via Linopy model split (B-1), and a mature multi-contributor development community backed by institutional funding at TU Berlin and KIT. The Python ecosystem ensures analysts can integrate PyPSA into existing workflows without adopting a niche language runtime.
 
 ### Head-to-Head: Critical Phase 2 Capabilities
 
@@ -64,7 +64,7 @@ PyPSA wins decisively on criterion 1: Expressiveness B+ is a full grade step abo
 
 PowerModels ranks second on the strength of its Extensibility (A-) and its JuMP foundation, which provides the most flexible constraint injection API among all evaluated tools (B-1). It demonstrated native PSS/E v33 parsing (P2-1), native piecewise-linear cost curves (P2-2), and PTDF computation with sub-1e-11 error at 10k-bus (B-9). PowerModels would pass all three Phase 2 readiness checks where PyPSA fails two.
 
-PowerModels was not selected for three reasons. First, its B- Expressiveness reflects the cost of that flexibility: 6 of 11 Suite A tests required user-assembled JuMP code averaging 269 lines per test — the tool provides primitives, not solutions. Second, C+ Maturity with a bus factor of 1 (ccoffrin, 82.4% of commits) and pre-1.0 status after 9+ years of development signals sustainability risk comparable to MATPOWER. Third, Julia remains a niche language for the government workforce; NRL analysts are far more likely to have Python experience than Julia fluency. PowerModels should be reconsidered if PyPSA's SCUC scalability limitation proves unresolvable or if the JuMP modeling layer becomes critical for Phase 2 custom formulations.
+PowerModels was not selected for three reasons. First, its B- Expressiveness reflects the cost of that flexibility: 6 of 11 Suite A tests required user-assembled JuMP code averaging 269 lines per test — the tool provides primitives, not solutions. Second, C+ Maturity with a bus factor of 1 (ccoffrin, 82.4% of commits) and pre-1.0 status after 9+ years of development signals sustainability risk comparable to MATPOWER. Third, Julia remains a niche language for many analyst teams; analysts are far more likely to have Python experience than Julia fluency. PowerModels should be reconsidered if PyPSA's SCUC scalability limitation proves unresolvable or if the JuMP modeling layer becomes critical for Phase 2 custom formulations.
 
 ### Risk Register
 
