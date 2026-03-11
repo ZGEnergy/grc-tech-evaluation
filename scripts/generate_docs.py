@@ -978,7 +978,7 @@ def build_known_limitations() -> list[KnownLimitation]:
             affected_networks=None,
             mitigation=(
                 "Users should generate contingency lists from the branch data "
-                "using standard NERC TPL methodology."
+                "using a standard transmission-planning methodology."
             ),
         ),
     ]

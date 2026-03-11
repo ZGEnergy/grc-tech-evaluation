@@ -1,8 +1,8 @@
 function mpc = case_ACTIVSg10k
-%CASE_ACTIVSG10K  Synthetic US WECC 10,000-bus power system model.
+%CASE_ACTIVSG10K  Synthetic western US 10,000-bus power system model.
 %
 %   This is an entirely synthetic 10,000 bus case, geographically situated
-%   in US portion of the WECC system. The case is designed with a 765, 500,
+%   in a large western US footprint. The case is designed with a 765, 500,
 %   345, 230, 161, 138 and 115 kV transmission network to serve a load that
 %   roughly mimics the actual population of its geographic footprint. The
 %   synthetic transmission system was designed by algorithms described in

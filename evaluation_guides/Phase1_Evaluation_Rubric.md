@@ -17,7 +17,7 @@ The remaining criteria are evaluated in priority order. When two tools have comp
 
 1. **Problem Expressiveness** — Can it solve the problems we need?
 2. **Extensibility** — Can analysts build beyond the built-in problems?
-3. **Scalability** — Does it perform at WECC scale?
+3. **Scalability** — Does it perform at large regional scale?
 4. **Workforce Accessibility** — Can NRL analysts use it productively?
 5. **Maturity & Sustainability** — Will it still be maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk)
 
@@ -263,7 +263,7 @@ This criterion is purely about usability — the learning curve, API quality, do
 
 ## Criterion 4 — Scalability
 
-**Core question:** Does the tool perform at WECC-relevant scale — 10k+ buses, realistic contingency counts, operational time horizons — without requiring heroic engineering effort or hardware unavailable to a government analyst?
+**Core question:** Does the tool perform at large regional scale — 10k+ buses, realistic contingency counts, operational time horizons — without requiring heroic engineering effort or hardware unavailable to a government analyst?
 
 Note this is not just raw speed. Scale must be evaluated in the context of actual workflows: a tool that solves DC OPF on the ACTIVSg 10k case in 10 minutes is acceptable if it only runs once; a tool requiring 10 minutes per contingency across thousands of contingencies is not.
 
@@ -408,7 +408,7 @@ The following tools were identified during the landscape survey and considered f
 
 | Tool | Reason Excluded |
 |------|----------------|
-| **MATPOWER** | Included as a reference benchmark only. MATPOWER itself is BSD-3 licensed and open-source, but its canonical runtime is MATLAB — a proprietary binary. This disqualifies it as a primary stack candidate under the supply chain and inspectability criteria that motivate this contract. GNU Octave is a viable open-source substitute but has known performance limitations at WECC scale and is not a production-grade path. MATPOWER's case format (.m) and problem formulations remain the reference standard against which all other tools are implicitly compared. |
+| **MATPOWER** | Included as a reference benchmark only. MATPOWER itself is BSD-3 licensed and open-source, but its canonical runtime is MATLAB — a proprietary binary. This disqualifies it as a primary stack candidate under the supply chain and inspectability criteria that motivate this contract. GNU Octave is a viable open-source substitute but has known performance limitations at 10k-bus regional scale and is not a production-grade path. MATPOWER's case format (.m) and problem formulations remain the reference standard against which all other tools are implicitly compared. |
 | **PYPOWER** | Python port of an early MATPOWER version. Functionally superseded by pandapower, which is faster, better maintained, and compatible with PYPOWER's interface. No reason to evaluate both. |
 | **GridDyn** | C++ transmission dynamics simulator developed at LLNL. Last substantive activity circa 2019; project appears stalled. Fails Maturity criterion. |
 | **PowSyBl** | Production-grade grid analysis framework used by European transmission system operators (RTE, ENTSO-E). Java core with Python bindings. Strong CGMES/CIM format support but European data model focus — PSS/E RAW ingestion is less tested. Architecturally mature but the operational context and data formats are misaligned with US transmission work. Worth revisiting if scope expands to multi-region or international grids. |
@@ -427,7 +427,7 @@ The following tools were identified during the landscape survey and considered f
 | 1. Problem Expressiveness | Weighted (priority 1) | Can it formulate the problems we need to solve? |
 | 2. Extensibility | Weighted (priority 2) | Can analysts build on top of solved problems? |
 | 3. Workforce Accessibility | Weighted (priority 4) | Can NRL analysts use it productively? |
-| 4. Scalability | Weighted (priority 3) | Does it perform at WECC scale with open-source solvers? |
+| 4. Scalability | Weighted (priority 3) | Does it perform at large regional scale with open-source solvers? |
 | 5. Maturity & Sustainability (5a/5b) | Weighted (priority 5) | Will it still be here and maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk) |
 | 6. Supply Chain, Inspectability & Licensing Risk | **Gate** | Is every component in the stack auditable, inspectable, and legally clean? |
 
