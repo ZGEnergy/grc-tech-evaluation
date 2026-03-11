@@ -75,7 +75,7 @@ a reference benchmark only and is excluded from primary ranking -- see the
 | **Language / Runtime** | Julia 1.6+ |
 | **Solver Ecosystem** | HiGHS, Ipopt, GLPK, SCIP, Gurobi, CPLEX (via JuMP/MOI) |
 | **Maintainer** | Los Alamos National Laboratory (LANL) |
-| **Funding** | DOE/LANL contract DE-AC52-06NA25396 |
+| **Funding** | U.S. national-laboratory support |
 | **License** | BSD-3-Clause |
 | **Target Users** | Power systems optimization researchers, DOE national lab teams |
 
@@ -195,7 +195,7 @@ a reference benchmark only and is excluded from primary ranking -- see the
 | Extensibility | <span className="grade-b">B</span> | Native NetworkX MultiDiGraph integration and efficient contingency loops via in-place branch switching. Clean 3-tier architecture with good DataFrame interoperability. But the PuLP optimization model is not exposed, making custom constraint injection impossible -- a blocking gap for advanced OPF workflows. |
 | Scalability | <span className="grade-b-minus">B-</span> | DCPF (1.8s), ACPF (12.7s), and DC OPF (15.2s) all scale to 10k-bus with modest memory. Solver swap between HiGHS and SCIP is a one-line change. However, 4 scalability tests fail due to inherited expressiveness gaps, and PTDF flow predictions diverge by 743 MW on MEDIUM (a scale-dependent island-handling issue). |
 | Accessibility | <span className="grade-c-plus">C+</span> | Installation works but SolverType naming confusion adds friction. Only 2 of 11 Suite A tests are completable from documentation alone. All three tested error scenarios (missing costs, infeasible OPF, invalid bus type) are silently accepted with no validation warning. The TapPhaseControl bug blocks several getting-started examples. |
-| Maturity | <span className="grade-b-minus">B-</span> | High release cadence (~40 releases in 24 months) and 2,434 commits from ~30 contributors. However, 70.3% of commits come from a single maintainer (SanPen) with no institutional backing, creating a bus factor of 1. One distribution utility deployment identified. The recent license change to MPL-2.0 may require legal review for government use. |
+| Maturity | <span className="grade-b-minus">B-</span> | High release cadence (~40 releases in 24 months) and 2,434 commits from ~30 contributors. However, 70.3% of commits come from a single maintainer (SanPen) with no institutional backing, creating a bus factor of 1. One distribution utility deployment identified. The recent license change to MPL-2.0 may require legal review for restricted-environment deployment. |
 | Supply Chain | <span className="grade-b">B</span> | MPL-2.0 license is weak copyleft at the file level -- compatible with commercial use but requires awareness. Pure Python core with full execution path traceability. Air-gap installable. However, the 83-package dependency tree includes unusual entries (opencv) and lacks signed release tags, SLSA provenance, or SBOM. |
 
 </details>
@@ -213,7 +213,7 @@ a reference benchmark only and is excluded from primary ranking -- see the
 
 :::note[Reference Benchmark Only]
 MATPOWER is included as a reference benchmark and is **excluded from primary ranking**.
-The MATLAB runtime is a proprietary binary incompatible with classified network
+The MATLAB runtime is a proprietary binary incompatible with restricted-network
 authorization requirements. All MATPOWER testing used GNU Octave. See the
 [exclusion footnote](#matpower-exclusion) below.
 :::
@@ -249,7 +249,7 @@ authorization requirements. All MATPOWER testing used GNU Octave. See the
 
 MATPOWER is designated as a **reference benchmark only** and is excluded from primary
 tool ranking. The MATLAB runtime is a proprietary commercial binary that cannot receive
-authorization for use on classified networks. All MATPOWER evaluation testing was
+authorization for use in restricted environments. All MATPOWER evaluation testing was
 conducted using GNU Octave, an open-source MATLAB-compatible interpreter. However,
 Octave lacks HiGHS MEX bindings, has no production deployment precedent for power system
 analysis at scale, and introduces interpreter-specific performance overhead (e.g.,
