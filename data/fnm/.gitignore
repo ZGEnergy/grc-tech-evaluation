@@ -1,0 +1,24 @@
+# FNM Data Files — NDA-restricted, never commit
+*.raw
+*.RAW
+*.csv
+*.CSV
+*.parquet
+*.m
+
+# Intermediate and reference output directories
+intermediate/**
+reference/**
+!reference/
+!reference/*/
+!reference/**/summary_*.json
+
+# Allow tracked infrastructure files
+!manifest.json
+!README.md
+!**/README.md
+!scripts/**/*.py
+!scripts/**/*.m
+!docs/**/*.md
+!docs/**/*.json
+!.gitignore
