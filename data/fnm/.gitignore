@@ -12,6 +12,7 @@ reference/**
 !reference/
 !reference/*/
 !reference/**/summary_*.json
+!reference/pass_conditions.json
 !reference/cleaned/intermediate/
 !reference/cleaned/intermediate/*.csv
 !reference/cleaned/intermediate/manifest.json

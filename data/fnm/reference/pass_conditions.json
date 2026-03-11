@@ -1,0 +1,196 @@
+{
+  "$schema_version": "1.0.0",
+  "$description": "Pass condition definitions for ACPF and DCPF FNM verification. Machine-readable specification consumed by evaluate-tool agents at runtime.",
+  "bus_exclusion": {
+    "registry_path": "data/fnm/reference/excluded_buses.json",
+    "description": "Path to the D1 bus exclusion registry. All buses listed in this file are excluded from metric denominators. Exclusion reasons: ide_4_isolated, vm_zero_deenergized, disconnected_island.",
+    "usage": "Load excluded_buses[].bus_number to build the exclusion set. Metric denominators = total_buses - len(exclusion_set)."
+  },
+  "acpf": {
+    "reference_dir": "data/fnm/reference/acpf/",
+    "reference_files": {
+      "buses": "buses_acpf.csv",
+      "branches": "branches_acpf.csv",
+      "generators": "generators_acpf.csv",
+      "summary": "summary_acpf.json"
+    },
+    "aggregate": {
+      "description": "Primary pass gate. A bus passes if BOTH VM and VA deviations are within tolerance. The fraction of passing buses must exceed the minimum threshold.",
+      "min_passing_fraction": 0.95,
+      "vm_tolerance_pu": 0.005,
+      "va_tolerance_deg": 0.5,
+      "bus_pass_condition": "|VM_tool - VM_ref| < 0.005 AND |VA_tool - VA_ref| < 0.5",
+      "metric": "count(passing_buses) / count(non_excluded_buses) >= 0.95"
+    },
+    "hard_fail": {
+      "description": "Any single condition triggers unconditional test failure, regardless of aggregate statistics.",
+      "conditions": [
+        {
+          "name": "excessive_failing_fraction",
+          "description": "More than 20% of non-excluded buses fail the aggregate tolerance.",
+          "condition": "count(failing_buses) / count(non_excluded_buses) > 0.2",
+          "threshold": 0.2
+        },
+        {
+          "name": "extreme_vm_deviation",
+          "description": "Any single bus has VM deviation exceeding 0.1 p.u. Indicates fundamental voltage error, not solver variation.",
+          "condition": "max(|VM_tool - VM_ref|) > 0.1",
+          "threshold_pu": 0.1
+        },
+        {
+          "name": "extreme_va_deviation",
+          "description": "Any single bus has VA deviation exceeding 10.0 degrees. Indicates topology or connectivity error.",
+          "condition": "max(|VA_tool - VA_ref|) > 10.0",
+          "threshold_deg": 10.0
+        }
+      ]
+    },
+    "outlier_classification": {
+      "description": "Buses that fail the aggregate tolerance are classified by probable cause. Classification does not change pass/fail -- it explains why outliers exist and whether they indicate ingestion error vs. expected solver variation.",
+      "evaluation_order": "Rules are evaluated in the order listed. First matching rule assigns the primary cause. A bus may match multiple rules; only the first (highest priority) is assigned.",
+      "rules": [
+        {
+          "priority": 1,
+          "cause": "switched_shunt",
+          "description": "Bus has a switched shunt device in the intermediate format. Discrete switching step differences between solvers produce VM deviations of 0.002-0.010 p.u. that are legitimate solver-variation artifacts.",
+          "match_condition": "has_switched_shunt(bus)",
+          "required_data": [
+            "bus",
+            "switched_shunt"
+          ],
+          "applies_to": "acpf"
+        },
+        {
+          "priority": 2,
+          "cause": "q_limit",
+          "description": "Bus has a generator at or near a reactive power limit (|Q - Qmax| < 1.0 MVAr or |Q - Qmin| < 1.0 MVAr in the ACPF reference). Different Q-limit enforcement sequences across solvers produce different voltage setpoints at PV-to-PQ transitioned buses.",
+          "match_condition": "generator_at_q_limit(bus, tolerance_mvar=1.0)",
+          "required_data": [
+            "bus",
+            "generator"
+          ],
+          "applies_to": "acpf"
+        },
+        {
+          "priority": 3,
+          "cause": "slack_distribution",
+          "description": "Bus is the slack bus (type=3) or within 2 branches of the slack bus in the network graph. Slack bus power absorption differs between solvers, causing VA deviations that propagate to electrically nearby buses.",
+          "match_condition": "is_slack_or_neighbor(bus, max_hops=2)",
+          "required_data": [
+            "bus",
+            "branch"
+          ],
+          "applies_to": "both"
+        },
+        {
+          "priority": 4,
+          "cause": "tap_position",
+          "description": "Bus is the regulated bus (CONT field) of an in-service tap-changing transformer. Different tap optimization algorithms produce different tap positions, causing VM deviations at the regulated bus.",
+          "match_condition": "is_tap_regulated_bus(bus)",
+          "required_data": [
+            "bus",
+            "transformer"
+          ],
+          "applies_to": "acpf"
+        },
+        {
+          "priority": 5,
+          "cause": "island_boundary",
+          "description": "Bus is at the boundary of a weakly connected subnetwork (network degree <= 2 and base_kv < 69 kV). Low-voltage radial boundary buses are highly sensitive to upstream modeling differences.",
+          "match_condition": "is_island_boundary(bus, max_degree=2, max_kv=69.0)",
+          "required_data": [
+            "bus",
+            "branch"
+          ],
+          "applies_to": "both"
+        }
+      ],
+      "warning_thresholds": {
+        "max_classified_fraction": 0.1,
+        "max_classified_description": "If classified outliers (all causes except unclassified) exceed 10% of non-excluded buses, emit a warning.",
+        "max_unclassified_fraction": 0.02,
+        "max_unclassified_description": "If unclassified outliers exceed 2% of non-excluded buses, emit a warning."
+      }
+    },
+    "formulation_difference_max_abs": {
+      "description": "Maximum absolute VM/VA deviation (p.u.) permitted under formulation_difference classification.",
+      "threshold_pu": null,
+      "unit": "pu"
+    }
+  },
+  "dcpf": {
+    "reference_dir": "data/fnm/reference/dcpf/",
+    "reference_files": {
+      "buses": "buses_dcpf.csv",
+      "branches": "branches_dcpf.csv",
+      "summary": "summary_dcpf.json"
+    },
+    "aggregate": {
+      "description": "Primary pass gate. Two independent metrics: bus angles and branch flows.",
+      "bus_angle": {
+        "description": "Fraction of non-excluded buses with VA deviation within tolerance.",
+        "min_passing_fraction": 0.95,
+        "va_tolerance_deg": 1.0,
+        "bus_pass_condition": "|VA_tool - VA_ref| < 1.0",
+        "metric": "count(passing_buses) / count(non_excluded_buses) >= 0.95"
+      },
+      "branch_flow": {
+        "description": "Fraction of in-service branches with P deviation within tolerance.",
+        "min_passing_fraction": 0.9,
+        "p_tolerance_pct": 10.0,
+        "p_base_floor_mw": 1.0,
+        "deviation_formula": "|P_tool - P_ref| / max(|P_ref|, 1.0) * 100",
+        "branch_pass_condition": "deviation_pct < 10.0",
+        "metric": "count(passing_branches) / count(in_service_branches) >= 0.9"
+      }
+    },
+    "hard_fail": {
+      "description": "Any single condition triggers unconditional test failure.",
+      "conditions": [
+        {
+          "name": "excessive_bus_failing_fraction",
+          "description": "More than 20% of non-excluded buses fail the VA tolerance.",
+          "condition": "count(failing_buses) / count(non_excluded_buses) > 0.2",
+          "threshold": 0.2
+        },
+        {
+          "name": "excessive_branch_failing_fraction",
+          "description": "More than 20% of in-service branches fail the P tolerance.",
+          "condition": "count(failing_branches) / count(in_service_branches) > 0.2",
+          "threshold": 0.2
+        },
+        {
+          "name": "extreme_branch_flow_deviation",
+          "description": "Any single branch has P deviation exceeding 50.0%. Indicates topology or impedance error.",
+          "condition": "max(deviation_pct) > 50.0",
+          "threshold_pct": 50.0
+        }
+      ]
+    },
+    "formulation_difference_max_abs": {
+      "description": "Maximum absolute VA deviation (degrees) permitted under formulation_difference classification.",
+      "threshold_deg": null,
+      "unit": "degrees"
+    }
+  },
+  "voltage_level_tiers": {
+    "description": "Informational voltage-level breakdown in verification results. Not a pass/fail gate -- the primary pass condition uses a single tolerance for all buses. This breakdown helps diagnose systematic voltage-level-correlated errors.",
+    "tiers": [
+      {
+        "label": "transmission_230kv_plus",
+        "min_kv": 230.0,
+        "max_kv_exclusive": null
+      },
+      {
+        "label": "subtransmission_69_to_229kv",
+        "min_kv": 69.0,
+        "max_kv_exclusive": 230.0
+      },
+      {
+        "label": "distribution_below_69kv",
+        "min_kv": 0.0,
+        "max_kv_exclusive": 69.0
+      }
+    ]
+  }
+}
