@@ -110,9 +110,29 @@ naming convention from the config.
 - Check GitHub commits for last 12 months
 - Total commits, unique committers, substantive vs maintenance ratio
 
-**E-3 — Contributor concentration:**
+**E-3 — Contributor and reviewer concentration:**
+
+*Commit concentration:*
 - Top 3 contributors by commits (lifetime)
 - Percentage from top contributor, bus factor assessment
+
+*Reviewer concentration:*
+- Sample the last 50 merged PRs using `gh pr list --state merged --limit 50 --json number`
+  and then fetch reviews for each PR via `gh api repos/{owner}/{repo}/pulls/{number}/reviews`
+- Exclude bot accounts (dependabot, renovate, github-actions, etc.) from reviewer stats
+- Compute: top reviewer login, approval count, and approval percentage
+- Compute: top 3 reviewers (login, approvals, percentage each) and combined percentage
+- Flag concentration risk if top reviewer approved >60% of sampled PRs
+
+*Result file structure:* The E-3 Evidence section should contain two sibling subsections:
+- **Commit Concentration** — top contributors by commits, bus factor
+- **Reviewer Concentration** — top reviewer %, top 3 reviewers %, concentration flag,
+  sample size (50 merged PRs), and methodology note (e.g., "bot approvals excluded")
+
+*Dual-contribution note:* E-3 evidence feeds two rubric criteria:
+- Commit activity evidence contributes to **5a (Demonstrated Maturity)**
+- Concentration metrics (both commit and reviewer) contribute to
+  **5b (Sustainability Risk)**
 
 **E-4 — Funding model:**
 - Research institutional backing, grant sources, affiliations
