@@ -1,8 +1,12 @@
-.PHONY: charts build serve clean
+.PHONY: charts charts-validate build serve clean
 
 # Python chart generation (Phase 1: skeleton only)
 charts:
 	uv run python scripts/generate_charts.py
+
+# Validate chart manifest and file integrity (independent of generation)
+charts-validate:
+	uv run python scripts/validate_charts.py
 
 # Full build: generate charts, then compile Docusaurus site
 build: charts
