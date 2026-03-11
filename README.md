@@ -1,7 +1,7 @@
 # GRC Tech Evaluation
 
 Reproducible evaluation environments for six power-system modeling packages,
-supporting the Contract FA714626C0006 technology assessment.
+supporting the Phase 1 technology assessment.
 
 ## Tools Under Evaluation
 
