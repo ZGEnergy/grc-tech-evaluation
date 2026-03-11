@@ -46,9 +46,9 @@ jobs:
         working-directory: report
         run: uv sync
 
-      - name: Build site
+      - name: Build and validate site
         working-directory: report
-        run: make build
+        run: make validate
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
