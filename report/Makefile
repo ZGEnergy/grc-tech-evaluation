@@ -1,4 +1,4 @@
-.PHONY: charts charts-validate build serve clean
+.PHONY: charts charts-validate build serve clean validate validate-dev
 
 # Python chart generation (Phase 1: skeleton only)
 charts:
@@ -15,6 +15,26 @@ build: charts
 # Start Docusaurus dev server for local preview
 serve:
 	npm run start
+
+# Post-build validation (strict — CI mode)
+validate: build
+	@echo "=== Running link & image validation ==="
+	uv run python scripts/validate_links.py build
+	@echo "=== Running chart-manifest cross-reference validation ==="
+	uv run python scripts/validate_chart_manifest.py
+	@echo "=== Running content validation (strict) ==="
+	uv run python scripts/validate_content.py build --config docusaurus.config.js
+	@echo "=== All validations passed ==="
+
+# Post-build validation (permissive — local dev mode)
+validate-dev: build
+	@echo "=== Running link & image validation ==="
+	uv run python scripts/validate_links.py build
+	@echo "=== Running chart-manifest cross-reference validation ==="
+	uv run python scripts/validate_chart_manifest.py
+	@echo "=== Running content validation (permissive) ==="
+	uv run python scripts/validate_content.py build --allow-placeholders --config docusaurus.config.js
+	@echo "=== All validations passed ==="
 
 # Remove all build artifacts
 clean:
