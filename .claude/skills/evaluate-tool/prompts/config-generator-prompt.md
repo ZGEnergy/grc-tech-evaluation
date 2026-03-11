@@ -15,7 +15,10 @@ orchestrator.
 
 1. **Read both documents** in full using the Read tool.
 
-2. **Extract the following** from the documents:
+2. **Extract the protocol version** from the protocol document header (e.g., "Protocol v8")
+   and record it in the output as `protocol_version`.
+
+3. **Extract the following** from the documents:
 
 ### Dimensions
 For each evaluation criterion, extract:
@@ -80,8 +83,8 @@ Infer cross-cutting observation routing:
 - Expressiveness also emits: `convergence-quality` (solver reports convergence but diagnostics disagree), `unit-mismatch` (MW vs pu inconsistency)
 - Extensibility also emits: `arch-quality` (software architecture observations)
 - Scalability also emits: `cascaded-failure` (test blocked by prerequisite failure)
-- FNM ingestion emits: `fnm-data-model` (data model fidelity findings), `fnm-scale` (scale-related findings on LARGE network)
-- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity, `convergence-quality` → scalability + accessibility, `unit-mismatch` → accessibility, `cascaded-failure` → synthesis, `fnm-data-model` → expressiveness + synthesis, `fnm-scale` → scalability + synthesis
+- FNM ingestion emits: `fnm-data-model` (data model fidelity findings), `fnm-scale` (scale-related findings on LARGE network), `formulation-difference` (DCPF formulation classification differences)
+- Audit dimensions consume: `api-friction` → accessibility, `doc-gaps` → accessibility + maturity, `solver-issues` → scalability, `arch-quality` → maturity, `convergence-quality` → scalability + accessibility, `unit-mismatch` → accessibility, `cascaded-failure` → synthesis, `fnm-data-model` → expressiveness + synthesis, `fnm-scale` → scalability + synthesis, `formulation-difference` → expressiveness + scalability + synthesis
 - Supply chain audit emits: `license-flags`
 
 For each dimension, record:
@@ -138,6 +141,7 @@ grouped semantically (e.g., by shared setup requirements or dependency chains).
 # Generated: <timestamp>
 
 tool: {{tool_name}}
+protocol_version: "v8"
 
 networks:
   TINY:
@@ -157,7 +161,9 @@ networks:
   LARGE:
     name: "FNM Annual S01"
     buses: ~30000
-    source: "FNM_PATH (intermediate format via data/fnm/)"
+    source: "$FNM_PATH/intermediate/"
+    manifest: "$FNM_PATH/intermediate/manifest.json"
+    fallback: "data/fnm/reference/cleaned/fnm_main_island.mat"
     fnm_path_gated: true
 
 dimensions:
@@ -177,7 +183,7 @@ dimensions:
     archetype: code-evaluator
     weight_rank: 1
     emits: [api-friction, doc-gaps, workaround-needed]
-    consumes: []
+    consumes: [fnm-data-model, formulation-difference]
     tests:
       - id: A-1
         slug: dcpf
@@ -195,7 +201,7 @@ dimensions:
     suite: G
     archetype: code-evaluator
     fnm_path_gated: true
-    emits: [fnm-data-model, fnm-scale, workaround-needed]
+    emits: [fnm-data-model, fnm-scale, formulation-difference, workaround-needed]
     consumes: []
     tests:
       - id: G-FNM-1
@@ -208,6 +214,24 @@ dimensions:
         converges_ac: false
         recorded_metrics: [pass_fail, wall_clock, per_table_counts]
       # ... all G-FNM tests (extract ALL from protocol)
+
+  - name: maturity
+    criterion_number: 5
+    suite: E
+    archetype: audit-evaluator
+    weight_rank: 5
+    emits: []
+    consumes: [doc-gaps, arch-quality]
+    sub_criteria:
+      5a:
+        label: "Demonstrated Maturity"
+        test_ids: [E-1, E-2, E-3, E-6]
+      5b:
+        label: "Sustainability Risk"
+        test_ids: [E-4, E-5, E-7]
+    composite_grade_matrix: "See Criterion 5 Composite Grading in rubric"
+    tests:
+      # ... all E tests
 
   # ... all dimensions
 
@@ -265,6 +289,10 @@ observation_tags:
     description: "Scale-related findings on LARGE (~30K bus) FNM network"
     emitted_by: [fnm_ingestion]
     consumed_by: [scalability, synthesis]
+  formulation-difference:
+    description: "DCPF formulation classification differences between tool and reference"
+    emitted_by: [fnm_ingestion]
+    consumed_by: [expressiveness, scalability, synthesis]
 ```
 
 ## Critical Rules
