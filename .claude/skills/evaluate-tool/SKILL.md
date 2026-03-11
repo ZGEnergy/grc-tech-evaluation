@@ -1,5 +1,6 @@
 ---
 name: evaluate-tool
+skill_version: v1
 description: >
   Evaluate a power-system modeling tool across all Phase 1 rubric criteria.
   Orchestrates config generation, research, gate tests, functional/audit evaluation,
@@ -53,6 +54,9 @@ RESEARCH_PATH = {{RESULTS_DIR}}/research-context.md
 FNM_DIR       = data/fnm
 ```
 
+Read `SKILL_VERSION` from this file's frontmatter (`skill_version: v1`). This value is
+stamped into every result file and used during incremental re-runs to detect stale results.
+
 ### FNM_PATH Detection
 
 After entering the worktree, check whether `FNM_PATH` is set in the devcontainer:
@@ -93,8 +97,6 @@ with other concurrent work in the repository.
    are relative paths.
 3. Sub-agents inherit the worktree working directory automatically — no special
    configuration needed.
-4. At the end of the evaluation (after SYNTHESIZE), remind the user that results
-   live on the worktree branch and need to be merged or PR'd to `main`.
 
 If the session is **resuming** from a progress file found in an existing worktree,
 skip this step — the user is already in the worktree.
@@ -102,7 +104,7 @@ skip this step — the user is already in the worktree.
 ## State Machine
 
 ```
-CONFIGURE → RESEARCH → GATE → EVALUATE → VALIDATE → SYNTHESIZE
+CONFIGURE → RESEARCH → GATE → EVALUATE → VALIDATE → SYNTHESIZE → COMMIT
 ```
 
 Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last completed state.
@@ -113,7 +115,8 @@ skip to the first incomplete DAG step.
 
 ### State: CONFIGURE
 
-**Purpose:** Generate the evaluation config from canonical guides.
+**Purpose:** Generate the evaluation config from canonical guides, and determine whether
+this is a fresh run or an incremental update of previously merged results.
 
 1. **Check for existing config.** If `{{CONFIG_PATH}}` exists and `{{PROGRESS_PATH}}`
    shows CONFIGURE completed, skip to next state.
@@ -134,18 +137,52 @@ skip to the first incomplete DAG step.
    - Network tiers in use
    - Observation tag routing
 
-4. **Ask for approval.** Use AskUserQuestion:
-   - "Review the generated eval-config.yaml. Proceed with evaluation?"
-   - Options: "Approve and continue", "Edit config first", "Abort"
+4. **Scan for existing results (incremental mode detection).** Check whether result files
+   already exist in `{{RESULTS_DIR}}`. Results are present when a previous evaluation was
+   merged to main and the current worktree was branched from that state.
 
-5. **Write progress.** On approval:
+   Read `protocol_version` from `{{CONFIG_PATH}}` and `skill_version` from this file's
+   frontmatter. For each test ID in the config, classify its result file (if any):
+
+   - **`run`** — no result file exists (new test or first-ever run)
+   - **`skip`** — result file exists with matching `protocol_version` AND `skill_version`
+   - **`stale`** — result file exists but either version doesn't match; needs re-run
+   - **`orphan`** — a result file exists in `{{RESULTS_DIR}}` for a test ID not in the
+     current config (test was removed from the protocol)
+
+   If any existing results are found, present a summary and ask the user via AskUserQuestion:
+   - header: "Run mode"
+   - label: "Incremental — skip up-to-date tests (Recommended)", description: "Only run
+     `run` and `stale` tests. Orphaned files will be deleted. Skipped tests count as
+     present for VALIDATE."
+   - label: "Fresh — run everything from scratch", description: "Ignore existing results
+     and run all tests. Orphaned files will be deleted."
+
+   If no existing results are found, proceed in fresh mode automatically.
+
+5. **Ask for config approval.** Use AskUserQuestion:
+   - header: "Config"
+   - label: "Approve and continue (Recommended)", description: "Proceed with the generated config."
+   - label: "Edit config first", description: "Pause to edit eval-config.yaml before proceeding."
+   - label: "Abort", description: "Stop the evaluation."
+
+6. **Write progress.** On approval:
 
    ```yaml
    # .progress.yaml
    tool: {{TOOL_NAME}}
+   skill_version: {{SKILL_VERSION}}
+   protocol_version: <from eval-config.yaml>
+   run_mode: fresh|incremental
    completed_states: [CONFIGURE]
    current_state: RESEARCH
    timestamp: <ISO 8601>
+   skipped_tests:    # file basenames of up-to-date result files (incremental only)
+     - A-1_dcpf.md
+   stale_tests:      # file basenames being re-run due to version mismatch
+     - B-3_custom_constraints.md
+   orphaned_files:   # full paths to result files for tests not in current config
+     - evaluations/{{TOOL_NAME}}/results/expressiveness/OLD-1_removed.md
    ```
 
 ---
@@ -225,11 +262,16 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
 2. **For each DAG step, dispatch agents in parallel.** For each dimension in the step:
 
-   a. **Determine agent archetype** from the dimension's `archetype` field in config:
+   a. **Check skip list first.** Before dispatching any agent, check whether all test IDs
+      in this dimension+tier combo appear in `skipped_tests` from `.progress.yaml`. If all
+      tests in the step are skipped, log "Skipping [dimension] [tier] — up-to-date" and
+      move to the next step without launching any agent.
+
+   b. **Determine agent archetype** from the dimension's `archetype` field in config:
       - `code-evaluator` → `{{SKILL_DIR}}/prompts/code-evaluator-prompt.md`
       - `audit-evaluator` → `{{SKILL_DIR}}/prompts/audit-evaluator-prompt.md`
 
-   b. **Read the prompt template** and replace variables:
+   c. **Read the prompt template** and replace variables:
       - `{{dimension}}` → dimension name
       - `{{test_ids}}` → comma-separated test IDs for this dimension + tier
       - `{{network_tier}}` → current tier (TINY, SMALL, MEDIUM)
@@ -243,6 +285,7 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
         `cross-tool-watchpoints.md`
       - `{{observation_tags}}` → tags this dimension emits (from config)
       - `{{consumed_observations}}` → contents of observation files matching consumed tags
+      - `{{skill_version}}` → `{{SKILL_VERSION}}` (agents embed this in result frontmatter)
 
       **Code-evaluator only** (not replaced for audit-evaluator):
       - `{{version_capability_report}}` → contents of `{{RESULTS_DIR}}/research-version.md`
@@ -251,7 +294,7 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
       for features that are not supported in the installed version of the tool (as identified
       by the version capability report).
 
-   c. **Launch agent** via Agent tool with `subagent_type: "general-purpose"`.
+   d. **Launch agent** via Agent tool with `subagent_type: "general-purpose"`.
 
 3. **Collect observations.** After each DAG step completes, scan for new observation
    files in `{{RESULTS_DIR}}/observations/`. These are available to subsequent steps
@@ -291,7 +334,11 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
    (informational findings that don't affect Phase 1 grades), dispatch an audit-evaluator
    agent for those tests. Results go in `{{RESULTS_DIR}}/p2_readiness/`.
 
-8. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: VALIDATE`.
+8. **Delete orphaned result files.** After all DAG steps complete, delete any files listed
+   in `orphaned_files` from `.progress.yaml`. These are result files for tests no longer
+   in the current config — keeping them would leave stale data in the repo. Log each deletion.
+
+9. **Update progress:** Add EVALUATE to `completed_states`, set `current_state: VALIDATE`.
 
 ---
 
@@ -301,10 +348,12 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
 1. **Scan result files.** Read `{{CONFIG_PATH}}` to get every test ID. For each test ID,
    check that a result file exists in the appropriate `{{RESULTS_DIR}}/<dimension>/` directory.
+   Tests listed in `skipped_tests` in `.progress.yaml` already have result files on disk —
+   they count as present and do not constitute gaps.
 
 2. **Validate frontmatter.** For each result file:
    - Required fields present: `test_id`, `tool`, `dimension`, `network`, `status`,
-     `workaround_class`, `timestamp`, `protocol_version`
+     `workaround_class`, `timestamp`, `protocol_version`, `skill_version`
    - `status` value is one of: `pass`, `fail`, `qualified_pass`, `informational`
    - `workaround_class` value is one of: `null`, `stable`, `fragile`, `blocking`
    - `protocol_version` is present and non-empty
@@ -321,8 +370,10 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
 5. **Gate on gaps.** If any config test IDs have no result file, present the gaps to
    the user via AskUserQuestion:
-   - "The following test IDs have no result file: [list]. Choose an option:"
-   - Options: "Fix gaps before synthesis", "Proceed with gaps noted", "Abort"
+   - header: "Gaps found"
+   - label: "Fix gaps before synthesis", description: "Return to EVALUATE to fill missing results."
+   - label: "Proceed with gaps noted", description: "Continue to synthesis with gaps recorded in the validation report."
+   - label: "Abort", description: "Stop the evaluation."
    Missing result files block SYNTHESIZE by default. Frontmatter and naming violations
    are warnings only — they do not block synthesis.
 
@@ -348,15 +399,78 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
    - Items flagged for human spot-check
    - Cross-cutting observations
 
-3. **Final progress update:**
+3. **Update progress:**
 
    ```yaml
    completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
-   current_state: DONE
+   current_state: COMMIT
    timestamp: <ISO 8601>
    ```
 
-4. **Inform user:** Evaluation complete. Results in `{{RESULTS_DIR}}/`.
+---
+
+### State: COMMIT
+
+**Purpose:** Commit results to the worktree branch and open a PR so results land on main.
+
+1. **Stage all result artifacts.**
+
+   ```bash
+   git add evaluations/{{TOOL_NAME}}/
+   ```
+
+2. **Commit.** Use a conventional commit message that includes the tool name, protocol
+   version, and skill version so the PR history is self-documenting:
+
+   ```bash
+   git commit -m "feat: {{TOOL_NAME}} Phase 1 evaluation results (protocol {{PROTOCOL_VERSION}}, skill {{SKILL_VERSION}})"
+   ```
+
+   Where `{{PROTOCOL_VERSION}}` is read from `eval-config.yaml` and `{{SKILL_VERSION}}`
+   is from this file's frontmatter.
+
+3. **Push the branch.**
+
+   ```bash
+   git push -u origin <worktree-branch-name>
+   ```
+
+4. **Open a PR.**
+
+   ```bash
+   gh pr create \
+     --title "feat: {{TOOL_NAME}} Phase 1 evaluation (protocol {{PROTOCOL_VERSION}}, skill {{SKILL_VERSION}})" \
+     --body "$(cat <<'EOF'
+   ## {{TOOL_NAME}} Phase 1 Evaluation Results
+
+   - **Protocol version:** {{PROTOCOL_VERSION}}
+   - **Skill version:** {{SKILL_VERSION}}
+   - **Run mode:** {{RUN_MODE}} (fresh|incremental)
+   - **Scale cap:** {{SCALE_CAP}}
+   - **Tests run:** {{RUN_COUNT}}
+   - **Tests skipped (up-to-date):** {{SKIP_COUNT}}
+   - **Orphaned files deleted:** {{ORPHAN_COUNT}}
+
+   ## Spot-check items
+   See `synthesis.md` → "Items requiring human spot-check" section.
+
+   ## Next steps
+   Review synthesis.md grades, spot-check flagged items, then merge.
+   EOF
+   )"
+   ```
+
+5. **Final progress update:**
+
+   ```yaml
+   completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE, COMMIT]
+   current_state: DONE
+   pr_url: <url from gh pr create output>
+   timestamp: <ISO 8601>
+   ```
+
+6. **Inform user:** Report the PR URL and a one-line summary (tests run, tests skipped,
+   orphans deleted). Remind them to review the spot-check items in synthesis.md before merging.
 
 ---
 
