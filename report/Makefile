@@ -1,4 +1,4 @@
-.PHONY: charts charts-validate build serve clean validate validate-dev
+.PHONY: charts charts-validate build serve clean validate validate-dev smoke
 
 # Python chart generation (Phase 1: skeleton only)
 charts:
@@ -35,6 +35,12 @@ validate-dev: build
 	@echo "=== Running content validation (permissive) ==="
 	uv run python scripts/validate_content.py build --allow-placeholders --config docusaurus.config.js
 	@echo "=== All validations passed ==="
+
+# Post-deployment smoke test (requires live site)
+smoke:
+	@echo "=== Running deployment smoke test ==="
+	uv run python scripts/smoke_test.py
+	@echo "=== Smoke test passed ==="
 
 # Remove all build artifacts
 clean:
