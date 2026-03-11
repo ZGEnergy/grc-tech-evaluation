@@ -1,0 +1,87 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "hand-crafted",
+  "elements": [
+    {
+      "type": "ellipse",
+      "id": "bus1",
+      "x": 175,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B1" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus2",
+      "x": 575,
+      "y": 125,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B2" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus3",
+      "x": 175,
+      "y": 325,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B3" }
+    },
+    {
+      "type": "ellipse",
+      "id": "bus4",
+      "x": 575,
+      "y": 325,
+      "width": 50,
+      "height": 50,
+      "strokeColor": "#333333",
+      "opacity": 35,
+      "label": { "text": "B4" }
+    },
+    {
+      "type": "text",
+      "id": "g1-dispatch",
+      "x": 20,
+      "y": 100,
+      "text": "G1: 180 MW @ $25/MWh",
+      "strokeColor": "#2e7d32"
+    },
+    {
+      "type": "text",
+      "id": "g2-dispatch",
+      "x": 20,
+      "y": 300,
+      "text": "G2: 120 MW @ $35/MWh",
+      "strokeColor": "#2e7d32"
+    },
+    {
+      "type": "text",
+      "id": "lmp-b1",
+      "x": 175,
+      "y": 90,
+      "text": "LMP $25",
+      "strokeColor": "#ff8f00"
+    },
+    {
+      "type": "text",
+      "id": "lmp-b2",
+      "x": 575,
+      "y": 90,
+      "text": "LMP $30",
+      "strokeColor": "#ff8f00"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

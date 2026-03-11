@@ -1,0 +1,75 @@
+{
+    "_provenance": {
+        "source": "report/selection-report-v4.md",
+        "lines": "50-61",
+        "extracted": "2026-03-10"
+    },
+    "capabilities": [
+        {
+            "capability": "Preventive SCOPF",
+            "pypsa": true,
+            "powermodels": true,
+            "powersimulations": false,
+            "matpower": true,
+            "pypsa_detail": "Native optimize_security_constrained() (A-9)",
+            "powermodels_detail": "Extension, ~140 LOC JuMP",
+            "powersimulations_detail": "Gap",
+            "matpower_detail": "Native MOST (A-9)"
+        },
+        {
+            "capability": "Distributed Slack",
+            "pypsa": true,
+            "powermodels": true,
+            "powersimulations": false,
+            "matpower": true,
+            "pypsa_detail": "Extension via reference bus config",
+            "powermodels_detail": "Extension via API",
+            "powersimulations_detail": "Gap",
+            "matpower_detail": "Native makePTDF weights (B-9)"
+        },
+        {
+            "capability": "PWL Cost Curves",
+            "pypsa": false,
+            "powermodels": true,
+            "powersimulations": true,
+            "matpower": true,
+            "pypsa_detail": "Gap; SOS2 via extra_functionality ~50-100 LOC",
+            "powermodels_detail": "Native (P2-2)",
+            "powersimulations_detail": "Native (P2-2)",
+            "matpower_detail": "Native (P2-2)"
+        },
+        {
+            "capability": "PSS/E RAW Parsing",
+            "pypsa": false,
+            "powermodels": true,
+            "powersimulations": true,
+            "matpower": true,
+            "pypsa_detail": "Gap; bridge via grg-psse, 1-2 days (P2-1)",
+            "powermodels_detail": "Native v33 parser (P2-1)",
+            "powersimulations_detail": "Native v30/32/33 (P2-1)",
+            "matpower_detail": "Native psse2mpc() Rev 23-33+ (P2-1)"
+        },
+        {
+            "capability": "Custom Constraints",
+            "pypsa": true,
+            "powermodels": true,
+            "powersimulations": true,
+            "matpower": true,
+            "pypsa_detail": "Native, 2 LOC Linopy model split (B-1)",
+            "powermodels_detail": "Native, two-level JuMP API (B-1)",
+            "powersimulations_detail": "Extension",
+            "matpower_detail": "Native callbacks (B-1)"
+        },
+        {
+            "capability": "UC/ED Pipeline",
+            "pypsa": true,
+            "powermodels": true,
+            "powersimulations": true,
+            "matpower": true,
+            "pypsa_detail": "SCUC times out at 2k-bus with HiGHS (A-5)",
+            "powermodels_detail": "SCUC requires ~140 LOC JuMP (A-5)",
+            "powersimulations_detail": "Native rich formulations (A-5, A-6)",
+            "matpower_detail": "Native MOST (A-5, A-6)"
+        }
+    ]
+}
