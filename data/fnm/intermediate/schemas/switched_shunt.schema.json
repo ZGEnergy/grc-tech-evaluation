@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/switched_shunt.schema.json",
+  "title": "Switched Shunt",
+  "description": "PSS/E v31 Switched Shunt record type. N1-N8 and B1-B8 define discrete switching step blocks.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MODSW": {
+      "type": "integer",
+      "description": "Control mode (0-2)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        2
+      ]
+    },
+    "ADJM": {
+      "type": "integer",
+      "description": "Adj method (0-1)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "STAT": {
+      "type": "integer",
+      "description": "Status (1=in, 0=out)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "VSWHI": {
+      "type": "number",
+      "description": "Ctrl voltage upper limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VSWLO": {
+      "type": "number",
+      "description": "Ctrl voltage lower limit",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SWREM": {
+      "type": "integer",
+      "description": "Remote bus (0=local)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMPCT": {
+      "type": "number",
+      "description": "MVAR pct for remote reg",
+      "x-psse-unit": "%",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMIDNT": {
+      "type": "string",
+      "description": "Shunt name",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "BINIT": {
+      "type": "number",
+      "description": "Initial susceptance",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N1": {
+      "type": "integer",
+      "description": "Steps in block 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B1": {
+      "type": "number",
+      "description": "Susceptance/step blk 1",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N2": {
+      "type": "integer",
+      "description": "Steps in block 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B2": {
+      "type": "number",
+      "description": "Susceptance/step blk 2",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N3": {
+      "type": "integer",
+      "description": "Steps in block 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B3": {
+      "type": "number",
+      "description": "Susceptance/step blk 3",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N4": {
+      "type": "integer",
+      "description": "Steps in block 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B4": {
+      "type": "number",
+      "description": "Susceptance/step blk 4",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N5": {
+      "type": "integer",
+      "description": "Steps in block 5",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B5": {
+      "type": "number",
+      "description": "Susceptance/step blk 5",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N6": {
+      "type": "integer",
+      "description": "Steps in block 6",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B6": {
+      "type": "number",
+      "description": "Susceptance/step blk 6",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N7": {
+      "type": "integer",
+      "description": "Steps in block 7",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B7": {
+      "type": "number",
+      "description": "Susceptance/step blk 7",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "N8": {
+      "type": "integer",
+      "description": "Steps in block 8",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B8": {
+      "type": "number",
+      "description": "Susceptance/step blk 8",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "MODSW",
+    "STAT",
+    "VSWHI",
+    "VSWLO",
+    "SWREM",
+    "BINIT",
+    "N1",
+    "B1",
+    "N2",
+    "B2",
+    "N3",
+    "B3",
+    "N4",
+    "B4",
+    "N5",
+    "B5",
+    "N6",
+    "B6",
+    "N7",
+    "B7",
+    "N8",
+    "B8"
+  ],
+  "additionalProperties": false
+}

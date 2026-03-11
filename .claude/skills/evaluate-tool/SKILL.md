@@ -156,21 +156,26 @@ skip to the first incomplete DAG step.
 
 1. **Read config.** Load `{{CONFIG_PATH}}` to determine research focus areas.
 
-2. **Dispatch 3 research agents in parallel.** Read `{{SKILL_DIR}}/prompts/research-prompt.md`,
-   launch 3 instances with different `{{research_focus}}` values:
+2. **Dispatch 4 research agents in parallel.** Read `{{SKILL_DIR}}/prompts/research-prompt.md`,
+   launch 4 instances with different `{{research_focus}}` values:
 
    - **Agent 1 — API & Formulations:** `"API surface, supported problem formulations, solver interfaces, data model (bus/branch/gen abstractions), input/output formats"`
    - **Agent 2 — Extensions & Architecture:** `"Extension mechanisms, plugin/callback APIs, internal architecture (separation of concerns), graph access, interoperability with DataFrames/NetworkX/Graphs.jl"`
    - **Agent 3 — Limitations & Ecosystem:** `"Known limitations, open issues related to evaluation tests, ecosystem packages, community size, documentation quality, recent release history"`
+   - **Agent 4 — Version Capabilities:** `"Version-specific capabilities: installed version identification, changelog analysis, capability mapping to protocol test requirements, breaking changes between installed and latest versions"`
 
    All agents receive:
    - `{{tool_name}}` → `{{TOOL_NAME}}`
    - `{{output_path}}` → `{{RESULTS_DIR}}/research-{focus_slug}.md`
 
-3. **Merge research.** Concatenate the 3 research output files into `{{RESEARCH_PATH}}`
-   with section headers.
+3. **Merge research.** Concatenate the 4 research output files into `{{RESEARCH_PATH}}`
+   with section headers:
+   - `research-api.md`
+   - `research-extensions.md`
+   - `research-limitations.md`
+   - `research-version.md`
 
-4. **Thin-research warning.** If any research file is < 500 words, flag it:
+4. **Thin-research warning.** If any of the 4 research files is < 500 words, flag it:
    > "Research output for [focus area] is thin. This may indicate sparse documentation
    > — note as an Accessibility finding."
 
@@ -238,6 +243,13 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
         `cross-tool-watchpoints.md`
       - `{{observation_tags}}` → tags this dimension emits (from config)
       - `{{consumed_observations}}` → contents of observation files matching consumed tags
+
+      **Code-evaluator only** (not replaced for audit-evaluator):
+      - `{{version_capability_report}}` → contents of `{{RESULTS_DIR}}/research-version.md`
+
+      Code-evaluators may record `fail` with `failure_reason: unsupported_in_installed_version`
+      for features that are not supported in the installed version of the tool (as identified
+      by the version capability report).
 
    c. **Launch agent** via Agent tool with `subagent_type: "general-purpose"`.
 

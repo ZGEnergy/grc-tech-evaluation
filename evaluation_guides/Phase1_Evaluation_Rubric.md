@@ -19,7 +19,7 @@ The remaining criteria are evaluated in priority order. When two tools have comp
 2. **Extensibility** — Can analysts build beyond the built-in problems?
 3. **Scalability** — Does it perform at WECC scale?
 4. **Workforce Accessibility** — Can NRL analysts use it productively?
-5. **Maturity & Sustainability** — Will it still be maintained in three years?
+5. **Maturity & Sustainability** — Will it still be maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk)
 
 ### Grading Scale
 
@@ -299,29 +299,57 @@ All scalability measurements are taken on the reference workstation (128 GB RAM,
 
 This matters because Phase 2 and any follow-on work builds on whatever stack Phase 1 selects. A tool that degrades or goes unmaintained mid-contract is a serious operational risk for NRL.
 
-### Sub-questions
+### 5a — Demonstrated Maturity
 
-**1. Release engineering discipline** — Does the project practice disciplined release engineering? Versioned releases (semver or equivalent), pinned dependency versions, meaningful changelogs that match what actually shipped, CI passing on the current release. Do published getting-started examples and tutorials actually run on the current release, or are they stale? Documentation that is aspirationally ahead of the implementation is a signal of poor release discipline, not just a documentation gap.
+Sub-questions under 5a evaluate backward-looking evidence of engineering discipline and operational track record.
 
-**2. Test coverage and CI health** — Does a test suite exist? Does it run in CI? What does it cover — happy-path examples, or edge cases and regressions? Is CI green on the current release? A project without automated tests is shipping on faith.
+**5a E-1. Release engineering discipline** — Does the project practice disciplined release engineering? Versioned releases (semver or equivalent), pinned dependency versions, meaningful changelogs that match what actually shipped, CI passing on the current release. Do published getting-started examples and tutorials actually run on the current release, or are they stale? Documentation that is aspirationally ahead of the implementation is a signal of poor release discipline, not just a documentation gap.
 
-**3. Issue responsiveness** — How quickly are bugs and issues addressed? Is the issue tracker active and managed, or is it a graveyard of unacknowledged reports? Sample the last 20 closed and 10 open issues.
+**5a E-2. Test coverage and CI health** — Does a test suite exist? Does it run in CI? What does it cover — happy-path examples, or edge cases and regressions? Is CI green on the current release? A project without automated tests is shipping on faith.
 
-**4. Contributor concentration and bus factor** — How many active contributors? What percentage of commits come from the top contributor? Is the contributor base growing or concentrated in one or two people whose departure would stall the project? A project with a bus factor of one is a project with an expiration date.
+**5a E-3. Issue responsiveness** — How quickly are bugs and issues addressed? Is the issue tracker active and managed, or is it a graveyard of unacknowledged reports? Sample the last 20 closed and 10 open issues.
 
-**5. Funding stability** — Is development backed by a durable institution (national lab, university research group, foundation) or dependent on a single grant or individual? Is there a clear funding model going forward?
+**5a E-4. Operational adoption** — Has the tool been used in production or near-production settings by utilities, ISOs, or government entities — not just academic research? Operational adoption is a strong signal of maturity that academic citation counts don't capture.
 
-**6. Operational adoption** — Has the tool been used in production or near-production settings by utilities, ISOs, or government entities — not just academic research? Operational adoption is a strong signal of maturity that academic citation counts don't capture.
+#### 5a Grading Standards
 
-**7. Governance model** — Is there a formal governance structure (foundation, steering committee, published roadmap) or is direction set informally by a single maintainer? This is a secondary signal — good governance without engineering discipline is theater; engineering discipline without governance is a risk to be noted, not a disqualifier.
+| Grade Band | Standards |
+|:---:|---|
+| A | Strong release discipline (semantic versioning, changelogs), robust CI with >80% test coverage, responsive issue triage (<7 days median), demonstrated operational adoption |
+| B | Regular releases but inconsistent discipline, CI present with moderate coverage (50-80%), reasonable issue responsiveness (<30 days), some evidence of operational use |
+| C | Irregular or absent releases, minimal CI/testing, slow or no issue response (>30 days), no evidence of operational adoption beyond the development team |
 
-### Grading Standards
+### 5b — Sustainability Risk
 
-| Grade | Description |
-|-------|-------------|
-| **A** | Regular versioned releases with substantive improvements. CI green with meaningful test coverage. Multiple active contributors with no single point of failure. Institutionally backed with stable funding. Evidence of operational deployment. Issues addressed promptly. Published examples run on the current release. |
-| **B** | Active but smaller contributor base. CI exists but coverage is partial. Funding tied to ongoing research programs likely to continue but not guaranteed. Some evidence of operational use. Issues addressed with variable response times. Minor staleness in examples or documentation. |
-| **C** | Development driven by one or two individuals with no institutional backing. No CI or test suite, or CI is broken. No recent versioned releases or only dependency maintenance. No evidence of operational deployment. Issue tracker inactive or backlogged. Published examples broken on current release. |
+Sub-questions under 5b evaluate forward-looking risk factors that could threaten continued development.
+
+**5b E-1. Contributor concentration and bus factor** — How many active contributors? What percentage of commits come from the top contributor? Is the contributor base growing or concentrated in one or two people whose departure would stall the project? A project with a bus factor of one is a project with an expiration date.
+
+**Reviewer/approval concentration:** Sample the last 50 merged PRs. Record the percentage approved by the top reviewer. High concentration (>80%) indicates single-gatekeeper risk.
+
+**5b E-2. Funding stability** — Is development backed by a durable institution (national lab, university research group, foundation) or dependent on a single grant or individual? Is there a clear funding model going forward?
+
+**5b E-3. Governance model** — Is there a formal governance structure (foundation, steering committee, published roadmap) or is direction set informally by a single maintainer? This is a secondary signal — good governance without engineering discipline is theater; engineering discipline without governance is a risk to be noted, not a disqualifier.
+
+#### 5b Grading Standards
+
+| Grade Band | Standards |
+|:---:|---|
+| A | Multiple active contributors (bus factor ≥3), low reviewer concentration (<50% by top reviewer), diversified funding or institutional backing, formal governance model |
+| B | Small but stable contributor base (bus factor 2), moderate reviewer concentration (50-80%), identifiable funding source, informal but functional governance |
+| C | Single dominant contributor (bus factor 1), high reviewer concentration (>80%), no visible funding sustainability, no governance model |
+
+### Criterion 5 Composite Grading
+
+The final Criterion 5 grade is determined by combining the 5a and 5b sub-criterion grades using the following matrix:
+
+| 5a ↓ \ 5b → | **A range** | **B range** | **C range** |
+|:---:|:---:|:---:|:---:|
+| **A range** | A / A- | B+ / B | B / B- |
+| **B range** | B+ / B | B / B- | C+ / C |
+| **C range** | B- / C+ | C+ / C | C / C- |
+
+Within each two-grade cell, select the higher grade when the sub-criterion score is near the boundary of its band (e.g., a low-A 5a score with a solid-B 5b score yields B, not B+).
 
 ---
 
@@ -400,7 +428,7 @@ The following tools were identified during the landscape survey and considered f
 | 2. Extensibility | Weighted (priority 2) | Can analysts build on top of solved problems? |
 | 3. Workforce Accessibility | Weighted (priority 4) | Can NRL analysts use it productively? |
 | 4. Scalability | Weighted (priority 3) | Does it perform at WECC scale with open-source solvers? |
-| 5. Maturity & Sustainability | Weighted (priority 5) | Will it still be here and maintained in three years? |
+| 5. Maturity & Sustainability (5a/5b) | Weighted (priority 5) | Will it still be here and maintained in three years? (5a: Demonstrated Maturity; 5b: Sustainability Risk) |
 | 6. Supply Chain, Inspectability & Licensing Risk | **Gate** | Is every component in the stack auditable, inspectable, and legally clean? |
 
 ---
@@ -414,3 +442,4 @@ The following tools were identified during the landscape survey and considered f
 | v3 | 2026-03-06 | Cost curve note updated to acknowledge polynomial costs in MATPOWER files (was "linear costs throughout"). Added SCOPF feasibility note for small test cases. Stochastic optimization sub-question clarified: independent perturbations by resource type, price extraction required. Aligned with protocol v4 changes. | GRC |
 | v4 | 2026-03-09 | Cross-tool sweep amendments aligned with protocol v5. ACPF sub-question requires convergence residual, iteration count, and non-flat-start verification. SCUC sub-question requires demonstrable cycling. Lossy DCOPF sub-question specifies internal consistency validation. PTDF sub-question addresses phase-shifter correction terms. Stochastic wrapping sub-question adds perturbation calibration requirement. Workaround scoring clarified: any workaround requires qualified_pass classification. Solver/tool separation: expressiveness grading distinguishes formulation capability from solver performance. Scalability grading requires measured wall-clock times. Reference network preprocessing noted. Extensibility grading standards updated for PTDF phase-shifter handling and calibrated stochastic perturbations. | GRC |
 | v5 | 2026-03-09 | FNM scope expansion: added FNM Scope Expansion section incorporating FNM Annual S01 as LARGE reference network (~30K buses, PSS/E v31 via intermediate format, FNM_PATH-gated). Added FNM data model fidelity grading note under Expressiveness (record type coverage, power flow verification, scale-vs-expressiveness attribution). Added supplemental CSV representability grading note under Extensibility (3-tier field classification, sub-question mapping). FNM results inform but do not override primary sub-questions or alter grade boundaries. Full justification: `data/fnm/docs/rubric-v4-justification.md`. | GRC |
+| v6 | 2026-03-10 | Split Criterion 5 into 5a (Demonstrated Maturity) and 5b (Sustainability Risk). Added 3x3 composite grade matrix. Added reviewer/approval concentration sub-metric under 5b. | GRC |

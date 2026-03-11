@@ -8,10 +8,14 @@
 
 # Intermediate and reference output directories
 intermediate/**
+!intermediate/
+!intermediate/README.md
+!intermediate/schemas/
+!intermediate/schemas/*.json
 reference/**
 !reference/
 !reference/*/
-!reference/**/summary_*.json
+!reference/pass_conditions.json
 
 # Allow tracked infrastructure files
 !manifest.json

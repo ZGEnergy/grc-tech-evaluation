@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/fixed_shunt.schema.json",
+  "title": "Fixed Shunt",
+  "description": "PSS/E v31 Fixed Shunt record type. Each row represents a fixed shunt element.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ID": {
+      "type": "string",
+      "description": "Shunt identifier (2 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "STATUS": {
+      "type": "integer",
+      "description": "Status (1=in, 0=out)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "GL": {
+      "type": "number",
+      "description": "Shunt conductance",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "BL": {
+      "type": "number",
+      "description": "Shunt susceptance (+cap)",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "ID",
+    "STATUS",
+    "GL",
+    "BL"
+  ],
+  "additionalProperties": false
+}

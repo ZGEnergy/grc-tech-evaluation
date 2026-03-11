@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/area.schema.json",
+  "title": "Area",
+  "description": "PSS/E v31 Area record type. Each row defines an area for interchange control.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Area number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ISW": {
+      "type": "integer",
+      "description": "Area slack bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PDES": {
+      "type": "number",
+      "description": "Desired net interchange",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PTOL": {
+      "type": "number",
+      "description": "Interchange tolerance",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 10.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ARNAME": {
+      "type": "string",
+      "description": "Area name (12 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "            ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "ISW",
+    "PDES",
+    "PTOL",
+    "ARNAME"
+  ],
+  "additionalProperties": false
+}
