@@ -40,7 +40,7 @@ import traceback
 # Tool-specific imports
 
 
-def run(network_file: str = "data/networks/<case>.m") -> dict:
+def run(network_file: str = "data/networks/<case>.m", timeseries_dir: str | None = None) -> dict:
     """Execute the test and return structured results.
 
     Returns:
@@ -103,7 +103,7 @@ Tool: <tool_name> <version>
 
 using Test
 
-function run(network_file::String = "data/networks/<case>.m")
+function run(network_file::String = "data/networks/<case>.m"; timeseries_dir::Union{String,Nothing} = nothing)
     results = Dict(
         "status" => "fail",
         "wall_clock_seconds" => 0.0,
@@ -219,9 +219,13 @@ Use relative paths from the repository root:
 - `data/networks/case39.m` (TINY)
 - `data/networks/case_ACTIVSg2000.m` (SMALL)
 - `data/networks/case_ACTIVSg10k.m` (MEDIUM)
+- `data/timeseries/case39/` (TINY timeseries — Modified Tiny augmented data)
 
 The `run()` function takes the network file as a parameter so the same script can
-be pointed at different networks.
+be pointed at different networks. Tests that use Modified Tiny data (A-3 TINY, A-12,
+A-5, A-6, A-8, B-1, B-4) also accept a `timeseries_dir` parameter pointing to the
+augmented CSV directory. When `timeseries_dir` is `None`, the test uses only the
+base `.m` file (topology-only mode).
 
 ## Peak Memory Measurement
 

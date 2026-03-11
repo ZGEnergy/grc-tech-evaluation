@@ -24,6 +24,7 @@ function run_tests(dimension, test_name)
     networks.TINY = fullfile(data_dir, 'case39.m');
     networks.SMALL = fullfile(data_dir, 'case_ACTIVSg2000.m');
     networks.MEDIUM = fullfile(data_dir, 'case_ACTIVSg10k.m');
+    timeseries.TINY = fullfile(fileparts(data_dir), 'timeseries', 'case39');
 
     %% Discover test files
     if nargin < 1 || isempty(dimension)

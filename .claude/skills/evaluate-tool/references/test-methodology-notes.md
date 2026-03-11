@@ -67,10 +67,17 @@ Implementation steps:
 
 The IEEE 39-bus case has a capacity-to-load ratio (~7,367 MW capacity vs ~6,254 MW
 peak load) that makes decommitment uneconomical with the default parameters. The
-augmentation must produce at least 2 generators cycling (committing and
+Modified Tiny augmented data (`gen_temporal_params.csv`, `load_24h.csv`,
+`reserve_requirements_24h.csv`, `reserve_eligibility.csv`) provides differentiated
+costs and temporal parameters that are the primary augmentation mechanism. When using
+Modified Tiny data, load the differentiated costs and temporal parameters from
+`gen_temporal_params.csv` and the 24-hour load profile from `load_24h.csv`.
+
+The augmentation must produce at least 2 generators cycling (committing and
 decommitting) during the 24-hour horizon. Document the augmentation applied.
 
-Three augmentation recipes (try in order until cycling is observed):
+If Modified Tiny data does not produce cycling, apply the following fallback
+augmentation recipes (try in order until cycling is observed):
 
 1. **Raise PMIN.** Set PMIN to 40-60% of PMAX for the largest 3-4 generators. This
    forces the UC to decommit expensive units during low-load hours because keeping
@@ -98,6 +105,42 @@ If SCOPF is infeasible with original thermal limits:
 
 Document the relaxation level applied and whether the relaxation changed the
 binding contingency set.
+
+### A-12 Multi-Period DCOPF with Storage `[A-12]`
+
+A-12 tests whether a tool can express a 24-hour multi-period DCOPF with
+inter-temporal storage constraints and congestion. It uses the full Modified Tiny
+7-step loading recipe (see protocol).
+
+**Quadratic cost rationale:** Quadratic costs (c2 = c1 × 0.001) are mandatory
+because purely linear DCOPF produces degenerate dual values — the LP has multiple
+optimal vertices with different shadow price vectors. The small quadratic term
+regularizes the problem into a strictly convex QP, producing unique dual values.
+This makes the BESS arbitrage timing assertion (pass condition 2) reliable. The
+c2 coefficient is intentionally small (0.1% of c1) so it does not materially
+distort the economic dispatch ordering.
+
+**Cyclic SoC rationale:** Cyclic SoC (SoC at t=0 equals SoC at t=24, value chosen
+by optimizer) prevents end-of-horizon dump artifacts where the optimizer discharges
+all stored energy in the final hours because there is no future value to conserve
+it. Without cyclic SoC, the BESS arbitrage timing assertion would be confounded by
+the dump effect. The `init_soc` value from `bess_units.csv` is not used as a
+constraint — it is informational only.
+
+**Energy balance tolerance derivation:** The 1.0 MWh tolerance on
+`|SoC[t] − SoC[t−1] − η_ch·P_ch[t] + P_dis[t]/η_dis|` accommodates:
+- Floating-point precision in the solver (~1e-6 MWh)
+- Rounding in solver output extraction (~0.01 MWh)
+- Different efficiency application methods between tools (some apply round-trip
+  efficiency on charge side only, some split between charge and discharge)
+The 1.0 MWh value is deliberately generous — it catches gross errors (wrong
+efficiency, wrong sign convention, missing storage constraint) while allowing
+legitimate cross-tool variation.
+
+**Infeasibility escalation:** If 70% branch derating produces an infeasible
+problem, try 80% derating and record which factor was used. An infeasible problem
+at 80% derating indicates a data or formulation issue, not a tool limitation —
+investigate before recording fail.
 
 ---
 

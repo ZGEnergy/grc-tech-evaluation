@@ -209,6 +209,18 @@ context.
 - **Result frontmatter:** Every result file must include `protocol_version` in
   the YAML frontmatter (use the version from the eval-config).
 
+### Modified Tiny Data Loading
+
+For tests that use Modified Tiny data (A-3 TINY extension, A-12), the test script
+must load augmented CSV files from the `timeseries_dir` path in the eval-config.
+See `data/timeseries/case39/README.md` for per-tool loading recipes.
+
+The A-12 loading recipe is documented in the test protocol. Key requirements:
+- Quadratic costs: c2 = c1 × 0.001 (mandatory for A-12)
+- Cyclic SoC: initial = final, value chosen by optimizer
+- Branch derating: multiply all rateA by 0.70
+- Energy balance tolerance: 1.0 MWh for SoC trajectory check
+
 ## Methodology Guardrails
 
 These guardrails address patterns that produced incorrect or misleading results in

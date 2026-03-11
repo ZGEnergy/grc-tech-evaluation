@@ -23,6 +23,7 @@ const NETWORKS = Dict(
     "SMALL" => joinpath(DATA_DIR, "case_ACTIVSg2000.m"),
     "MEDIUM" => joinpath(DATA_DIR, "case_ACTIVSg10k.m"),
 )
+const TIMESERIES = Dict("TINY" => joinpath(dirname(DATA_DIR), "timeseries", "case39"))
 
 # Reference counts for gate validation
 const REFERENCE_COUNTS = Dict("TINY" => Dict("buses" => 39, "branches" => 46, "generators" => 10))

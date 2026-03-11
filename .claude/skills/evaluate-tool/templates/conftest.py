@@ -20,6 +20,9 @@ NETWORKS = {
     "SMALL": DATA_DIR / "case_ACTIVSg2000.m",
     "MEDIUM": DATA_DIR / "case_ACTIVSg10k.m",
 }
+TIMESERIES = {
+    "TINY": DATA_DIR.parent / "timeseries" / "case39",
+}
 
 # Expected bus/branch/gen counts for gate validation
 REFERENCE_COUNTS = {
