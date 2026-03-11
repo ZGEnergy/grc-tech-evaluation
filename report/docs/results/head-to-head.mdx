@@ -44,8 +44,8 @@ these cells accordingly when comparing tool capabilities.
 | GridCal | *Insuf. Data* | `consider_contingencies` flag exists but was non-functional in testing (A-9 fail). Sweep findings note the OPF engine but do not confirm SCOPF capability |
 | MATPOWER | **Native** | MOST framework supports SCOPF natively via `runopf_w_res()` with contingency struct (A-9) |
 
-**Phase 2 Relevance:** Preventive SCOPF is required for N-1 security analysis in ERCOT
-market operations. A tool that supports SCOPF natively avoids the need to build a custom
+**Phase 2 Relevance:** Preventive SCOPF is required for N-1 security analysis in
+production market operations. A tool that supports SCOPF natively avoids the need to build a custom
 contingency screening layer, which would add significant Phase 2 development time.
 
 **Evidence:** A-9 (SCOPF) outcomes: PyPSA passes at TINY and SMALL; PowerModels passes
@@ -68,7 +68,7 @@ differentiate security-constrained capability at larger scales.
 | MATPOWER | Extension | `makePTDF` with generation shift factor weights enables distributed slack modeling (B-9) |
 
 **Phase 2 Relevance:** Distributed slack modeling is essential for realistic loss
-allocation and LMP decomposition in multi-area ERCOT studies. A single-slack
+allocation and LMP decomposition in large multi-area studies. A single-slack
 approximation introduces systematic bias in flow patterns and congestion pricing
 that compounds with network size.
 
@@ -92,7 +92,7 @@ GridCal lack OPF-level distributed slack (A-11 fail for both).
 | GridCal | *Insuf. Data* | No PWL cost support confirmed; quadratic costs silently ignored in DC OPF (P2-2 fail). Sweep findings do not clarify PWL feasibility |
 | MATPOWER | **Native** | Native PWL cost curves in MATPOWER case format (P2-2) |
 
-**Phase 2 Relevance:** Production market clearing in ERCOT uses piecewise-linear bid
+**Phase 2 Relevance:** Production market clearing commonly uses piecewise-linear bid
 curves. A tool without native PWL support requires building the SOS2 formulation as an
 extension, adding development effort and a potential source of modeling error in the
 cost-to-dispatch mapping.
@@ -140,7 +140,7 @@ PowerSimulations accesses parsing through PowerSystems.jl in the Julia ecosystem
 | GridCal | *Insuf. Data* | No custom constraint API; PuLP optimization model not exposed to users (B-1 fail). Architectural limitation |
 | MATPOWER | **Gap** | Callback-based extension exists but LOC comparison shows higher friction than Python/Julia alternatives (B-1) |
 
-**Phase 2 Relevance:** Custom constraints are required for modeling ERCOT-specific
+**Phase 2 Relevance:** Custom constraints are required for modeling market-specific
 operational limits — interface flow limits, ramp rate constraints, and zonal transfer
 caps — that are not part of standard OPF formulations. A tool that exposes the
 optimization model directly reduces the effort to add these constraints.

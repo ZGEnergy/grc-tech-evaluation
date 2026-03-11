@@ -3,7 +3,7 @@
 const config = {
   title: 'Phase 1 Technology Evaluation',
   tagline: 'Power-system modeling tool evaluation for ZGEnergy',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.svg',
 
   url: 'https://zge-energy.github.io',
   baseUrl: '/grc-tech-evaluation/',

@@ -14,15 +14,15 @@ Probes fall into three categories: **Debunked** (4 probes where the original cla
 | Probe ID | Tool | Category | Finding | Theme |
 |----------|------|----------|---------|-------|
 | [probe-001](#probe-001) | PyPSA | **Debunked** | Solver reports converged=False with 0 NR iterations; 83% of buses at flat start | [T10](./sweep-findings) |
-| probe-002 | PyPSA | Supported | Stochastic API documented but non-functional; both D-2 and A-8 findings valid | -- |
+| <span id="probe-002">probe-002</span> | PyPSA | Supported | Stochastic API documented but non-functional; both D-2 and A-8 findings valid | -- |
 | probe-006 | pandapower | Supported | Convergence rate 0.42% confirmed; uniform load scaling alone converges reliably | [T01](./sweep-findings), [T08](./sweep-findings) |
-| probe-007 | pandapower | Supported | LMPs uniform to machine precision (std=6e-12); no binding constraints on MEDIUM | [T01](./sweep-findings) |
+| <span id="probe-007">probe-007</span> | pandapower | Supported | LMPs uniform to machine precision (std=6e-12); no binding constraints on MEDIUM | [T01](./sweep-findings) |
 | probe-008 | pandapower | Supported | PTDF divergence of 7.43 pu reproduced exactly; error is scale-dependent | [T06](./sweep-findings) |
 | [probe-009](#probe-009) | pandapower | **Debunked** | No lambda values of 1e25 observed; both decommitment methods have identical convergence | -- |
-| probe-010 | pandapower | Supported | Phase-shifter Pfinj correction eliminates all PTDF error to machine precision | [T06](./sweep-findings) |
+| <span id="probe-010">probe-010</span> | pandapower | Supported | Phase-shifter Pfinj correction eliminates all PTDF error to machine precision | [T06](./sweep-findings) |
 | probe-012 | GridCal | Supported | 743.46 MW PTDF divergence reproduced; same root cause as pandapower | [T06](./sweep-findings) |
-| probe-016 | PowerModels | Supported | SCOPF with 5 contingencies timed out at 567s; projected infeasibility at 500 confirmed | [T04](./sweep-findings), [T13](./sweep-findings) |
-| probe-020 | PowerSimulations | Supported | C-3 timing was never measured; first execution exceeded 600s timeout | [T04](./sweep-findings) |
+| <span id="probe-016">probe-016</span> | PowerModels | Supported | SCOPF with 5 contingencies timed out at 567s; projected infeasibility at 500 confirmed | [T04](./sweep-findings), [T13](./sweep-findings) |
+| <span id="probe-020">probe-020</span> | PowerSimulations | Supported | C-3 timing was never measured; first execution exceeded 600s timeout | [T04](./sweep-findings) |
 | [probe-021](#probe-021) | PowerSimulations | **Debunked** | Dispatch values are in MW, not pu; ~100x factor is the base_power conversion | -- |
 | probe-022 | PowerSimulations | Supported | Binding dual extraction works correctly via JuMP.dual() | -- |
 | probe-023 | PowerSimulations | Supported | Distributed slack structurally correct but no-op on uncongested IEEE 39-bus | [T01](./sweep-findings) |
@@ -108,6 +108,26 @@ Probes fall into three categories: **Debunked** (4 probes where the original cla
 | probe-020 | PowerSimulations | C-3 reported wall_clock_seconds=null with estimated timing; first actual execution exceeded 600s timeout (includes JIT) | [T04](./sweep-findings) |
 | probe-023 | PowerSimulations | PTDF formulation is structurally distributed-slack; but on uncongested IEEE 39-bus, PTDF and DCP produce identical dispatch (max diff 1.5e-7) | [T01](./sweep-findings) |
 | probe-024 | PowerSimulations | ACPF on 10k-bus returns Missing in 5.5s with zero diagnostic info; no iteration count, no residual, no configurable tolerances | [T10](./sweep-findings) |
+
+### probe-002 {#probe-002}
+
+PyPSA documents stochastic modeling entry points, but the probe confirmed that the reported workflow does not complete successfully in the evaluation environment. This preserves the report's distinction between documentation presence and functional support.
+
+### probe-007 {#probe-007}
+
+Probe-007 established that ACTIVSg10k produces uniform LMPs to machine precision in pandapower until artificial congestion is introduced. That result underpins the report's claim that the MEDIUM network lacks discriminative economic congestion by default.
+
+### probe-010 {#probe-010}
+
+Probe-010 showed that adding the Pbusinj and Pfinj phase-shifter corrections removes pandapower's PTDF error to machine precision. This is the most direct probe evidence behind the phase-shifter correction theme.
+
+### probe-016 {#probe-016}
+
+Probe-016 confirmed that PowerModels times out on a reduced SCOPF instance with five contingencies at 567 seconds, which supports the report's claim that the 500-contingency MEDIUM variant is directionally infeasible.
+
+### probe-020 {#probe-020}
+
+Probe-020 established that PowerSimulations' reported C-3 timing was estimated rather than measured. The first actual execution exceeded the 600-second timeout, so the sweep reclassified the underlying evidence as incomplete timing data rather than a completed benchmark.
 
 ## No-Impact Probes
 

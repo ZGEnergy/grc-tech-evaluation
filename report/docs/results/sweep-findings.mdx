@@ -25,7 +25,7 @@ These 13 themes drove concrete v5 protocol changes: mandatory network preprocess
 
 ## Themes
 
-<h3 id="t01">T01: ACTIVSg10k Has No Binding Constraints</h3>
+### T01: ACTIVSg10k Has No Binding Constraints {#t01}
 
 <details className="eval-details" open>
 <summary>
@@ -48,7 +48,7 @@ The v5 protocol addresses this by adding a mandatory congestion verification ste
 
 </details>
 
-<h3 id="t02">T02: case39 Uniform Costs and No Congestion</h3>
+### T02: case39 Uniform Costs and No Congestion {#t02}
 
 <details className="eval-details">
 <summary>
@@ -59,7 +59,7 @@ T02: case39 Uniform Costs and No Congestion
 
 **Affected Tools:** 5 | **Evidence:** 5 findings
 
-IEEE 39-bus (New England) has identical generator cost coefficients (c1 = 0.3 $/MWh for all 10 generators) and no binding branch constraints, producing perfectly uniform LMPs across all 39 buses for every tool tested. This makes TINY-scale OPF tests purely a formulation existence check: any tool that can set up and solve the LP will produce the same answer.
+IEEE 39-bus has identical generator cost coefficients (c1 = 0.3 $/MWh for all 10 generators) and no binding branch constraints, producing perfectly uniform LMPs across all 39 buses for every tool tested. This makes TINY-scale OPF tests purely a formulation existence check: any tool that can set up and solve the LP will produce the same answer.
 
 At TINY scale, A-3 (DCOPF) confirms convergence but cannot distinguish LMP quality. A-9 (SCOPF) produces an objective function equal to the unconstrained OPF objective, providing zero cost-premium signal. The SMALL network (ACTIVSg 2000-bus) has heterogeneous costs and does produce meaningful LMP spreads, confirming that the issue is network-specific rather than methodological.
 
@@ -67,7 +67,7 @@ At TINY scale, A-3 (DCOPF) confirms convergence but cannot distinguish LMP quali
 
 </details>
 
-<h3 id="t03">T03: SCUC Produces No Generator Cycling on case39</h3>
+### T03: SCUC Produces No Generator Cycling on case39 {#t03}
 
 <details className="eval-details">
 <summary>
@@ -86,7 +86,7 @@ This makes A-5 a formulation existence test -- it verifies that the tool can exp
 
 </details>
 
-<h3 id="t04">T04: Estimated Timings Without Execution</h3>
+### T04: Estimated Timings Without Execution {#t04}
 
 <details className="eval-details">
 <summary>
@@ -109,7 +109,7 @@ The distinction matters because estimated timings cannot capture solver-specific
 
 </details>
 
-<h3 id="t05">T05: Cascaded Failures Inflate Fail Counts</h3>
+### T05: Cascaded Failures Inflate Fail Counts {#t05}
 
 <details className="eval-details">
 <summary>
@@ -128,7 +128,7 @@ For pandapower, 3 of 14 fails are cascaded (C-4, C-8, C-10 fail because the corr
 
 </details>
 
-<h3 id="t06">T06: PTDF Phase-Shifter Correction Gap</h3>
+### T06: PTDF Phase-Shifter Correction Gap {#t06}
 
 <details className="eval-details">
 <summary>
@@ -149,7 +149,7 @@ This is a protocol gap because B-9 did not specify whether the PTDF validation s
 
 </details>
 
-<h3 id="t07">T07: ACTIVSg10k Zero-Impedance Branch Inconsistency</h3>
+### T07: ACTIVSg10k Zero-Impedance Branch Inconsistency {#t07}
 
 <details className="eval-details">
 <summary>
@@ -168,7 +168,7 @@ This creates a paradox: PyPSA fails expressiveness A-3 at MEDIUM scale but passe
 
 </details>
 
-<h3 id="t08">T08: Stochastic Perturbation Methodology Causes Excessive Infeasibility</h3>
+### T08: Stochastic Perturbation Methodology Causes Excessive Infeasibility {#t08}
 
 <details className="eval-details">
 <summary>
@@ -187,7 +187,7 @@ Uniform load scaling alone (0.7x--1.1x of base load) converges reliably across a
 
 </details>
 
-<h3 id="t09">T09: Lossy DCOPF MATPOWER Reference Validation Unachievable</h3>
+### T09: Lossy DCOPF MATPOWER Reference Validation Unachievable {#t09}
 
 <details className="eval-details">
 <summary>
@@ -206,7 +206,7 @@ All four tools that attempt A-10 face the same issue: there is no authoritative 
 
 </details>
 
-<h3 id="t10">T10: ACPF at 10k-Bus Is a Genuine Discriminator</h3>
+### T10: ACPF at 10k-Bus Is a Genuine Discriminator {#t10}
 
 <details className="eval-details">
 <summary>
@@ -227,7 +227,7 @@ Probe-001 demonstrated that PyPSA's `n.pf()` performs zero NR iterations on ACTI
 
 </details>
 
-<h3 id="t11">T11: SCOPF and N-M Sweep Infeasibility at MEDIUM Scale</h3>
+### T11: SCOPF and N-M Sweep Infeasibility at MEDIUM Scale {#t11}
 
 <details className="eval-details">
 <summary>
@@ -246,7 +246,7 @@ Since all tools fail identically, C-8 MEDIUM provides zero discriminative signal
 
 </details>
 
-<h3 id="t12">T12: Solver Capability vs Tool Capability Conflation</h3>
+### T12: Solver Capability vs Tool Capability Conflation {#t12}
 
 <details className="eval-details">
 <summary>
@@ -265,7 +265,7 @@ A-5/C-4 (unit commitment) is the clearest example: HiGHS single-threaded MIP tim
 
 </details>
 
-<h3 id="t13">T13: Maturity Metrics Based on Research Without Verification</h3>
+### T13: Maturity Metrics Based on Research Without Verification {#t13}
 
 <details className="eval-details">
 <summary>
@@ -285,6 +285,44 @@ Other maturity numbers -- commit counts, contributor percentages, deployment cla
 **Related Probes:** [probe-025](./probe-results#probe-025)
 
 </details>
+
+## Tool-Specific Notes
+
+### gridcal-F02: TapPhaseControl bug cascade {#gridcal-f02}
+
+GridCal's TapPhaseControl issue blocks multiple downstream evaluations. It is the immediate cause of the reconstructed A-5 and A-6 failures and also cascades into stochastic/scalability outcomes that were reported separately in criterion pages.
+
+### gridcal-F04: PTDF mismatch on MEDIUM {#gridcal-f04}
+
+GridCal reproduces the same ACTIVSg10k PTDF discrepancy seen in pandapower: up to 743 MW branch-flow error when the standard PTDF formula is used without phase-shifter correction terms. This note is the GridCal-specific instance of [T06](#t06).
+
+### gridcal-F05: MEDIUM DCOPF has no binding branches {#gridcal-f05}
+
+GridCal's MEDIUM-scale DCOPF result is dominated by network insufficiency rather than solver behavior: branch loadings remain below binding limits, so the pass reflects formulation completion on an uncongested case rather than economically discriminative OPF behavior. This note is the GridCal-specific instance of [T01](#t01).
+
+### psi-F02: PowerSimulations unit mismatch risk {#psi-f02}
+
+PowerSimulations exposes dispatch from `read_variables()` in MW while related limit accessors are commonly interpreted in system-base pu. The underlying optimization result is valid, but the mixed unit conventions create a transfer risk in downstream analysis and explain the criterion-page caution around AC feasibility interpretation.
+
+### psi-F03: Dual extraction verified only for non-binding case {#psi-f03}
+
+The extensibility sweep confirmed that PowerSimulations users can reach JuMP duals, but the original criterion evidence only demonstrated the non-binding case. That leaves binding-constraint dual behavior under-documented in the report narrative even though the API path itself is viable.
+
+### psi-F05: SCUC on case39 shows no cycling {#psi-f05}
+
+PowerSimulations can formulate and solve SCUC natively, but IEEE 39-bus does not force startup or shutdown decisions. The resulting all-committed schedule weakens the discriminative value of the SCUC criterion and is the PowerSimulations-specific instance of [T03](#t03).
+
+### matpower-F01: Distributed slack timing anomaly {#matpower-f01}
+
+MATPOWER's distributed-slack MEDIUM run completes, but the observed wall-clock time is anomalously high relative to expectation for the same formulation family. The report attributes this to dense matrix handling in the manual `opt_model` construction rather than a capability failure.
+
+### matpower-F02: Contingency runtime dominated by Octave overhead {#matpower-f02}
+
+MATPOWER's C-5 runtime is dominated by Octave `containers.Map` bookkeeping rather than contingency-screening math. The underlying LODF screening step remains fast, so this finding is about implementation overhead, not the contingency method itself.
+
+### matpower-F05: SCUC on case39 shows no cycling {#matpower-f05}
+
+MATPOWER's MOST formulation passes SCUC structurally, but case39 keeps all units committed for the full horizon. This confirms capability while also showing that the reference network does not exercise actual commitment switching behavior, making this the MATPOWER-specific instance of [T03](#t03).
 
 ---
 

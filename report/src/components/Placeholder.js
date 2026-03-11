@@ -1,32 +1,35 @@
 import React from 'react';
 
 const placeholderStyle = {
-  border: '2px dashed #b0b0b0',
+  border: '1px solid #c7d3dd',
   borderRadius: '8px',
-  backgroundColor: '#f5f5f5',
+  background: 'linear-gradient(180deg, #f8fbfd 0%, #eef4f8 100%)',
   padding: '2rem',
   margin: '1.5rem 0',
-  textAlign: 'center',
+  textAlign: 'left',
 };
 
 const titleStyle = {
   fontSize: '1.1rem',
   fontWeight: 600,
-  color: '#333',
-  marginBottom: '0.5rem',
+  color: '#12344d',
+  marginBottom: '0.75rem',
 };
 
 const subtitleStyle = {
   fontSize: '0.9rem',
-  color: '#666',
-  fontStyle: 'italic',
+  color: '#4f6475',
+  margin: 0,
 };
 
 export default function Placeholder({ title }) {
   return (
     <div style={placeholderStyle}>
       <div style={titleStyle}>{title}</div>
-      <div style={subtitleStyle}>Interactive version coming soon</div>
+      <p style={subtitleStyle}>
+        Static preview card for this report section. Interactive treatment is not
+        required for the published GitHub Pages build.
+      </p>
     </div>
   );
 }

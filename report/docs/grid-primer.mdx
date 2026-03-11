@@ -89,8 +89,8 @@ that can be solved directly — fast enough for real-time market clearing, accur
 most energy trading applications (this is what Expressiveness tests A-1 and A-2 measure:
 A-1 for DCPF, A-2 for ACPF).
 
-The tradeoff between AC and DC formulations is not academic. ERCOT's real-time market uses a
-DC approximation for speed; its planning studies use full AC models for accuracy. A modeling
+The tradeoff between AC and DC formulations is not academic. Real-time operations often use a
+DC approximation for speed, while planning studies use full AC models for accuracy. A modeling
 tool that supports only one formulation limits the analyses you can perform.
 
 <details>
@@ -132,7 +132,7 @@ bottlenecks even as total transfer capacity increases.
 To quantify how power redistributes, operators use Power Transfer Distribution Factors
 (PTDFs). A PTDF answers a specific question: if one additional megawatt is injected at bus A
 and withdrawn at bus B, what fraction of that megawatt flows on each line in the network?
-PTDFs are the backbone of congestion management in organized markets. When ERCOT or PJM
+PTDFs are the backbone of congestion management in organized markets. When an operator
 calculates whether a proposed trade would violate a transmission constraint, they multiply the
 trade quantity by the relevant PTDF to determine the trade's impact on each monitored line.
 
