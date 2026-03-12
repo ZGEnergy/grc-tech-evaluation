@@ -1,0 +1,24 @@
+tool: pypsa
+skill_version: v1
+protocol_version: v9
+run_mode: fresh
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
+current_state: COMMIT
+scale_cap: MEDIUM
+timestamp: 2026-03-11T00:00:00Z
+skipped_tests: []
+stale_tests: []
+orphaned_files: []
+completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18]
+# Step 1: gate (G-1/G-2/G-3) ✓
+# Step 2: expressiveness TINY batch 1 (A-1/A-2/A-3/A-7/A-10) ✓
+# Step 3: expressiveness TINY batch 2 (A-4/A-9/A-11/A-12) ✓
+# Step 4: expressiveness TINY batch 3 (A-5/A-8) ✓
+# Step 5: expressiveness TINY batch 4 (A-6) ✓
+# Step 6: extensibility TINY batch 1 (B-2/B-3/B-5/B-6/B-9) ✓
+# Step 7: extensibility TINY batch 2 (B-1/B-4/B-7/B-8) ✓
+# Step 8: accessibility D-1..D-5 + supply_chain F-1..F-9 ✓
+# Step 9: maturity E-1..E-7 ✓
+# Step 17: FNM ingestion G-FNM-1..G-FNM-5 ✓
+# Step 18: p2_readiness P2-1..P2-3 ✓
+# In-progress: steps 10-16 (grade network + scalability)

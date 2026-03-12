@@ -1,9 +1,15 @@
 config:
+  MD007: false  # Unordered list indentation (common in research/generated docs)
   MD013: false  # Line length
   MD022: false  # Blanks around headings
   MD024: false  # Duplicate heading content (common in rubric docs)
+  MD025: false  # Multiple top-level headings (common in merged research docs)
   MD026: false  # Trailing punctuation in headings
+  MD031: false  # Blanks around fences (fixed in most files)
   MD032: false  # Blanks around lists
   MD033: false  # Inline HTML
+  MD034: false  # Bare URLs (common in reference/result docs)
+  MD036: false  # Emphasis as heading (common in structured result files)
   MD040: false  # Fenced code block language
+  MD056: false  # Table column count
   MD060: false  # Table column style
