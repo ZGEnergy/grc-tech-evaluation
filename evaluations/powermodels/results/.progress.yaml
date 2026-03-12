@@ -1,0 +1,11 @@
+tool: powermodels
+skill_version: v1
+protocol_version: "v9"
+run_mode: fresh
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
+current_state: COMMIT
+timestamp: "2026-03-12T00:00:00Z"
+skipped_tests: []
+stale_tests: []
+orphaned_files: []
+scale_cap: MEDIUM
