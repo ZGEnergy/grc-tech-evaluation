@@ -213,6 +213,33 @@ The `run()` function returns a dictionary/struct with these standard keys:
 When run as a standalone script (`__main__` / `PROGRAM_FILE`), the output is printed
 as JSON to stdout.
 
+## Network Loading
+
+Use the shared loader from `evaluations/shared/matpower_loader.py` for all new test scripts.
+The conftest.py template adds `evaluations/shared/` to `sys.path` automatically.
+
+### Python tools
+
+| Tool | Import | Notes |
+|------|--------|-------|
+| pypsa | `from matpower_loader import load_pypsa` | TRIVIAL patch applied; use `overwrite_zero_s_nom` kwarg if needed |
+| pandapower | `from matpower_loader import load_pandapower` | LOSSLESS |
+| gridcal | `from matpower_loader import load_gridcal` | LOSSLESS |
+
+Example:
+
+```python
+from matpower_loader import load_pypsa
+
+n = load_pypsa(network_file)                              # default overwrite_zero_s_nom=True
+n = load_pypsa(network_file, overwrite_zero_s_nom=100000.0)  # large AC networks
+```
+
+Do NOT use the raw `matpowercaseframes → import_from_pypower_ppc` pattern in new scripts.
+See `evaluations/shared/LOADING_NOTES.md` for per-tool lossiness classifications.
+
+---
+
 ## Network File Paths
 
 Use relative paths from the repository root:

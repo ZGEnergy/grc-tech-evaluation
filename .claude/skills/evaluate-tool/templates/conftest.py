@@ -6,12 +6,19 @@ and shared fixtures across test dimensions.
 """
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
 # Repository root (3 levels up from evaluations/<tool>/tests/)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
+# Make evaluations/shared/ importable for the shared MATPOWER loader.
+_SHARED_DIR = REPO_ROOT / "shared"
+if _SHARED_DIR.exists() and str(_SHARED_DIR) not in sys.path:
+    sys.path.insert(0, str(_SHARED_DIR))
+
 DATA_DIR = REPO_ROOT / "data" / "networks"
 
 # Network file paths
