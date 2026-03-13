@@ -85,7 +85,8 @@ RUN IPOPT_BIN=$(find /opt/julia-depot/artifacts -maxdepth 3 -name 'ipopt' -path 
            \( -name 'libspral.so' -o -name 'libmetis.so' -o -name 'libasl.so' \) \
            -exec dirname {} \; \
        > /etc/ld.so.conf.d/julia-jll.conf \
-    && echo '/usr/local/lib/julia' >> /etc/ld.so.conf.d/julia-jll.conf \
+    && find /usr/local/lib/julia -name 'libblastrampoline.so*' \
+           -exec cp -n {} /usr/local/lib/ \; \
     && ldconfig \
     && ipopt --version
 
