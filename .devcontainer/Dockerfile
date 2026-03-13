@@ -16,6 +16,8 @@ RUN apt-get update \
         python3-pip \
         octave \
         octave-dev \
+        coinor-libipopt-dev \
+        glpk-utils \
         unzip \
         curl \
         ca-certificates \
