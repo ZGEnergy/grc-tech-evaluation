@@ -126,6 +126,7 @@ Build an execution DAG that respects:
 4. Audit dimensions can run in parallel with code dimensions on the same tier
 5. Observation consumers must run after their producers complete
 6. Suite G (FNM ingestion) runs after the gate step, in parallel with or after TINY functional tests. Suite G is independent of Suites A-F (no dependency in either direction). Mark the Suite G DAG step with `fnm_path_gated: true` so the orchestrator can skip it when FNM_PATH is not set.
+7. **Suite C SMALL tier gate.** For Suite C (scalability), the SMALL-tier DAG step must be marked `c_scale_gate: true`. The MEDIUM-tier step for scalability must appear as a separate, subsequent DAG step. The orchestrator will skip the MEDIUM step if any SMALL test fails.
 
 Structure as ordered steps, each listing dimensions + tier + test IDs that can run in parallel:
 
@@ -168,7 +169,7 @@ grouped semantically (e.g., by shared setup requirements or dependency chains).
 # Generated: <timestamp>
 
 tool: {{tool_name}}
-protocol_version: "v9"
+protocol_version: "v10"
 
 networks:
   TINY:
