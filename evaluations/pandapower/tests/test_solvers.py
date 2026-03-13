@@ -18,12 +18,6 @@ class TestSolvers:
         assert result.returncode == 0
 
     def test_pandapower_opf_ipopt(self) -> None:
-        net = pn.case39()
-        # Add polynomial cost curves required by OPF
-        for gidx in net.gen.index:
-            pp.create_poly_cost(net, gidx, "gen", cp1_eur_per_mw=1.0)
-        for eidx in net.ext_grid.index:
-            pp.create_poly_cost(net, eidx, "ext_grid", cp1_eur_per_mw=1.0)
-
+        net = pn.case39()  # already includes polynomial cost curves
         pp.runopp(net, solver="ipopt")
         assert net["OPF_converged"]
