@@ -16,6 +16,8 @@ RUN apt-get update \
         python3-pip \
         octave \
         octave-dev \
+        coinor-libipopt-dev \
+        glpk-utils \
         unzip \
         curl \
         ca-certificates \
@@ -72,6 +74,21 @@ RUN julia --project=/workspace/evaluations/powermodels \
     -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 RUN julia --project=/workspace/evaluations/powersimulations \
     -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+
+# === Wire Ipopt JLL binary to system PATH ===
+# Ubuntu 24.04 dropped the coinor-ipopt binary package. Symlink the JLL
+# binary installed with PowerModels/PowerSimulations, and register its
+# runtime library paths via ldconfig.
+RUN IPOPT_BIN=$(find /opt/julia-depot/artifacts -maxdepth 3 -name 'ipopt' -path '*/bin/*' -print -quit) \
+    && ln -sf "$IPOPT_BIN" /usr/local/bin/ipopt \
+    && find /opt/julia-depot/artifacts -maxdepth 3 \
+           \( -name 'libspral.so' -o -name 'libmetis.so' -o -name 'libasl.so' \) \
+           -exec dirname {} \; \
+       > /etc/ld.so.conf.d/julia-jll.conf \
+    && find /usr/local/lib/julia -name 'libblastrampoline.so*' \
+           -exec cp -n {} /usr/local/lib/ \; \
+    && ldconfig \
+    && ipopt --version
 
 # === JuliaFormatter shared environment (for pre-commit hook) ===
 # The pre-commit hook runs: julia --project=@format -e 'using JuliaFormatter; ...'
