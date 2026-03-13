@@ -73,12 +73,12 @@ Voltage limit fields (NVHI, NVLO, EVHI, EVLO) are classified as Informational ra
 **Intermediate format table:** `load`
 **Record-type tier (from mapping guide):** Tier 1 -- Essential for any power flow
 **Total fields:** 13
-**Tier breakdown:** 4 DCPF-critical, 5 ACPF-critical, 4 Informational, 0 Discardable
+**Tier breakdown:** 3 DCPF-critical, 5 ACPF-critical, 5 Informational, 0 Discardable
 
 | Field | Type | Tier | Rationale |
 |-------|------|------|-----------|
 | `I` | integer | DCPF-critical | Bus number where load withdraws power; determines which bus in the network topology receives the power withdrawal, essential for the DCPF power injection vector |
-| `ID` | string | DCPF-critical | Two-character load identifier distinguishing multiple loads at the same bus; required to correctly enumerate and aggregate load components in the power injection vector |
+| `ID` | string | Informational | Two-character load identifier distinguishing multiple loads at the same bus. Traceability label only — tools that aggregate multiple loads to bus-level active power (e.g., via PPC import) produce identical bus injections and identical DCPF results. Absence does not affect bus angles or branch flows. |
 | `STATUS` | integer | DCPF-critical | Load status (1=in-service, 0=out-of-service) determines whether this load's power withdrawal is included in the power flow solution, directly affecting the power injection vector |
 | `AREA` | integer | Informational | Area assignment for this load used for area interchange calculations; organizational grouping that does not directly enter the power flow equations |
 | `ZONE` | integer | Informational | Zone assignment for this load; administrative grouping for reporting with no power flow impact |
@@ -113,12 +113,12 @@ All fixed shunt fields are ACPF-critical because fixed shunts provide reactive c
 **Intermediate format table:** `generator`
 **Record-type tier (from mapping guide):** Tier 1 -- Essential for any power flow
 **Total fields:** 28
-**Tier breakdown:** 4 DCPF-critical, 5 ACPF-critical, 19 Informational, 0 Discardable
+**Tier breakdown:** 3 DCPF-critical, 5 ACPF-critical, 20 Informational, 0 Discardable
 
 | Field | Type | Tier | Rationale |
 |-------|------|------|-----------|
 | `I` | integer | DCPF-critical | Bus number where generator injects power; determines the bus in the network topology that receives the generation injection, essential for the DCPF power injection vector |
-| `ID` | string | DCPF-critical | Two-character machine identifier distinguishing multiple generators at the same bus; required to correctly enumerate and separate generation injections in the power balance |
+| `ID` | string | Informational | Two-character machine identifier distinguishing multiple generators at the same bus. Traceability label only — tools that enumerate generators by bus-row index rather than ID produce identical bus injection sums and identical DCPF results. Absence does not affect bus angles or branch flows. |
 | `PG` | number | DCPF-critical | Active power output in MW; direct real power injection at the bus entering the DCPF power injection vector and ACPF active power balance equations |
 | `QG` | number | ACPF-critical | Reactive power output in MVAR; enters the ACPF reactive power balance equations as a solved variable at PV buses, not used in DCPF |
 | `QT` | number | ACPF-critical | Maximum reactive power limit in MVAR; determines the upper bound for PV-to-PQ bus conversion when the generator reaches its reactive capability limit in ACPF |
@@ -151,13 +151,13 @@ All fixed shunt fields are ACPF-critical because fixed shunts provide reactive c
 **Intermediate format table:** `branch`
 **Record-type tier (from mapping guide):** Tier 1 -- Essential for any power flow
 **Total fields:** 24
-**Tier breakdown:** 5 DCPF-critical, 6 ACPF-critical, 13 Informational, 0 Discardable
+**Tier breakdown:** 4 DCPF-critical, 6 ACPF-critical, 14 Informational, 0 Discardable
 
 | Field | Type | Tier | Rationale |
 |-------|------|------|-----------|
 | `I` | integer | DCPF-critical | From-bus number defining one endpoint of the branch in the network topology; essential for constructing the B-matrix adjacency structure in DCPF |
 | `J` | integer | DCPF-critical | To-bus number defining the other endpoint of the branch; together with I, establishes the branch connectivity required for DCPF and ACPF admittance matrices |
-| `CKT` | string | DCPF-critical | Circuit identifier distinguishing parallel branches between the same bus pair; required to correctly enumerate all branches and their individual impedances in the B-matrix |
+| `CKT` | string | Informational | Circuit identifier distinguishing parallel branches between the same bus pair. Traceability label only — tools that enumerate parallel branches by row index rather than CKT enumerate all branch impedances correctly and produce identical B-matrix construction and DCPF results. Absence does not affect bus angles or branch flows. |
 | `R` | number | ACPF-critical | Series resistance in per-unit on system MVA base; enters the Y-bus for ACPF real power loss computation but is ignored in DCPF which assumes lossless branches |
 | `X` | number | DCPF-critical | Series reactance in per-unit on system MVA base; enters the B-matrix for DCPF (as 1/X) and the Y-bus for ACPF, the dominant impedance component for power transfer |
 | `B` | number | ACPF-critical | Total line charging susceptance in per-unit; provides reactive power injection at both branch endpoints in ACPF, ignored in DCPF's lossless model |
@@ -187,14 +187,14 @@ Line ratings (RATEA, RATEB, RATEC) are classified as Informational rather than A
 **Intermediate format table:** `transformer`
 **Record-type tier (from mapping guide):** Tier 1 -- Essential for any power flow
 **Total fields:** 83
-**Tier breakdown:** 10 DCPF-critical, 44 ACPF-critical, 29 Informational, 0 Discardable
+**Tier breakdown:** 6 DCPF-critical, 44 ACPF-critical, 33 Informational, 0 Discardable
 
 | Field | Type | Tier | Rationale |
 |-------|------|------|-----------|
 | `I` | integer | DCPF-critical | Winding 1 (primary) bus number; defines one endpoint of the transformer in the network topology, essential for the B-matrix adjacency structure |
 | `J` | integer | DCPF-critical | Winding 2 (secondary) bus number; defines the other endpoint, establishing the transformer branch connectivity |
-| `K` | integer | DCPF-critical | Winding 3 (tertiary) bus number; K=0 for 2-winding, K!=0 for 3-winding transformers, determining the star-bus equivalent topology and number of equivalent branches |
-| `CKT` | string | DCPF-critical | Circuit identifier for parallel transformers between the same bus pair; required to correctly enumerate all transformer branches in the admittance matrix |
+| `K` | integer | Informational | Winding 3 (tertiary) bus number; K=0 for 2-winding, K!=0 for 3-winding. Tools loading from MATPOWER PPC format receive pre-expanded star-equivalent 2-winding pairs — the original K value is not present but the star-equivalent topology preserves identical B-matrix structure and DCPF results. Tools using native PSS/E 3-winding support carry this field natively. |
+| `CKT` | string | Informational | Circuit identifier for parallel transformers between the same bus pair. Traceability label only — same rationale as Branch.CKT; enumeration by row index produces identical admittance matrix construction. |
 | `CW` | integer | ACPF-critical | Winding data I/O code determining how WINDV tap ratios are interpreted (1=pu on bus base kV, 2=kV, 3=pu on nominal kV); controls impedance parameter interpretation for ACPF |
 | `CZ` | integer | ACPF-critical | Impedance data I/O code determining the per-unit base for R and X values (1=pu on system base, 2=pu on winding base, 3=losses in W); essential for correct impedance conversion in ACPF |
 | `CM` | integer | ACPF-critical | Magnetizing admittance I/O code determining how MAG1/MAG2 are interpreted (1=pu on system base, 2=exciting current/losses); controls magnetizing branch parameter interpretation |
@@ -216,10 +216,10 @@ Line ratings (RATEA, RATEB, RATEC) are classified as Informational rather than A
 | `X1_2` | number | DCPF-critical | Reactance of winding 1-2 pair; enters the B-matrix for DCPF (as 1/X) and the Y-bus for ACPF, the dominant impedance parameter for transformer power transfer |
 | `SBASE1_2` | number | ACPF-critical | MVA base for winding 1-2 impedance; determines the per-unit base for R1_2 and X1_2 when CZ=1, essential for correct impedance conversion in ACPF |
 | `R2_3` | number | ACPF-critical | Resistance of winding 2-3 pair (3-winding only); enters the Y-bus for the star-bus equivalent 2-3 leg in ACPF |
-| `X2_3` | number | DCPF-critical | Reactance of winding 2-3 pair (3-winding only); enters the B-matrix for the star-bus equivalent 2-3 leg in DCPF and the Y-bus in ACPF |
+| `X2_3` | number | Informational | Reactance of winding 2-3 pair (3-winding only). Tools loading from MATPOWER PPC receive pre-computed star-equivalent branch impedances that embed X2_3's contribution — the raw PSS/E field is absent but DCPF accuracy is preserved via the star-equivalent. Tools with native 3-winding support carry X2_3 directly. |
 | `SBASE2_3` | number | ACPF-critical | MVA base for winding 2-3 impedance; determines per-unit base for R2_3/X2_3 when CZ=1, required for correct impedance conversion |
 | `R3_1` | number | ACPF-critical | Resistance of winding 3-1 pair (3-winding only); enters the Y-bus for the star-bus equivalent 3-1 leg in ACPF |
-| `X3_1` | number | DCPF-critical | Reactance of winding 3-1 pair (3-winding only); enters the B-matrix for the star-bus equivalent 3-1 leg in DCPF and the Y-bus in ACPF |
+| `X3_1` | number | Informational | Reactance of winding 3-1 pair (3-winding only). Same rationale as X2_3: star-equivalent conversion preserves DCPF accuracy; raw field absent only in MATPOWER PPC pathway. |
 | `SBASE3_1` | number | ACPF-critical | MVA base for winding 3-1 impedance; determines per-unit base for R3_1/X3_1 when CZ=1, required for correct impedance conversion |
 | `VMSTAR` | number | ACPF-critical | Star-bus voltage magnitude initial value for 3-winding transformers; provides the initial voltage guess for the synthetic star bus in ACPF iteration |
 | `ANSTAR` | number | ACPF-critical | Star-bus voltage angle initial value for 3-winding transformers; provides the initial angle guess for the synthetic star bus in ACPF iteration |
@@ -605,6 +605,24 @@ ADJM, RMPCT, and RMIDNT are classified as Informational because ADJM is a second
 **Discardable assignment criteria:**
 - Field IS flagged as `x-psse-present-but-inactive: true` in Phase 1 D7.
 - This is the sole criterion -- no field may be Discardable without this flag.
+
+## v10 Reclassification Note
+
+Seven fields were reclassified from DCPF-critical to Informational in protocol v10 (2026-03-13):
+
+| Table | Field | Previous Tier | New Tier | Rationale |
+|-------|-------|--------------|----------|-----------|
+| load | ID | DCPF-critical | Informational | Identifier-only; bus injection sum is unaffected by its absence |
+| generator | ID | DCPF-critical | Informational | Identifier-only; bus injection sum is unaffected by its absence |
+| branch | CKT | DCPF-critical | Informational | Identifier-only; branch enumeration by index preserves B-matrix |
+| transformer | CKT | DCPF-critical | Informational | Identifier-only; same rationale as branch.CKT |
+| transformer | K | DCPF-critical | Informational | Star-equivalent conversion preserves DCPF topology |
+| transformer | X2_3 | DCPF-critical | Informational | Star-equivalent impedances embed X2_3; DCPF accuracy preserved |
+| transformer | X3_1 | DCPF-critical | Informational | Same rationale as X2_3 |
+
+**Impact:** DCPF-critical field count reduced from 26 to 19. G-FNM-2 pass condition
+(100% DCPF-critical coverage) evaluated against 19 fields from v10 onward. Existing
+G-FNM-2 results produced under v9 remain valid for their protocol version.
 
 ## Cross-References
 

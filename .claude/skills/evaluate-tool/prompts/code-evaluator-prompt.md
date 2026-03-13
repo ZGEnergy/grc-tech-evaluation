@@ -362,17 +362,23 @@ Record which input path was used in the result frontmatter:
 
 ### Per-Test Guidance
 
-**G-FNM-1 (Intermediate format ingestion — gate):**
-- Load `manifest.json` from `$FNM_PATH/intermediate/manifest.json` to obtain expected
-  record counts per table
-- Load every CSV table from the intermediate format at `$FNM_PATH/intermediate/`
+**G-FNM-1 (Intermediate format ingestion — two-check gate):**
+
+**Sub-check (a): PSS/E format compatibility**
+- Attempt to load every intermediate CSV table from `$FNM_PATH/intermediate/`
+- If this fails (parse error, unsupported format, missing columns):
+  - Record a `blocking` observation with tag `api-friction`, detail: PSS/E parse error
+  - Write G-FNM-1 result with `status: fail`, `failure_reason: psse_parse_error`
+  - Write G-FNM-2 result with `status: skip`, `blocked_by: G-FNM-1`
+  - Proceed to G-FNM-3, G-FNM-4, G-FNM-5 using the MATPOWER fallback path
+    (`data/fnm/reference/cleaned/fnm_main_island.mat`) — do NOT skip G-FNM-3/4/5
+
+**Sub-check (b): Record count fidelity (only if PSS/E parsing succeeded)**
+- Load `manifest.json` from `$FNM_PATH/intermediate/manifest.json`
 - Count ingested records per table (buses, branches, generators, loads, transformers,
   shunts, zones, owners, and all other record types in the manifest)
 - Compare against manifest expected counts — all must match exactly
-- If the tool merges record types (e.g., branches + transformers into a unified branch
-  table), the merged count must equal the sum of constituent manifest counts
-  (e.g., branch 23,076 + transformer 9,530 = 32,606)
-- Produce a structured per-table pass/fail report in the Output section:
+- Produce structured per-table report:
 
   | Table | Expected | Actual | Status |
   |-------|----------|--------|--------|
@@ -380,19 +386,16 @@ Record which input path was used in the result frontmatter:
   | load | 8624 | ... | PASS/FAIL |
   | ... | ... | ... | ... |
 
-  For merged tables, show the constituent counts and their sum:
+  For merged tables, show constituent counts and their sum.
 
-  | Table | Expected | Actual | Status | Note |
-  |-------|----------|--------|--------|------|
-  | branch+transformer | 32606 | ... | PASS/FAIL | merged: branch(23076)+transformer(9530) |
-
-- If any table shows FAIL → G-FNM-1 fails → skip G-FNM-2 through G-FNM-5 (write skip
-  results with `blocked_by: G-FNM-1`)
+- If any table shows FAIL → G-FNM-1 fails → skip G-FNM-2 through G-FNM-5
+  (write skip results with `blocked_by: G-FNM-1`)
+- If all counts PASS → G-FNM-1 passes → proceed to G-FNM-2
 
 **G-FNM-2 (Field coverage audit):**
 - For each table, enumerate fields present in the tool's data model after ingestion
 - Compare against field criticality matrix: compute coverage % per tier
-- 100% DCPF-critical coverage is required; gaps are Expressiveness findings
+- 100% DCPF-critical coverage is required across all 19 DCPF-critical fields (field-criticality-matrix.md v10 count); gaps are Expressiveness findings
 - ACPF-critical gaps are documented findings, not hard failures
 - Fields carried via extension mechanisms (custom attributes) count as present
 
@@ -403,26 +406,58 @@ Record which input path was used in the result frontmatter:
 - Record `input_path: csv` or `input_path: matpower` in the result frontmatter
 - Ingest into the tool's data model (e.g., via `import_from_pypower_ppc`, `loadcase`, etc.)
 - Solve DCPF on the cleaned case
+- For PowerModels.jl: use `solve_dc_pf(data, DCPPowerModel, HiGHS.Optimizer)`.
+  Do NOT use `compute_dc_pf()` — it applies full complex admittance (b = -x/(r²+x²))
+  instead of the DCPF approximation (b = 1/x), producing ~8% susceptance error when |r/x| > 0.1.
+- After computing deviations: if the failed buses cluster near transformer-connected buses
+  (check the highest-deviation buses against transformer bus lists), apply the
+  `formulation_difference` decision procedure (6 steps from the Formulation Difference
+  Classification section above). Tag as `formulation_difference` if all gates pass.
 - Load reference solution from `data/fnm/reference/dcpf/`
 - Compute aggregate deviation metrics per `pass_conditions.json` `dcpf` section
 - Classify outliers per the outlier rules in pass_conditions.json
 - 10-minute timeout; record failure mode (scale vs data model)
 - Emit `fnm-scale` observation if failure is scale-related, `fnm-data-model` if data-model
 
-**G-FNM-4 (ACPF convergence capability):**
-- **Primary:** Load the network from intermediate CSVs at `$FNM_PATH/intermediate/`
-- **Fallback:** If the tool cannot ingest CSVs directly, load the pre-cleaned MATPOWER
-  case from `data/fnm/reference/cleaned/fnm_main_island.mat`
-- Record `input_path: csv` or `input_path: matpower` in the result frontmatter
-- Attempt ACPF solve — **no reference solution exists** (MATPOWER 8.1 fails on all variants;
-  see `data/fnm/reference/acpf/summary_acpf.json` for failure analysis)
-- Record: convergence yes/no, solver algorithm, residual, iteration count
-- If converged: record VM/VA statistics (min, max, mean), total losses
-- **Convergence is a positive finding, not a requirement** — tools with robust initialization
-  (homotopy, voltage regulation heuristics) may succeed where MATPOWER cannot
-- If multiple tools converge, apply `pass_conditions.json` `acpf` thresholds for cross-tool
-  consistency checking
-- Do NOT penalize failure to converge — emit as informational observation
+**G-FNM-4 (ACPF — DCPF warm-start + progressive relaxation):**
+This test uses the same input path as G-FNM-3 (intermediate CSVs primary, MATPOWER fallback).
+Record `input_path: csv` or `input_path: matpower` in frontmatter.
+
+**Step 1 — DCPF warm-start (always performed fresh within G-FNM-4):**
+- Solve DCPF on the cleaned network (same procedure as G-FNM-3)
+- Extract bus voltage angles (VA) from the DCPF solution
+- Record `dcpf_init_mean_deg` (mean of |VA| across all buses, degrees) and
+  `dcpf_init_max_abs_deg` (max |VA|, degrees) in frontmatter
+
+**Step 2 — ACPF at 0% relaxation (nominal thermal limits):**
+- Initialize: VM = 1.0 pu for all buses; VA = DCPF angles from Step 1
+- Attempt ACPF solve with nominal thermal constraints
+- Timeout: 30 minutes
+- If converges: record convergence stats (algorithm, residual, iteration count,
+  VM/VA min/max/mean, total losses). Set `relaxation_level_achieved: "0%"`.
+
+**Step 3 — ACPF at 10% relaxation (if Step 2 failed):**
+- Relax all branch thermal limits: RATE_A × 1.10
+- Retry ACPF from same DCPF warm start (same VM/VA initialization)
+- Timeout: 30 minutes
+- If converges: record stats. Set `relaxation_level_achieved: "10%"`.
+
+**Step 4 — ACPF at 20% relaxation (if Step 3 failed):**
+- Relax all branch thermal limits: RATE_A × 1.20
+- Retry ACPF from same DCPF warm start
+- Timeout: 30 minutes
+- If converges: record stats. Set `relaxation_level_achieved: "20%"`.
+- If fails: set `relaxation_level_achieved: "infeasible"`.
+- **Stop here — do not relax beyond 20%.**
+
+**All outcomes are informational (no gate consequence):**
+- Convergence at any level is a discriminating solver robustness strength (Expressiveness)
+- Failure at all levels is recorded but not penalized
+- This is a planning model where MATPOWER itself fails to converge from flat start
+- `acpf_timeout_minutes: 30` in frontmatter
+
+If multiple tools converge at the same relaxation level, apply `pass_conditions.json`
+`acpf` thresholds for cross-tool consistency checking.
 
 **G-FNM-5 (Supplemental CSV representability):**
 - For each of 7 supplemental CSVs, attempt to attach each field to the tool's network model
@@ -430,6 +465,24 @@ Record which input path was used in the result frontmatter:
 - Compare against analytical classifications in `data/fnm/docs/supplemental-csvs.md`
 - No hard pass/fail — this is evidence collection for Extensibility grade
 - Highlight discrepancies between analytical and empirical classifications
+- For each E classification: document the **concrete extension approach** — specific API,
+  function call, or code pattern that stores the data in the tool's model. Format:
+  "Extension: <tool API>. Example: `net.lines['contingency_name'] = ...`"
+  An E without a documented approach must be downgraded to X.
+- For each X classification: include a **written justification paragraph** explaining why
+  no native or extension path exists. Format: "No path: <reason>. The <concept> requires
+  <external mechanism> outside the tool's domain model."
+- After the per-field table for all 7 CSVs, add a **Market Solution Fidelity Summary**:
+
+  | Market Concept | Classification | Notes |
+  |----------------|----------------|-------|
+  | N-1/N-2 contingency enforcement | achievable/complex/blocked | ... |
+  | Interface flow limits | achievable/complex/blocked | ... |
+  | Aggregate hub pricing (PTDF-weighted LMP) | achievable/complex/blocked | ... |
+  | Outage scheduling | achievable/complex/blocked | ... |
+
+  Achievable = N or E path exists and is straightforward. Complex = E path exists but
+  requires significant custom code. Blocked = X — no path in this tool's domain model.
 
 ### Failure Attribution
 
