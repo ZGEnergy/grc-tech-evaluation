@@ -107,6 +107,44 @@ The preprocessing script is version-controlled alongside the reference data. Eve
 
 MATPOWER .m case files may contain non-contiguous bus numbering, isolated buses, or out-of-service elements. Tools that use MATPOWER data should apply the equivalent of MATPOWER's `ext2int` conversion (reindexing to internal contiguous numbering and removing out-of-service elements) before constructing admittance matrices. Failure to apply this conversion can produce incorrect results on networks with non-trivial indexing. Document whether the tool handles this conversion automatically or requires manual preprocessing.
 
+### Network Loading and Format Conversion
+
+Per-tool loading fidelity is tracked in `evaluations/shared/LOADING_NOTES.md`, which provides
+the canonical classification table for all six tools.
+
+**Summary:**
+
+| Tool | Class | API |
+|------|-------|-----|
+| pypsa | TRIVIAL | `load_pypsa(path)` from `matpower_loader` |
+| pandapower | LOSSLESS | `load_pandapower(path)` from `matpower_loader` |
+| gridcal | LOSSLESS | `load_gridcal(path)` from `matpower_loader` |
+| powermodels | LOSSLESS | `parse_file(path)` (native) |
+| powersimulations | LOSSLESS | `System(path)` (native) |
+| matpower | LOSSLESS | `loadcase(path)` (reference implementation) |
+
+**PyPSA known bugs (fixed in `load_pypsa()`):**
+
+Two bugs in the `matpowercaseframes → import_from_pypower_ppc` bridge were identified
+during evaluation and patched in the shared loader:
+
+1. **Transformer susceptance** — PyPSA computes `b = 1/(x * tap)` but the MATPOWER DC
+   convention is `b = 1/x`.  This causes incorrect bus angles on networks with off-nominal
+   tap transformers.  Confirmed root cause of the G-FNM-3 9% accuracy failure.
+
+2. **Generator cost (gencost)** — `import_from_pypower_ppc` silently discards the gencost
+   table, leaving all generators with `marginal_cost = 0`.  The shared loader populates
+   marginal costs from gencost rows (polynomial derivative at Pmax for quadratic curves).
+
+**Existing test scripts** pre-date the shared loader and load networks directly using
+tool-specific APIs; they are not modified.  The workarounds applied are documented in
+each script's `workarounds` result field.
+
+**New scripts must use `matpower_loader` functions** from `evaluations/shared/`.
+The conftest.py template injects `evaluations/shared/` into `sys.path` automatically,
+so `from matpower_loader import load_pypsa` works without additional setup.
+See `.claude/skills/evaluate-tool/references/test-script-conventions.md` for examples.
+
 ---
 
 ## Evaluation Scope
