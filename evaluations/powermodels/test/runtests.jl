@@ -8,3 +8,7 @@ const DATA_DIR = normpath(joinpath(@__DIR__, "..", "..", "..", "data", "networks
 @testset "PowerModels Gate Tests" begin
     include("test_gate.jl")
 end
+
+@testset "PowerModels Solver Tests" begin
+    include("test_solvers.jl")
+end
