@@ -302,9 +302,19 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 
    d. **Launch agent** via Agent tool with `subagent_type: "general-purpose"`.
 
-3. **Collect observations.** After each DAG step completes, scan for new observation
-   files in `{{RESULTS_DIR}}/observations/`. These are available to subsequent steps
-   that consume the relevant tags.
+3. **Collect observations and apply tier gates.** After each DAG step completes:
+
+   - Scan for new observation files in `{{RESULTS_DIR}}/observations/`. These are
+     available to subsequent steps that consume the relevant tags.
+   - **Suite C tier gate.** If the completed step is marked `c_scale_gate: true` in
+     `{{CONFIG_PATH}}` (set on the Suite C SMALL step by the config-generator):
+     - Read all result files for that step.
+     - If any Suite C SMALL test has `status: fail`, log "Suite C SMALL gate failed —
+       skipping MEDIUM tier" and skip all subsequent DAG steps marked `tier: MEDIUM`
+       for the `scalability` dimension.
+     - For each skipped MEDIUM test, write a stub result file in
+       `{{RESULTS_DIR}}/scalability/` with `status: skip` and
+       `blocked_by: C-SMALL-gate` in frontmatter, so VALIDATE does not report gaps.
 
 4. **Checkpoint.** After each DAG step, update `{{PROGRESS_PATH}}`:
 

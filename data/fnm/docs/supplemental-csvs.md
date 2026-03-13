@@ -137,16 +137,16 @@ The BUS_NUMBER column joins each hub-bus mapping record to the bus table via the
 
 | Field | PyPSA | pandapower | GridCal | PowerModels.jl | PowerSimulations.jl | MATPOWER |
 |-------|-------|------------|---------|----------------|---------------------|----------|
-| HUB_NAME | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) |
+| HUB_NAME | E (custom attribute on n.buses) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) |
 | BUS_NUMBER | N (Bus index) | N (bus index) | N (Bus index) | N (bus["bus_i"]) | N (ACBus.number) | N (mpc.bus BUS_I) |
-| DISTRIBUTION_FACTOR | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) |
+| DISTRIBUTION_FACTOR | E (hub weights as custom bus attributes; aggregate via (df_weights * n.buses_t.marginal_price).sum(axis=1) post-solve) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) |
 | HUB_TYPE | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) | X (no hub model) |
 
 ### Summary
 
 | Tool | Native (N) | Extension (E) | External (X) | N% | E% | X% |
 |------|-----------|---------------|--------------|----|----|-----|
-| PyPSA | 1 | 0 | 3 | 25% | 0% | 75% |
+| PyPSA | 1 | 2 | 1 | 25% | 50% | 25% |
 | pandapower | 1 | 0 | 3 | 25% | 0% | 75% |
 | GridCal | 1 | 0 | 3 | 25% | 0% | 75% |
 | PowerModels.jl | 1 | 0 | 3 | 25% | 0% | 75% |
@@ -155,10 +155,15 @@ The BUS_NUMBER column joins each hub-bus mapping record to the bus table via the
 
 ### Key Findings
 
-- Trading hub data is universally tool-external (X) across all 6 tools for 3 of 4 fields (HUB_NAME, DISTRIBUTION_FACTOR, HUB_TYPE). No tool has a native trading hub concept because hubs are a market-layer abstraction.
-- Only BUS_NUMBER is natively representable because it corresponds to the physical bus identifier that all tools model.
-- All tools have identical representability profiles (25% N, 75% X) because hub concepts are equally absent from all six tools' domain models.
-- Trading hub data must be maintained in external data structures (DataFrames or dictionaries) alongside the network model in every tool.
+- Trading hub data is universally tool-external (X) across most tools for 3 of 4 fields (HUB_NAME, DISTRIBUTION_FACTOR, HUB_TYPE). No tool has a native trading hub concept because hubs are a market-layer abstraction.
+- Only BUS_NUMBER is natively representable in all tools because it corresponds to the physical bus identifier.
+- PyPSA can store HUB_NAME as a custom bus attribute and DISTRIBUTION_FACTOR as custom bus attributes, enabling post-OPF aggregate hub pricing via PTDF-weighted bus LMP averaging. HUB_TYPE has no extension path.
+- All other tools have identical representability profiles (25% N, 75% X) because hub concepts are equally absent from their domain models.
+- Trading hub data must be maintained in external data structures alongside the network model in all tools except PyPSA (which can partially accommodate hub definitions via custom attributes).
+
+> **v10 note (TRADING_HUB.csv):** HUB_NAME and hub distribution weight fields reclassified X→E
+> for PyPSA. Extension: PTDF-weighted bus LMP averaging post-OPF. Aggregate hub prices are
+> derivable but require custom post-processing code.
 
 ## GEN_DISTRIBUTION_FACTOR.csv
 
@@ -245,18 +250,18 @@ Branch contingencies use the composite key ELEMENT_FROM_BUS + ELEMENT_TO_BUS + E
 
 | Field | PyPSA | pandapower | GridCal | PowerModels.jl | PowerSimulations.jl | MATPOWER |
 |-------|-------|------------|---------|----------------|---------------------|----------|
-| CONTINGENCY_NAME | X (no contingency model) | X (no contingency model) | N (ContingencyGroup.name) | X (no contingency model) | N (Contingency.name) | X (no contingency model) |
-| ELEMENT_TYPE | X (no contingency model) | X (no contingency model) | N (Contingency.device_type) | X (no contingency model) | N (Contingency element type) | X (no contingency model) |
+| CONTINGENCY_NAME | E (extra_functionality + custom DataFrame n.contingencies) | X (no contingency model) | N (ContingencyGroup.name) | X (no contingency model) | N (Contingency.name) | X (no contingency model) |
+| ELEMENT_TYPE | E (extra_functionality + custom attribute) | X (no contingency model) | N (Contingency.device_type) | X (no contingency model) | N (Contingency element type) | X (no contingency model) |
 | ELEMENT_FROM_BUS | N (Line.bus0) | N (line.from_bus) | N (Line.bus_from) | N (branch["f_bus"]) | N (Arc.from) | N (mpc.branch col 1) |
 | ELEMENT_TO_BUS | N (Line.bus1) | N (line.to_bus) | N (Line.bus_to) | N (branch["t_bus"]) | N (Arc.to) | N (mpc.branch col 2) |
-| ELEMENT_CKT | E (custom attr) | E (custom column) | E (custom field) | E (dict key) | E (ext dict) | E (custom mpc field) |
+| ELEMENT_CKT | E (custom attr on contingency DataFrame) | E (custom column) | E (custom field) | E (dict key) | E (ext dict) | E (custom mpc field) |
 | ELEMENT_BUS | N (Generator.bus) | N (gen.bus) | N (Generator.bus) | N (gen["gen_bus"]) | N (ThermalStandard.bus) | N (mpc.gen GEN_BUS) |
 
 ### Summary
 
 | Tool | Native (N) | Extension (E) | External (X) | N% | E% | X% |
 |------|-----------|---------------|--------------|----|----|-----|
-| PyPSA | 3 | 1 | 2 | 50% | 17% | 33% |
+| PyPSA | 3 | 3 | 0 | 50% | 50% | 0% |
 | pandapower | 3 | 1 | 2 | 50% | 17% | 33% |
 | GridCal | 5 | 1 | 0 | 83% | 17% | 0% |
 | PowerModels.jl | 3 | 1 | 2 | 50% | 17% | 33% |
@@ -266,9 +271,15 @@ Branch contingencies use the composite key ELEMENT_FROM_BUS + ELEMENT_TO_BUS + E
 ### Key Findings
 
 - GridCal and PowerSimulations.jl have the best contingency data coverage (83% N) because both have native contingency definition objects (`ContingencyGroup`/`Contingency` and `Contingency` type respectively).
-- CONTINGENCY_NAME and ELEMENT_TYPE are tool-external (X) in PyPSA, pandapower, PowerModels.jl, and MATPOWER -- these tools have no native contingency definition model. Contingency analysis in these tools is typically handled by external scripts that modify network state.
+- CONTINGENCY_NAME and ELEMENT_TYPE are tool-external (X) in pandapower, PowerModels.jl, and MATPOWER -- these tools have no native contingency definition model. Contingency analysis in these tools is typically handled by external scripts that modify network state.
+- PyPSA can represent CONTINGENCY_NAME, ELEMENT_TYPE, and ELEMENT_CKT via its `extra_functionality` callback mechanism with a custom `n.contingencies` DataFrame; N-1 constraints are enforced via BODF matrix as additional `lp.add_constraints()` calls. This is Extension-representable (E) but requires 50–100 lines of custom code.
 - The network element identifier fields (FROM_BUS, TO_BUS, ELEMENT_BUS) are natively representable in all tools because they correspond to existing bus identifiers.
 - ELEMENT_CKT is universally Extension-representable, consistent with the pattern seen in LINE_AND_TRANSFORMER.csv.
+
+> **v10 note (CONTINGENCY.csv):** CONTINGENCY_NAME, ELEMENT_TYPE, and ELEMENT_CKT reclassified X→E
+> for PyPSA. Extension mechanism: `extra_functionality` callback + BODF matrix for N-1 constraint
+> enforcement. This is complex (requires 50–100 lines of custom code) but is a documented,
+> supported extension pattern. Classify as E with "complex" notation in market fidelity summary.
 
 ## INTERFACE.csv
 
@@ -300,17 +311,17 @@ INTERFACE.csv does not join directly to any intermediate format network table. I
 
 | Field | PyPSA | pandapower | GridCal | PowerModels.jl | PowerSimulations.jl | MATPOWER |
 |-------|-------|------------|---------|----------------|---------------------|----------|
-| INTERFACE_ID | X (no interface model) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface.name) | N (mpc.if col 1) |
-| INTERFACE_NAME | X (no interface model) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface.name) | E (custom mpc field) |
-| NORMAL_LIMIT_MW | X (no interface model) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface limits) | N (mpc.iflim) |
-| EMERGENCY_LIMIT_MW | X (no interface model) | X (no interface model) | X (no interface model) | X (no interface model) | E (ext dict) | E (custom mpc field) |
-| DIRECTION | X (no interface model) | X (no interface model) | X (no interface model) | X (no interface model) | E (ext dict) | E (custom mpc field) |
+| INTERFACE_ID | E (custom n.interfaces DataFrame) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface.name) | N (mpc.if col 1) |
+| INTERFACE_NAME | E (custom attribute on interface DataFrame) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface.name) | E (custom mpc field) |
+| NORMAL_LIMIT_MW | E (PTDF constraint via extra_functionality + n.add_constraints()) | X (no interface model) | X (no interface model) | X (no interface model) | N (TransmissionInterface limits) | N (mpc.iflim) |
+| EMERGENCY_LIMIT_MW | E (PTDF constraint, contingency-conditional via extra_functionality) | X (no interface model) | X (no interface model) | X (no interface model) | E (ext dict) | E (custom mpc field) |
+| DIRECTION | E (sign convention in PTDF weighting, custom attribute) | X (no interface model) | X (no interface model) | X (no interface model) | E (ext dict) | E (custom mpc field) |
 
 ### Summary
 
 | Tool | Native (N) | Extension (E) | External (X) | N% | E% | X% |
 |------|-----------|---------------|--------------|----|----|-----|
-| PyPSA | 0 | 0 | 5 | 0% | 0% | 100% |
+| PyPSA | 0 | 5 | 0 | 0% | 100% | 0% |
 | pandapower | 0 | 0 | 5 | 0% | 0% | 100% |
 | GridCal | 0 | 0 | 5 | 0% | 0% | 100% |
 | PowerModels.jl | 0 | 0 | 5 | 0% | 0% | 100% |
@@ -319,10 +330,15 @@ INTERFACE.csv does not join directly to any intermediate format network table. I
 
 ### Key Findings
 
-- Interface data is 100% tool-external (X) in PyPSA, pandapower, GridCal, and PowerModels.jl -- none of these tools have any native interface/flowgate concept.
+- Interface data is 100% tool-external (X) in pandapower, GridCal, and PowerModels.jl -- none of these tools have any native interface/flowgate concept.
+- PyPSA can represent all 5 INTERFACE.csv fields via Extension mechanisms: a custom `n.interfaces` DataFrame stores the interface definition, and interface flow limits are enforced via PTDF matrix + `extra_functionality` constraints using `n.add_constraints()`. This is complex but a documented supported pattern.
 - PowerSimulations.jl (via PowerSystems.jl `TransmissionInterface`) has the best native coverage (60% N), making it the only tool with a first-class interface data model.
 - MATPOWER supports interface definitions via `mpc.if` and `mpc.iflim` structures (40% N), providing basic interface flow limit enforcement in OPF.
-- INTERFACE_ID is classified as X for tools without interface models rather than E, because the interface concept itself (a named group of branches with aggregate flow limits) has no structural analog -- storing just the ID without the concept is meaningless.
+- INTERFACE_ID is classified as X for pandapower, GridCal, and PowerModels.jl rather than E, because the interface concept itself (a named group of branches with aggregate flow limits) has no structural analog -- storing just the ID without the concept is meaningless.
+
+> **v10 note (INTERFACE.csv):** All 5 INTERFACE.csv fields reclassified X→E for PyPSA.
+> Extension mechanism: PTDF matrix + `extra_functionality` constraints. Classify as E with
+> "complex" in market fidelity summary.
 
 ## INTERFACE_ELEMENT.csv
 
