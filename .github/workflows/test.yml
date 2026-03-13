@@ -48,6 +48,7 @@ jobs:
               - 'evaluations/matpower/setup.sh'
             pypsa:
               - 'evaluations/pypsa/**'
+              - 'evaluations/shared/**'
               - 'data/networks/**'
               - '.devcontainer/**'
             pandapower:
