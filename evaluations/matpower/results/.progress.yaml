@@ -1,0 +1,14 @@
+# .progress.yaml — matpower evaluation
+tool: matpower
+skill_version: v1
+protocol_version: "v10"
+run_mode: fresh
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
+current_state: COMMIT
+scale_cap: MEDIUM
+timestamp: "2026-03-13T00:00:00Z"
+fnm_available: true
+skipped_tests: []
+stale_tests: []
+orphaned_files: []
+completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
