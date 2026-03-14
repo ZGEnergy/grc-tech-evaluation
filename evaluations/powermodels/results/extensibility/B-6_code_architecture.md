@@ -3,9 +3,9 @@ test_id: B-6
 tool: powermodels
 dimension: extensibility
 network: N/A
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 0f337d8d
+test_hash: e256cf29
 status: pass
 workaround_class: null
 blocked_by: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T23:36:40Z
 ---
 
 # B-6: Code Architecture Audit

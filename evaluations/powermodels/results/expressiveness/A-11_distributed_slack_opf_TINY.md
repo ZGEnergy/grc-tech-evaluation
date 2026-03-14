@@ -3,20 +3,20 @@ test_id: A-11
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 45b8d158
+test_hash: ed1721bb
 status: fail
 workaround_class: blocking
 blocked_by: null
-wall_clock_seconds: 55.32
+wall_clock_seconds: 2.29
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
 loc: 160
 solver: "HiGHS (single-slack baseline only)"
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
 # A-11: DC OPF with Load-Proportional Distributed Slack
@@ -69,8 +69,8 @@ The workaround confirmed in test B-8 requires ~150 lines of custom JuMP PTDF-bas
 
 ## Timing
 
-- **Wall-clock:** 55.32s
-- **Timing source:** measured (includes Julia startup and single-slack baseline solve)
+- **Wall-clock:** 2.29s
+- **Timing source:** measured (warm JIT)
 - **Peak memory:** not measured
 - **CPU cores used:** 1
 

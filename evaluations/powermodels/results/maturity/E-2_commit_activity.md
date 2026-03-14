@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "a860b103"
+test_hash: "a144588f"
 ---
 
 # E-2: commit_activity
@@ -19,7 +19,7 @@ PowerModels.jl had 24 commits in the last 12 months (March 2025–March 2026) fr
 
 ## Evidence
 
-**Period:** 2025-03-11 to 2026-03-11
+**Period:** 2025-03-13 to 2026-03-13
 
 **Total commits (12 months):** 24
 
@@ -42,7 +42,7 @@ Maintenance (7 commits): 4 Dependabot bumps (actions/checkout, codecov-action, u
 
 **Substantive-to-maintenance ratio:** ~2.4:1 (17 substantive / 7 maintenance)
 
-**Data source:** `gh api repos/lanl-ansi/PowerModels.jl/commits?since=2025-03-11T00:00:00Z`
+**Data source:** `gh api repos/lanl-ansi/PowerModels.jl/commits?since=2025-03-13T00:00:00Z`
 
 ## Implications
 

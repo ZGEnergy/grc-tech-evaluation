@@ -4,7 +4,7 @@ installed_version: 0.21.5
 release_date: 2025-08-12
 latest_version: 0.21.5
 latest_release_date: 2025-08-12
-research_date: 2026-03-11
+research_date: 2026-03-13
 ---
 
 # powermodels — Version & Capability Report
@@ -13,7 +13,9 @@ research_date: 2026-03-11
 
 The installed version is PowerModels.jl 0.21.5, which is also the current latest stable release (published 2025-08-12). The evaluation environment is fully up to date — there is no version gap to account for.
 
-The 0.21.x series has been stable since January 2024 (v0.21.0), with the major change being an update to JuMP's new nonlinear interface. Patch releases since then have been limited to bug fixes (PSS/E parser corrections, `compute_ac_pf` InexactError, switch resolution logic), performance improvements to basic data utilities (`calc_basic_incidence_matrix`, `calc_connected_components`), and developer tooling (PrecompileTools integration, CI updates). No new features or capability additions were made in the 0.21.x series beyond what was present in 0.21.0.
+The 0.21.x series has been stable since January 2024 (v0.21.0), with the major change being an update to JuMP's new nonlinear interface. Patch releases since then have been limited to bug fixes (PSS/E parser corrections, `compute_ac_pf` numerical precision errors, switch resolution logic, three-winding transformer parsing), performance improvements to basic data utilities (`calc_basic_incidence_matrix`, `calc_connected_components`, in-place building of basic network data), and developer tooling (PrecompileTools integration, CI updates, Memento logger silencing during precompilation). No new features or capability additions were made in the 0.21.x series beyond what was present in 0.21.0.
+
+Key dependencies in the installed environment: JuMP v1.29.4, InfrastructureModels v0.7.8, with solvers Ipopt v1.14.1 (nonlinear), HiGHS v1.21.1 (LP/MIP), GLPK v1.2.1 (LP/MIP), and SCIP v0.11.6 (MIP/MINLP). JuMP and HiGHS have newer versions available upstream but the pinned versions are functional.
 
 ## Capability Table
 
@@ -104,14 +106,17 @@ No dedicated warm-start or parallel computation features added in any 0.21.x rel
 1. `evaluations/powermodels/Manifest.toml` — pinned dependency versions including PowerModels 0.21.5
 2. `evaluations/powermodels/Project.toml` — declared dependencies and compat bounds
 3. `evaluations/powermodels/notes/install-findings.md` — smoke test findings from 2026-03-03
-4. GitHub API: `https://api.github.com/repos/lanl-ansi/PowerModels.jl/releases` — release dates confirmed
+4. GitHub API: `https://api.github.com/repos/lanl-ansi/PowerModels.jl/releases` — release dates confirmed (v0.21.5 = 2025-08-12, verified 2026-03-13)
 5. GitHub raw: `https://raw.githubusercontent.com/lanl-ansi/PowerModels.jl/master/CHANGELOG.md` — full changelog text
-6. `https://lanl-ansi.github.io/PowerModels.jl/stable/specifications/` — problem specification docs
-7. `https://lanl-ansi.github.io/PowerModels.jl/stable/basic-data-utilities/` — PTDF, admittance, incidence matrix functions
-8. `https://lanl-ansi.github.io/PowerModels.jl/stable/multi-networks/` — multi-network (time series) API
-9. `https://lanl-ansi.github.io/PowerModels.jl/stable/network-data/` — supported data formats
-10. `https://lanl-ansi.github.io/PowerModels.jl/stable/utilities/` — utility solver functions
+6. `https://lanl-ansi.github.io/PowerModels.jl/stable/specifications/` — problem specification docs (PF, OPF, OPB, OTS, TNEP)
+7. `https://lanl-ansi.github.io/PowerModels.jl/stable/basic-data-utilities/` — PTDF, admittance, incidence, Jacobian matrix functions
+8. `https://lanl-ansi.github.io/PowerModels.jl/stable/multi-networks/` — multi-network (time series) API via `replicate()`
+9. `https://lanl-ansi.github.io/PowerModels.jl/stable/parser/` — supported data formats (MATPOWER .m, PSS/E .raw v33, JSON)
+10. `https://lanl-ansi.github.io/PowerModels.jl/stable/utilities/` — OBBT, lazy flow limits, PTDF cut solvers
 11. GitHub API: `https://api.github.com/repos/lanl-ansi/PowerModels.jl/contents/src/prob` — source file listing confirming problem types
+12. `https://lanl-ansi.github.io/PowerModels.jl/stable/formulations/` — network formulation types (ACPPowerModel, DCPPowerModel, IVRPowerModel, SOC/QC relaxations)
+13. `https://github.com/lanl-ansi/PowerModelsSecurityConstrained.jl` — extension package for SCOPF/contingency analysis (separate from core PowerModels)
+14. Devcontainer `julia --project=. -e 'using Pkg; Pkg.status()'` — runtime version verification (2026-03-13)
 
 ## Gaps and Uncertainties
 

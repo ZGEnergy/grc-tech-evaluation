@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: fail
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "3e956677"
+test_hash: "622d8ddd"
 ---
 
 # E-3: contributor_concentration

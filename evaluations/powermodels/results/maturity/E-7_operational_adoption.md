@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "c1355776"
+test_hash: "601fa6ca"
 ---
 
 # E-7: operational_adoption

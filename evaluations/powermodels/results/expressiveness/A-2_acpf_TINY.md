@@ -3,20 +3,20 @@ test_id: A-2
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 23f50ea3
+test_hash: 9f93e430
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.48
+wall_clock_seconds: 0.005
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 185
+loc: 346
 solver: NLsolve (Newton-Raphson)
-timestamp: 2026-03-12T03:24:30Z
+timestamp: 2026-03-13T12:00:00Z
 ---
 
 # A-2: AC Power Flow (ACPF) — Newton-Raphson
@@ -92,7 +92,7 @@ Branch P/Q flows sample (from `calc_branch_flow_ac`):
 
 ## Timing
 
-- **Wall-clock:** 0.48s (includes JIT compilation overhead for first invocation)
+- **Wall-clock:** 0.005s (warm run; first invocation ~0.15s including JIT compilation)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** not available (NLsolve diagnostic gap — see Workarounds)

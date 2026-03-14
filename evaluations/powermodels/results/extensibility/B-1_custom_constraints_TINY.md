@@ -6,17 +6,17 @@ network: TINY
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.247
+wall_clock_seconds: 0.981
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
 loc: 4
 solver: HiGHS
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 224f17c2
-timestamp: 2026-03-12T03:38:50Z
+test_hash: 6d6b3cf6
+timestamp: 2026-03-13T23:36:40Z
 ---
 
 # B-1: Custom Constraints (TINY)
@@ -59,7 +59,7 @@ None required. The two-level API is documented in the PowerModels quickguide and
 
 ## Timing
 
-- **Wall-clock:** 0.247 s (post-JIT; includes warm-up call before timing)
+- **Wall-clock:** 0.981 s (post-JIT; includes warm-up call before timing)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** Simplex 33 + QP ASM 100 (binding case, HiGHS)
