@@ -1,0 +1,1177 @@
+# eval-config.yaml — powersimulations
+# Auto-generated from Phase 1 Evaluation Rubric and Test Protocol
+# Tool: PowerSimulations.jl (NREL Sienna)
+
+protocol_version: "v10"
+tool: powersimulations
+
+# ---------------------------------------------------------------------------
+# Network Tiers
+# ---------------------------------------------------------------------------
+network_tiers:
+  TINY:
+    name: "IEEE 39-bus (New England)"
+    bus_count: 39
+    branch_count: 46
+    generator_count: 10
+    file_path: "data/networks/case39.m"
+    augmented_data: "data/timeseries/case39/"
+  SMALL:
+    name: "ACTIVSg 2k"
+    bus_count: "~2000"  # verify from .m file
+    branch_count: "verify from .m file"
+    generator_count: "verify from .m file"
+    file_path: "data/networks/case_ACTIVSg2000.m"
+  MEDIUM:
+    name: "ACTIVSg 10k"
+    bus_count: "~10000"  # verify from .m file
+    branch_count: "verify from .m file"
+    generator_count: "verify from .m file"
+    file_path: "data/networks/case_ACTIVSg10k.m"
+  LARGE:
+    name: "FNM Annual S01"
+    bus_count: "~30000"
+    source_path: "data/fnm/"
+    fnm_path_gated: true
+    intermediate_csvs: "data/fnm/reference/cleaned/intermediate/"
+    matpower_fallback: "data/fnm/reference/cleaned/fnm_main_island.mat"
+
+# ---------------------------------------------------------------------------
+# Dimensions
+# ---------------------------------------------------------------------------
+dimensions:
+  - name: gate
+    criterion_number: 0
+    suite: G
+    archetype: gate-evaluator
+    weight_rank: 0  # gate — must pass first
+    emits: []
+    consumes: []
+
+  - name: expressiveness
+    criterion_number: 1
+    suite: A
+    archetype: code-evaluator
+    weight_rank: 1
+    emits:
+      - api-friction
+      - doc-gaps
+      - workaround-needed
+      - solver-issues
+      - convergence-quality
+      - unit-mismatch
+    consumes: []
+
+  - name: extensibility
+    criterion_number: 2
+    suite: B
+    archetype: code-evaluator
+    weight_rank: 2
+    emits:
+      - api-friction
+      - doc-gaps
+      - workaround-needed
+      - solver-issues
+      - arch-quality
+    consumes: []
+
+  - name: scalability
+    criterion_number: 3
+    suite: C
+    archetype: code-evaluator
+    weight_rank: 3
+    emits:
+      - api-friction
+      - doc-gaps
+      - workaround-needed
+      - solver-issues
+      - cascaded-failure
+    consumes:
+      - solver-issues
+      - convergence-quality
+      - fnm-scale
+      - formulation-difference
+
+  - name: accessibility
+    criterion_number: 4
+    suite: D
+    archetype: audit-evaluator
+    weight_rank: 4
+    emits: []
+    consumes:
+      - api-friction
+      - doc-gaps
+      - convergence-quality
+      - unit-mismatch
+
+  - name: maturity
+    criterion_number: 5
+    suite: E
+    archetype: audit-evaluator
+    weight_rank: 5
+    emits: []
+    consumes:
+      - doc-gaps
+      - arch-quality
+
+  - name: supply_chain
+    criterion_number: 6
+    suite: F
+    archetype: audit-evaluator
+    weight_rank: 0  # gate criterion
+    emits:
+      - license-flags
+    consumes: []
+
+  - name: fnm_ingestion
+    criterion_number: 0
+    suite: G
+    archetype: code-evaluator
+    weight_rank: 0
+    fnm_path_gated: true
+    emits:
+      - fnm-data-model
+      - fnm-scale
+      - formulation-difference
+    consumes: []
+
+  - name: p2_readiness
+    criterion_number: 0
+    suite: P2
+    archetype: audit-evaluator
+    informational: true
+    weight_rank: 99
+    emits: []
+    consumes: []
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+tests:
+  # --- Gate Tests ---
+  - id: G-1
+    slug: ingest_tiny
+    dimension: gate
+    description: "Ingest IEEE 39-bus reference network"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Tool loads IEEE 39-bus without error. Bus count, branch count, and generator
+      count match expected values (39 buses, 46 branches, 10 generators).
+    solver: null
+    recorded_metrics: [pass_fail, bus_count, branch_count, gen_count]
+    converges_ac: false
+    test_hash: "0a74adbf"
+
+  - id: G-2
+    slug: ingest_small
+    dimension: gate
+    description: "Ingest ACTIVSg 2k reference network"
+    functional_network: SMALL
+    grade_network: SMALL
+    pass_condition: "Same verification on ACTIVSg 2k."
+    solver: null
+    recorded_metrics: [pass_fail, bus_count, branch_count, gen_count]
+    converges_ac: false
+    test_hash: "84277a12"
+
+  - id: G-3
+    slug: ingest_medium
+    dimension: gate
+    description: "Ingest ACTIVSg 10k reference network"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: "Same verification on ACTIVSg 10k."
+    solver: null
+    recorded_metrics: [pass_fail, bus_count, branch_count, gen_count]
+    converges_ac: false
+    test_hash: "2da513c6"
+
+  # --- Suite A: Problem Expressiveness ---
+  - id: A-1
+    slug: dcpf
+    dimension: expressiveness
+    description: "Solve DC power flow on TINY"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Converges. Nodal injections, line flows, and voltage angles accessible as
+      structured output (DataFrame, dict, or named array — not raw solver vector).
+    solver: null
+    recorded_metrics: [pass_fail, wall_clock, loc, output_format]
+    converges_ac: false
+    test_hash: "05bc255c"
+
+  - id: A-2
+    slug: acpf
+    dimension: expressiveness
+    description: "Solve AC power flow (Newton-Raphson) on TINY"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Converges. Convergence residual must be reported and below the tool's stated
+      tolerance. Number of NR iterations must be reported. Voltage magnitudes must
+      differ from flat-start defaults (1.0 pu) on >95% of buses. Bus voltage
+      magnitudes and angles, line P/Q flows, and losses accessible as structured
+      output. If the tool cannot report iteration count or residual, document this
+      as a diagnostic quality finding.
+    solver: "Ipopt"
+    recorded_metrics: [pass_fail, wall_clock, loc, convergence_residual, nr_iterations, output_format]
+    converges_ac: true
+    test_hash: "fca7353e"
+
+  - id: A-3
+    slug: dcopf
+    dimension: expressiveness
+    description: "Solve DC OPF with differentiated gen costs and 70% branch derating on TINY"
+    functional_network: TINY
+    grade_network: TINY
+    tiny_params: "differentiated generator costs from gen_temporal_params.csv and 70% branch derating"
+    pass_condition: >-
+      Converges. Optimal dispatch and LMPs/shadow prices extractable from solution.
+      With differentiated costs and 70% derating, at least 2 branches have non-zero
+      shadow prices (binding flow constraints). Report max LMP spread across buses.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, lmp_spread, binding_branches, output_format]
+    converges_ac: false
+    test_hash: "0ab69b36"
+
+  - id: A-4
+    slug: ac_feasibility
+    dimension: expressiveness
+    description: "AC feasibility check on DC OPF dispatch from A-3"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Achievable within the same model context (no export to file and reimport).
+      Voltage violations and thermal limit violations identifiable from results.
+    solver: "Ipopt"
+    recorded_metrics: [pass_fail, wall_clock, loc, voltage_violations, thermal_violations]
+    converges_ac: true
+    depends_on: [A-3]
+
+    test_hash: "8531c61c"
+
+  - id: A-5
+    slug: scuc
+    dimension: expressiveness
+    description: "Solve 24-hour SCUC with min up/down, startup costs, ramp rates, reserves"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Solves to feasibility (MIP gap <= 1%). At least 2 generators must cycle
+      (commit/decommit) during the 24-hour horizon. Commitment schedule extractable
+      as a time-indexed binary matrix. Built-in constraint types vs. user-assembled noted.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, mip_gap, cycling_generators, output_format]
+    converges_ac: false
+    test_hash: "2fe64f1c"
+
+  - id: A-6
+    slug: sced
+    dimension: expressiveness
+    description: "Fix commitment from A-5, solve economic dispatch as LP/QP"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Solves. Dispatch schedule extractable. UC and ED are cleanly separable as a
+      two-stage workflow. Ramp rate constraints are demonstrably enforced between
+      consecutive dispatch intervals in the ED stage — not just inherited from the
+      UC formulation.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, ramp_enforcement, output_format]
+    converges_ac: false
+    depends_on: [A-5]
+    test_hash: "5577e704"
+
+  - id: A-9
+    slug: scopf
+    dimension: expressiveness
+    description: "Solve DC OPF with N-1 contingency constraints embedded in optimization"
+    functional_network: TINY
+    grade_network: TINY
+    parameters: "all 46 branches as contingency set"
+    pass_condition: >-
+      Solves. Base-case dispatch respects all contingency flow limits simultaneously.
+      Dispatch and cost differ from unconstrained DC OPF (A-3) — SCOPF should be
+      more expensive. Contingency constraints are part of the optimization, not
+      checked post-hoc. If achievable only by manually enumerating contingency
+      constraints via B-1's custom constraint API, document the effort and classify
+      the workaround.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, objective_value, cost_difference_from_a3]
+    converges_ac: false
+    depends_on: [A-3]  # inferred — compares cost to A-3
+    test_hash: "9e0bfdc4"
+
+  - id: A-10
+    slug: lossy_dcopf_lmp
+    dimension: expressiveness
+    description: "Solve DC OPF with loss approximation and LMP decomposition"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Tool produces loss-inclusive LMPs where loss components are non-zero. LMP
+      decomposition extractable as structured output. Per-line congestion rent
+      computed and reconciled against congestion LMP components. Validate internal
+      consistency: (a) loss components have physically correct signs (positive
+      marginal loss at load buses far from generation), (b) total losses are 0.5-3%
+      of total load, (c) lossy objective exceeds lossless objective, (d) loss
+      component LMPs sum with energy and congestion components to total LMP within
+      1% tolerance.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, loss_pct, lmp_decomposition, congestion_rent]
+    converges_ac: false
+    test_hash: "0a550931"
+
+  - id: A-11
+    slug: distributed_slack_opf
+    dimension: expressiveness
+    description: "Solve DC OPF with distributed slack (load-proportional)"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Tool supports distributed slack formulation. LMPs differ from single-slack
+      results in a physically consistent manner (SMEC reflects the distributed
+      reference). Distributed slack weights are settable via API (e.g., proportional
+      to load, proportional to generation, or custom weights).
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, lmp_comparison_to_a3]
+    converges_ac: false
+    depends_on: [A-3]  # inferred — compares LMPs to A-3
+    test_hash: "95a0e3ae"
+
+  - id: A-12
+    slug: multiperiod_dcopf_storage
+    dimension: expressiveness
+    description: "24-hour multi-period DCOPF with storage and congestion (Modified Tiny)"
+    functional_network: TINY
+    grade_network: TINY
+    parameters: "Full Modified Tiny recipe: differentiated costs, quadratic costs (c2 = c1 * 0.001), renewables, BESS 150MW/600MWh cyclic SoC, 70% branch derating, 24h load profile"
+    pass_condition: >-
+      Three behavioral pass conditions: (1) Congestion reporting: Mean and std of
+      branch shadow prices computed by hour. At least 2 of 24 hours must have >=2
+      branches with non-zero shadow prices. (2) BESS arbitrage timing: Mean LMP at
+      the BESS bus during discharge hours (P > 0.01 MW) must exceed mean LMP during
+      charge hours (P < -0.01 MW). Hours with |P| <= 0.01 MW are excluded. (3) SoC
+      feasibility: SoC in [0, energy_capacity] at all timesteps, AND energy balance
+      trajectory consistent: |SoC[t] - SoC[t-1] - eta_ch*P_ch[t] + P_dis[t]/eta_dis|
+      < 1.0 MWh for each t (dt=1h).
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, shadow_prices, bess_dispatch, soc_trajectory, lmp_hourly]
+    converges_ac: false
+    test_hash: "82a3ff25"
+
+  # --- Suite B: Extensibility ---
+  - id: B-1
+    slug: custom_constraints
+    dimension: extensibility
+    description: "Add flow gate limit to DC OPF and assert on dual value"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Achievable through a documented API or extension mechanism. No source patching
+      or forking required. Dual value of custom constraint extractable and correctly
+      reflects binding status.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, loc, workaround_class, dual_value]
+    converges_ac: false
+    test_hash: "fececf15"
+
+  - id: B-2
+    slug: graph_access
+    dimension: extensibility
+    description: "BFS to depth 3 from a chosen bus"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Works via native graph primitives or clean, documented export to NetworkX
+      (Python) or Graphs.jl (Julia).
+    solver: null
+    recorded_metrics: [pass_fail, loc, method_used]
+    converges_ac: false
+    test_hash: "5068a626"
+
+  - id: B-3
+    slug: contingency_sweep
+    dimension: extensibility
+    description: "N-M contingency sweep with pruning, x=3 m=3 on TINY"
+    functional_network: TINY
+    grade_network: TINY
+    parameters: "x=3, m=3, all 46 branches"
+    pass_condition: >-
+      Completes without full model reconstruction per contingency case. Load loss
+      per contingency case collected. Pruning logic is expressible without fighting
+      the tool. Combinatorial enumeration and graph-distance scoping are achievable
+      via the tool's API or a clean graph library bridge.
+    solver: null
+    recorded_metrics: [pass_fail, wall_clock, loc, contingency_count, method_used]
+    converges_ac: false
+    test_hash: "f4d4e1ba"
+
+  - id: B-4
+    slug: stochastic_timeseries
+    dimension: extensibility
+    description: "20-scenario stochastic wrapping with 12hr multi-period DCOPF"
+    functional_network: TINY
+    grade_network: TINY
+    parameters: "20 scenarios, 12hr multi-period DCOPF, correlated perturbations by resource type"
+    pass_condition: >-
+      Tool accepts timeseries inputs programmatically (not from config files only).
+      Scenario loop is expressible without excessive per-scenario overhead. Results
+      (prices, dispatch) are collectable in a structured format.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, per_scenario_overhead]
+    converges_ac: false
+    test_hash: "9eebb1b8"
+
+  - id: B-5
+    slug: interoperability
+    dimension: extensibility
+    description: "Export DCPF results to DataFrames.jl and CSV"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Trivial — fewer than 5 lines of code beyond the solve. No custom
+      serialization logic required.
+    solver: null
+    recorded_metrics: [pass_fail, loc]
+    converges_ac: false
+    test_hash: "3d423124"
+
+  - id: B-6
+    slug: code_architecture
+    dimension: extensibility
+    description: "Qualitative assessment of DCPF solve path architecture"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Document: number of abstraction layers, whether network model / problem
+      formulation / solver interface / results are separated, whether internal
+      interfaces are documented.
+    solver: null
+    recorded_metrics: [abstraction_layers, separation_of_concerns, internal_docs]
+    converges_ac: false
+    test_hash: "0f337d8d"
+
+  - id: B-8
+    slug: reference_bus_config
+    dimension: extensibility
+    description: "Solve DC OPF with three slack configurations and compare LMPs"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      Reference bus / slack formulation is configurable via API without model
+      reconstruction. LMP values change consistently across configurations.
+      Evaluator documents the API calls required and workaround durability.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, loc, workaround_class, lmp_comparison]
+    converges_ac: false
+    test_hash: "8c18d155"
+
+  - id: B-9
+    slug: ptdf_extraction
+    dimension: extensibility
+    description: "Compute PTDF matrix for TINY (39-bus) and verify against DCPF"
+    functional_network: TINY
+    grade_network: TINY
+    pass_condition: >-
+      PTDF matrix accessible via native API, internal matrix extraction, or
+      unit-injection computation. Flow predictions match DCPF results within
+      numerical tolerance (1e-6). If the network contains phase-shifting
+      transformers (nonzero SHIFT column in branch data), the PTDF validation
+      must either (a) apply Pbusinj/Pfinj correction terms from the admittance
+      matrix construction, or (b) exclude branches with nonzero shift angles
+      from the accuracy comparison. The 1e-6 tolerance applies to the corrected
+      or filtered comparison.
+    solver: null
+    recorded_metrics: [pass_fail, wall_clock, loc, matrix_dimensions, method_used]
+    converges_ac: false
+    test_hash: "d8e7210b"
+
+  # --- Suite C: Scalability ---
+  - id: C-1
+    slug: dcpf_scale
+    dimension: scalability
+    description: "DCPF on MEDIUM (ACTIVSg 10k)"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: "Completes. Wall-clock time and peak memory recorded."
+    solver: null
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, cpu_utilization]
+    converges_ac: false
+    test_hash: "a3d2aa6b"
+
+  - id: C-2
+    slug: acpf_scale
+    dimension: scalability
+    description: "ACPF on MEDIUM (ACTIVSg 10k)"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: "Completes. Wall-clock time, peak memory, and iterations recorded."
+    solver: "Ipopt"
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, iterations, cpu_utilization]
+    converges_ac: true
+    test_hash: "a0a8dee4"
+
+  - id: C-3
+    slug: dcopf_scale
+    dimension: scalability
+    description: "DC OPF on MEDIUM with HiGHS and GLPK"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: >-
+      Completes with each solver. Wall-clock time per solver, peak memory,
+      objective value consistency across solvers.
+    solver: "HiGHS, GLPK"
+    recorded_metrics: [pass_fail, wall_clock_per_solver, peak_memory, objective_value, cpu_utilization]
+    converges_ac: false
+    test_hash: "a3df9080"
+
+  - id: C-4
+    slug: scuc_scale
+    dimension: scalability
+    description: "SCUC 24hr on SMALL with HiGHS and SCIP"
+    functional_network: SMALL
+    grade_network: SMALL
+    pass_condition: >-
+      Completes. Wall-clock time per solver, MIP gap at termination, peak memory.
+    solver: "HiGHS, SCIP"
+    recorded_metrics: [pass_fail, wall_clock_per_solver, mip_gap, peak_memory, cpu_utilization]
+    converges_ac: false
+    test_hash: "a5fda8dd"
+
+  - id: C-5
+    slug: ac_feasibility_progressive
+    dimension: scalability
+    description: "AC Feasibility — progressive relaxation on SMALL and MEDIUM"
+    functional_network: SMALL
+    grade_network: MEDIUM
+    parameters: "DCPF warm-start, progressive relaxation 0%/10%/20%"
+    pass_condition: >-
+      Diagnostic finding. Record relaxation level required (0%, 10%, 20%, or
+      infeasible). Wall-clock time per attempt. Whether solution was found.
+    solver: "Ipopt"
+    recorded_metrics: [pass_fail, relaxation_level, wall_clock_per_attempt, peak_memory, cpu_utilization]
+    converges_ac: true
+    test_hash: "878fdc60"
+
+  - id: C-7
+    slug: solver_swap
+    dimension: scalability
+    description: "Repeat C-3 with each available open-source solver on MEDIUM"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: >-
+      Whether solver swap requires reformulation or just a parameter change.
+      Time per solver.
+    solver: "HiGHS, GLPK, SCIP, Ipopt"
+    recorded_metrics: [pass_fail, wall_clock_per_solver, reformulation_required, cpu_utilization]
+    converges_ac: false
+    test_hash: "7f1a1ad3"
+
+  - id: C-8
+    slug: scopf_scale
+    dimension: scalability
+    description: "SCOPF N-1 (50 contingencies) on SMALL and MEDIUM"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    parameters: "N-1, 50 contingencies on SMALL, 50 on MEDIUM"
+    pass_condition: >-
+      Completes. Wall-clock time, peak memory, number of iterations (if screening),
+      number of binding contingencies.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, iterations, binding_contingencies, cpu_utilization]
+    converges_ac: false
+    test_hash: "b75f151e"
+
+  - id: C-9
+    slug: ptdf_scale
+    dimension: scalability
+    description: "PTDF matrix computation on MEDIUM"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: >-
+      Completes. Wall-clock time, peak memory, matrix density. Phase-shifter
+      correction terms (Pbusinj/Pfinj) must be applied per B-9 requirements.
+    solver: null
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, matrix_density, cpu_utilization]
+    converges_ac: false
+    test_hash: "88c2746b"
+
+  - id: C-10
+    slug: distributed_slack_scale
+    dimension: scalability
+    description: "Distributed slack DC OPF on MEDIUM"
+    functional_network: MEDIUM
+    grade_network: MEDIUM
+    pass_condition: >-
+      Completes. Wall-clock time, peak memory, LMP comparison vs single-slack.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, lmp_comparison, cpu_utilization]
+    converges_ac: false
+    test_hash: "0346f66d"
+
+  # --- Suite D: Workforce Accessibility ---
+  - id: D-1
+    slug: install_to_first_solve
+    dimension: accessibility
+    description: "Install tool and solve DCPF on TINY from clean environment"
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: >-
+      Wall-clock time from start to successful solve. Number and severity of
+      issues encountered.
+    solver: null
+    recorded_metrics: [wall_clock, issue_count, issue_severity]
+    converges_ac: false
+    test_hash: "ff986b90"
+
+  - id: D-2
+    slug: documentation_audit
+    dimension: accessibility
+    description: "Attempt Suite A tests using only official documentation"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Which tests were completable from docs alone. Where did the evaluator have
+      to read source, search issues, or guess?
+    solver: null
+    recorded_metrics: [tests_from_docs, tests_needing_source, doc_gaps]
+    converges_ac: false
+    test_hash: "d1e20188"
+
+  - id: D-3
+    slug: example_verification
+    dimension: accessibility
+    description: "Run every getting-started example and tutorial"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      How many run without modification? How many require fixes? How many are
+      silently broken?
+    solver: null
+    recorded_metrics: [examples_total, examples_pass, examples_broken, examples_fixed]
+    converges_ac: false
+    test_hash: "b9d3ff07"
+
+  - id: D-4
+    slug: error_quality
+    dimension: accessibility
+    description: "Introduce three deliberate errors and assess diagnostics"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      For each: does the tool surface a meaningful diagnostic, a cryptic solver
+      error, or fail silently?
+    solver: null
+    recorded_metrics: [error_a_quality, error_b_quality, error_c_quality]
+    converges_ac: false
+    test_hash: "9309430d"
+
+  - id: D-5
+    slug: code_volume
+    dimension: accessibility
+    description: "Count LOC for each Suite A test across all tools"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      LOC comparison table. Lower is better for accessibility, all else equal.
+    solver: null
+    recorded_metrics: [loc_per_test]
+    converges_ac: false
+    test_hash: "bfe66395"
+
+  # --- Suite E: Maturity & Sustainability ---
+  - id: E-1
+    slug: release_cadence
+    dimension: maturity
+    description: "Examine release history for last 24 months"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Number of releases, date of last release, whether releases are versioned
+      (semver or equivalent).
+    solver: null
+    recorded_metrics: [release_count, last_release_date, semver]
+    converges_ac: false
+    test_hash: "5748452f"
+
+  - id: E-2
+    slug: commit_activity
+    dimension: maturity
+    description: "Examine commit history for last 12 months"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Total commits, number of unique committers, ratio of substantive commits
+      (features, fixes) to maintenance (dependency bumps, CI).
+    solver: null
+    recorded_metrics: [total_commits, unique_committers, substantive_ratio]
+    converges_ac: false
+    test_hash: "44a090f5"
+
+  - id: E-3
+    slug: contributor_concentration
+    dimension: maturity
+    description: "Identify top 3 contributors by commit volume"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Percentage of total commits from top contributor. Bus factor assessment.
+    solver: null
+    recorded_metrics: [top_contributor_pct, bus_factor]
+    converges_ac: false
+    test_hash: "3e956677"
+
+  - id: E-4
+    slug: funding_model
+    dimension: maturity
+    description: "Research institutional backing and funding model"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Funding source(s), grant dependency, institutional affiliation. Assess
+      durability.
+    solver: null
+    recorded_metrics: [funding_sources, durability_assessment]
+    converges_ac: false
+    test_hash: "21fed0a4"
+
+  - id: E-5
+    slug: issue_tracker_health
+    dimension: maturity
+    description: "Sample last 20 closed and 10 open issues"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Median time-to-close, ratio of acknowledged to ignored issues, quality
+      of responses.
+    solver: null
+    recorded_metrics: [median_ttc, ack_ratio, response_quality]
+    converges_ac: false
+    test_hash: "d2f277d5"
+
+  - id: E-6
+    slug: ci_test_coverage
+    dimension: maturity
+    description: "Examine CI configuration and test suite"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      CI exists (yes/no), test suite exists (yes/no), approximate coverage if
+      measurable, whether tests pass on current release.
+    solver: null
+    recorded_metrics: [ci_exists, test_suite_exists, coverage_pct, ci_green]
+    converges_ac: false
+    test_hash: "b8b60049"
+
+  - id: E-7
+    slug: operational_adoption
+    dimension: maturity
+    description: "Search for operational adoption evidence"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Documented deployments, case studies, or credible references. Distinguish
+      from academic-only citation.
+    solver: null
+    recorded_metrics: [deployments, case_studies, operational_vs_academic]
+    converges_ac: false
+    test_hash: "c1355776"
+
+  # --- Suite F: Supply Chain ---
+  - id: F-1
+    slug: core_license
+    dimension: supply_chain
+    description: "Identify license of main package"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      License type. Flag if copyleft (requires legal review) or proprietary
+      (disqualifying).
+    solver: null
+    recorded_metrics: [license_type, copyleft_flag]
+    converges_ac: false
+    test_hash: "aa399551"
+
+  - id: F-2
+    slug: dependency_tree
+    dimension: supply_chain
+    description: "Generate full dependency tree"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Total dependency count, tree depth, any unresolvable or unpinned
+      dependencies.
+    solver: null
+    recorded_metrics: [dep_count, tree_depth, unpinned_count]
+    converges_ac: false
+    test_hash: "8b638f83"
+
+  - id: F-3
+    slug: dependency_license_audit
+    dimension: supply_chain
+    description: "Check license of every dependency"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Any proprietary, unknown, or problematic licenses flagged.
+    solver: null
+    recorded_metrics: [flagged_licenses]
+    converges_ac: false
+    test_hash: "15e985d9"
+
+  - id: F-4
+    slug: compiled_extension_audit
+    dimension: supply_chain
+    description: "Identify compiled components in execution path"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      For each: is source available? Is it buildable from source?
+    solver: null
+    recorded_metrics: [compiled_components, source_available, buildable]
+    converges_ac: false
+    test_hash: "4fd147b3"
+
+  - id: F-5
+    slug: code_inspectability
+    dimension: supply_chain
+    description: "Trace execution path from API call to solver invocation"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Full module list. Any opaque steps flagged.
+    solver: null
+    recorded_metrics: [module_list, opaque_steps]
+    converges_ac: false
+    test_hash: "6108ab51"
+
+  - id: F-6
+    slug: distribution_integrity
+    dimension: supply_chain
+    description: "Check release distribution and integrity"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Versioned releases (yes/no), signed artifacts (yes/no), distribution
+      channel. Flag unversioned tarballs or blob store artifacts.
+    solver: null
+    recorded_metrics: [versioned, signed, channel]
+    converges_ac: false
+    test_hash: "9b2cbfb5"
+
+  - id: F-7
+    slug: airgap_installability
+    dimension: supply_chain
+    description: "Assess air-gap installation feasibility"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Can all packages be downloaded as files and installed offline? Any
+      dependencies that require network access at runtime?
+    solver: null
+    recorded_metrics: [offline_installable, runtime_network_deps]
+    converges_ac: false
+    test_hash: "462a162d"
+
+  - id: F-8
+    slug: solver_dependency
+    dimension: supply_chain
+    description: "Confirm all target use cases work on open-source solvers"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Which solvers tested (HiGHS, SCIP, Ipopt, GLPK). Any use cases that fail
+      or degrade unacceptably without a commercial solver.
+    solver: null
+    recorded_metrics: [solvers_tested, commercial_required]
+    converges_ac: false
+    test_hash: "10863706"
+
+  - id: F-9
+    slug: getting_started_integrity
+    dimension: supply_chain
+    description: "Examine getting-started artifact integrity"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Are examples pinned to a specific release version? Or do they reference
+      unversioned downloads, main branch, or mutable URLs?
+    solver: null
+    recorded_metrics: [pinned_examples, mutable_urls]
+    converges_ac: false
+    test_hash: "738f75e3"
+
+  # --- Suite G: FNM Ingestion ---
+  - id: G-FNM-1
+    slug: fnm_ingestion_gate
+    dimension: fnm_ingestion
+    description: "Intermediate format ingestion — two-check gate (PSS/E compat + record counts)"
+    functional_network: LARGE
+    grade_network: LARGE
+    pass_condition: >-
+      G-FNM-1 has two sub-checks. (a) PSS/E compatibility: if the tool fails to
+      parse the intermediate CSV tables, record failure_reason: psse_parse_error,
+      emit a blocking api-friction observation, and proceed to G-FNM-3/4/5 via
+      MATPOWER fallback — G-FNM-2 is blocked. (b) Record count fidelity (only
+      checked if PSS/E parsing succeeds): all record counts must match the manifest
+      exactly. Zero records missing, zero extra records.
+    solver: null
+    recorded_metrics: [pass_fail, psse_compat, record_counts, wall_clock]
+    converges_ac: false
+    test_hash: "7827a912"
+
+  - id: G-FNM-2
+    slug: fnm_field_coverage
+    dimension: fnm_ingestion
+    description: "Field coverage audit against criticality matrix"
+    functional_network: LARGE
+    grade_network: LARGE
+    pass_condition: >-
+      100% of DCPF-critical fields must be present across all 19 DCPF-critical
+      fields. ACPF-critical field coverage is reported but not gated.
+      Informational and Discardable field omissions are noted but carry no
+      grade impact.
+    solver: null
+    recorded_metrics: [dcpf_critical_pct, acpf_critical_pct, informational_pct, discardable_pct]
+    converges_ac: false
+    depends_on: [G-FNM-1]
+    test_hash: "21c38623"
+
+  - id: G-FNM-3
+    slug: fnm_dcpf_verification
+    dimension: fnm_ingestion
+    description: "DCPF verification against reference solution on FNM"
+    functional_network: LARGE
+    grade_network: LARGE
+    pass_condition: >-
+      Pass if all aggregate thresholds are met and no hard-fail condition is
+      triggered, per the dcpf section of data/fnm/reference/pass_conditions.json.
+    solver: "HiGHS"
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, va_deviation, flow_deviation, input_path]
+    converges_ac: false
+    depends_on: [G-FNM-1]  # inferred — needs ingested model
+    test_hash: "ed61e7f5"
+
+  - id: G-FNM-4
+    slug: fnm_acpf_convergence
+    dimension: fnm_ingestion
+    description: "ACPF convergence — DCPF warm-start + progressive relaxation on FNM"
+    functional_network: LARGE
+    grade_network: LARGE
+    parameters: "DCPF warm-start, progressive relaxation 0%/10%/20%, 30 min/level"
+    pass_condition: >-
+      No hard pass/fail gate. All outcomes are diagnostic findings. Record
+      relaxation_level_achieved: 0%, 10%, 20%, or infeasible.
+    solver: "Ipopt"
+    recorded_metrics: [relaxation_level, wall_clock_per_attempt, peak_memory, input_path, dcpf_init_mean_deg, dcpf_init_max_abs_deg]
+    converges_ac: true
+    depends_on: [G-FNM-1]  # inferred — needs ingested model
+    test_hash: "bfd9783e"
+
+  - id: G-FNM-5
+    slug: fnm_supplemental_csv
+    dimension: fnm_ingestion
+    description: "Supplemental CSV representability assessment"
+    functional_network: LARGE
+    grade_network: LARGE
+    pass_condition: >-
+      No hard pass/fail gate. Evidence-collection test. For each CSV, report:
+      total fields, count and percentage by achieved representability tier (N/E/X),
+      and per-field comparison against the analytical classification.
+    solver: null
+    recorded_metrics: [per_csv_representability, market_solution_fidelity_summary]
+    converges_ac: false
+    depends_on: [G-FNM-1]  # inferred — needs ingested model
+    test_hash: "f22bb37f"
+
+  # --- Phase 2 Readiness ---
+  - id: P2-1
+    slug: psse_raw_parsing
+    dimension: p2_readiness
+    description: "PSS/E RAW format parsing capability"
+    functional_network: N/A
+    grade_network: N/A
+    pass_condition: >-
+      Capability (yes/no), supported RAW versions, estimated effort to add
+      if absent.
+    solver: null
+    recorded_metrics: [capability, supported_versions, effort_estimate]
+    converges_ac: false
+    test_hash: "9f8ed88f"
+
+  - id: P2-2
+    slug: piecewise_linear_cost
+    dimension: p2_readiness
+    description: "Piecewise-linear cost curve support"
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: >-
+      Capability (yes/no), formulation type (SOS2, lambda, incremental), solver
+      compatibility, any limitations.
+    solver: null
+    recorded_metrics: [capability, formulation_type, solver_compat]
+    converges_ac: false
+    test_hash: "e6aab840"
+
+  - id: P2-3
+    slug: commitment_injection
+    dimension: p2_readiness
+    description: "Commitment injection workflow: lock SCUC schedule, solve DCOPF, run AC PF"
+    functional_network: TINY
+    grade_network: N/A
+    pass_condition: >-
+      Capability per step, effort level, API friction.
+    solver: null
+    recorded_metrics: [capability_per_step, effort_level, api_friction]
+    converges_ac: false
+    depends_on: [A-5]  # inferred — uses SCUC schedule
+    test_hash: "4a4fe24e"
+
+# ---------------------------------------------------------------------------
+# Execution DAG
+# ---------------------------------------------------------------------------
+execution_dag:
+  - step: 1
+    label: "Gate tests"
+    dimensions:
+      - name: gate
+        tier: ALL
+        test_ids: [G-1, G-2, G-3]
+
+  - step: 2
+    label: "Suite G FNM ingestion gate"
+    fnm_path_gated: true
+    dimensions:
+      - name: fnm_ingestion
+        tier: LARGE
+        test_ids: [G-FNM-1]
+
+  - step: 3
+    label: "TINY functional — expressiveness core (DCPF, ACPF, DCOPF)"
+    dimensions:
+      - name: expressiveness
+        tier: TINY
+        test_ids: [A-1, A-2, A-3]
+
+  - step: 4
+    label: "TINY functional — expressiveness dependent (AC feasibility, SCUC, SCOPF)"
+    dimensions:
+      - name: expressiveness
+        tier: TINY
+        test_ids: [A-4, A-5, A-9]
+
+  - step: 5
+    label: "TINY functional — expressiveness advanced (SCED, lossy DCOPF, distributed slack, multi-period storage)"
+    dimensions:
+      - name: expressiveness
+        tier: TINY
+        test_ids: [A-6, A-10, A-11, A-12]
+
+  - step: 6
+    label: "TINY functional — extensibility core (custom constraints, graph, contingency sweep)"
+    dimensions:
+      - name: extensibility
+        tier: TINY
+        test_ids: [B-1, B-2, B-3]
+
+  - step: 7
+    label: "TINY functional — extensibility advanced (stochastic, interop, arch, ref bus, PTDF)"
+    dimensions:
+      - name: extensibility
+        tier: TINY
+        test_ids: [B-4, B-5, B-6, B-8, B-9]
+
+  - step: 8
+    label: "Suite G FNM downstream (field coverage, DCPF, ACPF, supplemental CSV)"
+    fnm_path_gated: true
+    dimensions:
+      - name: fnm_ingestion
+        tier: LARGE
+        test_ids: [G-FNM-2, G-FNM-3, G-FNM-4, G-FNM-5]
+
+  - step: 9
+    label: "Scalability — SMALL tier gate"
+    c_scale_gate: true
+    dimensions:
+      - name: scalability
+        tier: SMALL
+        test_ids: [C-4, C-5]
+
+  - step: 10
+    label: "Scalability — MEDIUM tier (DCPF, ACPF, DCOPF, solver swap, PTDF)"
+    dimensions:
+      - name: scalability
+        tier: MEDIUM
+        test_ids: [C-1, C-2, C-3, C-7, C-9]
+
+  - step: 11
+    label: "Scalability — MEDIUM tier (SCOPF, distributed slack, AC feasibility)"
+    dimensions:
+      - name: scalability
+        tier: MEDIUM
+        test_ids: [C-5, C-8, C-10]
+
+  - step: 12
+    label: "Audit dimensions — accessibility"
+    dimensions:
+      - name: accessibility
+        tier: N/A
+        test_ids: [D-1, D-2, D-3, D-4, D-5]
+
+  - step: 13
+    label: "Audit dimensions — maturity"
+    dimensions:
+      - name: maturity
+        tier: N/A
+        test_ids: [E-1, E-2, E-3, E-4, E-5]
+
+  - step: 14
+    label: "Audit dimensions — maturity (continued) + supply chain core"
+    dimensions:
+      - name: maturity
+        tier: N/A
+        test_ids: [E-6, E-7]
+      - name: supply_chain
+        tier: N/A
+        test_ids: [F-1, F-2, F-3]
+
+  - step: 15
+    label: "Supply chain — inspectability and distribution"
+    dimensions:
+      - name: supply_chain
+        tier: N/A
+        test_ids: [F-4, F-5, F-6, F-7, F-8]
+
+  - step: 16
+    label: "Supply chain — getting-started integrity"
+    dimensions:
+      - name: supply_chain
+        tier: N/A
+        test_ids: [F-9]
+
+  - step: 17
+    label: "Phase 2 readiness findings"
+    dimensions:
+      - name: p2_readiness
+        tier: N/A
+        test_ids: [P2-1, P2-2, P2-3]
+
+# ---------------------------------------------------------------------------
+# Reference Counts (for gate validation)
+# ---------------------------------------------------------------------------
+reference_counts:
+  TINY:
+    buses: 39
+    branches: 46
+    generators: 10
+  SMALL:
+    buses: "verify from .m file"
+    branches: "verify from .m file"
+    generators: "verify from .m file"
+  MEDIUM:
+    buses: "verify from .m file"
+    branches: "verify from .m file"
+    generators: "verify from .m file"
