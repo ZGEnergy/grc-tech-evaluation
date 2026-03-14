@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "5748452f"
+test_hash: "979d2d63"
 ---
 
 # E-1: release_cadence
@@ -19,7 +19,7 @@ PowerModels.jl has made 5 releases in the last 24 months (March 2024–March 202
 
 ## Evidence
 
-### Releases in last 24 months (since 2024-03-11):
+### Releases in last 24 months (since 2024-03-13):
 
 | Tag | Date | Pre-release |
 |-----|------|-------------|
@@ -36,7 +36,11 @@ PowerModels.jl has made 5 releases in the last 24 months (March 2024–March 202
 
 GitHub releases page: <https://github.com/lanl-ansi/PowerModels.jl/releases>
 
-The cadence averages roughly one release every 5 months. Note that v0.21.4 was a significant release bundling 14 PRs (April–May 2025 period); v0.21.5 was minor. No releases have occurred after August 2025.
+The cadence averages roughly one release every 5 months. Note that v0.21.4 was a significant release bundling 14 PRs (April-May 2025 period); v0.21.5 was minor. No releases have occurred after August 2025.
+
+## Consumed Observations
+
+Documentation gaps observed during expressiveness and extensibility testing (doc-gap observations for A-9 and B-6) indicate the API is functional but under-documented in areas like LODF computation and formulation-specific constraint methods. This does not affect release cadence assessment but contextualizes the maturity of the documentation alongside the release process.
 
 ## Implications
 

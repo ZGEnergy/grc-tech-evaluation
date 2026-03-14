@@ -5,42 +5,59 @@ dimension: supply_chain
 network: N/A
 status: pass
 workaround_class: null
-timestamp: "2026-03-11T00:00:00Z"
-protocol_version: "v9"
+timestamp: "2026-03-13T23:01:54Z"
+protocol_version: v10
 skill_version: v1
-test_hash: "4fd147b3"
+test_hash: "0697916b"
 ---
 
-# F-4: Identify compiled components in the execution path
+# F-4: Identify compiled components in execution path
 
 ## Finding
 
-PowerModels.jl itself is pure Julia with no compiled extensions. All compiled components are in the solver JLL packages (Ipopt, HiGHS, GLPK, SCIP), where native shared libraries are wrapped by Julia bindings. Source code is available for all major compiled components; binaries are reproducibly built from source via the JuliaPackaging/Yggdrasil build recipes.
+PowerModels.jl itself is pure Julia with no compiled extensions. All compiled components reside in JLL (Julia Binary Wrapper) packages for solvers and numerical libraries. Source code is publicly available for every compiled component, and all are reproducibly built via the JuliaPackaging/Yggdrasil build system.
 
 ## Evidence
 
-**PowerModels.jl itself:** Pure Julia source code. No `ccall`, no C extensions, no Fortran code, no binary artifacts. Verified by inspecting `/opt/julia-depot/packages/PowerModels/VCmhH/src/` — all `.jl` files.
+**PowerModels.jl:** Pure Julia source code. No `ccall` declarations, no C/Fortran extensions, no binary artifacts in the package itself. Verified by inspecting all `.jl` files under `/opt/julia-depot/packages/PowerModels/VCmhH/src/`.
 
-### Compiled components in the execution path:
+### Compiled components in execution path (35 JLL packages total):
 
-| Component | Type | Location | Source available? | Buildable from source? |
-|-----------|------|----------|-------------------|----------------------|
-| libipopt.so.3 | C++ NLP solver | `/opt/julia-depot/artifacts/70465b8ab4c5555d0a58aeb9b5069e4a814f3df0/lib/libipopt.so.3` | Yes — <https://github.com/coin-or/Ipopt> | Yes — standard CMake build |
-| libmumps_seq.so | Fortran sparse linear solver (Ipopt dependency) | via MUMPS_seq_jll artifact | Yes — <https://github.com/JuliaSparse/MUMPS_seq_jll.jl> + source at mumps-solver.org | Yes — standard Fortran/C build |
-| libhighs.so.1.13.1 | C++ LP/MIP/QP solver | `/opt/julia-depot/artifacts/57846bf52e8d91e2d6dfef3b0e474315208dc524/lib/libhighs.so.1.13.1` | Yes — <https://github.com/ERGO-Code/HiGHS> | Yes — CMake build |
-| libglpk.so.40 | C LP/MIP solver | `/opt/julia-depot/artifacts/bc64c29f1b72c24f25fad29b5e5fbe3e0d8bf7b0/lib/libglpk.so.40` | Yes — <https://www.gnu.org/software/glpk/> | Yes — Autoconf build |
-| libscip.so (SCIP) | C++ MIP solver | via SCIP_jll artifact | Yes — <https://www.scipopt.org> (source tarball registration required) | Yes — CMake build |
-| libspral.so (SPRAL) | Fortran/C sparse linear solver | via SPRAL_jll | Yes — <https://github.com/ralna/spral> | Yes |
-| OpenBLAS / libblastrampoline | BLAS/LAPACK | stdlib | Yes | Yes |
+#### Solver binaries (directly invoked):
 
-**JLL build infrastructure:** All JLL packages (e.g., `Ipopt_jll`, `HiGHS_jll`) are built via the [JuliaPackaging/Yggdrasil](https://github.com/JuliaPackaging/Yggdrasil) repository using standardized build recipes. The build logs are public and linked from each JLL package's GitHub repository.
+| Component | Language | JLL Package | Source Available? | Buildable? |
+|-----------|----------|-------------|-------------------|------------|
+| libipopt.so | C++ | Ipopt_jll v300.1400.1901 | Yes — [github.com/coin-or/Ipopt](https://github.com/coin-or/Ipopt) | Yes — CMake |
+| libhighs.so | C++ | HiGHS_jll v1.13.1 | Yes — [github.com/ERGO-Code/HiGHS](https://github.com/ERGO-Code/HiGHS) | Yes — CMake |
+| libglpk.so | C | GLPK_jll v5.0.1 | Yes — [gnu.org/software/glpk](https://www.gnu.org/software/glpk/) | Yes — Autoconf |
+| libscip.so | C++ | SCIP_jll v0.2.1 (SCIP 8.0.0) | Yes — [scipopt.org](https://www.scipopt.org) | Yes — CMake |
 
-**Artifact verification:** Every artifact in `Manifest.toml` includes a `git-tree-sha1` hash, enabling integrity verification. Julia's package manager verifies this hash on download.
+#### Numerical libraries (solver dependencies):
 
-**METIS_jll, Hwloc_jll, XML2_jll, Zlib_jll, Bzip2_jll:** Additional compiled dependencies in the SCIP/HiGHS/Ipopt call chain. All are OSS with available source code.
+| Component | Language | JLL Package | Source Available? | Buildable? |
+|-----------|----------|-------------|-------------------|------------|
+| libmumps_seq.so | Fortran/C | MUMPS_seq_jll v500.800.200 | Yes — mumps-solver.org | Yes — Make/CMake |
+| libspral.so | Fortran/C | SPRAL_jll v2025.9.18 | Yes — [github.com/ralna/spral](https://github.com/ralna/spral) | Yes |
+| libopenblas.so | Fortran/C | OpenBLAS_jll v0.3.23 | Yes — [github.com/OpenMathLib/OpenBLAS](https://github.com/OpenMathLib/OpenBLAS) | Yes |
+| libgmp.so | C | GMP_jll v6.2.1 | Yes — [gmplib.org](https://gmplib.org) | Yes — Autoconf |
+| libmetis.so | C | METIS_jll v5.1.3 | Yes — [github.com/KarypisLab/METIS](https://github.com/KarypisLab/METIS) | Yes — CMake |
+| SuiteSparse libs | C | SuiteSparse_jll v7.2.1 | Yes — [github.com/DrTimothyAldenDavis/SuiteSparse](https://github.com/DrTimothyAldenDavis/SuiteSparse) | Yes — CMake |
 
-No opaque proprietary binaries were identified in the execution path.
+#### Infrastructure libraries:
+
+| Component | Purpose | Source Available? |
+|-----------|---------|-------------------|
+| libcurl, libssh2, libgit2 | Package management (not in solver path) | Yes |
+| libz, libbz2 | Compression | Yes |
+| libgcc_s, libgfortran, libstdc++ | Compiler runtime | Yes (GCC) |
+| libblastrampoline | BLAS dispatch | Yes (Julia stdlib) |
+
+### Build infrastructure:
+
+All JLL packages are built via the [JuliaPackaging/Yggdrasil](https://github.com/JuliaPackaging/Yggdrasil) repository using standardized, auditable build recipes (BinaryBuilder.jl). Build logs are public. Every artifact in Manifest.toml includes a `git-tree-sha1` hash verified by Julia's package manager on download.
+
+No proprietary or opaque binaries were identified anywhere in the execution path.
 
 ## Implications
 
-All compiled components have publicly available source code and standard build toolchains. The JLL packaging system provides reproducible binary builds. No black-box or proprietary binaries exist in the standard PowerModels execution path. This is a clean result for supply chain inspectability.
+All 35 compiled components have publicly available source code and standard build toolchains. The JLL packaging system provides reproducible binary builds with integrity verification. No black-box binaries exist in the PowerModels execution path. This is a clean result for compiled extension auditability.

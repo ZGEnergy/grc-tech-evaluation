@@ -3,20 +3,20 @@ test_id: A-3
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 7e613cf3
+test_hash: c29ae4d0
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 2.38
+wall_clock_seconds: 0.007
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 215
+loc: 354
 solver: HiGHS
-timestamp: 2026-03-12T03:24:30Z
+timestamp: 2026-03-13T12:00:00Z
 ---
 
 # A-3: DC OPF with Modified Tiny Data
@@ -54,8 +54,8 @@ result = PowerModels.solve_dc_opf(
 |--------|-------|
 | Termination status | OPTIMAL |
 | Objective | $215,211/h |
-| Solver time | 0.0015s (HiGHS solve only) |
-| Wall clock | 2.38s (includes Julia JIT on first run) |
+| Solver time | 0.0011s (HiGHS solve only) |
+| Wall clock | 0.007s (warm run; first invocation ~1.9s with JIT) |
 | Total generation | 6,254 MW |
 | Binding branches | 5 / 46 |
 | LMP min | $7.76/MWh (bus 2) |
@@ -114,12 +114,11 @@ None required. `solve_dc_opf` with `setting=Dict("output"=>Dict("duals"=>true))`
 
 ## Timing
 
-- **Wall-clock:** 2.38s (first invocation, includes Julia JIT compilation for JuMP/HiGHS)
+- **Wall-clock:** 0.007s (warm run; first invocation ~1.9s including JIT compilation for JuMP/HiGHS)
 - **Timing source:** measured
 - **Peak memory:** not measured
-- **Solver time (HiGHS only):** 0.0015s
+- **Solver time (HiGHS only):** 0.0011s
 - **CPU cores used:** 1 (HiGHS configured with `threads=1`)
-- **Note:** On subsequent calls (REPL warm run), expected time < 0.01s
 
 ## Test Script
 

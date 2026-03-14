@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "21fed0a4"
+test_hash: "d33b1613"
 ---
 
 # E-4: funding_model
