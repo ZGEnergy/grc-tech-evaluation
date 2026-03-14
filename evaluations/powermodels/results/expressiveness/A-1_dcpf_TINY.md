@@ -3,20 +3,20 @@ test_id: A-1
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 27447b9e
+test_hash: 0377830c
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.49
+wall_clock_seconds: 0.003
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 155
+loc: 250
 solver: null
-timestamp: 2026-03-12T03:24:30Z
+timestamp: 2026-03-13T12:00:00Z
 ---
 
 # A-1: DC Power Flow (DCPF)
@@ -88,7 +88,7 @@ Branch flow sample (from angle-based calculation):
 
 ## Timing
 
-- **Wall-clock:** 0.49s (first invocation, includes JIT compilation overhead)
+- **Wall-clock:** 0.003s (warm run; first invocation ~0.56s including JIT compilation)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** N/A (direct linear algebra solve, no iterative solver)

@@ -1,45 +1,45 @@
-# Observation: fnm-data-model — MATPOWER Fallback Record Count Discrepancies
+---
+tag: fnm-data-model
+source_dimension: fnm_ingestion
+source_test: G-FNM-1
+tool: powermodels
+severity: medium
+timestamp: "2026-03-13T00:00:00Z"
+---
 
-**observation_type:** fnm-data-model
-**test_id:** G-FNM-1
-**dimension:** fnm_ingestion
-**tool:** powermodels
-**severity:** informational (fallback scope mismatch; not a PowerModels defect)
-**timestamp:** 2026-03-11T00:00:00Z
+# Observation: MATPOWER Fallback Record Count Discrepancies
 
 ## Finding
 
-When loading the cleaned MATPOWER fallback (`fnm_main_island.m`), PowerModels parsed counts
-differ from the intermediate manifest across all four primary tables:
+When loading the cleaned MATPOWER fallback (`fnm_main_island.m`), PowerModels parsed
+counts differ from the intermediate manifest across all four primary tables. The
+discrepancies are attributable to the fallback being a pre-cleaned main-island subset,
+not to PowerModels ingestion defects.
 
-| Table              | Manifest | Actual | Delta  | %     |
-|--------------------|----------|--------|--------|-------|
-| bus                | 30307    | 27862  | −2445  | −8.1% |
-| load               | 15062    | 8624   | −6438  | −42.7%|
-| generator          | 5768     | 5741   | −27    | −0.5% |
-| branch+transformer | 33840    | 32606  | −1234  | −3.6% |
+## Context
 
-## Interpretation
+G-FNM-1 record count comparison (manifest vs. PowerModels actual):
 
-The manifest counts raw PSS/E v31 records including isolated buses (`bus_type=4`),
-de-energized equipment, and off-island network fragments. The `fnm_main_island.m`
-fallback file is a pre-cleaned extract of the main island only — it intentionally
-excludes those elements.
+| Table | Manifest | Actual | Delta | % Diff |
+|-------|----------|--------|-------|--------|
+| bus | 30,307 | 27,862 | -2,445 | -8.1% |
+| load | 15,062 | 8,624 | -6,438 | -42.7% |
+| generator | 5,768 | 5,741 | -27 | -0.5% |
+| branch+transformer | 33,840 | 32,606 | -1,234 | -3.6% |
 
-The load discrepancy (−42.7%) is the most striking: roughly 6,400 loads exist on
-buses that were removed during the cleaning step or are attached to the off-network
-model. This reflects that a large portion of the PSS/E load records are on off-island
-or isolated buses.
+The manifest counts raw PSS/E v31 records including isolated buses (IDE=4), de-energized
+equipment, and off-island network fragments. The `fnm_main_island.m` fallback is a
+pre-cleaned extract of the main island only.
 
-## Implications for Tool Evaluation
+The load discrepancy (-42.7%) is the most striking: roughly 6,400 loads exist on buses
+that were removed during the cleaning step. The bus, generator, and branch discrepancies
+are proportionally smaller and consistent with removing isolated/off-island elements.
+
+## Implications
 
 This discrepancy does not indicate a PowerModels data-model defect. It reflects that
 the two inputs (raw PSS/E manifest vs. cleaned MATPOWER fallback) have different scope.
-A valid G-FNM-1 test would require either:
-
-1. PowerModels successfully parsing the raw PSS/E file (currently blocked), or
-2. A MATPOWER fallback whose manifest counts were derived from the same cleaned scope.
-
-If G-FNM-1 were run against the raw PSS/E file successfully, the branch+transformer
-merged count check (33840) would be the key verification for PowerModels' transformer
-merge accounting.
+The post-ingestion fidelity checks (baseMVA=100, slack bus 29421, tap ratio preservation)
+all pass on the loaded data, confirming PowerModels correctly parses what it receives.
+A valid full-fidelity comparison would require either PowerModels successfully parsing the
+raw PSS/E file (currently blocked) or a manifest derived from the same cleaned scope.

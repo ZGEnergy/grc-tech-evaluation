@@ -3,20 +3,20 @@ test_id: A-6
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 88fa3558
+test_hash: 80698350
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 37.3
+wall_clock_seconds: 1.81
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 260
+loc: 240
 solver: HiGHS
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
 # A-6: SCED (Security-Constrained Economic Dispatch)
@@ -58,11 +58,11 @@ ramp_pu = ramp_mw / base_mva
 | Network | 39 buses, 46 branches, 10 gens, baseMVA=100 |
 | Periods | 24 (1h resolution) |
 | Solver status | OPTIMAL |
-| Objective (total cost) | 2,410,754.87 $/day |
+| Objective (total cost) | 3,115,622.56 $/day |
 | Ramp constraints added | 460 (2 per gen per interval × 10 gens × 23 transitions) |
 | Ramp violations found | 0 (verified post-solve) |
 | Wall clock | 37.3s (includes JIT) |
-| LOC | 260 |
+| LOC | 240 |
 
 ### Dispatch summary (period 1):
 
@@ -88,8 +88,8 @@ Post-solve check across all 230 consecutive-period pairs (10 gens × 23 transiti
 
 ## Timing
 
-- **Wall-clock:** 37.3s total (first invocation, includes JIT)
-- **Multi-period LP solve (24 periods):** ~1.5s
+- **Wall-clock:** 1.81s (warm JIT)
+- **Multi-period LP solve (24 periods):** ~1.1s
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1 (HiGHS single-threaded)

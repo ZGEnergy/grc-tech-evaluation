@@ -2,14 +2,12 @@
 Test C-3: DC OPF Scale — MEDIUM grade assessment (multi-solver)
 Dimension: scalability
 Network: MEDIUM (ACTIVSg 10000-bus, case_ACTIVSg10k.m)
-Pass condition: Wall-clock time per solver, peak memory, objective value recorded.
-                Consistency across solvers verified.
+Pass condition: Wall-clock time per solver, peak memory, objective value (verify
+  consistency across solvers)
 Tool: PowerModels.jl v0.21.5
 Solvers: HiGHS (primary), GLPK (secondary — per solver-config.md)
 
 Notes:
-  - HiGHS timing sourced from A-3 MEDIUM expressiveness test (measured): 89.24s solve, 164.41s total.
-  - GLPK run is new — provides solver comparison data per C-3 pass condition.
   - ACTIVSg10k uses quadratic costs → must linearize to LP for both solvers.
   - ACTIVSg10k is uncongested: uniform LMPs expected (~84-85% max loading).
 
@@ -21,6 +19,15 @@ Preprocessing (per MEDIUM protocol):
 using PowerModels, JuMP, HiGHS, GLPK
 
 PowerModels.silence()
+
+function peak_rss_mb()
+    for line in eachline("/proc/self/status")
+        if startswith(line, "VmHWM:")
+            return parse(Float64, split(line)[2]) / 1024
+        end
+    end
+    return nothing
+end
 
 function apply_medium_preprocessing!(data::Dict)
     base_mva = data["baseMVA"]
@@ -89,6 +96,7 @@ function run(
         "wall_clock_seconds" => 0.0,
         "details" => Dict{String,Any}(),
         "errors" => String[],
+        "workarounds" => String[],
     )
 
     # Warm-up on case39 to eliminate JIT compilation from timing
@@ -102,10 +110,12 @@ function run(
     catch e
         println("Warm-up warning: $e")
     end
+    println("JIT warm-up complete.")
 
+    rss_before = peak_rss_mb()
     t0 = time()
     try
-        println("Loading network: $network_file")
+        println("\nLoading network: $network_file")
         t_parse_start = time()
         data_orig = PowerModels.parse_file(network_file)
         t_parse = time() - t_parse_start
@@ -117,11 +127,10 @@ function run(
         base_mva = data_orig["baseMVA"]
         println("Network: $n_buses buses, $n_branches branches, $n_gens gens, baseMVA=$base_mva")
 
-        # Apply MEDIUM preprocessing on base copy
         n_x_fixed, n_rate_fixed = apply_medium_preprocessing!(data_orig)
         println("Preprocessing: $n_x_fixed br_x→0.0001, $n_rate_fixed rate_a→9999 MVA")
 
-        # Deep-copy for each solver run (so cost linearization is independent)
+        # Deep-copy for each solver run
         data_highs = deepcopy(data_orig)
         n_lin_h = linearize_costs!(data_highs)
         println("HiGHS: Linearized $n_lin_h generators from quadratic to linear cost")
@@ -142,11 +151,11 @@ function run(
 
         # --- GLPK run ---
         glpk_opt = JuMP.optimizer_with_attributes(
-            GLPK.Optimizer,
-            "tm_lim" => 300_000,   # ms — from solver-config.md
-            "msg_lev" => GLPK.GLP_MSG_ON,
+            GLPK.Optimizer, "tm_lim" => 300_000, "msg_lev" => GLPK.GLP_MSG_ON
         )
         glpk_res = solve_dcopf(data_glpk, glpk_opt, "GLPK")
+
+        rss_after = peak_rss_mb()
 
         # Objective consistency check
         highs_converged =
@@ -160,8 +169,13 @@ function run(
         println("  HiGHS:  $(round(highs_res.objective, digits=2)) \$/h")
         println("  GLPK:   $(round(glpk_res.objective,  digits=2)) \$/h")
         println("  Diff:   $(round(obj_diff, digits=2)) \$/h  ($(round(obj_pct, digits=4))%)")
+        if glpk_converged
+            println("  Consistency: $(obj_pct < 0.01 ? "VERIFIED" : "MISMATCH")")
+        else
+            println("  Consistency: CANNOT VERIFY (GLPK did not converge)")
+        end
 
-        # Extract LMPs from HiGHS run for pass condition
+        # Extract LMPs from HiGHS run
         lmp_values = Dict{String,Float64}()
         if haskey(highs_res.result["solution"], "bus")
             for (bus_id, bus_sol) in highs_res.result["solution"]["bus"]
@@ -177,14 +191,39 @@ function run(
             "LMPs (HiGHS): min=$(round(lmp_min,digits=4))  max=$(round(lmp_max,digits=4)) \$/MWh"
         )
 
-        # Status: pass if at least one solver converged with objective recorded
-        both_converged = highs_converged && glpk_converged
-        one_converged = highs_converged || glpk_converged
+        # Count dispatched generators
+        n_dispatched = 0
+        if haskey(highs_res.result["solution"], "gen")
+            for (_, gen_sol) in highs_res.result["solution"]["gen"]
+                pg = get(gen_sol, "pg", 0.0)
+                if abs(pg) > 1e-6
+                    n_dispatched += 1
+                end
+            end
+        end
 
-        if both_converged
-            results["status"] = "qualified_pass"  # workaround: cost linearization required
-        elseif one_converged
+        # Count binding branches
+        n_binding = 0
+        if haskey(highs_res.result["solution"], "branch")
+            for (br_id, br_sol) in highs_res.result["solution"]["branch"]
+                pf = abs(get(br_sol, "pf", 0.0))
+                rate_a = data_highs["branch"][br_id]["rate_a"]
+                if rate_a > 0.01 && pf / rate_a > 0.999
+                    n_binding += 1
+                end
+            end
+        end
+
+        # Status
+        if highs_converged
+            push!(
+                results["workarounds"],
+                "Quadratic cost linearization required: $(n_lin_h) generators had c2 coefficient dropped " *
+                "to convert QP to LP. Both HiGHS and GLPK cannot solve QP at 10k-bus scale within 300s.",
+            )
             results["status"] = "qualified_pass"
+        else
+            results["status"] = "fail"
         end
 
         results["details"] = Dict(
@@ -195,6 +234,8 @@ function run(
             "n_x_fixed" => n_x_fixed,
             "n_rate_fixed" => n_rate_fixed,
             "n_costs_linearized" => n_lin_h,
+            "n_dispatched" => n_dispatched,
+            "n_binding" => n_binding,
             "highs_term_status" => highs_res.term_status,
             "highs_objective" => highs_res.objective,
             "highs_solver_time_s" => highs_res.solver_time,
@@ -207,7 +248,10 @@ function run(
             "objective_pct_diff" => obj_pct,
             "lmp_min_dollars_per_mwh" => lmp_min,
             "lmp_max_dollars_per_mwh" => lmp_max,
+            "lmp_count" => length(lmp_values),
             "t_parse_s" => t_parse,
+            "peak_rss_mb_before" => rss_before,
+            "peak_rss_mb_after" => rss_after,
             "timing_source" => "measured",
         )
 
@@ -222,6 +266,7 @@ function run(
 
     println("\nStatus: $(results["status"])")
     println("Wall clock: $(round(results["wall_clock_seconds"], digits=3))s")
+    println("Peak RSS: $(peak_rss_mb()) MB")
 
     return results
 end
@@ -233,6 +278,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("status:             $(result["status"])")
     println("wall_clock_seconds: $(result["wall_clock_seconds"])")
     println("errors:             $(result["errors"])")
+    println("workarounds:        $(result["workarounds"])")
     println("--- details ---")
     for (k, v) in result["details"]
         println("  $k: $v")

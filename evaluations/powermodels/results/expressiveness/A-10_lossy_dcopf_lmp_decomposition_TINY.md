@@ -3,20 +3,20 @@ test_id: A-10
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 9314de95
+test_hash: 2105d597
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 92.57
+wall_clock_seconds: 3.28
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 210
+loc: 260
 solver: "Ipopt (DCPLLPowerModel); HiGHS (DCPPowerModel baseline)"
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
 # A-10: DC OPF with Loss Approximation and LMP Decomposition
@@ -82,8 +82,8 @@ Four consistency checks verified post-solve.
 
 ## Timing
 
-- **Wall-clock:** 92.57s
-- **Timing source:** measured (includes Julia startup and package load time)
+- **Wall-clock:** 3.28s
+- **Timing source:** measured (warm JIT)
 - **Peak memory:** not measured
 - **Solver iterations:** not measured
 - **Convergence residual:** N/A (LP/NLP)
