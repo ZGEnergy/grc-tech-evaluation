@@ -14,11 +14,15 @@ Input: MATPOWER fallback (data/fnm/reference/cleaned/fnm_main_island.m)
 from __future__ import annotations
 
 import json
+import sys
 import time
 import traceback
 from pathlib import Path
 
 import numpy as np
+
+# Make shared matpower_loader importable
+sys.path.insert(0, "/workspace/evaluations/shared")
 
 CLEANED_M = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.m")
 REF_BUSES = Path("/workspace/data/fnm/reference/dcpf/buses_dcpf.csv")
@@ -33,6 +37,7 @@ def run() -> dict:
 
     import pandas as pd
     import pypsa
+    from matpower_loader import load_pypsa
     from matpowercaseframes import CaseFrames
 
     results: dict = {
@@ -83,20 +88,20 @@ def run() -> dict:
         }
         results["details"]["tool_version"] = pypsa.__version__
 
-        # ── 2. Load cleaned MATPOWER case via matpowercaseframes ──────
+        # ── 2. Load cleaned MATPOWER case via shared matpower_loader ──
+        # matpower_loader.load_pypsa() applies two correctness patches:
+        #   1. Transformer susceptance: b = 1/x (MATPOWER convention)
+        #      instead of PyPSA's default b = 1/(x*tap)
+        #   2. Generator marginal costs populated from gencost table
+        net = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
+        net.set_snapshots([0])
+
+        # Also load raw arrays for branch comparison analysis
         cf = CaseFrames(str(CLEANED_M))
         bus_array = cf.bus.values
         gen_array = cf.gen.values
         branch_array = cf.branch.values
         baseMVA = float(cf.baseMVA)
-
-        ppc: dict = {
-            "version": "2",
-            "baseMVA": baseMVA,
-            "bus": bus_array,
-            "gen": gen_array,
-            "branch": branch_array,
-        }
 
         results["details"]["baseMVA"] = baseMVA
         results["details"]["input_path"] = "matpower"
@@ -113,13 +118,9 @@ def run() -> dict:
 
         results["workarounds"].append(
             "MATPOWER fallback: G-FNM-1 failed (psse_parse_error). Loaded from "
-            "pre-cleaned MATPOWER .m file via matpowercaseframes + import_from_pypower_ppc."
+            "pre-cleaned MATPOWER .m file via shared matpower_loader.load_pypsa() "
+            "(applies transformer susceptance and gencost patches)."
         )
-
-        # ── 3. Import into PyPSA ────────────────────────────────────────
-        net = pypsa.Network()
-        net.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=100000.0)
-        net.set_snapshots([0])
 
         n_lines = len(net.lines)
         n_xfmrs = len(net.transformers)
@@ -387,10 +388,10 @@ def run() -> dict:
             "tap_ne_1": n_nonunity,
             "tap_range": [round(float(taps_xfmr.min()), 4), round(float(taps_xfmr.max()), 4)],
             "formulation_note": (
-                "PyPSA lpf() incorporates tap ratio in B-matrix (b=1/(x*tap)). "
-                "The reference DCPF (MATPOWER) uses full B-matrix with tap ratios. "
-                "Both incorporate taps, so deviations are from data ingestion "
-                "differences, not formulation sophistication."
+                "Transformer susceptance patched by matpower_loader.load_pypsa() "
+                "to b=1/x (MATPOWER convention), overriding PyPSA's default "
+                "b=1/(x*tap). This aligns the DC B-matrix formulation with the "
+                "reference DCPF solution."
             ),
         }
 

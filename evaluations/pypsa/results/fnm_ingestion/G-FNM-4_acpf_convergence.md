@@ -9,11 +9,11 @@ test_hash: cea622c5
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 163.8
+wall_clock_seconds: 131.2
 timing_source: measured
 peak_memory_mb: 16289.3
 convergence_residual: null
-convergence_iterations: 70
+convergence_iterations: null
 loc: 276
 solver: Newton-Raphson (PyPSA built-in)
 input_path: matpower
@@ -31,17 +31,18 @@ solved voltage profile.
 
 ## Approach
 
-1. **DCPF warm start:** Solved DCPF via `n.lpf()` to obtain voltage angles (14.3s).
+1. **Loaded via shared matpower_loader:** Used `matpower_loader.load_pypsa()` which
+   applies branch status, transformer susceptance, and gencost patches. The branch
+   status patch correctly deactivates 74 inactive branches.
+
+2. **DCPF warm start:** Solved DCPF via `n.lpf()` to obtain voltage angles (14.2s).
    Used DC angles as initial guess for ACPF. Voltage magnitudes initialized at 1.0 p.u.
    (flat start for VM, DC warm start for VA).
 
-2. **Progressive relaxation:** Attempted ACPF via `n.pf()` at three relaxation levels:
-   - **0% relaxation:** Nominal thermal limits. Failed after 70 iterations (48.9s).
-     Singular Jacobian matrix encountered.
-   - **10% relaxation:** Thermal limits multiplied by 1.1. Failed after 70 iterations
-     (52.5s). Singular Jacobian matrix.
-   - **20% relaxation:** Thermal limits multiplied by 1.2. Failed after 54 iterations
-     (46.5s). Singular Jacobian matrix.
+3. **Progressive relaxation:** Attempted ACPF via `n.pf()` at three relaxation levels:
+   - **0% relaxation:** Nominal thermal limits. Failed — SuperLU factorization error (37.5s).
+   - **10% relaxation:** Thermal limits multiplied by 1.1. Failed — SuperLU factorization error (37.9s).
+   - **20% relaxation:** Thermal limits multiplied by 1.2. Failed — SuperLU factorization error (38.0s).
 
    Note: PyPSA's `n.pf()` uses Newton-Raphson with a fixed iteration limit (default 70).
    The solver does not use Ipopt (as specified in the test definition) because PyPSA's
@@ -52,19 +53,19 @@ solved voltage profile.
 
 ### Convergence Results
 
-| Relaxation Level | Converged | Iterations | Final Residual | Solve Time |
-|-----------------|-----------|------------|----------------|------------|
-| 0% (nominal) | No | 70 | NaN (singular) | 48.9s |
-| 10% | No | 70 | NaN (singular) | 52.5s |
-| 20% | No | 54 | NaN (singular) | 46.5s |
+| Relaxation Level | Converged | Error Type | Solve Time |
+|-----------------|-----------|------------|------------|
+| 0% (nominal) | No | SuperLU factorization failure | 37.5s |
+| 10% | No | SuperLU factorization failure | 37.9s |
+| 20% | No | SuperLU factorization failure | 38.0s |
 
 **Relaxation level achieved:** infeasible
 
-### Singular Jacobian Analysis
+### Error Analysis
 
-All three attempts encountered a singular Jacobian matrix (`MatrixRankWarning:
-Matrix is exactly singular`). This indicates structural issues in the network model
-rather than numerical convergence difficulties:
+All three attempts encountered a SuperLU sparse matrix factorization failure
+(`RuntimeError: failed to factorize matrix`). This indicates structural issues in
+the network model rather than numerical convergence difficulties:
 
 - The network has a 9,981 MW (6.0%) generation-load imbalance
 - Zero-impedance branches or degenerate transformer configurations may create
@@ -76,10 +77,10 @@ rather than numerical convergence difficulties:
 
 | Method | MATPOWER 8.1 | PyPSA 1.1.2 |
 |--------|-------------|-------------|
-| Newton-Raphson (flat start) | Failed (all variants) | Failed (singular) |
+| Newton-Raphson (flat start) | Failed (all variants) | Failed (SuperLU) |
 | Fast-Decoupled (FDXB/FDBX) | Failed (1000 iter) | N/A (not available) |
 | Continuation PF | Reached ~30% load | N/A (not available) |
-| DC warm start + NR | N/A | Failed (singular) |
+| DC warm start + NR | N/A | Failed (SuperLU) |
 | Progressive relaxation | N/A | Failed at all levels |
 
 Neither tool converges on this network. The FNM planning model lacks a feasible
@@ -90,8 +91,8 @@ AC operating point at full load.
 | Metric | Value |
 |--------|-------|
 | Buses | 27,862 |
-| Lines | 23,125 |
-| Transformers | 9,481 |
+| Lines | 23,125 (69 inactive) |
+| Transformers | 9,481 (5 inactive) |
 | Generators | 5,741 |
 | Loads | 8,624 |
 | baseMVA | 100.0 |
@@ -101,14 +102,14 @@ AC operating point at full load.
 
 ## Workarounds
 
-- **What:** MATPOWER fallback path (same as G-FNM-3)
+- **What:** MATPOWER fallback path via shared `matpower_loader.load_pypsa()`
 - **Why:** G-FNM-1 failed -- PyPSA cannot parse PSS/E intermediate CSV format
 
 ## Timing
 
-- **Wall-clock:** 163.8s (total across all attempts)
-- **DCPF warm-start:** 14.3s
-- **ACPF attempts:** 48.9s + 52.5s + 46.5s = 147.9s
+- **Wall-clock:** 131.2s (total across all attempts)
+- **DCPF warm-start:** 14.2s
+- **ACPF attempts:** 37.5s + 37.9s + 38.0s = 113.4s
 - **Timing source:** measured
 - **Peak memory:** 16,289 MB per attempt
 - **CPU cores used:** 1

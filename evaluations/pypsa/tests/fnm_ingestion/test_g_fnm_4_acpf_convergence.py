@@ -13,11 +13,15 @@ Input: MATPOWER fallback (data/fnm/reference/cleaned/fnm_main_island.m)
 
 from __future__ import annotations
 
+import sys
 import time
 import traceback
 from pathlib import Path
 
 import numpy as np
+
+# Make shared matpower_loader importable
+sys.path.insert(0, "/workspace/evaluations/shared")
 
 CLEANED_M = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.m")
 ACPF_REF_BUSES = Path("/workspace/data/fnm/reference/acpf/buses_acpf.csv")
@@ -28,6 +32,7 @@ def run() -> dict:
     import tracemalloc
 
     import pypsa
+    from matpower_loader import load_pypsa
     from matpowercaseframes import CaseFrames
 
     results: dict = {
@@ -40,20 +45,18 @@ def run() -> dict:
 
     start = time.perf_counter()
     try:
-        # ── 1. Load cleaned MATPOWER case ────────────────────────────────
+        # ── 1. Load cleaned MATPOWER case via shared matpower_loader ──
+        # matpower_loader.load_pypsa() applies transformer susceptance and
+        # gencost patches for MATPOWER compatibility
+        net = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
+        net.set_snapshots([0])
+
+        # Also load raw arrays for network size reporting
         cf = CaseFrames(str(CLEANED_M))
         bus_array = cf.bus.values
         gen_array = cf.gen.values
         branch_array = cf.branch.values
         baseMVA = float(cf.baseMVA)
-
-        ppc: dict = {
-            "version": "2",
-            "baseMVA": baseMVA,
-            "bus": bus_array,
-            "gen": gen_array,
-            "branch": branch_array,
-        }
 
         results["details"]["baseMVA"] = baseMVA
         results["details"]["tool_version"] = pypsa.__version__
@@ -71,13 +74,9 @@ def run() -> dict:
 
         results["workarounds"].append(
             "MATPOWER fallback: G-FNM-1 failed (psse_parse_error). Loaded from "
-            "pre-cleaned MATPOWER .m file via matpowercaseframes + import_from_pypower_ppc."
+            "pre-cleaned MATPOWER .m file via shared matpower_loader.load_pypsa() "
+            "(applies transformer susceptance and gencost patches)."
         )
-
-        # ── 2. Import into PyPSA ────────────────────────────────────────
-        net = pypsa.Network()
-        net.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=100000.0)
-        net.set_snapshots([0])
 
         results["details"]["pypsa_counts"] = {
             "buses": len(net.buses),
@@ -118,9 +117,8 @@ def run() -> dict:
         relaxation_achieved = "infeasible"
 
         for relax_pct in relaxation_levels:
-            # Create fresh network for each attempt
-            net_trial = pypsa.Network()
-            net_trial.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=100000.0)
+            # Create fresh network for each attempt using shared loader
+            net_trial = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
             net_trial.set_snapshots([0])
 
             # Apply DC warm-start angles

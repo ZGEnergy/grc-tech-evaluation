@@ -3,38 +3,36 @@ tag: formulation-difference
 source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: pypsa
-severity: high
+severity: low
 timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: PyPSA-MATPOWER DCPF deviation pattern suggests data ingestion issue, not formulation difference
+# Observation: No formulation difference — PyPSA DCPF matches MATPOWER exactly after branch status fix
 
 ## Finding
 
-The DCPF deviations between PyPSA and MATPOWER on the 27,862-bus FNM are NOT consistent
-with the expected formulation-difference pattern. Both tools use full B-matrix construction
-(incorporating tap ratios), yet deviations are uniform across all voltage tiers and bus types.
-A formulation sophistication difference (simplified vs full B-matrix) would concentrate
-deviations at transformer-connected buses with non-unity taps.
-
-The uniform deviation pattern (mean 3.63-4.18 deg across all voltage tiers) with a
-systematic -1.3 degree signed bias suggests the `import_from_pypower_ppc` conversion path
-introduces impedance parameter differences that affect the B-matrix globally.
+PyPSA's DCPF solution (`n.lpf()`) produces **zero deviation** from the MATPOWER reference
+on the 27,862-bus FNM main island when loaded via the shared `matpower_loader.load_pypsa()`.
+100% of buses and 100% of branches match exactly. Both tools use the same B-matrix
+formulation: `b = 1/(x * tap)` (MATPOWER's `makeBdc.m` and PyPSA's `calculate_B_H` are
+equivalent).
 
 ## Context
 
-The transformer flow deviations (mean 35.5%, max 87,054%) are significantly higher than
-line deviations (mean 11.6%, max 52,032%), which does suggest transformer-related issues.
-However, the bus angle deviations do not cluster near transformers -- they are spread
-uniformly, indicating the impedance mapping affects the entire network's angle solution
-through the coupled B-matrix system.
+The original G-FNM-3 run (without the shared loader) showed 91% bus angle failures and
+87,054% max branch flow deviation. Investigation identified the root cause as
+`import_from_pypower_ppc` ignoring MATPOWER's `BR_STATUS` column — 74 inactive branches
+were included in the DCPF, distorting the B-matrix globally. The shared loader adds a
+branch-status patch that correctly deactivates these branches.
 
-With 9,481 transformers (34% of all branches) and 2,358 having non-unity taps, even small
-per-transformer impedance mapping errors propagate throughout the network.
+The `b = 1/x` transformer susceptance patch in the loader has no effect on DCPF results
+because PyPSA's `calculate_B_H` recomputes susceptance from `x_pu_eff` internally,
+bypassing the `b` attribute. The formulations are identical; the deviation was purely a
+data import issue.
 
 ## Implications
 
-This finding should be considered when interpreting G-FNM-3 results across tools. If other
-Python tools (pandapower, GridCal) also use `import_from_pypower_ppc` or similar PPC
-conversion paths, they may exhibit similar deviation patterns. Tools with native MATPOWER
-file readers (pandapower's `from_mpc`) may show better agreement with the reference.
+No formulation difference exists between PyPSA and MATPOWER for DCPF on this network.
+The `import_from_pypower_ppc` branch status bug is documented in the shared
+`matpower_loader` and workaround-classified as `stable`. Tools that bypass this function
+(e.g., pandapower's native `from_mpc`) would not be affected.
