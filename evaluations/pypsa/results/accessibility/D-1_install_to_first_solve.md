@@ -3,60 +3,70 @@ test_id: D-1
 tool: pypsa
 dimension: accessibility
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 5f33112e
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: 1.394
-timing_source: measured
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: caa92843
 ---
 
-# D-1: Install-to-First-Solve (install_to_first_solve)
+# D-1: Install-to-First-Solve Time
 
-## Result: PASS
+## Summary
 
-## Finding
+PyPSA installs quickly via `uv sync` and reaches a first successful solve in under
+2 seconds wall-clock time. The install-to-first-solve experience is frictionless for
+Python-literate users.
 
-PyPSA installs in a single command (`uv sync`) and reaches a first successful solve in under 5 seconds; a new user with `uv` already installed can complete install-to-DCPF in well under 30 minutes.
+## Install Process
 
-## Evidence
+1. **Dependency resolution:** `uv sync` in the devcontainer. With a warm cache, this
+   completes in 0.01s (90 packages resolved, 88 audited). On a cold install, `uv sync`
+   resolves and installs PyPSA v1.1.2 plus 88 transitive dependencies.
 
-**Setup steps (from `evaluations/pypsa/README.md`):**
-1. `uv sync` — installs PyPSA and all dependencies from `pyproject.toml` into `.venv`
-2. `uv run python verify_install.py` — confirms the install (runs a DCPF on case39 and prints "DC power flow completed successfully")
+2. **No compiled extensions required:** PyPSA is pure Python with numpy/scipy/pandas
+   as compiled dependencies. These are pre-built wheels, so no compiler toolchain is
+   needed.
 
-No system-level prerequisites are required for the evaluation workload. Optional solver installs (GLPK, Ipopt) are documented in the README under "System Prerequisites (optional solvers)" but are not needed for HiGHS-based tests.
+3. **Solver bundled:** HiGHS (LP/MILP/QP) is installed via the `highspy` pip package.
+   No separate solver installation or license management required.
 
-**Timed invocation in devcontainer:**
-```
-.devcontainer/dc-exec -C /workspace/evaluations/pypsa uv run python -c "import pypsa; n=pypsa.Network(); print('OK')"
-→ OK
-→ real time: 1.394s total (dc-exec overhead included)
-```
+## First-Solve Timing
 
-**verify_install.py output:**
-```
-PyPSA version: 1.1.2
-Buses: 39
-Lines: 35
-DC power flow completed successfully
-```
+| Step | Wall-Clock Time |
+|------|----------------|
+| `import pypsa` | 1.094s |
+| Load case39 via shared loader | 0.049s |
+| `n.lpf()` (DCPF solve) | 0.060s |
+| **Total** | **1.203s** |
 
-**Friction observed:**
-- The README documents `pandapower` as the MATPOWER intermediary, but the actual test scripts use `matpowercaseframes` + manual ppc dict construction. The README's suggested approach would also work but is slightly different from the implemented pipeline.
-- The `.values` requirement for ppc dict arrays is not documented in PyPSA's API docs (only discoverable by reading source or failing first). This adds ~5 minutes of friction for a new user.
-- Multiple `WARNING` messages appear on import from PYPOWER (gencosts not supported, `status` attribute name collision, carrier not defined). These are harmless but can confuse new users about whether the import succeeded.
+A minimal 2-bus OPF from scratch (no MATPOWER loading) completes in 1.370s total
+(1.109s import + 0.260s model build + solve).
 
-**Could a new user install and run DCPF in < 30 minutes?**
-Yes, assuming `uv` is installed. `uv sync` takes under 60 seconds; `verify_install.py` runs in ~5 seconds. The `.values` friction would add perhaps 10 minutes of debugging for a first-time user unfamiliar with the ppc dict format.
+## Friction Points
 
-## Implications
+1. **FutureWarning on optimize():** Every call to `n.optimize()` emits a
+   `FutureWarning` about `include_objective_constant` changing default in v2.0.
+   This is informational noise that may confuse new users but does not block
+   functionality.
 
-The install experience is excellent: single command, no system dependencies, fast. The only meaningful friction is the MATPOWER ingestion pipeline requiring `.values` arrays, which is a recurring pattern throughout the evaluation. Grade impact: minor deduction from A. This is an A-/B+ accessibility finding.
+2. **Carrier warnings:** Adding components without explicit `carrier` attributes
+   produces warnings suggesting `n.sanitize()`. These are non-blocking but add
+   visual noise to the first experience.
+
+3. **Shadow price warning:** After every `optimize()` call, a log message states
+   "The shadow-prices of the constraints ... were not assigned to the network."
+   This is confusing for users who expect shadow prices to be available on the
+   network object after solving (see observation api-friction A-3).
+
+4. **MATPOWER loading warnings:** The shared loader path emits warnings about
+   unsupported PYPOWER features (areas, gencosts, component status) and about
+   the `status` attribute name being misleading.
+
+## Assessment
+
+The install process has zero friction: `uv sync` handles everything, including the
+solver. The first solve completes in ~1.2 seconds. The only friction is cosmetic
+(verbose warnings), not functional. No source code reading, no manual configuration,
+and no external downloads are required to go from zero to a working power flow solve.

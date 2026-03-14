@@ -3,62 +3,79 @@ test_id: F-9
 tool: pypsa
 dimension: supply_chain
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: d3cd01ff
-status: qualified_pass
+status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 738f75e3
 ---
 
-# F-9: Getting-Started Artifact Integrity (getting_started_integrity)
+# F-9: Getting-Started Artifact Integrity
 
-## Result: QUALIFIED PASS
+## Findings
 
-## Finding
+### Official Examples
 
-PyPSA installation documentation uses unpinned `pip install pypsa` (not a `main`-branch git URL), which is sound practice. However, the official getting-started guide does not recommend pinning to a specific version, and some documentation examples link to `main`-branch notebooks on GitHub rather than tagged releases.
+PyPSA provides 20+ example notebooks in `docs/examples/`:
 
-## Evidence
+- `minimal-example-pf.ipynb` — minimal power flow
+- `example-1.ipynb` through `example-3.ipynb` — introductory tutorials
+- `ac-dc-lopf.ipynb` — AC-DC optimal power flow
+- `capacity-expansion-planning-single-node.ipynb` — CEP tutorial
+- `unit-commitment.ipynb` — UC tutorial
+- Plus domain-specific examples (BESS, CHP, biomass, etc.)
 
-**Installation instructions (from https://pypsa.readthedocs.io/en/latest/getting-started/installation.html):**
-```bash
+### Version Pinning
+
+**Mixed.** The examples are version-coupled to the PyPSA release but
+not explicitly pinned:
+
+1. **No explicit version pin in examples**: The notebooks do not contain
+   `pypsa==X.Y.Z` installation commands. They assume the user has PyPSA
+   installed.
+
+2. **Version-coupled via docs**: The documentation site (docs.pypsa.org)
+   serves examples matching the latest release. Versioned documentation
+   is available (e.g., docs for v1.0.0 vs v1.1.2).
+
+3. **No mutable URLs**: Examples do not reference unversioned downloads,
+   main branch tarballs, or mutable blob storage URLs. Data used in
+   examples is either generated programmatically or bundled with the
+   package.
+
+4. **Dependency specification**: `pyproject.toml` uses lower bounds only
+   (`pandas>=2.0`, `linopy>=0.6.1`), which means the example environment
+   is not fully reproducible (see F-2 for details).
+
+### Installation Instructions
+
+The official README and docs specify:
+```
 pip install pypsa
 ```
-This resolves to the latest PyPI release — not a git URL, not `main` branch. Acceptable for general use; production environments should pin the version.
 
-**Version pinning in install docs:**
-- No explicit version pin recommended (e.g., `pip install pypsa==1.1.2`)
-- No `pip install git+https://github.com/PyPSA/PyPSA` in official docs
-- PyPI resolution is safe because each PyPI release is immutable and hash-verified
+This installs the latest version, not a pinned version. This is standard
+practice for Python libraries but means getting-started artifacts are
+not version-locked.
 
-**Documentation examples — mutable link check:**
-- Some Jupyter notebook examples in the documentation link to `https://github.com/PyPSA/PyPSA/blob/main/examples/` (main branch)
-- Main-branch notebook content can change between visits without version bumping
-- The ReadTheDocs documentation itself is versioned (https://pypsa.readthedocs.io/en/v1.1.2/) — users who navigate to a versioned docs URL get stable content
-- Default docs URL (https://pypsa.readthedocs.io/en/latest/) always points to the latest release tag (not `main`), which is acceptable
+### PyPI Version Availability
 
-**Evaluation project `pyproject.toml`:**
-```toml
-dependencies = [
-    "pypsa",        # unpinned — appropriate for evaluation; production should pin
-    "pandapower",   # unpinned
-    "matpowercaseframes",  # unpinned
-    "highspy",      # unpinned
-]
+All historical versions are available on PyPI, so users can pin to a
+specific version:
 ```
-The evaluation project intentionally uses unpinned dependencies with `uv.lock` providing reproducibility. This is the correct pattern for lock-file-managed projects.
+pip install pypsa==1.1.2
+```
 
-**Qualified pass rationale:**
-The primary install path (`pip install pypsa`) is immutable-artifact-based and acceptable. The caveats are: (1) no explicit version pin recommendation in docs, and (2) some example links point to `main`-branch GitHub files. These are minor issues that do not constitute supply chain risks but represent best-practice gaps for production use.
+### Assessment
 
-## Implications
+The getting-started experience is clean and functional. Examples are
+bundled with versioned documentation, avoiding the common pitfall of
+examples that reference mutable URLs or unversioned downloads. The
+lack of explicit version pinning in example notebooks is a minor concern
+but is mitigated by the versioned documentation site.
 
-Getting-started integrity is B+ level. The PyPI-based install path is sound. The absence of pinned version recommendations in docs is a minor gap — sophisticated users know to pin; beginners may not. The `main`-branch notebook links in examples are a low-severity mutable-content risk (documentation drift, not security risk). No blocking supply chain integrity concerns.
+## Recorded Metrics
+
+- version_pinned: partially (docs versioned, examples not explicitly pinned)
+- mutable_refs: none (no mutable URLs, no main-branch references in examples)

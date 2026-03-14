@@ -1,6 +1,6 @@
 """G-FNM-1: Intermediate Format Ingestion (GATE) — LARGE FNM (~30K buses).
 
-Load the ERCOT FNM via MATPOWER .mat -> pypower import path into PyPSA.
+Load the FNM via MATPOWER .mat -> pypower import path into PyPSA.
 Count ingested components and compare against expected counts from the
 intermediate manifest.
 

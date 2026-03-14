@@ -4,23 +4,19 @@ source_dimension: expressiveness
 source_test: A-11
 tool: pypsa
 severity: high
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: PyPSA DC OPF has no bus voltage angle variable — distributed slack OPF architecturally blocked
+# Observation: Distributed slack OPF architecturally impossible in PyPSA
 
 ## Finding
 
-PyPSA v1.1.2's DC OPF (`n.optimize()`) builds a linopy model with exactly three variable types: `Generator-p`, `Line-s`, `Transformer-s`. Bus voltage angles are NOT modeled as explicit variables. KVL constraints are expressed in terms of line-flow slack variables. There is no `Bus-v_ang` variable and no angle reference constraint to modify or distribute. Distributed slack in the OPF context is architecturally impossible without source-level changes to PyPSA's model construction.
+PyPSA's DC OPF formulation (`n.optimize()`) uses flow variables (`Generator-p`, `Line-s`, `Transformer-s`) without explicit bus voltage angle variables. There is no `Bus-v_ang` variable in the linopy model, making distributed slack OPF via angle-sum-to-zero constraint architecturally impossible. This is a blocking limitation -- no workaround via `extra_functionality` callback is possible because the angle variables do not exist.
 
 ## Context
 
-Discovered during A-11 distributed slack OPF test. The standard approach to distributed slack OPF — replacing a single-bus angle-zero constraint with a weighted-sum-equals-zero constraint — requires explicit bus angle variables. These do not exist in PyPSA's linopy model.
-
-Contrast: `n.pf()` (AC Newton-Raphson power flow) DOES support `distribute_slack=True, slack_weights="p_set"` and works correctly. This is a PF capability, not an OPF capability.
+Test A-11 inspected `n.model.variables` after `n.optimize()` and confirmed only three variable types exist. KVL constraints in PyPSA are expressed in terms of line flow variables, not bus angle differences. PyPSA does support `distribute_slack=True` in `n.pf()` (Newton-Raphson AC power flow) with configurable `slack_weights` parameter, demonstrating the concept is understood but only implemented in the PF context.
 
 ## Implications
 
-- **Extensibility dimension (B-tests):** Any custom OPF formulation that requires bus voltage angle variables (e.g., custom angle constraints, angle difference limits, multi-area angle reference) will require adding explicit angle variables — a non-trivial model modification.
-- **Grade impact:** This is a blocking limitation for distributed slack OPF specifically (A-11 pass condition). It reflects PyPSA's PTDF/flow-based DC OPF formulation philosophy.
-- **Positive note:** The flow-based formulation (no angle variables) can be numerically better-conditioned than angle-based formulations and is sufficient for standard DCOPF. The limitation only manifests for features that explicitly need angle variables.
+This affects both Extensibility (B-dimension) and Accessibility assessments. The flow-based OPF formulation is simpler and sufficient for most use cases, but users requiring distributed slack reference pricing (common in ISO/RTO LMP calculations) cannot achieve this with PyPSA's optimization module. The AC PF distributed slack capability is a partial mitigation but does not produce shadow prices / LMPs.

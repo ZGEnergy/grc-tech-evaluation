@@ -4,23 +4,33 @@ source_dimension: extensibility
 source_test: B-6
 tool: pypsa
 severity: low
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: Strong OPF extensibility; DCPF solver is hard-coded
+# Observation: Well-separated architecture with 4 layers and 8 mixins
 
 ## Finding
 
-PyPSA has a well-architected OPF pipeline with clean model-build/solve separation and a documented injection point (`extra_functionality`). The DCPF pipeline uses scipy.sparse directly and has no solver swap mechanism — a contrast with the OPF's linopy-based solver abstraction.
+PyPSA v1.1.2 has a clean 4-layer architecture (User API -> Mixin Dispatch ->
+SubNetwork Computation -> Linear Algebra Backend) with good separation of concerns.
+The OPF path has explicit model-build/solve separation via linopy. The PF path
+combines build and solve in one call but exposes intermediate matrices (B, H, PTDF)
+via public attributes.
 
 ## Context
 
-B-6 architecture assessment traced the call chain from `n.lpf()` through the 8-mixin `Network` class to `SubNetwork` and finally to `scipy.sparse.linalg`. The OPF accessor (`n.optimize`) exposes `create_model()` / `solve_model()` as separate steps and allows full access to the linopy model before solve. The DCPF solver is `scipy.sparse` with no configurability.
+B-6 traced the DCPF call chain from `n.lpf()` through `SubNetworkPowerFlowMixin.lpf()`
+to `scipy.sparse.linalg.spsolve()`. The Network class is composed of 8 mixins with
+a 12-class inheritance chain. Five documented injection points exist for extending behavior.
 
-The mixin architecture (8 mixins: NetworkComponentsMixin, NetworkDescriptorsMixin, NetworkTransformMixin, NetworkIndexMixin, NetworkConsistencyMixin, NetworkGraphMixin, NetworkPowerFlowMixin, NetworkIOMixin) provides good separation of concerns but creates a non-obvious method resolution order that makes it hard to find where a given method is defined without reading the full method resolution order.
+Two architectural weaknesses noted: (1) the mixin composition pattern is not documented,
+making method discovery harder for new users; (2) the DCPF solver backend (scipy.sparse)
+is hardcoded with no parameter to swap it.
 
 ## Implications
 
-Positive for Maturity (D-tests): the OPF architecture shows design investment in extensibility. The `extra_functionality` pattern is idiomatic and would score well in a design quality assessment.
-
-Negative for Extensibility grading: the lack of a solver-swap mechanism for DCPF (contrast with OPF) means that some extensibility scenarios — e.g., plugging in a custom DC solver — require monkey-patching. For the OPF path this is not an issue.
+The architecture quality is a positive signal for maturity assessment. The clean
+separation of data model (pandas DataFrames) from formulation (power_flow.py) and
+solver (linopy/scipy) indicates mature software engineering. The undocumented mixin
+architecture is a minor accessibility concern — users reading docs.pypsa.org would
+not discover the internal layering without reading source code.

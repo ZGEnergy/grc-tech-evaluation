@@ -5,11 +5,13 @@ Dimension: expressiveness
 Network: TINY (IEEE 39-bus, case39.m)
 Pass condition: Solves. Dispatch schedule extractable. UC and ED are cleanly separable
   as a two-stage workflow. Ramp rate constraints are demonstrably enforced between
-  consecutive dispatch intervals in the ED stage — not just inherited from the UC
-  formulation.
+  consecutive dispatch intervals in the ED stage — not just inherited from the
+  UC formulation.
+Solver: HiGHS
 Tool: PyPSA 1.1.2
 """
 
+import sys
 import time
 import traceback
 from pathlib import Path
@@ -18,6 +20,8 @@ import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT / "evaluations" / "shared"))
+
 DEFAULT_NETWORK = str(REPO_ROOT / "data" / "networks" / "case39.m")
 DEFAULT_TIMESERIES = str(REPO_ROOT / "data" / "timeseries" / "case39")
 
@@ -41,24 +45,6 @@ SOLVER_OPTIONS_LP = {
 
 # Ramp constraint tolerance (allow 0.1% numerical slack)
 RAMP_TOLERANCE = 0.001
-
-
-def load_network(network_file: str):
-    """Load case39.m via matpowercaseframes -> pypower ppc dict -> pypsa."""
-    import pypsa
-    from matpowercaseframes import CaseFrames
-
-    cf = CaseFrames(network_file)
-    ppc = {
-        "version": "2",
-        "baseMVA": float(cf.baseMVA),
-        "bus": cf.bus.values,
-        "gen": cf.gen.values,
-        "branch": cf.branch.values,
-    }
-    n = pypsa.Network()
-    n.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=True)
-    return n
 
 
 def setup_uc_parameters(n, snapshots, ts_dir):
@@ -122,7 +108,7 @@ def run(
     """Execute SCED two-stage (UC then ED as LP) test.
 
     Methodology:
-    1. Load case39.m and assign same parameters as A-5
+    1. Load case39.m via shared matpower_loader and assign same parameters as A-5
     2. Stage 1 — UC: solve MILP to get commitment schedule
     3. Stage 2 — ED: fix commitment by setting committable=False and using
        commitment-derived p_min/p_max bounds; re-solve as pure LP
@@ -138,6 +124,8 @@ def run(
         - errors: list of error messages (empty if pass)
         - workarounds: list of workaround descriptions (empty if none)
     """
+    from matpower_loader import load_pypsa
+
     results: dict = {
         "status": "fail",
         "wall_clock_seconds": 0.0,
@@ -152,7 +140,7 @@ def run(
         # STAGE 1: Run UC (MILP) to get commitment schedule
         # -------------------------------------------------------------------
         print("=== STAGE 1: Unit Commitment (MILP) ===")
-        n = load_network(network_file)
+        n = load_pypsa(network_file)
         snapshots = pd.date_range("2024-01-01", periods=24, freq="h")
         n.set_snapshots(snapshots)
 
@@ -216,7 +204,7 @@ def run(
         # This makes the ED a pure LP — no binary variables.
         # -------------------------------------------------------------------
         print("\n=== STAGE 2: Economic Dispatch (LP) with fixed commitment ===")
-        n2 = load_network(network_file)
+        n2 = load_pypsa(network_file)
         n2.set_snapshots(snapshots)
         _, _ = setup_uc_parameters(n2, snapshots, ts_dir)
 
@@ -229,7 +217,7 @@ def run(
         n2.generators["start_up_cost"] = 0.0
 
         # Apply time-varying p_min_pu and p_max_pu based on commitment schedule
-        # For each generator, committed hour → keep [0.3, 1.0]; decommitted → [0.0, 0.0]
+        # For each generator, committed hour -> keep [0.3, 1.0]; decommitted -> [0.0, 0.0]
         p_min_pu_df = pd.DataFrame(index=snapshots, columns=gen_names, dtype=float)
         p_max_pu_df = pd.DataFrame(index=snapshots, columns=gen_names, dtype=float)
 
@@ -285,11 +273,8 @@ def run(
 
         # -------------------------------------------------------------------
         # Verify Stage 2 is pure LP (no binary variables)
-        # Check: n2.generators["committable"] should be all False
-        # and n.generators_t.status should not be populated after LP solve
         # -------------------------------------------------------------------
         is_pure_lp = not n2.generators["committable"].any()
-        # Additional check: linopy model should report no binary variables
         try:
             model = n2.model
             n_binary = sum(
@@ -301,7 +286,6 @@ def run(
             is_pure_lp = is_pure_lp and (n_binary == 0)
             print(f"ED binary variable count: {n_binary}")
         except Exception:
-            # Model may no longer be accessible post-solve
             results["details"]["ed_binary_variable_count"] = "not_checked"
 
         results["details"]["ed_is_pure_lp"] = is_pure_lp
@@ -309,7 +293,6 @@ def run(
 
         # -------------------------------------------------------------------
         # Verify ramp constraints enforced in ED stage
-        # For each generator with a ramp limit, check all consecutive pairs
         # -------------------------------------------------------------------
         dispatch_ed = n2.generators_t.p.copy()
         results["details"]["ed_dispatch_shape"] = list(dispatch_ed.shape)
@@ -369,6 +352,7 @@ def run(
         results["details"]["ramp_violation_count"] = len(ramp_violations)
         results["details"]["ramp_violations"] = ramp_violations
         results["details"]["near_ramp_limit_pairs"] = near_limit_pairs[:10]  # top 10
+        results["details"]["total_ramp_checks"] = len(ramp_checks)
 
         print("\nRamp constraint check (ED stage):")
         print(f"  Total generator-interval checks: {len(ramp_checks)}")
@@ -393,22 +377,21 @@ def run(
                     "min_mw": float(dispatch_ed[g].min()),
                     "max_mw": float(dispatch_ed[g].max()),
                     "p_nom": float(n2.generators.at[g, "p_nom"]),
+                    "marginal_cost": float(n2.generators.at[g, "marginal_cost"]),
                 }
         results["details"]["ed_dispatch_summary"] = dispatch_summary
 
         # Print dispatch table
         print("\nED dispatch summary (MW):")
         for g, v in dispatch_summary.items():
-            mc = float(n2.generators.at[g, "marginal_cost"])
             print(
                 f"  {g}: min={v['min_mw']:.1f}, max={v['max_mw']:.1f} "
-                f"(p_nom={v['p_nom']:.0f} MW, MC=${mc}/MWh)"
+                f"(p_nom={v['p_nom']:.0f} MW, MC=${v['marginal_cost']}/MWh)"
             )
 
         # -------------------------------------------------------------------
         # Pass condition evaluation
         # -------------------------------------------------------------------
-        # 1. ED solved successfully
         ed_feasible = True
         try:
             if np.isnan(ed_objective):
@@ -416,13 +399,8 @@ def run(
         except Exception:
             ed_feasible = False
 
-        # 2. Dispatch schedule extractable
         dispatch_extractable = len(dispatch_ed) == len(snapshots)
-
-        # 3. UC and ED are cleanly separable (two-stage workflow demonstrated)
         two_stage_separable = is_pure_lp
-
-        # 4. Ramp constraints enforced
         ramp_ok = ramp_constraints_enforced
 
         results["details"]["pass_condition"] = {
@@ -440,7 +418,7 @@ def run(
 
         if ed_feasible and dispatch_extractable and two_stage_separable and ramp_ok:
             results["status"] = "qualified_pass"
-            # Note: qualified_pass because the two-stage separation requires a
+            # qualified_pass because the two-stage separation requires a
             # manual workaround (no first-class fix_commitment() API in PyPSA)
         elif ed_feasible and dispatch_extractable:
             results["status"] = "qualified_pass"

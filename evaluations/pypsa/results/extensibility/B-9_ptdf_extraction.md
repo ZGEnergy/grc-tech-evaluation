@@ -3,97 +3,83 @@ test_id: B-9
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 8f3fc0f5
+test_hash: d8e7210b
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.186
+wall_clock_seconds: 1.17
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 204
+loc: 218
 solver: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# B-9: PTDF Extraction and Flow Prediction
+# B-9: Compute the PTDF matrix for TINY (39-bus) and verify against DCPF
 
 ## Result: PASS
 
 ## Approach
 
-Used PyPSA's native `calculate_PTDF()` API on a `SubNetwork` object. The PTDF matrix is exposed as a dense numpy array. Flow predictions using `PTDF @ P_inj` match DCPF flows to machine precision (< 2e-14 pu).
+PTDF extraction and validation via PyPSA's native SubNetwork API:
 
-**API sequence:**
-```python
-n.determine_network_topology()
-sn = n.sub_networks.at["0", "obj"]
-sn.calculate_PTDF()
-PTDF = sn.PTDF                      # numpy array: (46 branches × 39 buses)
-```
+1. **Load network**: `matpower_loader.load_pypsa()` for case39
+2. **Run DCPF**: `n.lpf()` to get baseline flows
+3. **Build topology**: `n.determine_network_topology()`
+4. **Compute PTDF**: `sn_obj.calculate_PTDF()` (native PyPSA method)
+5. **Extract matrix**: `sn_obj.PTDF` — dense numpy array (46 branches x 39 buses)
+6. **Build injection vector**: Assembled `P_inj` in `sn.buses_o` order (slack-first, critical for correct results)
+7. **Validate**: Compared `PTDF @ P_inj_pu` against actual DCPF flows
 
-**Key finding — bus ordering:** PTDF columns are in `sn.buses_o` order (slack bus first, then pvpq buses in pvpq order), NOT in `n.buses` alphabetical order. The injection vector must be assembled in `buses_o` order for `PTDF @ P_inj` to yield correct flows. This ordering is not documented in user-facing docs and must be inferred from source code inspection.
+**Phase-shifter check**: IEEE 39-bus has no phase-shifting transformers (SHIFT=0 on all branches). No Pbusinj/Pfinj correction needed. The 1e-6 tolerance applies directly.
 
-For IEEE 39-bus: slack bus = '31', `buses_o` = `['31', '30', '32', '33', '34', ...]`.
-
-The `n.buses_t.p` result from `n.lpf()` contains net nodal injection (gen − load) in MW with correct sign convention. No phase-shift correction needed (case39 has SHIFT=0 on all branches).
+**Bus ordering**: PTDF columns follow `sn.buses_o` order (slack bus first, then pvpq buses), NOT `n.buses` alphabetical order. The injection vector must be assembled in this exact order for correct flow predictions. This is a documented but non-obvious API detail.
 
 ## Output
 
 | Metric | Value |
 |--------|-------|
-| PTDF shape | 46 × 39 (branches × buses) |
-| PTDF dtype | float64 |
-| PTDF value range | [−1.0, 1.0] |
-| Slack bus | '31' (bus index 0 in buses_o) |
-| Phase-shifting branches | 0 (no correction needed) |
-| Max \|predicted − actual\| flow | 1.91e-14 pu |
-| Mean \|predicted − actual\| flow | 4.14e-15 pu |
-| Branches within 0.01 pu tolerance | 46 / 46 |
+| PTDF shape | (46, 39) |
+| Slack bus | 31 |
+| Phase shifters | 0 |
+| Max |predicted - actual| | 1.91e-14 pu |
+| Mean |predicted - actual| | 4.14e-15 pu |
+| Branches within 1e-6 tolerance | 46 / 46 |
+| PTDF sparsity | 39.2% (entries < 1e-10) |
 
-**Sample flow predictions (first 5 branches):**
+**Sample branch flows (pu on 100 MVA base):**
 
-| Branch | Actual (pu) | Predicted (pu) | Diff (pu) |
-|--------|------------|---------------|----------|
-| Line:L0 | −1.783537 | −1.783537 | 0.000000 |
-| Line:L1 | 0.807537 | 0.807537 | 0.000000 |
-| Line:L2 | 3.334301 | 3.334301 | 0.000000 |
-| Line:L3 | −2.617838 | −2.617838 | 0.000000 |
-| Line:L4 | 0.541154 | 0.541154 | 0.000000 |
+| Branch | Actual | Predicted | Diff |
+|--------|--------|-----------|------|
+| Line:L0 | -1.78353726 | -1.78353726 | 2.22e-15 |
+| Line:L1 | 0.80753726 | 0.80753726 | 4.77e-15 |
+| Line:L2 | 3.33430081 | 3.33430081 | 4.88e-15 |
+| Line:L3 | -2.61783807 | -2.61783807 | 6.22e-15 |
+| Line:L4 | 0.54115372 | 0.54115372 | 3.11e-15 |
 
-**PTDF first row (Line L0 sensitivity):**
-- Max absolute sensitivity: 0.546 (bus '31')
-- Non-zero entries: 37 of 39 buses
+Worst branch: Line:L15 with diff = 1.91e-14 pu (still 8 orders of magnitude below tolerance).
+
+Flow predictions match DCPF results to machine precision (1.91e-14 pu max error vs 1e-6 tolerance).
 
 ## Workarounds
 
-None required for PTDF extraction. The API is native and documented.
+None required. The PTDF extraction uses a clean 3-step native API:
+1. `n.determine_network_topology()`
+2. `sub_network.calculate_PTDF()`
+3. Access `sub_network.PTDF` (numpy array)
 
-The bus ordering discovery (`buses_o` vs `n.buses`) is a necessary API subtlety, not a workaround — once known, the code is clean and uses only public API attributes.
+The only non-obvious detail is the bus ordering (`sn.buses_o` rather than `n.buses.index`), which is documented in the PyPSA source code and consistent with the SubNetwork's internal bus ordering convention.
 
 ## Timing
 
-- **Wall-clock:** 0.186 s (warm process; includes network load, lpf, topology, PTDF)
+- **Wall-clock:** 1.17s
 - **Timing source:** measured
 - **Peak memory:** not measured
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/extensibility/test_b9_ptdf_extraction_tiny.py`
-
-Key API sequence:
-```python
-n.lpf()
-n.determine_network_topology()
-sn = n.sub_networks.at["0", "obj"]
-sn.calculate_PTDF()
-PTDF = sn.PTDF                          # (46, 39) numpy array
-
-# Critical: inject in buses_o order, not n.buses order
-buses_o = list(sn.buses_o)             # ['31', '30', '32', ...]
-P_inj_pu = [p_bus_mw[b] / 100.0 for b in buses_o]
-predicted_flows_pu = PTDF @ P_inj_pu   # max error: 1.9e-14 pu
-```
+**Path:** `evaluations/pypsa/tests/extensibility/test_b9_ptdf_extraction.py`
