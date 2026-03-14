@@ -3,20 +3,20 @@ test_id: A-12
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: 3dff58a1
+test_hash: 303ad9dc
 status: pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 120.14
+wall_clock_seconds: 5.81
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 320
+loc: 310
 solver: "SCIP (MIQP phase 1); HiGHS (LP phase 2 for LMPs)"
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
 # A-12: 24-Hour Multi-Period DCOPF with Renewables, BESS Cyclic SoC, Quadratic Costs
@@ -87,7 +87,7 @@ Note: The Phase 2 snapshot must be built by deepcopying the full base `data` dic
 - Discharge hours: 17, 18, 19, 20 — mean LMP $74.98/MWh
 - Terminal SoC at end of hour 24: 300 MWh = initial SoC (cyclic constraint satisfied)
 - Objective: $2,555,620/h
-- SCIP solve time: ~71s; Phase 2 (24 LP solves): ~49s
+- SCIP solve time: ~3.3s; Phase 2 (24 LP solves): ~2.5s
 
 #### Congestion detail:
 All 24 hours have 4–6 binding branches (LMP spread confirmed across all hours).
@@ -116,8 +116,8 @@ Three workarounds were required:
 
 ## Timing
 
-- **Wall-clock:** 120.14s
-- **Timing source:** measured (includes Julia startup; SCIP phase ~71s, Phase 2 LP ~49s)
+- **Wall-clock:** 5.81s
+- **Timing source:** measured (warm JIT; SCIP phase ~3.3s, Phase 2 LP ~2.5s)
 - **Peak memory:** not measured
 - **CPU cores used:** 1
 

@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "b8b60049"
+test_hash: "26828013"
 ---
 
 # E-6: ci_test_coverage
@@ -52,7 +52,7 @@ ci_passed: true
 Coverage has been stable at 93.71–94.19% across all commits in the last 18 months.
 
 #### CI status on current release (v0.21.5 / commit bcacabf5):
-Latest GitHub Actions run: `CI completed success 2026-03-11` — green.
+Latest GitHub Actions CI run on master: `CI completed success 2025-12-01` — green. CompatHelper runs daily and passes (latest: 2026-03-13).
 
 Additional workflow files:
 - `CompatHelper.yml` — automatic dependency compatibility PRs (runs daily)

@@ -5,10 +5,10 @@ dimension: p2_readiness
 network: TINY
 status: informational
 workaround_class: null
-timestamp: "2026-03-11T00:00:00Z"
-protocol_version: "v9"
+timestamp: "2026-03-13T23:30:00Z"
+protocol_version: v10
 skill_version: v1
-test_hash: "51a1ea25"
+test_hash: "059e1be1"
 ---
 
 # P2-3: Commitment Injection Workflow

@@ -6,17 +6,17 @@ network: TINY
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.215
+wall_clock_seconds: 0.132
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
 loc: 12
 solver: null
-protocol_version: "v9"
+protocol_version: v10
 skill_version: v1
-test_hash: df63b316
-timestamp: 2026-03-12T03:38:50Z
+test_hash: b9359eed
+timestamp: 2026-03-13T23:36:40Z
 ---
 
 # B-2: Graph Access (TINY)
@@ -41,7 +41,7 @@ After `instantiate_model`, `PowerModels.ref(pm, nw_id, :bus_arcs)` returns prepr
 - Depth-1: [15, 17, 19, 21, 24]
 - Depth-2: [14, 18, 20, 22, 23, 27, 33]
 - Depth-3: [3, 4, 13, 26, 34, 35, 36]
-- Subgraph: 20 buses, 21 branches (51% of network within depth-3 of bus 16)
+- Subgraph: 20 buses, 20 branches (51% of network within depth-3 of bus 16)
 
 **Built-in graph function:** `PowerModels.calc_connected_components(data)` confirmed the network is fully connected (1 component).
 
@@ -54,7 +54,7 @@ After `instantiate_model`, `PowerModels.ref(pm, nw_id, :bus_arcs)` returns prepr
 | Seed bus | 16 |
 | BFS depth | 3 |
 | Subgraph buses | 20 |
-| Subgraph branches | 21 |
+| Subgraph branches | 20 |
 | Network connected | true (1 component) |
 | Graphs.jl available | false |
 | pm.ref[:bus_arcs] available | true (39 buses, 92 arc entries) |
@@ -70,7 +70,7 @@ Bus 16 arcs from `pm.ref[:bus_arcs]`: branches 25, 26, 27, 28, 29 connecting to 
 
 ## Timing
 
-- **Wall-clock:** 0.215 s (includes parse, model instantiation, and BFS)
+- **Wall-clock:** 0.132 s (includes parse and BFS)
 - **Timing source:** measured
 - **Peak memory:** not measured
 

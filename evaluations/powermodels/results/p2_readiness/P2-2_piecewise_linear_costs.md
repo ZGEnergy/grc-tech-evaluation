@@ -5,10 +5,10 @@ dimension: p2_readiness
 network: TINY
 status: informational
 workaround_class: null
-timestamp: "2026-03-11T00:00:00Z"
-protocol_version: "v9"
+timestamp: "2026-03-13T23:30:00Z"
+protocol_version: v10
 skill_version: v1
-test_hash: "9e6ff8b6"
+test_hash: "fc68b7fe"
 ---
 
 # P2-2: Piecewise Linear Costs
