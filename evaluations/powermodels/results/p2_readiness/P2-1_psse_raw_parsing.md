@@ -5,10 +5,10 @@ dimension: p2_readiness
 network: N/A
 status: informational
 workaround_class: null
-timestamp: "2026-03-11T00:00:00Z"
-protocol_version: "v9"
+timestamp: "2026-03-13T23:30:00Z"
+protocol_version: v10
 skill_version: v1
-test_hash: "9f8ed88f"
+test_hash: "c5fec563"
 ---
 
 # P2-1: PSS/E RAW Parsing

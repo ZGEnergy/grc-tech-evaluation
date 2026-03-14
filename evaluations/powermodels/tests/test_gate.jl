@@ -164,9 +164,9 @@ r2 = run_gate_test(
     "G-2",
     "SMALL (ACTIVSg 2000)",
     joinpath(WORKSPACE, "data/networks/case_ACTIVSg2000.m"),
-    nothing,
-    nothing,
-    nothing,
+    2000,
+    3206,
+    544,
 )
 
 if r2.status == :fail
@@ -178,9 +178,9 @@ r3 = run_gate_test(
     "G-3",
     "MEDIUM (ACTIVSg 10k)",
     joinpath(WORKSPACE, "data/networks/case_ACTIVSg10k.m"),
-    nothing,
-    nothing,
-    nothing,
+    10000,
+    12706,
+    2485,
 )
 
 if r3.status == :fail

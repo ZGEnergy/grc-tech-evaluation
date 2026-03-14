@@ -2,24 +2,30 @@
 Test C-1: DCPF Scale — MEDIUM grade assessment
 Dimension: scalability
 Network: MEDIUM (ACTIVSg 10000-bus, case_ACTIVSg10k.m)
-Pass condition: Wall-clock time and peak memory recorded.
+Pass condition: Wall-clock time, peak memory
 Tool: PowerModels.jl v0.21.5
 Solver: N/A (direct linear algebra via compute_dc_pf)
-
-Notes:
-  - Timing data sourced from A-1 MEDIUM expressiveness test (measured).
-  - This script re-documents and confirms the timing from the A-1 run.
-  - compute_dc_pf uses Julia's backslash (direct sparse solve), no JuMP.
-  - Branch flows require manual post-processing (workaround from A-1).
 
 Preprocessing (per MEDIUM protocol):
   - Zero-reactance fix: branches with br_x=0 → set to 0.0001 pu
   - Zero/Inf RATE_A fix: branches with rate_a=0 or Inf → set to 9999 MVA
+
+compute_dc_pf uses Julia's backslash (direct sparse solve), no JuMP.
+Branch flows require manual post-processing (workaround from A-1).
 =#
 
 using PowerModels
 
 PowerModels.silence()
+
+function peak_rss_mb()
+    for line in eachline("/proc/self/status")
+        if startswith(line, "VmHWM:")
+            return parse(Float64, split(line)[2]) / 1024  # kB to MB
+        end
+    end
+    return nothing
+end
 
 function apply_medium_preprocessing!(data::Dict)
     base_mva = data["baseMVA"]
@@ -50,6 +56,7 @@ function run(
         "wall_clock_seconds" => 0.0,
         "details" => Dict{String,Any}(),
         "errors" => String[],
+        "workarounds" => String[],
     )
 
     # Warm-up on case39 to eliminate JIT compilation from timing
@@ -61,6 +68,7 @@ function run(
         ;
     end
 
+    rss_before = peak_rss_mb()
     t0 = time()
     try
         println("Loading network: $network_file")
@@ -92,13 +100,18 @@ function run(
         # Count non-zero bus angles
         n_nonzero_angles = 0
         sol_bus = result["solution"]["bus"]
+        angle_vals = Float64[]
         for (_, bus_sol) in sol_bus
             va = get(bus_sol, "va", 0.0)
+            push!(angle_vals, va * 180 / pi)
             if abs(va) > 1e-10
                 n_nonzero_angles += 1
             end
         end
         println("Non-zero bus angles: $n_nonzero_angles / $n_buses")
+        println(
+            "Angle range: $(round(minimum(angle_vals), digits=1))° to $(round(maximum(angle_vals), digits=1))°",
+        )
 
         # Compute branch flows from angles (workaround: compute_dc_pf doesn't populate solution["branch"])
         t_post_start = time()
@@ -113,8 +126,7 @@ function run(
             br_x = branch["br_x"]
             tap = get(branch, "tap", 1.0)
             if tap == 0.0
-                ;
-                tap = 1.0;
+                tap = 1.0
             end
             pf_pu = (va_f - va_t - shift) / (br_x * tap)
             pf_mw = pf_pu * base_mva
@@ -133,9 +145,17 @@ function run(
             "Flow range: $(round(flow_range_min,digits=2)) to $(round(flow_range_max,digits=2)) MW"
         )
 
+        rss_after = peak_rss_mb()
+
         t_total = time() - t0
 
         results["status"] = converged ? "pass" : "fail"
+        push!(
+            results["workarounds"],
+            "compute_dc_pf does not populate result[\"solution\"][\"branch\"]. " *
+            "Branch flows computed manually from bus angles using (va_f - va_t - shift) / (br_x * tap).",
+        )
+
         results["details"] = Dict(
             "n_buses" => n_buses,
             "n_branches" => n_branches,
@@ -148,10 +168,14 @@ function run(
             "n_nonzero_flows" => n_nonzero_flows,
             "flow_min_mw" => flow_range_min,
             "flow_max_mw" => flow_range_max,
+            "angle_min_deg" => minimum(angle_vals),
+            "angle_max_deg" => maximum(angle_vals),
             "t_parse_s" => t_parse,
             "t_solve_s" => t_solve,
             "t_post_process_s" => t_post,
             "t_total_s" => t_total,
+            "peak_rss_mb_before" => rss_before,
+            "peak_rss_mb_after" => rss_after,
             "solver" => "N/A (compute_dc_pf, direct sparse linear algebra)",
             "timing_source" => "measured",
         )
@@ -167,6 +191,7 @@ function run(
 
     println("\nStatus: $(results["status"])")
     println("Wall clock: $(round(results["wall_clock_seconds"], digits=3))s")
+    println("Peak RSS: $(peak_rss_mb()) MB")
 
     return results
 end
@@ -178,6 +203,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("status:             $(result["status"])")
     println("wall_clock_seconds: $(result["wall_clock_seconds"])")
     println("errors:             $(result["errors"])")
+    println("workarounds:        $(result["workarounds"])")
     println("--- details ---")
     for (k, v) in result["details"]
         println("  $k: $v")

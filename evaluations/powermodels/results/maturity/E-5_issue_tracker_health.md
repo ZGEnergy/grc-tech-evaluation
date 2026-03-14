@@ -5,10 +5,10 @@ dimension: maturity
 network: N/A
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-11T00:00:00Z
-protocol_version: "v9"
+timestamp: 2026-03-13T00:00:00Z
+protocol_version: v10
 skill_version: v1
-test_hash: "d2f277d5"
+test_hash: "74333712"
 ---
 
 # E-5: issue_tracker_health
@@ -19,26 +19,28 @@ Of the sampled closed issues, the median time-to-close is approximately 31 days,
 
 ## Evidence
 
-### Closed issues sample (last 8 non-PR closed issues via REST API):
+### Closed issues sample (10 most recent non-PR closed issues via REST API):
 
 | Issue | Days to Close | Comments | Topic |
 |-------|---------------|----------|-------|
 | #991 | 60 | 1 | Wrong branch type in case118.m |
-| #988 | 81 | 2 | Bus type change behavior |
+| #988 | 82 | 2 | Bus type change behavior |
 | #987 | 88 | 4 | Power flow qmax/qmin violation |
-| #984 | 1 | 5 | solve_mn_opf_strg error |
+| #984 | 2 | 5 | solve_mn_opf_strg error |
 | #978 | 3 | 2 | Shunt sign behavior |
 | #977 | 193 | 7 | Support for calc_branch_flow_nfa |
 | #974 | 61 | 4 | Chordal SDP bounds on large cases |
+| #953 | 199 | 0 | European network format support |
+| #935 | 431 | 9 | AC PF breaks with switches |
 | #971 | 0 | 3 | Load/production discrepancy (IEEE 300) |
 
-**Median time-to-close (8 issues):** ~60.5 days
+**Median time-to-close (10 issues):** ~71.5 days
 
-Note: The REST API returned 8 true issues (excluding PRs) in the last closed batch. Several low-complexity issues were closed same-day by maintainers (0–1 days), dragging down the raw median. Longer issues (88–193 days) represent substantive feature/behavior questions.
+Note: The REST API returned 10 true issues (excluding PRs) in the recent closed batch. Several low-complexity issues were closed same-day by maintainers (0-2 days). Longer issues (88-431 days) represent substantive feature/behavior questions or parser issues that accumulate before batch-closing.
 
 #### Open issues sample (10 most recent):
 
-| Issue | Age (days from 2026-03-11) | Comments | Status |
+| Issue | Age (days from 2026-03-13) | Comments | Status |
 |-------|---------------------------|----------|--------|
 | #989 | 120 | 4 | Generators on PQ buses — acknowledged, no fix |
 | #975 | 280 | 11 | DCPPowerModel in DirectMode — active discussion, no resolution |
