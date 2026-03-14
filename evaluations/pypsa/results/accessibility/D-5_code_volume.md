@@ -3,54 +3,62 @@ test_id: D-5
 tool: pypsa
 dimension: accessibility
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: b33f27ef
 status: informational
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: db465194
 ---
 
-# D-5: Code Volume (code_volume)
+# D-5: Code Volume
 
-## Result: INFORMATIONAL
+## Summary
 
-## Finding
+Suite A test scripts for PyPSA range from 156 to 541 total lines (111 to 415 code
+lines excluding blanks and comments). Simpler analyses (DCPF) require the least code;
+multi-period storage optimization (A-12) requires the most.
 
-PyPSA test scripts range from 114 to 259 LOC across the five sampled tests. The contingency sweep (A-7) required the most code at 259 LOC, driven by the `lpf_contingency` bug workaround (BODF-based N-1 sweep) and N-2 manual loop. OPF tests (A-3, A-10) required 200–239 LOC due to manual cost assignment and shadow price extraction workarounds.
+## LOC Table (TINY network variants)
 
-## Evidence
+| Test ID | Test Name | Total Lines | Code Lines | Notes |
+|---------|-----------|-------------|------------|-------|
+| A-1 | DCPF | 156 | 111 | Simplest test. Load network, call `n.lpf()`, validate flows. |
+| A-2 | ACPF | 257 | 187 | NR power flow with convergence validation. Requires separate loader path (no DC susceptance patch). |
+| A-3 | DCOPF | 288 | 219 | OPF with shadow price extraction via linopy model constraints. |
+| A-4 | AC Feasibility | 346 | 265 | Two-stage: DC OPF dispatch then AC PF feasibility check. Requires dual loader paths. |
+| A-5 | SCUC | 395 | 297 | Unit commitment with modified Tiny recipe (differentiated costs, temporal params). |
+| A-6 | SCED | 453 | 349 | Two-stage UC then ED. Significant boilerplate for commitment schedule fixation. |
+| A-9 | SCOPF | 335 | 249 | Security-constrained OPF. Limited to line-only contingencies. |
+| A-10 | Lossy DCOPF with LMP | 332 | 258 | Loss factors and LMP decomposition. |
+| A-11 | Distributed Slack OPF | 326 | 259 | AC PF with distributed slack after DC OPF. |
+| A-12 | Multi-period Storage | 541 | 415 | 24-hour DCOPF with BESS. Most complex test. |
 
-**LOC summary from existing result files:**
+## Analysis
 
-| Test | Description | LOC | Notes |
-|------|-------------|-----|-------|
-| A-1 | DC Power Flow (dcpf) | 114 | Baseline; simple pipeline. Most compact. |
-| A-2 | AC Power Flow (acpf) | 185 | Higher due to convergence verification code |
-| A-3 | DC OPF with shadow prices | 209 | Fragile shadow price workaround adds ~30 LOC |
-| A-7 | N-M Contingency Sweep | 259 | Highest; BODF workaround + N-2 manual loop |
-| A-10 | Lossy DC OPF + LMP decomp | 239 | LMP decomposition logic adds volume |
+**Mean code lines:** 261 (across 10 TINY test scripts)
+**Median code lines:** 259
+**Range:** 111 (A-1) to 415 (A-12)
 
-**Relative comparison:**
-- Median: 209 LOC (A-3)
-- Range: 145 LOC (114–259)
-- A-7 is 2.3× larger than A-1 — disproportionate due to bug workaround
+The LOC counts include test infrastructure (imports, assertions, result logging)
+that is consistent across tests. The incremental code specific to each power system
+analysis is lower than the totals suggest.
 
-**Factors driving higher LOC:**
-1. **No native MATPOWER reader:** Each script includes boilerplate for `CaseFrames` → ppc dict construction (~15 LOC).
-2. **Shadow price access (A-3, A-10):** The `n.model.constraints[...]` fragile workaround requires ~20 LOC of constraint introspection code that would be replaced by `n.lines_t.mu_upper` if the API worked as documented.
-3. **N-1 contingency workaround (A-7):** BODF-based contingency sweep requires explicit `sub_network.calculate_PTDF()` + `calculate_BODF()` calls and manual flow computation (~50 LOC) that `n.lpf_contingency()` would handle in 5 LOC.
-4. **Convergence verification (A-2):** The non-obvious `pf_result["n_iter"].values[0, 0]` accessor pattern adds verbose extraction code.
+**Lowest-friction tests (under 200 code lines):** A-1 (DCPF) and A-2 (ACPF). These
+tests use PyPSA's core API (`n.lpf()`, `n.pf()`) with minimal setup.
 
-**Benchmark context:** For a DCPF test, 114 LOC is moderate. Simple PyPSA DCPF can be written in ~20 LOC (see `verify_install.py`); the test scripts include comprehensive output extraction, assertions, and logging that inflate the count appropriately.
+**Highest-friction tests (over 300 code lines):** A-6 (SCED) and A-12 (multi-period
+storage). A-6 requires manual commitment schedule fixation (~20 lines of boilerplate
+that could be a single API call). A-12 is inherently complex due to 24-hour temporal
+resolution, storage parametrization, and modified cost recipe loading.
 
-## Implications
+## Observations Relevant to Code Volume
 
-Code volume is consistent with a capable but slightly verbose API. The two primary LOC drivers are addressable: (a) fixing `n.lines_t.mu_upper` would eliminate the shadow price workaround, and (b) fixing the `lpf_contingency` Python 3.12 bug would eliminate the BODF boilerplate. The underlying PyPSA API is concise when working; workarounds dominate the excess volume.
+- **api-friction A-6:** The lack of a `fix_commitment()` API adds ~20 lines to A-6.
+- **api-friction A-3:** Shadow price extraction via linopy adds ~10 lines vs. if
+  prices were auto-populated on the network object.
+- **api-friction A-12 (positive):** PyPSA's `StorageUnit` with native
+  `cyclic_state_of_charge` support reduces storage modeling code compared to tools
+  requiring manual constraint construction.
+- **api-friction B-5 (positive):** DataFrame-native results eliminate the need for
+  result extraction boilerplate.

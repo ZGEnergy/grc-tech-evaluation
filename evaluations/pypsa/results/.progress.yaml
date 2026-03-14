@@ -1,25 +1,24 @@
 tool: pypsa
 skill_version: v1
-protocol_version: v9
+protocol_version: v10
 run_mode: fresh
 completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE, COMMIT]
 current_state: DONE
-pr_url: https://github.com/ZGEnergy/grc-tech-evaluation/pull/72
+pr_url: https://github.com/ZGEnergy/grc-tech-evaluation/pull/85
+timestamp: 2026-03-13T00:00:00Z
 scale_cap: MEDIUM
-timestamp: 2026-03-12T00:00:00Z
 skipped_tests: []
 stale_tests: []
 orphaned_files: []
-completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18]
+completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 # Step 1: gate (G-1/G-2/G-3) ✓
-# Step 2: expressiveness TINY batch 1 (A-1/A-2/A-3/A-7/A-10) ✓
-# Step 3: expressiveness TINY batch 2 (A-4/A-9/A-11/A-12) ✓
-# Step 4: expressiveness TINY batch 3 (A-5/A-8) ✓
-# Step 5: expressiveness TINY batch 4 (A-6) ✓
-# Step 6: extensibility TINY batch 1 (B-2/B-3/B-5/B-6/B-9) ✓
-# Step 7: extensibility TINY batch 2 (B-1/B-4/B-7/B-8) ✓
-# Step 8: accessibility D-1..D-5 + supply_chain F-1..F-9 ✓
-# Step 9: maturity E-1..E-7 ✓
-# Step 17: FNM ingestion G-FNM-1..G-FNM-5 ✓
-# Step 18: p2_readiness P2-1..P2-3 ✓
-# In-progress: steps 10-16 (grade network + scalability)
+# Step 2: FNM gate (G-FNM-1 fail, G-FNM-2 skip) ✓
+# Step 3: expressiveness batch 1 (A-1/A-2/A-3) ✓
+# Step 4: expressiveness batch 2 (A-4/A-5/A-9) + extensibility (B-1/B-2) ✓
+# Step 5: expressiveness batch 3 (A-6/A-10/A-11) + extensibility (B-5/B-6) ✓
+# Step 6: expressiveness batch 4 (A-12) + extensibility (B-3/B-4/B-8/B-9) ✓
+# Steps 7-8: FNM (G-FNM-3 PASS via matpower_loader, G-FNM-4/5 informational) ✓ [re-run]
+# Step 9: scalability SMALL gate (C-4 fail, C-5 SMALL/MEDIUM pass) ✓
+# Steps 10-11: scalability MEDIUM (C-1..C-3, C-7..C-10 skip — SMALL gate) ✓
+# Steps 12-14: accessibility D-1..D-5 + maturity E-1..E-7 + supply_chain F-1..F-9 ✓
+# Step 15: p2_readiness P2-1..P2-3 ✓

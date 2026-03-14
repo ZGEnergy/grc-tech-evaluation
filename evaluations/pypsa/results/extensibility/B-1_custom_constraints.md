@@ -3,89 +3,87 @@ test_id: B-1
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 7578c2ba
+test_hash: fececf15
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 2.39
+wall_clock_seconds: 1.87
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 175
-solver: highs
-timestamp: 2026-03-11T00:00:00Z
+loc: 354
+solver: HiGHS
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# B-1: Custom Constraints — Flow Gate (custom_constraints)
+# B-1: Add a flow gate limit to the DC OPF formulation from A-3
 
 ## Result: PASS
 
 ## Approach
 
-Loaded case39.m with the same A-3 setup (differentiated marginal costs $10–$100/MWh, all branch limits derated 70%). Defined a flow gate as the sum of apparent power flows on lines `L1` and `L2` (≤ threshold).
+Used PyPSA's documented `extra_functionality` callback mechanism to inject a custom flow gate constraint into the DC OPF formulation. The callback receives `(n, snapshots)` where `n.model` is the linopy `Model` object, providing full access to add variables, constraints, and modify the objective.
 
-Custom constraint added via `extra_functionality(n, snapshots)` callable passed to `n.optimize()`. Inside the callback, the linopy variable `Line-s` was accessed via `n.model.variables["Line-s"]`, filtered to gate lines using `var.sel({dim: gate_lines})`, and the sum added as `n.model.add_constraints(lhs, "<=", threshold, name="FlowGate")`.
+The flow gate FG_01 spans two branches: line L2 (bus 2 -> bus 3) and transformer T0 (bus 2 -> bus 30). The callback accesses the `Line-s` and `Transformer-s` linopy variables, selects the gate branches, sums their flows, and constrains the sum to be <= threshold via `n.model.add_constraints()`.
 
-**Non-binding case:** Threshold = 10,000 MW (unreachable). Dual extracted via `n.model.constraints["FlowGate"].dual`.
+Two cases were tested per the guardrail specification:
 
-**Binding case:** Threshold = 95% of unconstrained flow sum (~358.66 MW). Thresholds of 75% and 90% produced infeasible problems because the 70% branch derating creates a tightly congested network where even moderate reductions in gate flow are infeasible. At 95%, the constraint is both feasible and binding.
+1. **Non-binding case**: Threshold = 10,000 MW (unreachable). Verifies that the dual value is ~0.
+2. **Binding case**: Threshold = 50% of unconstrained flow (~57.2 MW). Verifies that the dual is nonzero and objective increases.
 
-**Key API discovery:** In PyPSA v1.1.2, the line flow variable is named `Line-s` (apparent power), not `Line-p` (active power) as the spec suggested. The spec note about checking `n.model.variables["Line-p"].dims` was outdated; the actual variable is `Line-s`.
+Solver: HiGHS with single-thread, 300s time limit, presolve on.
+
+Network setup mirrors A-3: differentiated generator costs from Modified Tiny `gen_temporal_params.csv` (hydro $5, nuclear $10, coal $25, gas $40) and 70% branch derating for congestion.
 
 ## Output
 
-| Metric | Non-Binding | Binding |
-|--------|------------|---------|
-| Threshold (MW) | 10,000 | 358.66 |
-| Solver status | ok/optimal | ok/optimal |
-| Objective ($/h) | 370,208.16 | 385,881.87 |
-| FlowGate dual | 0.0 | −830.32 |
-| Actual gate flow (MW) | 377.53 | 358.66 |
+| Case | Threshold (MW) | Objective ($) | FlowGate Dual | Gate Flow (MW) |
+|------|----------------|---------------|---------------|----------------|
+| Non-binding | 10,000 | 126,125.17 | -0.0 | 114.46 |
+| Binding | 57.23 | 126,371.94 | -4.31 | 57.23 |
 
 **Pass condition checks:**
-- Dual extractable (non-binding): ✓
-- Dual extractable (binding): ✓
-- Dual ≈ 0 when non-binding: ✓ (dual = −0.0)
-- Dual ≠ 0 when binding: ✓ (dual = −830.32)
-- Objective increases when binding: ✓ ($385,882 > $370,208; +4.2%)
 
-**Constraint dimension names observed:**
-- Line flow variable: `Line-s` (not `Line-p`)
-- Line dimension in variable: `Line-ext-0` (or similar — confirmed by `var.dims`)
-- All constraints: `Generator-fix-p-lower`, `Generator-fix-p-upper`, `Line-fix-s-lower`, `Line-fix-s-upper`, `Transformer-fix-s-lower`, `Transformer-fix-s-upper`, `Kirchhoff-Voltage-Law`, `FlowGate`
+| Check | Result |
+|-------|--------|
+| Dual extractable (non-binding) | Yes |
+| Dual extractable (binding) | Yes |
+| Dual ~0 when non-binding | Yes (|-0.0| < 1e-4) |
+| Dual nonzero when binding | Yes (|-4.31| > 1e-6) |
+| Objective increases when binding | Yes (126,372 > 126,125) |
 
-**Note on threshold feasibility:** At 70% branch derating, the network is heavily congested. The protocol target of 50% of unconstrained flow sum was infeasible. 75% and 90% were also infeasible. Only 95% produced a feasible binding case. This reflects network topology, not an API limitation.
+The binding flow gate constraint forces the optimizer to reroute power away from the 2->3/2->30 corridor, increasing total generation cost by $247 (0.2% increase). The negative dual (-4.31 $/MWh) correctly reflects the shadow price of the constraint: each additional MW of flow gate capacity would reduce cost by $4.31.
 
 ## Workarounds
 
-None required. The `extra_functionality` API is the documented public mechanism for adding custom constraints in PyPSA v1.1.2. The complete constraint injection pattern is:
-
-```python
-def add_flow_gate(n, snapshots):
-    var = n.model.variables["Line-s"]
-    line_dim = [d for d in var.dims if d != "snapshot"][0]
-    lhs = var.sel({line_dim: gate_lines}).sum(line_dim)
-    n.model.add_constraints(lhs, "<=", threshold, name="FlowGate")
-
-n.optimize(extra_functionality=add_flow_gate, solver_name="highs")
-dual = n.model.constraints["FlowGate"].dual
-```
-
-This is a first-class, documented extension point. No internal patching required.
-
-**One minor doc gap:** The variable name `Line-s` vs `Line-p` is not documented in the public API reference — must be discovered empirically or by reading source code. Logged as observation.
+None required. The `extra_functionality` callback is the documented public API for custom constraint injection in PyPSA v1.1.2. The linopy `Model` provides `add_constraints()`, `add_variables()`, and full access to constraint duals after solve. No source patching, forking, or undocumented internals were needed.
 
 ## Timing
 
-- **Wall-clock:** 2.39 s (total including 3 binding-threshold attempts)
+- **Wall-clock:** 1.87s (both solves combined)
 - **Timing source:** measured
-- **Solve time:** ~0.4 s per solve call (non-binding); ~0.3 s (binding at 95%)
 - **Peak memory:** not measured
-- **CPU cores used:** 1 (configured)
+- **Solver iterations:** not reported (LP, direct solve)
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/extensibility/test_b1_custom_constraints_tiny.py`
+**Path:** `evaluations/pypsa/tests/extensibility/test_b1_custom_constraints.py`
+
+Key API pattern for constraint injection:
+
+```python
+def add_flow_gate(n, snapshots):
+    line_var = n.model.variables["Line-s"]
+    xfmr_var = n.model.variables["Transformer-s"]
+    lhs = line_var.sel({"Line": ["L2"]}).sum("Line") + \
+          xfmr_var.sel({"Transformer": ["T0"]}).sum("Transformer")
+    n.model.add_constraints(lhs, "<=", threshold, name="FlowGate")
+
+n.optimize(extra_functionality=add_flow_gate, solver_name="highs")
+
+# Extract dual after solve:
+dual = n.model.constraints["FlowGate"].dual
+```

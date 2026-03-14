@@ -4,21 +4,19 @@ source_dimension: expressiveness
 source_test: A-12
 tool: pypsa
 severity: medium
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: Shadow prices empty after multi-period optimize() — same fragile workaround as A-3 applies at scale
+# Observation: Branch shadow prices not assigned to network after n.optimize()
 
 ## Finding
 
-In multi-period OPF (24 snapshots), `n.lines_t.mu_upper` remains empty after `n.optimize()`. Shadow prices for congestion analysis must be extracted from `n.model.constraints["Line-fix-s-upper"].dual` — the same fragile workaround identified in A-3. At multi-period scale, the dual array has an additional snapshot dimension that requires careful indexing.
+In PyPSA v1.1.2, `n.lines_t.mu_upper` and `n.lines_t.mu_lower` are empty after `n.optimize()`, even though the solver computes and reports shadow prices. The solver log explicitly states: "The shadow-prices of the constraints Line-fix-s-upper, Line-fix-s-lower ... were not assigned to the network." Shadow prices must be extracted from the linopy model's internal constraint duals instead.
 
 ## Context
 
-Discovered during A-12 multi-period DCOPF with BESS and renewables. The shadow price extraction loop must handle the `(snapshot, name)` dimensions of the dual DataArray. The constraint naming convention (`Line-fix-s-upper`, `Line-fix-s-lower`) persists across single-period and multi-period solves.
+During A-12 (24-hour multi-period DCOPF with storage), branch shadow prices were needed to verify congestion reporting (pass condition 1). The documented API path (`n.lines_t.mu_upper`/`mu_lower`) returned empty DataFrames. The workaround accesses `n.model.constraints['Line-fix-s-upper'].dual`, which depends on undocumented internal constraint naming. This same issue was observed in A-3 (DCOPF) testing.
 
 ## Implications
 
-The fragile shadow price workaround (from A-3) propagates to all multi-period applications. Any extensibility test (B-tests) or scalability test (C-tests) that needs shadow prices will encounter the same issue. The `assign_all_duals=True` parameter exists on `n.optimize()` but the shadow prices are still not assigned to `n.lines_t.mu_upper` — the behavior appears to assign them back to a different attribute. The consuming dimensions should check whether `assign_all_duals=True` resolves this in their evaluation context.
-
-Also note: the BESS sign convention (positive = discharge, negative = charge) is consistent with PyPSA documentation but opposite to some other tools (pandapower uses positive = generation/discharge). Cross-tool BESS comparisons should account for this.
+This is a recurring PyPSA v1.1.2 bug affecting any test that requires branch-level shadow prices. It should be noted in the Accessibility audit (D-4) as a documentation gap -- the documented API exists but silently fails to populate results. The workaround is classified as fragile because the internal constraint name format could change in future versions.

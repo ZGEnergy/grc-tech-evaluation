@@ -3,80 +3,91 @@ test_id: F-2
 tool: pypsa
 dimension: supply_chain
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: e816cc39
-status: pass
+status: informational
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 8b638f83
 ---
 
-# F-2: Dependency Tree (dependency_tree)
+# F-2: Dependency Tree
 
-## Result: PASS
+## Findings
 
-## Finding
+### Direct Dependencies
 
-The `uv.lock` file resolves 89 packages. PyPSA's `pyproject.toml` lists 16 direct runtime dependencies, all unpinned (no version pins beyond the `>=` lower bounds specified by PyPSA itself). The `uv.lock` provides full pinned resolution for reproducibility.
+PyPSA v1.1.2 declares 17 direct runtime dependencies in `pyproject.toml`:
 
-## Evidence
+1. numpy
+2. scipy
+3. pandas (>=2.0)
+4. xarray
+5. netcdf4 (!=1.7.4)
+6. linopy (>=0.6.1)
+7. matplotlib
+8. plotly
+9. pydeck (>=0.6)
+10. seaborn
+11. geopandas (>=0.9)
+12. shapely
+13. networkx (>=2)
+14. deprecation
+15. validators
+16. highspy
+17. levenshtein (>=0.27.1)
 
-**Total packages in lock file:**
-```bash
-grep '^\[\[package\]\]' /workspace/evaluations/pypsa/uv.lock | wc -l
-→ 89
-```
+### Total Dependency Count
 
-**PyPSA direct runtime dependencies** (from `pypsa-1.1.2.dist-info/METADATA`):
-```
-numpy, scipy, pandas>=2.0, xarray, netcdf4!=1.7.4, linopy>=0.6.1,
-matplotlib, plotly, pydeck>=0.6, seaborn, geopandas>=0.9, shapely,
-networkx>=2, deprecation, validators, highspy, levenshtein>=0.27.1
-```
+**90 unique packages** installed in the evaluation environment (including
+pypsa itself, dev dependencies pytest, and tool dependencies pandapower,
+matpowercaseframes, pyomo used for evaluation).
 
-**Evaluation project `pyproject.toml` direct dependencies:**
-```toml
-dependencies = [
-    "pypsa",          # unpinned — resolves to latest at uv sync time
-    "pandapower",     # unpinned
-    "matpowercaseframes",  # unpinned
-    "highspy",        # unpinned
-]
-```
+PyPSA's own transitive closure (excluding evaluation-only packages):
+approximately **70 packages**.
 
-**Pinning status:**
-- Evaluation `pyproject.toml`: no version pins (intentional for evaluation flexibility)
-- `uv.lock`: all 89 packages are pinned with exact versions and SHA256 hashes
-- PyPSA's own `pyproject.toml` uses `>=` lower bounds (e.g., `linopy>=0.6.1`, `pandas>=2.0`), not exact pins
+### Tree Depth
 
-**Key installed versions:**
+**Maximum depth: 4** (e.g., pypsa -> linopy -> dask -> partd -> locket).
 
-| Package | Version |
-|---------|---------|
-| pypsa | 1.1.2 |
-| linopy | 0.6.4 |
-| highspy | 1.13.1 |
-| numpy | 2.3.5 |
-| pandas | 2.3.3 |
-| scipy | 1.16.3 |
-| networkx | 3.6.1 |
-| xarray | 2026.2.0 |
-| geopandas | 1.1.2 |
-| netcdf4 | 1.7.3 |
-| matplotlib | 3.10.8 |
+### Dependency Categories
 
-**Notable optional dependencies present in install:**
-- `pandapower` (3.4.0) — pulled in by evaluation project, not PyPSA core
-- `dask` (2026.1.2) — pulled in transitively
-- `google-cloud-storage` (3.9.0) — pulled in by pydeck/cloudpickle transitively
+| Category | Packages | Purpose |
+|----------|----------|---------|
+| Core computation | numpy, scipy, pandas, xarray | Numerical/data |
+| Optimization | linopy, highspy | LP/MILP modeling and solving |
+| Visualization | matplotlib, plotly, seaborn, pydeck | Plotting |
+| Geospatial | geopandas, shapely, pyproj, pyogrio | GIS/mapping |
+| IO | netcdf4, xarray | File format support |
+| Graph | networkx | Topology |
+| Cloud | google-cloud-storage, google-auth | GCS integration (via linopy) |
+| Utility | deprecation, validators, levenshtein | API helpers |
 
-## Implications
+### Notable Observations
 
-89 packages is a moderate-sized dependency tree for a scientific Python tool. All packages resolve from PyPI. The lock file provides full reproducibility. The unpinned evaluation `pyproject.toml` is appropriate for the evaluation context; production deployments would want pinned versions. No concerns about dependency tree size or structure.
+1. **Google Cloud dependencies**: linopy pulls in `google-cloud-storage`
+   and its transitive chain (~8 packages). These are runtime dependencies
+   for cloud-based model storage but not needed for local execution.
+
+2. **Visualization weight**: matplotlib, plotly, seaborn, and pydeck
+   collectively add ~15 packages. These are not needed for headless
+   computation but are declared as required dependencies (not optional).
+
+3. **Version pinning**: Dependencies use lower bounds only (e.g.,
+   `pandas>=2.0`, `linopy>=0.6.1`) with one exclusion (`netcdf4!=1.7.4`
+   due to a known bug). No upper bounds, which maximizes compatibility
+   but risks breakage from upstream changes (as seen with pandas 3.0
+   issues in #1580).
+
+### Issues
+
+No unresolvable dependencies. All packages resolve cleanly via pip/uv.
+The lack of upper bounds is a minor supply chain concern — the pandas 3.0
+breakage in issue #1580 demonstrates the risk.
+
+## Recorded Metrics
+
+- dep_count: ~70 (pypsa transitive), ~90 (full evaluation env)
+- tree_depth: 4
+- issues: no upper bounds on most dependencies; google-cloud chain pulled
+  transitively via linopy

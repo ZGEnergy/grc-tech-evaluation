@@ -3,55 +3,72 @@ test_id: E-3
 tool: pypsa
 dimension: maturity
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 732563c9
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 3e956677
 ---
 
-# E-3: Contributor Concentration (contributor_concentration)
+# E-3: Contributor Concentration
 
-## Result: PASS
+## Findings
 
-## Finding
+### Top 3 Contributors (Lifetime)
 
-PyPSA has 99+ contributors with the top contributor (Tom Brown, TU Berlin) accounting for approximately 30–35% of lifetime commits. The project has a healthy multi-contributor core team (4–6 active maintainers) reducing single-point-of-failure risk.
+Total all-time commits across 99 contributors: ~3,020.
 
-## Evidence
+| Rank | Contributor | Commits | Percentage | Affiliation |
+|------|-------------|---------|------------|-------------|
+| 1 | fneum (Fabian Neumann) | 713 | 23.6% | TU Berlin / PyPSA-Eur |
+| 2 | FabianHofmann (Fabian Hofmann) | 479 | 15.9% | PyPSA maintainer |
+| 3 | nworbmot (Tom Brown) | 470 | 15.6% | TU Berlin, project founder |
 
-**GitHub contributors page:** https://github.com/PyPSA/PyPSA/graphs/contributors
+**Top 3 combined: 55.1% of all commits.**
 
-**Top contributors by lifetime commits (approximate, from research context):**
-1. **Tom Brown** (t-brown, TU Berlin) — lead maintainer, project founder — est. 30–35% of total commits
-2. **Fabian Hofmann** (FabianHofmann) — linopy author, major contributor — est. 10–15%
-3. **Lisa Zeyen / Jonas Hörsch** — core contributors — est. 5–10% each
-4. Remaining ~95 contributors — collective ~40–50%
+### Reviewer Concentration (50 Most Recent Merged PRs)
 
-**Total contributors:** 99+ (from research context)
+| Reviewer | PRs Reviewed | Percentage |
+|----------|-------------|------------|
+| lkstrp | 30 | 44.8% |
+| fneum | 10 | 14.9% |
+| FabianHofmann | 9 | 13.4% |
+| euronion | 9 | 13.4% |
+| Other (4) | 9 | 13.4% |
 
-**Bus factor assessment:**
-- **Bus factor: ~3–4.** The project could sustain the loss of any single contributor (including Tom Brown) because:
-  - Multiple active maintainers with deep codebase knowledge
-  - TU Berlin group has institutional interest and funding continuity
-  - Fabian Hofmann independently maintains linopy (the optimization backend) — critical component has separate maintainer
-  - Active community of 99+ contributors providing continuity
+### Merge Concentration
 
-**Concentration risk factors:**
-- Tom Brown as founding maintainer and primary academic lead: departure would be a significant loss but project would continue
-- linopy (critical dependency) has its own maintainer (Fabian Hofmann), reducing single-repo concentration
-- EU Horizon project funding spreads institutional dependency across multiple universities
+Of the 50 most recent merged PRs:
+- lkstrp merged 42 (84%)
+- FabianHofmann merged 6 (12%)
+- Irieo merged 1 (2%)
+- fneum merged 1 (2%)
 
-**Comparison context:** A top-contributor share of 30–35% is moderate concentration for an academic project — typical for university-originated open-source tools where the founding researcher has significant early commits.
+### Bus Factor Assessment
 
-## Implications
+**Bus factor: 2-3.** The project has transitioned maintainership over time:
 
-Contributor concentration is B+ level: healthy multi-contributor core with institutional backing reduces bus factor risk. The founding-maintainer concentration (~30–35%) is acceptable given the depth of the contributor base and institutional funding. The linopy separation (critical solver backend has independent maintainer) is a positive structural feature.
+1. **Founding era**: nworbmot (Tom Brown) was the primary developer
+2. **Growth era**: fneum and FabianHofmann took on significant development
+3. **Current era**: lkstrp is the active primary maintainer, with fneum,
+   FabianHofmann, and Irieo as active reviewers/contributors
+
+The high merge concentration on lkstrp (84%) is a moderate risk factor.
+However, the review load is more distributed (4 reviewers each handling
+>13% of reviews), which mitigates the single-point-of-failure risk.
+
+### Consumed Observations
+
+Architecture quality observations from extensibility tests (B-1, B-2, B-3,
+B-4, B-6, B-8, B-9) uniformly noted clean, well-separated code architecture
+with 4 abstraction layers and 8 mixins. This level of architectural maturity
+typically indicates that the codebase can accommodate maintainer transitions
+without degradation.
+
+## Recorded Metrics
+
+- top_contributor_pct: 23.6% (fneum)
+- bus_factor: 2-3 (moderate)
+- total_contributors: 99
+- reviewer_count_active: 4 (>13% each)

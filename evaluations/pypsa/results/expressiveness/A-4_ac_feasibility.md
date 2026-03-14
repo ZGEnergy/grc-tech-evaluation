@@ -3,99 +3,131 @@ test_id: A-4
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 1734eea4
+test_hash: 8531c61c
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.100
+wall_clock_seconds: 1.445
 timing_source: measured
 peak_memory_mb: null
-convergence_residual: 1.891e-09
+convergence_residual: 3.104e-09
 convergence_iterations: 4
-loc: 333
-solver: scipy (Newton-Raphson)
-timestamp: 2026-03-11T00:00:00Z
+loc: 400
+solver: Ipopt
+timestamp: 2026-03-14T00:30:00Z
 ---
 
-# A-4: AC Feasibility Check (ac_feasibility)
+# A-4: Take DC OPF dispatch from A-3, run full ACPF on that dispatch
 
 ## Result: PASS
 
 ## Approach
 
-Loaded IEEE 39-bus network using the standard three-step MATPOWER ingestion (CaseFrames → ppc dict → `import_from_pypower_ppc`). Set generator active power dispatch to the A-3 DC OPF optimal solution via `n.generators_t.p_set` — all 10 generators dispatched within the same model context (no file export or reimport). Ran `n.pf(snapshots=[snapshot])` (Newton-Raphson AC power flow, flat start) to obtain the AC solution. Checked voltage magnitudes against [0.95, 1.05] pu bounds and line/transformer flows against `s_nom` limits.
+Reproduced the A-3 DC OPF within the same model context (shared loader with
+DC transformer susceptance patch, Modified Tiny differentiated costs, 70%
+branch derating), then transferred the generator dispatch to a fresh Network
+object for AC power flow.
 
-The "same model context" requirement is fully met: the dispatch from A-3 was applied via in-memory DataFrame assignment and the AC PF run immediately. No serialization or file I/O was needed.
+Key implementation detail: PyPSA's shared MATPOWER loader applies a
+transformer susceptance correction (`b = 1/x`) that is correct for DC power
+flow but causes AC power flow divergence. The A-2 result documents this same
+finding. For the AC PF step, the network was loaded via the raw
+`import_from_pypower_ppc()` path (without the DC patch) to preserve the
+native AC transformer model.
 
-Convergence result extraction required understanding the `pf()` return structure: PyPSA v1.1.2 returns a `Dict` with top-level keys `n_iter`, `error`, `converged` (each a DataFrame), not a dict-of-sub-networks with `.converged` attributes.
+The DC OPF dispatch was set on generators via `n.generators_t.p_set`, and
+`n.pf()` was called with Newton-Raphson (PyPSA's internal NR solver). The
+entire workflow -- DC OPF, dispatch extraction, AC PF, violation analysis --
+happens within Python objects without any file export/reimport, satisfying
+the "same model context" requirement.
+
+### Unit consistency at transfer point
+
+| Quantity | Unit | Value |
+|----------|------|-------|
+| base_power | MVA | 100.0 |
+| DC OPF dispatch | MW | 6,254.23 total |
+| AC PF p_set | MW | same values |
+| Line limits | MVA (s_nom) | 70% derated |
 
 ## Output
 
-**AC Power Flow:** Converged in 4 Newton-Raphson iterations, residual = 1.891e-09 (well below tolerance)
+### Convergence
 
-**Dispatch applied (from A-3):**
+| Metric | Value |
+|--------|-------|
+| Converged | Yes (flat start) |
+| NR iterations | 4 |
+| Convergence residual | 3.104e-09 |
+| Non-trivial voltage buses | 39/39 (100%) |
+| DC warm start needed | No |
+
+### Voltage Violations (outside [0.95, 1.05] pu)
+
+| Bus | V (pu) | Type | Margin (pu) |
+|-----|--------|------|-------------|
+| 19 | 1.05039 | high | +0.00039 |
+| 22 | 1.05023 | high | +0.00023 |
+| 25 | 1.05795 | high | +0.00795 |
+| 26 | 1.05239 | high | +0.00239 |
+| 28 | 1.05006 | high | +0.00006 |
+| 36 | 1.06360 | high | +0.01360 |
+
+6 buses exceed the 1.05 pu upper limit, all on the high side. The largest
+violation is bus 36 at 1.064 pu. No buses are below 0.95 pu; the minimum
+voltage is 0.982 pu. All violations are associated with generator buses
+(the DC OPF does not model voltage control).
+
+### Thermal Violations (vs 70% derated limits)
+
+| Branch | Type | Flow (MVA) | Limit (MVA) | Loading |
+|--------|------|-----------|-------------|---------|
+| T2 | transformer | 639.93 | 630.0 | 101.6% |
+| T8 | transformer | 647.88 | 630.0 | 102.8% |
+
+2 transformers exceed their derated thermal limits. These violations arise
+because the AC power flow includes reactive power (apparent power > active
+power), while the DC OPF only constrains active power flow. No line
+violations were observed.
+
+### DC OPF Dispatch (from A-3)
 
 | Generator | Dispatch (MW) |
 |-----------|--------------|
-| G0 | 465.3 |
-| G1 | 646.0 |
-| G2 | 630.0 |
-| G3 | 630.0 |
-| G4 | 470.0 |
-| G5 | 630.0 |
-| G6 | 580.0 |
-| G7 | 262.9 |
-| G8 | 840.0 |
-| G9 | 1100.0 |
-
-**Voltage violations (outside [0.95, 1.05] pu):** 6 buses
-
-| Bus | Voltage (pu) | Violation |
-|-----|-------------|-----------|
-| 2   | 1.0543 | high (+0.004) |
-| 19  | 1.0507 | high (+0.001) |
-| 22  | 1.0505 | high (+0.001) |
-| 25  | 1.0526 | high (+0.003) |
-| 26  | 1.0511 | high (+0.001) |
-| 36  | 1.0636 | high (+0.014) |
-
-- Voltage range: 0.982 – 1.0636 pu
-- All violations are slight over-voltages (DC OPF dispatch does not enforce AC voltage limits)
-- 100% of buses have non-flat-start voltages (convergence quality: excellent)
-
-**Thermal limit violations:** 0 (no line or transformer thermal violations at DC OPF dispatch)
+| G0 (hydro) | 235.5 |
+| G1 (nuclear) | 646.0 |
+| G2 (nuclear) | 630.0 |
+| G3 (coal) | 630.0 |
+| G4 (coal) | 470.0 |
+| G5 (nuclear) | 630.0 |
+| G6 (gas CC) | 580.0 |
+| G7 (nuclear) | 564.0 |
+| G8 (nuclear) | 840.0 |
+| G9 (gas CC) | 1,028.7 |
 
 ## Workarounds
 
-None required. The same model context requirement is natively satisfied by PyPSA's in-memory architecture — `generators_t.p_set` can be set between solves without any export/reimport cycle.
+None required. The entire DC OPF -> AC PF -> violation analysis workflow
+uses documented PyPSA public API (`n.optimize()`, `n.pf()`,
+`n.buses_t.v_mag_pu`, `n.lines_t.p0`, `n.lines_t.q0`).
 
-The A-3 result file showed only the non-zero or notable dispatched generators; the actual complete dispatch (all 10 generators producing) was obtained by re-running the A-3 test script.
+Note: the need to load the network without the DC transformer patch for AC
+PF is a consequence of the shared loader's design, not a PyPSA limitation.
+PyPSA's native `import_from_pypower_ppc()` works correctly for both DC and
+AC analysis when used without the patch.
 
 ## Timing
 
-- **Wall-clock:** 1.100 s (full test including network load + PF)
-- **PF solve time:** ~0.087 s
+- **Wall-clock:** 1.445s (total: DC OPF + AC PF + violation analysis)
+- **AC PF only:** 0.089s
 - **Timing source:** measured
-- **Peak memory:** not measured
-- **Solver iterations:** 4 NR iterations
-- **Convergence residual:** 1.891e-09 (flat start → 4 iterations to convergence)
+- **Peak memory:** not measured (not a scalability test)
+- **NR iterations:** 4
+- **Convergence residual:** 3.104e-09
 - **CPU cores used:** 1
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/expressiveness/test_a4_ac_feasibility_tiny.py`
-
-Key API pattern:
-```python
-# Same model context: set dispatch in-memory, then run PF
-p_set_df = pd.DataFrame(a3_dispatch, index=[snapshot])
-n.generators_t.p_set = p_set_df
-pf_result = n.pf(snapshots=[snapshot])
-
-# Read convergence from pf() return Dict
-converged = bool(pf_result["converged"].values.flatten()[0])
-n_iter = int(pf_result["n_iter"].values.flatten()[0])
-residual = float(pf_result["error"].values.flatten()[0])
-```
+**Path:** `evaluations/pypsa/tests/expressiveness/test_a4_ac_feasibility.py`

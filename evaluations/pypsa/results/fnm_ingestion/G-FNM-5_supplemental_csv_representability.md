@@ -3,229 +3,130 @@ test_id: G-FNM-5
 tool: pypsa
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: f0d7a20f
+test_hash: d1538e6c
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.132
+wall_clock_seconds: 0.086
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 306
+loc: 495
 solver: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# G-FNM-5: Supplemental CSV Representability
+# G-FNM-5: Supplemental CSV representability assessment on LARGE
 
 ## Result: INFORMATIONAL
 
-## Finding
+Evidence-collection test. All 7 supplemental CSVs analyzed. PyPSA achieves 20.5%
+native (N), 61.6% extension-representable (E), and 17.8% tool-external (X) across
+73 total fields. Zero mismatches against analytical classifications (21/21 matched).
 
-PyPSA achieves 20.5% native (N), 42.5% extension (E), and 37.0% external (X) representability
-across 73 actual fields in 7 supplemental CSVs from the FNM source data. The actual CSV schemas
-differ substantially from the analytical PSS/E-style field names in supplemental-csvs.md, but the
-tier classifications are consistent where cross-referenced (16 of 17 analytical matches confirmed,
-1 mismatch on TRADING_HUB.APNode).
+Extension mechanism empirically verified: custom columns on PyPSA component DataFrames
+persist correctly.
 
-PyPSA's extension mechanism (custom DataFrame column assignment) was verified empirically:
-`net.lines["custom_field"] = "test_value"` successfully stores and retrieves arbitrary data.
+## Approach
 
-## Evidence
+For each of 7 supplemental CSVs from the FNM Annual S01 variant, assessed each field's
+representability tier in PyPSA's data model:
 
-### Actual CSV Discovery
+- **N (Native):** PyPSA has a documented native attribute directly storing this data
+- **E (Extension):** Data storable via PyPSA's documented extension mechanisms
+  (custom DataFrame columns, extra_functionality callbacks, PTDF constraints)
+- **X (External):** No representation path within PyPSA's data model
 
-The FNM source directory contains 7 supplemental CSVs (plus 2 RAW files). INTERFACE_ELEMENT.csv
-is not present as a separate file; interface element data is merged into INTERFACE.csv
-(which contains both interface-level and element-level fields with 17 columns and 4,076 rows).
-RESOURCE.csv is present but was not covered in the analytical classification document.
+Per protocol: E classifications require a documented concrete extension approach.
+E classifications without such documentation are downgraded to X. All E classifications
+in this assessment include specific extension approaches.
 
-| CSV | Actual Columns | Rows | N | E | X | N% | E% | X% |
-|-----|---------------|------|---|---|---|----|----|-----|
-| LINE_AND_TRANSFORMER | 19 | 67,612 | 6 | 13 | 0 | 31.6% | 68.4% | 0.0% |
-| TRADING_HUB | 4 | 2,215 | 0 | 1 | 3 | 0.0% | 25.0% | 75.0% |
-| GEN_DISTRIBUTION_FACTOR | 4 | 392 | 1 | 2 | 1 | 25.0% | 50.0% | 25.0% |
-| CONTINGENCY | 9 | 7,218 | 0 | 1 | 8 | 0.0% | 11.1% | 88.9% |
-| INTERFACE | 17 | 4,076 | 2 | 8 | 7 | 11.8% | 47.1% | 41.2% |
-| OUTAGE | 11 | 612 | 2 | 1 | 8 | 18.2% | 9.1% | 72.7% |
-| RESOURCE | 9 | 11,536 | 4 | 5 | 0 | 44.4% | 55.6% | 0.0% |
-| **Totals** | **73** | — | **15** | **31** | **27** | **20.5%** | **42.5%** | **37.0%** |
+v10 reclassifications applied per protocol notes:
+- CONTINGENCY.csv: CONTINGENCY_NAME, ELEMENT_TYPE reclassified X->E (extra_functionality + BODF)
+- INTERFACE.csv: All 5 core fields reclassified X->E (PTDF + extra_functionality constraints)
+- TRADING_HUB.csv: HUB_NAME, DISTRIBUTION_FACTOR reclassified X->E (custom bus attributes + PTDF-weighted LMP averaging)
 
-### Schema Divergence from Analytical Spec
+## Output
 
-The actual CSV column names use ERCOT-specific naming conventions that differ from the PSS/E-style
-field names in supplemental-csvs.md. Key differences:
+### Cross-CSV Summary
 
-- **LINE_AND_TRANSFORMER.csv** has 19 columns (vs 10 in analytical spec). Additional fields include
-  Device Name, EMS Device Name, From/To Bus Name, From/To Bus Substation, From/To Bus Zone,
-  Enforcement, Operating Normal/Emergency Rating, and TOU.
-- **CONTINGENCY.csv** has 9 columns (vs 6 in analytical). Additional fields: Description, Device Name,
-  EMS Device Name, Action, Outage, TOU. Uses device names rather than bus-pair identifiers.
-- **INTERFACE.csv** merges interface definitions and interface elements into a single 17-column file
-  (vs separate 5-field INTERFACE.csv and 6-field INTERFACE_ELEMENT.csv in analytical spec).
-- **OUTAGE.csv** has 11 columns (vs 8 in analytical). Uses OMS Outage ID, Duration In Hour, Action,
-  Device Name rather than FROM_BUS/TO_BUS/CKT composite keys.
-- **RESOURCE.csv** (9 fields) is not documented in the analytical spec at all.
+| Metric | Value |
+|--------|-------|
+| CSVs analyzed | 7 |
+| Total fields | 73 |
+| Native (N) | 15 (20.5%) |
+| Extension (E) | 45 (61.6%) |
+| External (X) | 13 (17.8%) |
+| Analytical cross-references | 21 |
+| Matches | 21 (100%) |
+| Mismatches | 0 |
 
-### Per-CSV Field Classification Details
+### Per-CSV Representability
 
-#### LINE_AND_TRANSFORMER.csv (19 fields)
+| CSV | Fields | N | E | X | N% | E% | X% |
+|-----|--------|---|---|---|----|----|-----|
+| LINE_AND_TRANSFORMER | 19 | 6 | 13 | 0 | 31.6% | 68.4% | 0.0% |
+| CONTINGENCY | 9 | 0 | 7 | 2 | 0.0% | 77.8% | 22.2% |
+| INTERFACE | 17 | 2 | 14 | 1 | 11.8% | 82.4% | 5.9% |
+| RESOURCE | 9 | 4 | 5 | 0 | 44.4% | 55.6% | 0.0% |
+| TRADING_HUB | 4 | 0 | 3 | 1 | 0.0% | 75.0% | 25.0% |
+| GEN_DISTRIBUTION_FACTOR | 4 | 1 | 2 | 1 | 25.0% | 50.0% | 25.0% |
+| OUTAGE | 11 | 2 | 1 | 8 | 18.2% | 9.1% | 72.7% |
 
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Device Name | E | custom column on Lines/Transformers DataFrame |
-| EMS Device Name | E | custom column |
-| Device Type | E | custom column (LINE/TRANSFORMER distinguishable natively by component type) |
-| From Bus Number | **N** | Line.bus0 / Transformer.bus0 |
-| From Bus Name | E | custom column (bus names not imported via PPC) |
-| From Bus Substation | E | custom column |
-| From Bus Zone | **N** | Bus.zone (imported via PPC) |
-| To Bus Number | **N** | Line.bus1 / Transformer.bus1 |
-| To Bus Name | E | custom column |
-| To Bus Substation | E | custom column |
-| To Bus Zone | **N** | Bus.zone (via bus1 lookup) |
-| Circuit ID | E | custom column (no native CKT field) |
-| Status | **N** | Line.active / Transformer.active |
-| Enforcement | E | custom column |
-| Normal Rating | **N** | Line.s_nom / Transformer.s_nom |
-| Emergency Rating | E | custom column (only 1 native rating tier: s_nom) |
-| Operating Normal Rating | E | custom column |
-| Operating Emergency Rating | E | custom column |
-| TOU | E | custom column (time-of-use period) |
+### Market Solution Fidelity Summary
 
-#### TRADING_HUB.csv (4 fields)
+| Data Concept | Concept Tier | Note |
+|--------------|-------------|------|
+| Thermal Ratings (4-tier) | extension | Only s_nom (RATE_A) native. RATE_B/C/D via custom columns. |
+| Seasonal/Temporal Rating Variations | extension | EFFECTIVE_DATE as custom column. No native temporal rating model. |
+| Trading Hub Definitions | extension | v10: Hub names and allocation factors as custom bus attrs. Post-OPF hub prices via PTDF-weighted LMP averaging. Complex. |
+| Generator Distribution Factors | external | Market settlement concept with no power flow analog. |
+| Contingency Definitions | extension | v10: extra_functionality + BODF matrix. 50-100 lines custom code. Complex. |
+| Interface Definitions & Flow Limits | extension | v10: PTDF matrix + extra_functionality constraints. Complex. |
+| Outage Actions / Planned Outage Params | external | No temporal outage schedule model. |
 
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Trading Hub | X | no hub model in PyPSA |
-| APNode | X | no hub/settlement node model — actual field contains APNode strings, not integer bus numbers |
-| Allocation Factor | X | no hub allocation model |
-| TOU | E | custom column |
+### Key X (External) Fields
 
-#### GEN_DISTRIBUTION_FACTOR.csv (4 fields)
-
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Generator Name | **N** | Generator name (index) |
-| EMS Name | E | custom column |
-| Distribution Factor | X | no generator distribution factor attribute |
-| TOU | E | custom column |
-
-#### CONTINGENCY.csv (9 fields)
-
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Contingency Name | X | no contingency model in PyPSA |
-| Description | X | no contingency model |
-| Device Name | X | no contingency model |
-| EMS Device Name | X | no contingency model |
-| Device Type | X | no contingency model |
-| Status | X | no contingency model |
-| Action | X | no contingency model |
-| Outage | X | no contingency model |
-| TOU | E | custom column |
-
-#### INTERFACE.csv (17 fields, merged interface + elements)
-
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Interface Name | X | no interface/flowgate model |
-| Positive Limit | X | no interface model |
-| Negative Limit | X | no interface model |
-| Operating Positive Limit | X | no interface model |
-| Operating Negative Limit | X | no interface model |
-| Device Name | E | custom column for element identification |
-| EMS Device Name | E | custom column |
-| Device Type | E | custom column |
-| From Bus Name | E | custom column |
-| From Bus Substation | E | custom column |
-| From Bus Zone | **N** | Bus.zone |
-| To Bus Name | E | custom column |
-| To Bus Substation | E | custom column |
-| To Bus Zone | **N** | Bus.zone |
-| Factor | X | no interface direction coefficient model |
-| Outage | X | no interface contingency model |
-| TOU | E | custom column |
-
-#### OUTAGE.csv (11 fields)
-
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| OMS Outage ID | X | no outage schedule model |
-| Duration In Hour | X | no outage schedule model |
-| Action | X | no outage schedule model |
-| Device Type | X | no outage schedule model |
-| Device Name | X | no outage schedule model |
-| Device EMS Name | X | no outage schedule model |
-| From Bus ID | **N** | Line.bus0 (if bus number) |
-| To Bus ID | **N** | Line.bus1 (if bus number) |
-| Adjusted Base Limit | X | no outage schedule model |
-| Adjusted Emergency Limit | X | no outage schedule model |
-| TOU | E | custom column |
-
-#### RESOURCE.csv (9 fields, not in analytical spec)
-
-| Field | Tier | PyPSA Mapping |
-|-------|------|---------------|
-| Generator Name | **N** | Generator name (index) |
-| EMS Gen Name | E | custom column |
-| Bus Name | E | custom column |
-| EMS Bus Name | E | custom column |
-| Zone Name | **N** | Bus.zone (via generator bus) |
-| Enforcement | E | custom column |
-| Mw | **N** | Generator.p_set or Generator.p_nom |
-| TOU | E | custom column |
-| PMax | **N** | Generator.p_nom |
-
-### Analytical vs Empirical Comparison
-
-Of the 17 field-level cross-references between the analytical classifications (supplemental-csvs.md)
-and the empirical classifications from the actual CSV data:
-
-- **16 matches** — analytical and empirical classifications agree
-- **1 mismatch** — TRADING_HUB.APNode: analytical = N (Bus index), empirical = X (no hub/settlement
-  node model). The actual APNode field contains aggregate pricing node names (strings like
-  "SP15_GEN_HUB_APND"), not integer bus numbers. The analytical spec assumed BUS_NUMBER (integer
-  bus IDs), but the actual CSV uses APNode settlement node name strings which have no native
-  PyPSA analog.
+| CSV | Field | Justification |
+|-----|-------|---------------|
+| TRADING_HUB | APNode | Abstract settlement point ID (string), not physical bus. No semantic mapping to PyPSA's bus model. |
+| GEN_DISTRIBUTION_FACTOR | Distribution Factor | Market settlement construct. No generator distribution factor attribute in any power flow tool. |
+| CONTINGENCY | Action | No contingency action model beyond simple trip. Derate actions require external logic. |
+| CONTINGENCY | Outage | No contingency-outage link model. Outage scheduling outside PyPSA's domain. |
+| INTERFACE | Outage | No interface-outage link. Conditional interfaces require external logic. |
+| OUTAGE | (6 fields) | No temporal outage schedule model. All outage-specific fields (ID, Duration, Action, Device Type/Name, Limits) are external. |
 
 ### Extension Mechanism Verification
 
-PyPSA's extension mechanism (custom DataFrame column assignment) was verified empirically:
-assigning `net.lines["custom_field"] = "test_value"` successfully stores and retrieves arbitrary
-data on component DataFrames. This confirms all E-classified fields can be carried within
-PyPSA's data model without external data structures.
+Empirically verified that PyPSA's custom column extension mechanism works:
 
-## Implications
+```python
+net.lines["custom_test_field"] = "test_value"
+assert net.lines.loc["test_line", "custom_test_field"] == "test_value"  # True
+```
 
-PyPSA's supplemental CSV representability profile shows clear domain boundaries:
+Custom columns on component DataFrames (Lines, Transformers, Generators, Buses)
+persist and are accessible for post-processing. This is the foundation for all
+E-classified fields.
 
-1. **Physical network fields** (bus numbers, ratings, status) are well-covered as Native (N).
-2. **Operational metadata** (device names, circuit IDs, substations) can be carried as Extension (E)
-   via custom DataFrame columns — PyPSA's extension mechanism works reliably.
-3. **Market-layer concepts** (trading hubs, contingency definitions, interface flowgates, outage
-   schedules) are consistently External (X) — these concepts have no structural analog in PyPSA.
+### Comparison with Analytical Classifications (supplemental-csv-representability.md)
 
-The 37.0% external rate reflects PyPSA's positioning as a power system planning/optimization tool
-rather than a market operations platform. Contingency analysis (88.9% X) and outage management
-(72.7% X) represent the largest gaps. Interface data (41.2% X) is 100% external for the
-interface-specific fields (name, limits, direction coefficients) — consistent with the analytical
-finding that PyPSA has no native interface/flowgate concept.
+All 21 fields that have analytical cross-reference classifications match the empirical
+classifications exactly. No downgrades or upgrades were needed. The v10 reclassifications
+(CONTINGENCY, INTERFACE, TRADING_HUB) align with the updated analytical document.
 
-The schema divergence between actual ERCOT CSVs and the PSS/E-style analytical spec is significant:
-the actual files have nearly twice as many fields (73 vs 44) with ERCOT-specific naming conventions,
-additional metadata columns (EMS names, substations, enforcement flags), and structural differences
-(merged INTERFACE + INTERFACE_ELEMENT, absent INTERFACE_ELEMENT.csv, additional RESOURCE.csv).
+## Workarounds
+
+None required. This is an evidence-collection test.
 
 ## Timing
 
-- **Wall-clock:** 0.132 s
+- **Wall-clock:** 0.086s
 - **Timing source:** measured
-- **Peak memory:** not measured
-- **CPU cores used:** 1
+- **Peak memory:** not measured (analytical test, no power flow)
 
 ## Test Script
 

@@ -1,11 +1,12 @@
 """
-Test G-FNM-5: Supplemental CSV Representability
+Test G-FNM-5: Supplemental CSV representability assessment on LARGE
 
 Dimension: fnm_ingestion
 Network: LARGE (FNM Annual S01)
-Pass condition: No hard pass/fail. Evidence collection. For each CSV: total
-  fields, N/E/X classification. Compare against analytical classifications
-  from supplemental-csv-representability.md.
+Pass condition: No hard pass/fail gate. Evidence-collection test. For each CSV, report:
+  total fields, count and percentage by achieved representability tier (N/E/X), and
+  per-field comparison against the analytical classification. E classifications without
+  a documented concrete extension approach must be downgraded to X.
 Tool: PyPSA 1.1.2
 """
 
@@ -18,146 +19,252 @@ from pathlib import Path
 FNM_PATH = Path("/data/fnm-source")
 PREFIX = "AUC_AN_2026_2026_S01_"
 
-# Empirical field classification for each supplemental CSV
-# Based on actual CSV column names (from FNM data) and PyPSA data model
-# Tier: N (native), E (extension-representable), X (tool-external)
+# ── Per-field representability classifications ──────────────────────────
+# Each entry: (tier, extension_approach_or_justification)
+# tier: N (native), E (extension-representable), X (tool-external)
+# For E: must include concrete documented extension approach
+# For X: must include justification
+
 CLASSIFICATIONS: dict[str, dict[str, tuple[str, str]]] = {
     "LINE_AND_TRANSFORMER": {
-        "Device Name": ("E", "custom column on Lines/Transformers DataFrame"),
-        "EMS Device Name": ("E", "custom column"),
+        "Device Name": (
+            "E",
+            "Custom column on Lines/Transformers DataFrame via direct assignment: "
+            "n.lines['device_name'] = values. Documented in PyPSA custom components docs.",
+        ),
+        "EMS Device Name": ("E", "Custom column on Lines/Transformers DataFrame."),
         "Device Type": (
             "E",
-            "custom column (LINE/TRANSFORMER distinguishable natively by component type)",
+            "Inferrable from component type (Line vs Transformer) but also storable "
+            "as custom column for original ELEMENT_TYPE enum value.",
         ),
         "From Bus Number": ("N", "Line.bus0 / Transformer.bus0"),
-        "From Bus Name": ("E", "custom column (bus names not imported via PPC)"),
-        "From Bus Substation": ("E", "custom column"),
-        "From Bus Zone": ("N", "Bus.zone (imported via PPC)"),
+        "From Bus Name": ("E", "Custom column on bus DataFrame: n.buses['name_full'] = values."),
+        "From Bus Substation": ("E", "Custom column on bus DataFrame."),
+        "From Bus Zone": ("N", "Bus.zone (imported via PPC bus column 11)"),
         "To Bus Number": ("N", "Line.bus1 / Transformer.bus1"),
-        "To Bus Name": ("E", "custom column"),
-        "To Bus Substation": ("E", "custom column"),
+        "To Bus Name": ("E", "Custom column on bus DataFrame."),
+        "To Bus Substation": ("E", "Custom column on bus DataFrame."),
         "To Bus Zone": ("N", "Bus.zone (via bus1 lookup)"),
-        "Circuit ID": ("E", "custom column (no native CKT field)"),
-        "Status": ("N", "Line.active / Transformer.active"),
-        "Enforcement": ("E", "custom column"),
-        "Normal Rating": ("N", "Line.s_nom / Transformer.s_nom"),
-        "Emergency Rating": ("E", "custom column (only 1 native rating tier: s_nom)"),
-        "Operating Normal Rating": ("E", "custom column"),
-        "Operating Emergency Rating": ("E", "custom column"),
-        "TOU": ("E", "custom column (time-of-use period)"),
+        "Circuit ID": (
+            "E",
+            "Custom column: n.lines['circuit_id'] = values. PyPSA uses integer index, "
+            "not PSS/E composite key, so CKT must be stored as custom attribute.",
+        ),
+        "Status": ("N", "Line.active / Transformer.active (boolean in-service flag)"),
+        "Enforcement": ("E", "Custom column for enforcement mode flag."),
+        "Normal Rating": ("N", "Line.s_nom / Transformer.s_nom (MVA thermal rating)"),
+        "Emergency Rating": (
+            "E",
+            "Custom column: n.lines['s_nom_emergency'] = values. PyPSA has only 1 native "
+            "rating tier (s_nom). RATE_B stored as custom attribute.",
+        ),
+        "Operating Normal Rating": (
+            "E",
+            "Custom column: n.lines['s_nom_operating'] = values. Operational overrides.",
+        ),
+        "Operating Emergency Rating": ("E", "Custom column for operational emergency rating."),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "TRADING_HUB": {
-        "Trading Hub": ("X", "no hub model in PyPSA"),
+        "Trading Hub": (
+            "E",
+            "Custom bus attribute: n.buses['hub_name'] = values. Hub names stored as string "
+            "attributes on bus DataFrame. Post-OPF hub prices derivable via PTDF-weighted "
+            "bus LMP averaging. v10 reclassification from X.",
+        ),
         "APNode": (
             "X",
-            "no hub/settlement node model — actual field is APNode string, not bus number",
+            "APNode is an abstract settlement point identifier (string), not a physical bus "
+            "number. PyPSA has no native settlement node concept. While the string could be "
+            "stored as a custom attribute, it has no semantic mapping to PyPSA's bus model.",
         ),
-        "Allocation Factor": ("X", "no hub allocation model"),
-        "TOU": ("E", "custom column"),
+        "Allocation Factor": (
+            "E",
+            "Custom bus attribute: n.buses['hub_allocation_factor'] = values. Used in "
+            "post-OPF aggregate hub price calculation: "
+            "(df_weights * n.buses_t.marginal_price).sum(axis=1). v10 reclassification from X.",
+        ),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "GEN_DISTRIBUTION_FACTOR": {
-        "Generator Name": ("N", "Generator name (index)"),
-        "EMS Name": ("E", "custom column"),
-        "Distribution Factor": ("X", "no generator distribution factor attribute"),
-        "TOU": ("E", "custom column"),
+        "Generator Name": ("N", "Generator name (index in n.generators DataFrame)"),
+        "EMS Name": ("E", "Custom column: n.generators['ems_name'] = values."),
+        "Distribution Factor": (
+            "X",
+            "No generator distribution factor attribute in PyPSA. Distribution factors are "
+            "a market settlement concept (hub allocation) with no analog in a power flow tool's "
+            "generator model. Must be maintained in external DataFrame.",
+        ),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "CONTINGENCY": {
-        "Contingency Name": ("X", "no contingency model in PyPSA"),
-        "Description": ("X", "no contingency model"),
-        "Device Name": ("X", "no contingency model"),
-        "EMS Device Name": ("X", "no contingency model"),
-        "Device Type": ("X", "no contingency model"),
-        "Status": ("X", "no contingency model"),
-        "Action": ("X", "no contingency model"),
-        "Outage": ("X", "no contingency model"),
-        "TOU": ("E", "custom column"),
+        "Contingency Name": (
+            "E",
+            "Custom DataFrame n.contingencies via extra_functionality callback. "
+            "N-1 constraints enforced via BODF matrix + lp.add_constraints(). "
+            "Requires 50-100 lines of custom code. v10 reclassification from X.",
+        ),
+        "Description": (
+            "E",
+            "Custom column on contingency DataFrame: n.contingencies['description'] = values.",
+        ),
+        "Device Name": (
+            "E",
+            "Custom column referencing Line/Transformer/Generator name on contingency DataFrame.",
+        ),
+        "EMS Device Name": ("E", "Custom column on contingency DataFrame."),
+        "Device Type": (
+            "E",
+            "Custom column: BRANCH/GENERATOR enum stored as string attribute on "
+            "contingency DataFrame. v10 reclassification from X.",
+        ),
+        "Status": ("E", "Custom column for contingency status (active/inactive)."),
+        "Action": (
+            "X",
+            "No contingency action model in PyPSA. The extra_functionality pattern supports "
+            "trip (remove element) but not partial actions like derate. Action semantics "
+            "beyond simple trip require external logic.",
+        ),
+        "Outage": (
+            "X",
+            "No contingency-outage link model. Outage scheduling is outside PyPSA's domain.",
+        ),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "INTERFACE": {
-        # Combined INTERFACE + INTERFACE_ELEMENT data in single CSV
-        "Interface Name": ("X", "no interface/flowgate model in PyPSA"),
-        "Positive Limit": ("X", "no interface model"),
-        "Negative Limit": ("X", "no interface model"),
-        "Operating Positive Limit": ("X", "no interface model"),
-        "Operating Negative Limit": ("X", "no interface model"),
-        "Device Name": ("E", "custom column for element identification"),
-        "EMS Device Name": ("E", "custom column"),
-        "Device Type": ("E", "custom column"),
-        "From Bus Name": ("E", "custom column (bus names not in PPC import)"),
-        "From Bus Substation": ("E", "custom column"),
-        "From Bus Zone": ("N", "Bus.zone"),
-        "To Bus Name": ("E", "custom column"),
-        "To Bus Substation": ("E", "custom column"),
+        "Interface Name": (
+            "E",
+            "Custom DataFrame: n.interfaces = pd.DataFrame(...). Interface definitions "
+            "stored alongside network. PTDF constraint enforcement via extra_functionality + "
+            "n.model.add_constraints(). v10 reclassification from X.",
+        ),
+        "Positive Limit": (
+            "E",
+            "PTDF-based aggregate flow constraint via extra_functionality. "
+            "limit_up = positive_limit, enforced as sum(PTDF_row * Pinj) <= limit. "
+            "v10 reclassification from X.",
+        ),
+        "Negative Limit": (
+            "E",
+            "PTDF-based constraint: sum(PTDF_row * Pinj) >= -negative_limit. "
+            "v10 reclassification from X.",
+        ),
+        "Operating Positive Limit": (
+            "E",
+            "Custom column on interface DataFrame for operational limit overrides. "
+            "v10 reclassification from X.",
+        ),
+        "Operating Negative Limit": (
+            "E",
+            "Custom column on interface DataFrame. v10 reclassification from X.",
+        ),
+        "Device Name": ("E", "Custom column for element identification within interface."),
+        "EMS Device Name": ("E", "Custom column."),
+        "Device Type": ("E", "Custom column for LINE/TRANSFORMER element type."),
+        "From Bus Name": ("E", "Custom column (bus names not in PPC import path)."),
+        "From Bus Substation": ("E", "Custom column."),
+        "From Bus Zone": ("N", "Bus.zone (native via PPC import)"),
+        "To Bus Name": ("E", "Custom column."),
+        "To Bus Substation": ("E", "Custom column."),
         "To Bus Zone": ("N", "Bus.zone"),
-        "Factor": ("X", "no interface direction coefficient model"),
-        "Outage": ("X", "no interface contingency model"),
-        "TOU": ("E", "custom column"),
+        "Factor": (
+            "E",
+            "Direction coefficient for interface flow calculation. Storable as custom column; "
+            "used in PTDF weighting sign convention. v10 reclassification from X.",
+        ),
+        "Outage": (
+            "X",
+            "No interface-outage link model. Conditional interfaces (active only during "
+            "specific outages) require external logic beyond PyPSA's model.",
+        ),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "OUTAGE": {
-        "OMS Outage ID": ("X", "no outage schedule model in PyPSA"),
-        "Duration In Hour": ("X", "no outage schedule model"),
-        "Action": ("X", "no outage schedule model"),
-        "Device Type": ("X", "no outage schedule model"),
-        "Device Name": ("X", "no outage schedule model"),
-        "Device EMS Name": ("X", "no outage schedule model"),
-        "From Bus ID": ("N", "Line.bus0 (if bus number)"),
-        "To Bus ID": ("N", "Line.bus1 (if bus number)"),
-        "Adjusted Base Limit": ("X", "no outage schedule model"),
+        "OMS Outage ID": (
+            "X",
+            "No outage schedule model in PyPSA. Outage management with temporal validity "
+            "periods is outside the scope of a single-snapshot power flow tool.",
+        ),
+        "Duration In Hour": ("X", "No temporal outage scheduling model."),
+        "Action": (
+            "X",
+            "No outage action model (TRIP/DERATE/etc). Element status can be toggled "
+            "via Line.active but there's no action taxonomy.",
+        ),
+        "Device Type": ("X", "No outage device type classification model."),
+        "Device Name": ("X", "No outage device reference model."),
+        "Device EMS Name": ("X", "No outage model."),
+        "From Bus ID": ("N", "Line.bus0 (bus number as physical element identifier)"),
+        "To Bus ID": ("N", "Line.bus1 (bus number as physical element identifier)"),
+        "Adjusted Base Limit": (
+            "X",
+            "No outage-adjusted rating model. Derated ratings during outages require "
+            "external scripting to modify s_nom per outage scenario.",
+        ),
         " Adjusted Emergency Limit": (
             "X",
-            "no outage schedule model — note leading space in column name",
+            "No outage-adjusted emergency rating model. Note: leading space in column name "
+            "is a data quality issue in the source CSV.",
         ),
-        "TOU": ("E", "custom column"),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
     },
     "RESOURCE": {
-        "Generator Name": ("N", "Generator name (index)"),
-        "EMS Gen Name": ("E", "custom column"),
-        "Bus Name": ("E", "custom column (bus names not in PPC import)"),
-        "EMS Bus Name": ("E", "custom column"),
-        "Zone Name": ("N", "Bus.zone (via generator bus)"),
-        "Enforcement": ("E", "custom column"),
-        "Mw": ("N", "Generator.p_set or Generator.p_nom"),
-        "TOU": ("E", "custom column"),
-        "PMax": ("N", "Generator.p_nom"),
+        "Generator Name": ("N", "Generator name (index in n.generators DataFrame)"),
+        "EMS Gen Name": ("E", "Custom column: n.generators['ems_name'] = values."),
+        "Bus Name": ("E", "Custom column (bus names not imported via PPC path)."),
+        "EMS Bus Name": ("E", "Custom column."),
+        "Zone Name": ("N", "Bus.zone (via generator bus lookup)"),
+        "Enforcement": ("E", "Custom column for enforcement mode flag."),
+        "Mw": ("N", "Generator.p_set or Generator.p_nom (active power in MW)"),
+        "TOU": ("E", "Custom column for time-of-use period identifier."),
+        "PMax": ("N", "Generator.p_nom (maximum active power capacity)"),
     },
 }
 
-# Analytical tier from supplemental-csv-representability.md for cross-reference
-# Maps actual CSV column names to analytical classification where directly comparable
+# Analytical classifications from supplemental-csv-representability.md for cross-reference
+# Maps to the D4 analytical document field names where directly comparable
 ANALYTICAL_TIERS: dict[str, dict[str, str]] = {
     "LINE_AND_TRANSFORMER": {
-        "From Bus Number": "N",  # FROM_BUS
-        "To Bus Number": "N",  # TO_BUS
-        "Circuit ID": "E",  # CKT
-        "Normal Rating": "N",  # RATE_A
-        "Emergency Rating": "E",  # RATE_B (only 1 native tier)
-        "Status": "N",  # STATUS
+        "From Bus Number": "N",  # FROM_BUS -> Line.bus0
+        "To Bus Number": "N",  # TO_BUS -> Line.bus1
+        "Circuit ID": "E",  # CKT -> custom attr
+        "Normal Rating": "N",  # RATE_A -> Line.s_nom
+        "Emergency Rating": "E",  # RATE_B -> custom attr
+        "Status": "N",  # STATUS -> Line.active
     },
     "TRADING_HUB": {
-        "Trading Hub": "X",  # HUB_NAME
-        "APNode": "N",  # BUS_NUMBER — analytical assumes integer bus ID
-        "Allocation Factor": "X",  # DISTRIBUTION_FACTOR
+        "Trading Hub": "E",  # HUB_NAME -> custom bus attr (v10)
+        "APNode": "X",  # BUS_NUMBER mismatch: APNode is string, not bus ID
+        "Allocation Factor": "E",  # DISTRIBUTION_FACTOR -> custom bus attr (v10)
     },
     "GEN_DISTRIBUTION_FACTOR": {
         "Generator Name": "N",  # GEN_NAME
         "Distribution Factor": "X",  # PARTICIPATION_FACTOR
     },
     "CONTINGENCY": {
-        "Contingency Name": "X",  # CONTINGENCY_NAME
+        "Contingency Name": "E",  # v10: extra_functionality + BODF
     },
     "INTERFACE": {
-        "Interface Name": "X",  # INTERFACE_NAME
-        "Positive Limit": "X",  # NORMAL_LIMIT_MW
-        "Negative Limit": "X",  # negative direction
+        "Interface Name": "E",  # v10: custom DataFrame + PTDF constraint
+        "Positive Limit": "E",  # v10: PTDF constraint
+        "Negative Limit": "E",  # v10: PTDF constraint
+        "Factor": "E",  # v10: PTDF weighting sign
     },
     "OUTAGE": {
         "From Bus ID": "N",  # ELEMENT_FROM_BUS
         "To Bus ID": "N",  # ELEMENT_TO_BUS
     },
+    "RESOURCE": {
+        "Generator Name": "N",
+        "Mw": "N",
+        "PMax": "N",
+    },
 }
 
 
 def run() -> dict:
-    """Execute G-FNM-5 supplemental CSV representability test.
+    """Execute G-FNM-5 supplemental CSV representability assessment.
 
     Returns:
         dict with keys:
@@ -189,7 +296,6 @@ def run() -> dict:
             try:
                 df = pd.read_csv(csv_path, nrows=5)
                 actual_columns = list(df.columns)
-                # Count rows (subtract 1 for header)
                 n_rows_approx = sum(1 for _ in open(csv_path)) - 1
             except Exception as e:
                 csv_results[csv_key] = {"error": str(e)}
@@ -207,8 +313,7 @@ def run() -> dict:
                 elif col_clean in classifications:
                     tier, note = classifications[col_clean]
                 else:
-                    # Default: Extension-representable via custom column
-                    tier, note = "E", "custom column (unclassified field)"
+                    tier, note = "E", "Custom column on component DataFrame (unclassified field)."
 
                 anal_tier = analytical.get(col) or analytical.get(col_clean)
 
@@ -216,7 +321,8 @@ def run() -> dict:
                     {
                         "field": col,
                         "empirical_tier": tier,
-                        "empirical_note": note,
+                        "extension_approach": note if tier == "E" else None,
+                        "external_justification": note if tier == "X" else None,
                         "analytical_tier": anal_tier,
                         "match": (tier == anal_tier) if anal_tier is not None else None,
                     }
@@ -280,13 +386,65 @@ def run() -> dict:
             net = pypsa.Network()
             net.add("Bus", "test_bus", v_nom=230)
             net.add(
-                "Line", "test_line", bus0="test_bus", bus1="test_bus", x=0.01, r=0.001, length=1
+                "Line",
+                "test_line",
+                bus0="test_bus",
+                bus1="test_bus",
+                x=0.01,
+                r=0.001,
+                length=1,
             )
             net.lines["custom_test_field"] = "test_value"
             ext_verified = net.lines.loc["test_line", "custom_test_field"] == "test_value"
         except Exception as e:
             ext_verified = False
             errors.append(f"Extension mechanism verification failed: {e}")
+
+        # Market Solution Fidelity Summary
+        market_fidelity = {
+            "thermal_ratings_4_tier": {
+                "concept_tier": "extension",
+                "native_tiers": 1,
+                "note": "Only s_nom (RATE_A). RATE_B/C/D require custom columns.",
+            },
+            "seasonal_temporal_rating_variations": {
+                "concept_tier": "extension",
+                "note": "EFFECTIVE_DATE storable as custom column. No native temporal rating model.",
+            },
+            "trading_hub_definitions": {
+                "concept_tier": "extension",
+                "note": (
+                    "v10: Hub names and allocation factors storable as custom bus attributes. "
+                    "Post-OPF hub prices derivable via PTDF-weighted LMP averaging. "
+                    "HUB_TYPE remains external. Complex extension pattern."
+                ),
+            },
+            "generator_distribution_factors": {
+                "concept_tier": "external",
+                "note": "Market settlement construct with no analog in power flow domain.",
+            },
+            "contingency_definitions": {
+                "concept_tier": "extension",
+                "note": (
+                    "v10: extra_functionality + BODF matrix for N-1 constraint enforcement. "
+                    "Requires 50-100 lines of custom code. Complex extension pattern."
+                ),
+            },
+            "interface_definitions_flow_limits": {
+                "concept_tier": "extension",
+                "note": (
+                    "v10: PTDF matrix + extra_functionality constraints via n.model.add_constraints(). "
+                    "Custom n.interfaces DataFrame stores definitions. Complex extension pattern."
+                ),
+            },
+            "outage_actions_planned_outage_parameters": {
+                "concept_tier": "external",
+                "note": (
+                    "No temporal outage schedule model. Single-snapshot tool cannot natively "
+                    "represent time-windowed outage events."
+                ),
+            },
+        }
 
         return {
             "status": "informational",
@@ -307,6 +465,7 @@ def run() -> dict:
                     "analytical_matches": total_matches,
                     "analytical_mismatches": total_mismatches,
                 },
+                "market_solution_fidelity_summary": market_fidelity,
                 "per_csv": csv_results,
             },
             "errors": errors,

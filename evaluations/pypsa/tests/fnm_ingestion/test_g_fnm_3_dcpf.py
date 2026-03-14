@@ -1,7 +1,7 @@
 """G-FNM-3: DCPF verification against MATPOWER reference solution.
 
 Dimension: fnm_ingestion (Suite G)
-Network: LARGE — ERCOT FNM main island (27,862 buses, 32,532 active branches)
+Network: LARGE — FNM main island (27,862 buses, 32,532 active branches)
 Pass condition:
   - >=99% of buses within 0.1 degree voltage angle tolerance
   - >=99% of in-service branches within 1 MW absolute (or 1% relative) tolerance
@@ -10,7 +10,7 @@ Tool: PyPSA 1.1.2
 Note: PyPSA's DCPF (lpf) includes the tap ratio in the transformer susceptance
 calculation (b = 1/(x * tap)), whereas MATPOWER's DCPF ignores the tap ratio
 (b = 1/x). This is a known modeling difference that causes systematic deviations
-on networks with many non-unity-tap transformers like the ERCOT FNM.
+on networks with many non-unity-tap transformers like the FNM.
 """
 
 from __future__ import annotations

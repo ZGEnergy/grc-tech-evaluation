@@ -1,134 +1,81 @@
-# pypsa — Research: Version Capabilities
+---
+tool: pypsa
+installed_version: 1.1.2
+release_date: 2026-02-23
+latest_version: 1.1.2
+latest_release_date: 2026-02-23
+research_date: 2026-03-13
+---
 
-## Key Findings
+# pypsa — Version & Capability Report
 
-- Installed version: **1.1.2** (the current latest as of 2026-02-23)
-- Latest version: **1.1.2** — no delta; installed version IS the latest
-- HiGHS: **yes** (highspy 1.13.1, available via linopy)
-- Ipopt: **no** (binary not found on PATH; AC OPF with Ipopt is not available)
-- GLPK: **no** (glpsol binary not found)
-- PyPSA 1.x is a major rewrite vs. 0.x; all pre-1.0 method aliases (`n.madd`, `n.lopf`, `n.iplot`) were **removed** in 1.0.0
-- PTDF matrix extraction confirmed working via `SubNetwork.calculate_PTDF()`
-- N-1 contingency analysis available via `n.lpf_contingency()`
-- Custom constraint injection supported via `extra_functionality` callback
-- MATPOWER `.m` ingestion requires a two-step bridge (matpowercaseframes → pypower ppc dict → `n.import_from_pypower_ppc()`), but **pypower is not installed** in the environment; pandapower (installed as 3.4.0) can serve as an intermediate
+## Version Summary
 
-## Installed Environment
+PyPSA (Python for Power System Analysis) v1.1.2 is the installed and latest stable release, published on 23 February 2026. This version sits on the v1.x line, which debuted with v1.0.0 on 14 October 2025 — a milestone release that introduced stochastic optimization, a new components API, brand-new documentation, and removed all previously deprecated v0.x APIs. The v1.1.0 release (17 February 2026) added temporal clustering, secant-based transmission loss approximation, pandas v3 support, and combined committable+extendable component support. v1.1.2 is a bugfix patch on top of v1.1.0.
 
-### Package Versions
+PyPSA has been under active development since January 2016 (v0.3.0). Its optimization backend transitioned from Pyomo (removed in v0.29.0, released 2024) to linopy, and the default solver changed from GLPK to HiGHS at that same transition. The installed version uses linopy 0.6.4 as its optimization modeling layer and supports solvers including HiGHS, Gurobi, CPLEX, GLPK, and others via linopy's solver interface.
 
-| Package | Version |
-|---------|---------|
-| pypsa | 1.1.2 |
-| linopy | 0.6.4 |
-| highspy | 1.13.1 |
-| pandas | 2.3.3 |
-| numpy | 2.3.5 |
-| scipy | 1.16.3 |
-| networkx | 3.6.1 |
-| matplotlib | 3.10.8 |
-| xarray | 2026.2.0 |
-| pandapower | 3.4.0 |
-| matpowercaseframes | 2.0.1 |
-| geopandas | 1.1.2 |
-| plotly | 6.6.0 |
-| dask | 2026.1.2 |
-| seaborn | 0.13.2 |
+## Capability Table
 
-Full environment obtained via `importlib.metadata` inside the devcontainer with
-`.devcontainer/dc-exec -C /workspace/evaluations/pypsa uv run python`.
+| Feature | Supported | Since Version | Notes |
+|---------|-----------|---------------|-------|
+| DC Power Flow (DCPF) | yes | 0.3.0 | `n.lpf()` — linear power flow using PTDF/B-matrix. Available since initial release (Jan 2016). |
+| AC Power Flow (ACPF) | yes | 0.3.0 | `n.pf()` — full Newton-Raphson non-linear power flow. Supports distributed slack, configurable tolerance (`x_tol`), seeded initial guess. |
+| DC Optimal Power Flow (DC OPF) | yes | 0.3.0 | `n.optimize()` — linear OPF via linopy. Originally `n.lopf()` (removed in v0.29.0). Kirchhoff voltage law constraints, nodal balance, transmission losses (secant/tangent approximation since v1.1.0). |
+| AC Optimal Power Flow (AC OPF) | partial | 0.20.0 | `n.optimize.optimize_and_run_non_linear_powerflow()` — iterative approach: runs linear OPF then non-linear PF in a loop until convergence. Not a native non-linear AC OPF formulation. |
+| Security-Constrained Unit Commitment (SCUC) | partial | 0.4.0 | Unit commitment via `committable=True` with `min_up_time`, `min_down_time`, `start_up_cost`, `shut_down_cost`, `ramp_limit_*` attributes. Linearized UC formulation (`linearized_unit_commitment=True`). Security constraints can be added via `extra_functionality` callback but no built-in SCUC formulation combining N-1 contingency with UC in a single optimization. |
+| Security-Constrained Economic Dispatch (SCED) | partial | 0.4.0 | The `pypsa.contingency` module (introduced v0.4.0) provides SCLOPF (Security-Constrained Linear OPF). Economic dispatch is the DC OPF with fixed capacities. Security constraints can be injected via `extra_functionality`. No dedicated single-call SCED API. |
+| PTDF / Shift Factor Extraction | yes | 0.3.0 | `sub_network.calculate_PTDF()` computes the Power Transfer Distribution Factor matrix. Also computes BODF (Branch Outage Distribution Factor) via `lpf_contingency`. Stored as `sub_network.PTDF` (sparse matrix). |
+| Contingency Analysis (N-1) | yes | 0.4.0 | `n.lpf_contingency(snapshots, branch_outages)` — computes linear power flow for all specified branch outages using PTDF/BODF. Returns DataFrame of new power flows. The `pypsa.contingency` module was introduced in v0.4.0 (March 2016). |
+| Custom Constraint Injection | yes | 0.3.0 | `extra_functionality` callback in `n.optimize()` — called after model build, before solve. Provides full access to the linopy model (`n.model`) to add/modify variables, constraints, and objective terms. Also supports `global_constraints` component for carrier-level emission/capacity limits. |
+| Network Graph Access | yes | 0.3.0 | `n.graph()` returns a NetworkX graph. Also: `n.adjacency_matrix()`, `n.incidence_matrix()`, `n.cycle_matrix()`, `n.determine_network_topology()`. The `pypsa.graph` module (v0.5.0) uses scipy.sparse for performance. |
+| CSV Data Import | yes | 0.3.0 | `n.import_from_csv_folder()` / `n.export_to_csv_folder()`. Also supports HDF5 (`import_from_hdf5`), NetCDF (`import_from_netcdf`), and Excel (`import_from_excel`). |
+| MATPOWER Case Import | yes | 0.3.0 | `n.import_from_pypower_ppc(ppc)` imports from PYPOWER PPC dict format (version 2). Requires converting MATPOWER `.m` files to PPC dicts first (e.g. via `matpowercaseframes` or `pandapower`). Also: `n.import_from_pandapower_net()`. No direct `.m` file reader. |
+| Multi-Period / Time Series | yes | 0.3.0 | Snapshots (`n.set_snapshots()`) drive time-series dispatch and power flow. Multi-investment-period pathway optimization added in v0.18.0 (Aug 2021) with `multi_investment_periods=True`. Temporal clustering added in v1.1.0 (resample, downsample, segment). `snapshot_weightings` DataFrame controls objective/generator/storage weights. |
+| Warm Start / Solution Reuse | partial | 0.21.0 | Supported at the linopy layer: `linopy.Model.solve()` accepts `warmstart_fn` and `basis_fn` parameters for LP basis files. PyPSA does not expose these directly in `n.optimize()` but they can be passed via `solver_options` or by accessing `n.model.solve()` directly. Solver-dependent (HiGHS, Gurobi, CPLEX support basis files). |
+| Parallel Computation | partial | 1.0.0 | MGA (Modeling to Generate Alternatives) module supports parallel direction solving via `multiprocessing` (up to `max_parallel` processes). No built-in parallelism for standard OPF or power flow across snapshots. linopy `Model` accepts a `chunk` kwarg for chunked variable construction. |
 
-### Solver Availability
+## Breaking Changes
 
-| Solver | Available | How |
-|--------|-----------|-----|
-| HiGHS | **yes** | highspy 1.13.1 via linopy; confirmed by `linopy.solvers.available_solvers == ['highs']` |
-| Ipopt | **no** | Binary not on PATH (`which ipopt` returns nothing) |
-| GLPK | **no** | Binary not on PATH (`which glpsol` returns nothing) |
-| CPLEX | not checked | Not expected in container |
-| Gurobi | not checked | Not expected in container |
+| Version | Change | Impact on Evaluation |
+|---------|--------|----------------------|
+| v0.29.0 (2024) | Removed `n.lopf()` (Pyomo and nomopyomo optimization). HiGHS became default solver. | All optimization must use `n.optimize()` with linopy backend. Old tutorials/examples using `lopf` are outdated. |
+| v0.31.0 (2024) | Deprecated `n.madd()` and `n.mremove()` in favor of generalized `n.add()`. | Bulk component addition syntax changed. |
+| v1.0.0 (Oct 2025) | Removed all v0.x deprecated APIs. Changed `Network.add()` to return `None` by default. Renamed statistics parameters (`comps` to `components`, `aggregate_groups` to `groupby_method`, `aggregate_time` to `groupby_time`). Changed storage cycling defaults (`cyclic_state_of_charge_per_period` and `e_cyclic_per_period` from `True` to `False`). DataFrame index names unified to `name`. Inactive components excluded from optimization. | Significant API surface change. Code written for v0.x requires migration. The v1.0 migration guide documents all changes. |
+| v1.1.0 (Feb 2026) | Ramp limit defaults changed from `1` to `NaN`. Ramp constraint names simplified. | Minor: only affects code relying on implicit ramp limit defaults of 1. |
 
-Source: devcontainer checks run 2026-03-11.
+## Changelog Analysis
 
-## Version Delta Analysis
+The installed version (v1.1.2) is the latest release. There are no newer versions to upgrade to. The progression from v1.0.0 to v1.1.2 spans five months:
 
-### Changes Between Installed and Latest
+- **v1.0.0** (14 Oct 2025): Major release. Stochastic optimization (two-stage with CVaR), NetworkCollection, new Components API, risk-averse optimization, MGA module, complete documentation rewrite. Removed all v0.x deprecations.
+- **v1.0.1–v1.0.7** (Oct 2025–Jan 2026): Bugfix releases addressing snapshot synchronization, ramp limits in rolling horizon, storage unit handling, clustering, and NetCDF export. v1.0.7 added overnight cost / FOM cost splitting and Python 3.14 support.
+- **v1.1.0** (17 Feb 2026): Feature release. Temporal clustering (`n.cluster.temporal.*`), secant-based transmission loss approximation, environment variable configuration, pandas v3 support, combined committable+extendable components, `p_init` for ramp constraints.
+- **v1.1.1** (23 Feb 2026): Yanked due to CI pipeline error.
+- **v1.1.2** (23 Feb 2026): Bugfix for `log_to_console` breaking CPLEX, `at_port` statistics fix, release pipeline fix.
 
-The installed version (1.1.2) **is** the latest PyPSA release on PyPI as of 2026-02-23.
-There is no delta to analyze. Recent version history:
-
-| Version | Date | Key Changes |
-|---------|------|-------------|
-| 1.1.2 | 2026-02-23 | Bug fix: `log_to_console` breaking CPLEX; statistics `at_port` fix |
-| 1.1.1 | 2026-02-23 | Same fixes minus release pipeline patch |
-| 1.1.0 | 2026-02-17 | Split `capital_cost` into `investment` + `fom_cost`; temporal clustering; `include_objective_constant` param added to `optimize`; `StorageUnit` gains `p_set` time series; ramp limit constraint consolidation; Pandas v3 support pinned (pandas <3.0 for now) |
-| 1.0.7 | 2026-01-13 | netCDF pin, Python 3.14 support |
-| 1.0.6 | 2025-12-22 | `n.stats` accessor added; rolling horizon UC + ramp limit bug fixes; stochastic network fixes |
-| 1.0.5 | 2025-12-04 | CVaR fix; inactive generator in global carrier constraint fix; rolling horizon linearized UC broadcast bug fix |
-| 1.0.4 | 2025-11-21 | Inactive storage component handling fix; KVL NaN constraint masking fix |
-| 1.0.3 | 2025-11-06 | Ramp + rolling horizon logic fix |
-| 1.0.0 | 2025-10-14 | **Major v1 release**: new optimization module, stochastic networks, removed all 0.x deprecations |
-
-Sources: GitHub Releases API `https://api.github.com/repos/PyPSA/PyPSA/releases`
-
-### Breaking Changes Affecting Tests (relative to 0.x)
-
-These are relevant only if any test scripts were written for PyPSA < 1.0:
-
-1. **`n.madd()` removed** — use `n.add()` with a list/index of names instead.
-2. **`n.mremove()` removed** — use `n.remove()`.
-3. **`n.lopf()` removed** — use `n.optimize()`.
-4. **`n.iplot()` removed** — use `n.explore()` or plotly-based plotting.
-5. **`n.add()` return value changed** — now returns `None` by default; pass `return_names=True` to get names.
-6. **`ramp_limit_start_up` / `ramp_limit_shut_down` defaults** — changed from implicit `1` to `NaN`; scripts setting these fields are unaffected, but code relying on the old default will silently behave differently.
-7. **`cyclic_state_of_charge_per_period` / `e_cyclic_per_period` defaults** — changed from `True` to `False`; affects multi-investment-period BESS tests.
-8. **Statistics API renamed** — `comps` → `components`, `aggregate_groups` → `groupby_method`, `aggregate_time` → `groupby_time`.
-9. **`meshed_threshold` kwarg deprecated** — use `meshed_thresholds=[...]` in `n.optimize`.
-
-Since all test scripts are being written fresh against 1.1.2, none of these are blockers.
-
-## Test Capability Matrix
-
-| Test Type | Supported in 1.1.2 | Notes |
-|-----------|--------------------|-------|
-| DCPF | **yes** | `n.lpf(snapshots)` — DC linear power flow on entire network; `sub_network.lpf(snapshots)` also available |
-| ACPF | **yes** | `n.pf(snapshots)` — Newton-Raphson AC power flow; converges to tolerance `x_tol=1e-6`; returns convergence dict |
-| DC OPF | **yes** | `n.optimize(solver_name='highs')` — linear OPF via linopy + HiGHS; both single-period and multi-period |
-| AC OPF | **no** | `n.optimize.optimize_and_run_non_linear_powerflow()` exists but requires Ipopt, which is **not installed** |
-| SCUC | **yes (binary)** | `n.optimize(linearized_unit_commitment=False)` with `committable=True` generators uses binary variables + HiGHS; big-M formulation available via `committable_big_m` param |
-| SCUC (linearized) | **yes** | `n.optimize(linearized_unit_commitment=True)` — continuous relaxation of UC |
-| SCED | **yes** | Standard `n.optimize()` without committable generators is pure SCED |
-| Multi-period OPF | **yes** | Pass a multi-timestep `snapshots` to `n.optimize()`; investment periods via `n.set_investment_periods()` |
-| BESS arbitrage | **yes** | `StorageUnit` with `marginal_cost_storage`, `efficiency_store/dispatch`, `cyclic_state_of_charge`; `p_set` time series now supported (1.1.0+) |
-| N-1 contingency | **yes** | `n.lpf_contingency(snapshots, branch_outages)` returns line flows under each outage; security-constrained OPF via `n.optimize.optimize_security_constrained()` |
-| PTDF | **yes** | `sub_network.calculate_PTDF()` populates `sub_network.PTDF` (branches × buses numpy array); BODF also available |
-| Custom constraints | **yes** | `extra_functionality(n, snapshots)` callback passed to `n.optimize()` or `n.optimize.solve_model()`; called after model build, before solve; full linopy model exposed via `n.model` |
-| Graph access | **yes** | `n.graph()` returns `networkx.Graph` (or `OrderedGraph`); `n.adjacency_matrix()`, `n.incidence_matrix()`, `n.cycle_matrix()` also available |
-| Large network (MEDIUM ~10k buses) | **yes (expected)** | No hard bus limit; memory scales with O(buses × timesteps); `meshed_thresholds` parameter controls nodal balance grouping for memory efficiency |
-| FNM ingestion (~30k buses via MATPOWER) | **partial** | `n.import_from_pypower_ppc(ppc_dict)` is available; `matpowercaseframes` (2.0.1) can parse `.m` files to a dict; however **pypower is not installed**, so the ppc dict must be constructed manually or via pandapower's MATPOWER reader. Pandapower 3.4.0 is installed and `n.import_from_pandapower_net(net)` is available as a bridge. |
-
-## Unsupported Features
-
-1. **AC OPF with Ipopt**: `n.optimize.optimize_and_run_non_linear_powerflow()` is implemented in 1.1.2 but the Ipopt solver binary is absent from the devcontainer. This test type cannot be run as-is.
-2. **Direct MATPOWER `.m` file import**: No native `.m` parser in PyPSA. Requires a bridge: (a) `matpowercaseframes.CaseFrames` to parse `.m` → DataFrame → pypower ppc dict, but `pypower` package is not installed; (b) alternative: pandapower's MATPOWER reader → `n.import_from_pandapower_net()`.
-3. **GLPK solver**: Not available; not needed since HiGHS covers LP/MILP.
-4. **Stochastic two-stage optimization**: Available in 1.1.2 (`n.set_scenarios()`), but not required by current test protocol.
+Key upcoming features (in master, unreleased): Process component (multi-port with explicit rates), weighted-time delays for Link outputs, `meshed_thresholds` parameter for memory optimization in large networks.
 
 ## Sources
 
-1. PyPI JSON API: `https://pypi.org/pypi/pypsa/json` — confirmed 1.1.2 is latest
-2. GitHub Releases API: `https://api.github.com/repos/PyPSA/PyPSA/releases?per_page=15` — release notes for 1.0.0–1.1.2
-3. PyPSA docs release notes: `https://docs.pypsa.org/latest/release-notes/` — breaking changes summary
-4. Installed source code: `/home/joe/code/zge-workspace/grc-tech-evaluation/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/`
-   - `network/power_flow.py` — `pf`, `lpf`, `lpf_contingency` implementations
-   - `optimization/optimize.py` — `optimize`, `create_model`, `solve_model`, `extra_functionality` hook
-   - `optimization/constraints.py` — constraint definitions
-5. Runtime introspection via devcontainer: `importlib.metadata`, `inspect.signature`, direct API calls — 2026-03-11
+1. PyPSA GitHub releases: https://github.com/PyPSA/PyPSA/releases
+2. PyPSA release notes (docs/release-notes.md in repository): https://github.com/PyPSA/PyPSA/blob/master/docs/release-notes.md
+3. PyPSA v1.0 migration guide: https://docs.pypsa.org/latest/user-guide/v1-guide/
+4. Installed package source inspection (`pypsa.__version__`, method signatures, module contents) via devcontainer
+5. linopy documentation (warmstart/basis support): inspected `linopy.Model.solve` signature (v0.6.4)
+6. PyPSA contingency module source: `pypsa/network/power_flow.py` (PTDF, BODF, lpf_contingency)
+7. PyPSA optimization module source: `pypsa/optimization/constraints.py`, `pypsa/optimization/optimize.py`
 
 ## Gaps and Uncertainties
 
-1. **AC OPF path**: If Ipopt becomes available (installable in the container), `n.optimize.optimize_and_run_non_linear_powerflow()` should work without code changes. The method signature exists in 1.1.2.
-2. **MATPOWER FNM ingestion at 30k buses**: The `import_from_pypower_ppc` path has a documented warning that areas, gencosts, and component status are not imported. For large transmission networks this may drop important data. The pandapower bridge (`import_from_pandapower_net`) may preserve more detail but pandapower's own MATPOWER reader behavior should be verified separately.
-3. **Memory scaling at 10k+ buses**: No benchmark has been run yet. The `meshed_thresholds` feature in 1.1.x mitigates nodal balance memory usage, but PTDF computation (`calculate_PTDF`) produces a dense (branches × buses) matrix that may be large at FNM scale (~30k buses × ~35k lines).
-4. **pandas < 3.0 pin**: The 1.1.0 release notes pin `pandas < 3.0.0`. The installed pandas is 2.3.3 which satisfies this. If pandas 3.0 is ever upgraded in the lockfile, optimization tests may break.
-5. **`include_objective_constant` FutureWarning**: The 1.1.0 release adds this parameter with a FutureWarning that the default will change to `False` in v2.0. Tests should explicitly pass this argument to suppress noise in test output.
+1. **AC OPF**: PyPSA does not have a native non-linear AC OPF formulation. The iterative `optimize_and_run_non_linear_powerflow` alternates between linear OPF and non-linear PF, which may not converge to the true AC OPF solution for all cases. The extent of this limitation versus a true AC OPF solver (e.g., Ipopt-based) needs empirical testing.
+
+2. **SCUC/SCED**: While PyPSA supports unit commitment constraints and contingency analysis separately, there is no single integrated SCUC formulation that embeds N-1 contingency constraints within the unit commitment optimization. Users must manually implement this via `extra_functionality`.
+
+3. **Warm Start**: The warm start capability exists at the linopy layer but is not directly exposed via `n.optimize()` parameters. The practical effectiveness depends on the solver and problem structure. Testing is needed to confirm it works end-to-end through PyPSA's optimization accessor.
+
+4. **MATPOWER Import**: PyPSA imports PYPOWER PPC dictionaries, not MATPOWER `.m` files directly. The evaluation project includes `matpowercaseframes` as a dependency which can bridge this gap, but the fidelity of the conversion chain (`.m` -> PPC dict -> PyPSA Network) and whether all MATPOWER case features are preserved is uncertain.
+
+5. **Parallel Computation**: Beyond MGA parallel solving, PyPSA does not parallelize standard operations (power flow across snapshots, optimization). Large-scale parallelism typically requires external orchestration (e.g., Dask, multiprocessing) by the user.
+
+6. **Feature Introduction Dates**: For features present since v0.3.0 (the earliest documented release, January 2016), the exact introduction version cannot be determined from available release notes — they were part of PyPSA's initial public release. The v0.3.0 release notes describe the pandas.Panel interface introduction but reference pre-existing PF and OPF capabilities.
