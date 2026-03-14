@@ -3,76 +3,92 @@ test_id: B-5
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 876ee72f
+test_hash: 3d423124
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.100
+wall_clock_seconds: 1.20
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 135
+loc: 141
 solver: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# B-5: Interoperability — DataFrame export
+# B-5: Export DCPF results from A-1 to pandas DataFrame and write to CSV
 
 ## Result: PASS
 
 ## Approach
 
-After running `n.lpf()`, the result attribute `n.buses_t.v_ang` is already a pandas DataFrame — no conversion or extraction required. Export to CSV requires a single `.to_csv()` call.
+After running `n.lpf()` (DCPF solve from A-1), PyPSA stores all results natively as
+pandas DataFrames on the Network object's `*_t` accessors. The export requires exactly
+2 lines of code beyond the solve:
 
-Lines of code beyond the solve:
-1. `v_ang_df = n.buses_t.v_ang` — access the result
-2. `v_ang_df.to_csv(output_path)` — write to CSV
+```python
+v_ang_df = n.buses_t.v_ang   # line 1: access result (already a DataFrame)
+v_ang_df.to_csv(path)         # line 2: write to CSV
+```
 
-Total: **2 lines** (pass condition: < 5).
+No custom serialization logic, no format conversion, no intermediate data structures.
+The same pattern works for all result types: `n.lines_t.p0` (line flows),
+`n.buses_t.p` (nodal injections), `n.generators_t.p` (generator dispatch), etc.
+
+The network was loaded using the shared `matpower_loader.load_pypsa()` function.
 
 ## Output
 
 | Metric | Value |
 |--------|-------|
-| DataFrame shape | (1, 39) — 1 snapshot × 39 buses |
-| Column labels | Bus names ('1'..'39') |
-| Index | Snapshot timestamp ('now') |
-| CSV round-trip max error | 9.19e-17 (machine precision) |
 | Lines beyond solve | 2 |
+| v_ang DataFrame shape | (1, 39) |
+| p0 DataFrame shape | (1, 35) |
+| Output type | `pandas.core.frame.DataFrame` |
+| CSV round-trip max error | 9.19e-17 |
+| Non-zero angle entries | 38/39 (slack bus at 0) |
+| Max voltage angle | 0.2349 rad |
 
-**Voltage angles (rad), first 5 buses:**
+First 5 voltage angles (rad):
 
 | Bus | v_ang (rad) |
 |-----|-------------|
-| 1 | -0.214752 |
-| 2 | -0.141448 |
-| 3 | -0.191796 |
-| 4 | -0.203323 |
-| 5 | -0.180579 |
+| 1 | -0.2148 |
+| 2 | -0.1414 |
+| 3 | -0.1918 |
+| 4 | -0.2033 |
+| 5 | -0.1806 |
 
-**CSV file:** `evaluations/pypsa/results/extensibility/b5_v_ang_export.csv`
+First 5 line flows (MW):
+
+| Line | p0 (MW) |
+|------|---------|
+| L0 | -178.35 |
+| L1 | 80.75 |
+| L2 | 333.43 |
+| L3 | -261.78 |
+| L4 | 54.12 |
+
+CSV files written and verified via round-trip read-back. Column labels preserved exactly
+(bus names as column headers, snapshot index as row labels).
 
 ## Workarounds
 
-None required. PyPSA result attributes are natively pandas DataFrames; CSV export is a single method call.
+None required.
 
 ## Timing
 
-- **Wall-clock:** 0.100 s (warm process; includes lpf solve and CSV write)
+- **Wall-clock:** 1.20s (includes network loading, DCPF solve, CSV write, and verification)
 - **Timing source:** measured
-- **Peak memory:** not measured
+- **Peak memory:** not measured (not required for extensibility test)
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/extensibility/test_b5_interoperability_tiny.py`
+**Path:** `evaluations/pypsa/tests/extensibility/test_b5_interoperability.py`
 
-Key API sequence:
-```python
-n.lpf()                              # solve
-v_ang_df = n.buses_t.v_ang           # already a DataFrame — 1 line
-v_ang_df.to_csv("results.csv")       # export — 1 line
-# 2 total lines beyond solve
-```
+The core export is trivially simple because PyPSA's entire data model is built on pandas
+DataFrames. There is no impedance mismatch between PyPSA's internal representation and
+the export format — they are the same thing.

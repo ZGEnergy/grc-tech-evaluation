@@ -3,57 +3,76 @@ test_id: E-4
 tool: pypsa
 dimension: maturity
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 39349d2d
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 5b74387a
 ---
 
-# E-4: Funding Model (funding_model)
+# E-4: Funding Model
 
-## Result: PASS
+## Findings
 
-## Finding
+### Institutional Affiliations
 
-PyPSA has robust, multi-source institutional funding from TU Berlin, the Reiner Lemoine Institut (RLI), EU Horizon projects, and KIT. The energy transition policy relevance of the tool ensures continued funding interest from European research and government bodies.
+PyPSA is developed and maintained under institutional affiliation with:
 
-## Evidence
+1. **TU Berlin (Technische Universitat Berlin)** — Department of Digital
+   Transformation in Energy Systems. Tom Brown (nworbmot, project founder)
+   is a professor at TU Berlin. The project's contact email is
+   t.brown@tu-berlin.de. This is the primary institutional home.
 
-**Known institutional backers (from research context):**
+2. **Open Energy Transition (OET)** — A non-profit organization focused on
+   open-source energy system modeling. Several active contributors
+   (euronion, bobbyxng) are affiliated with OET projects (e.g., NGV-FBMC
+   visible in issue tracker discussions).
 
-| Funder | Type | Role |
-|--------|------|------|
-| TU Berlin (Chair of Digital Transformation in Energy Systems) | University | Primary host institution; Tom Brown's group |
-| Reiner Lemoine Institut (RLI) | Non-profit research | Active development and use |
-| EU Horizon Projects | EU research funding | Multiple grants (e.g., PyPSA-Eur, sector-coupling studies) |
-| KIT (Karlsruhe Institute of Technology) | University | Research contributions |
+3. **Broader PyPSA ecosystem** — PyPSA is the core library in a larger
+   ecosystem including PyPSA-Eur (European energy system model) and
+   PyPSA-Earth (global model). These downstream projects drive continued
+   development of the core library.
 
-**PyPSA-Eur (companion project):**
-PyPSA-Eur (https://github.com/PyPSA/pypsa-eur) is an EU-scale power system optimization model built on PyPSA. It has received dedicated EU Horizon funding and has 300+ users. This creates a strong pull for continued PyPSA core development — PyPSA-Eur's users depend on PyPSA being maintained.
+### Funding Sources
 
-**Funding durability assessment:**
-- EU energy transition policy (Green Deal, REPowerEU) drives continued demand for PyPSA-style tools
-- Multiple independent funding sources reduce single-funder dependency
-- Academic group continuity: TU Berlin Chair is a stable institutional base (professorial position)
-- Industry users (TenneT, Fraunhofer ISI) provide demand signal even without direct funding
+- **European Commission grants**: PyPSA-Eur is funded through multiple EU
+  research projects (Horizon 2020, Horizon Europe), which indirectly fund
+  core PyPSA development.
+- **German federal research funding**: TU Berlin receives federal funding
+  for energy systems research.
+- **Academic positions**: Core maintainers hold permanent or tenure-track
+  academic positions, providing stable long-term funding independent of
+  individual grants.
 
-**Open questions:**
-- No GITHUB SPONSORS or OpenCollective page found — primary funding is through grants, not community donations
-- Dependency on EU Horizon grants means funding is project-cycle (typically 3–5 year grants) — gaps between grants are possible but manageable with multi-funder model
+### Grant Dependency Assessment
 
-**Commercial interest:**
-- TenneT (major European TSO) uses PyPSA for operational planning — creates industry adoption momentum
-- Fraunhofer ISI uses PyPSA for scenario studies — research institute adoption provides stable user base
+**Low grant dependency.** While specific features may be funded by grants,
+the core library maintenance does not depend on any single grant. The
+project's institutional backing through TU Berlin provides a stable
+foundation. The fact that the project reached v1.0.0 in 2025 and continues
+to receive active development in 2026 demonstrates sustained institutional
+commitment.
 
-## Implications
+### Community Scale
 
-Funding model is A-level for an academic open-source tool. Multi-source institutional backing, direct policy relevance to European energy transition, and a companion application project (PyPSA-Eur) that depends on PyPSA core provide strong durability signals. The grant-based funding model introduces some multi-year cycle risk, but this is mitigated by the breadth of funders and industry adopters.
+- 1,898 GitHub stars, 617 forks, 68 watchers
+- 99 total contributors
+- Active in European energy policy modeling (cited in European Commission
+  reports, used by national grid studies)
+
+### Durability Assessment
+
+**High durability.** The combination of:
+1. Tenured academic leadership at a major European university
+2. Non-profit organizational support (OET)
+3. Large downstream user base (PyPSA-Eur, PyPSA-Earth)
+4. EU policy relevance (driving continued funding)
+
+provides multiple independent funding channels. The project would survive
+the departure of any single contributor or the end of any single grant.
+
+## Recorded Metrics
+
+- funding_sources: TU Berlin (academic), EU grants (research), OET (non-profit)
+- durability: high

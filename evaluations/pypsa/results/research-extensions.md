@@ -1,317 +1,400 @@
-# pypsa — Research: Extensions & Architecture
+# PyPSA Extension Mechanisms & Internal Architecture — Research Notes
 
-Applies to: **PyPSA 1.1.2** (installed at
-`/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/`).
-
----
-
-## Key Findings
-
-- The primary extension point for optimization is the `extra_functionality` callable passed to `n.optimize()`. It receives `(n, snapshots)` after the Linopy model is built but before the solver runs, giving full access to add/modify variables, constraints, and the objective via `n.model`.
-- Model building and solving are cleanly separated: `n.optimize.create_model()` builds the Linopy model into `n.model`; `n.optimize.solve_model()` invokes the solver and writes results back. The two steps can be called independently.
-- Custom component *types* can be registered globally via `pypsa.components.types.add_component_type()`, but there is a gap: the `Network.components` property initializes from `component_types_df` (the static CSV-loaded default list), not from the live `all_components` registry. Custom types registered after module import do not automatically appear in new Network instances — integration requires workarounds.
-- Graph access is first-class: `n.graph()` returns a `networkx.MultiGraph` (`OrderedGraph` subclass); `n.adjacency_matrix()` and `n.incidence_matrix()` return sparse/dense matrices. All accept a `branch_components` filter.
-- PTDF matrices are computed on a per-`SubNetwork` basis via `sub_network.calculate_PTDF()`. The result is stored as a dense numpy array at `sub_network.PTDF`.
-- Multi-energy carrier support is native via the `Link` component: a single Link can have up to N ports (`bus0`…`busN`) with corresponding `efficiency`…`efficiencyN` parameters, enabling CHP, electrolysis, heat pump, and other sector-coupling topologies.
-- All component data is exposed as pandas DataFrames (`c.static`, `c.dynamic`). The `n.add()` method accepts scalar values, lists, numpy arrays, and DataFrames (for time-varying attributes).
-- Serialization formats: CSV folder, netCDF (xarray-backed, recommended), HDF5, Excel. `import_from_pandapower_net()` and `import_from_pypower_ppc()` provide interoperability bridges. The Linopy model is NOT persisted with the network; save separately via `n.model.to_netcdf()`.
-- Architecture is mixin-based: `Network` inherits from eight focused mixins (`NetworkComponentsMixin`, `NetworkDescriptorsMixin`, `NetworkTransformMixin`, `NetworkIndexMixin`, `NetworkConsistencyMixin`, `NetworkGraphMixin`, `NetworkPowerFlowMixin`, `NetworkIOMixin`) plus four accessor objects (`optimize`, `cluster`, `statistics`, `plot`).
-- PyPSA v1.0 introduced an opt-in new Components Class API (`n.c.generators.static`, `n.c.generators.dynamic`) that will become default in v2.0; existing `n.generators` / `n.generators_t` patterns still work but emit deprecation warnings.
+**Tool version:** PyPSA 1.1.2 (released 2026-02-23)
+**Installed at:** `.venv/lib/python3.12/site-packages/pypsa/`
+**License:** MIT
 
 ---
 
-## Detailed Notes
+## 1. Internal Architecture & Separation of Concerns
 
-### Extension Mechanisms
+### 1.1 Network Class — Mixin Composition
 
-#### `extra_functionality` callback
+The `Network` class is assembled from eight independent mixins, each in its own module. This is the primary architectural pattern for separation of concerns:
 
-The primary supported extension pattern. Signature:
-
-```python
-def extra_functionality(n: pypsa.Network, snapshots: pd.Index) -> None:
-    m = n.model  # linopy.Model, already built
-    # add variables
-    new_var = m.add_variables(lower=0, name="MyVar-p")
-    # add constraints
-    m.add_constraints(new_var >= 0, name="MyConstraint")
-    # modify objective
-    m.objective += new_var.sum()
 ```
-
-Called at line 537 of `optimize.py` inside `OptimizationAccessor.__call__()`, after `create_model()` but before `m.solve()`. Also supported in `solve_model()` (line 824–825).
-
-```python
-n.optimize(extra_functionality=extra_functionality)
-```
-
-This is also available when using the step-by-step API:
-
-```python
-m = n.optimize.create_model(...)
-extra_functionality(n, n.snapshots)
-n.optimize.solve_model(solver_name="highs")
-```
-
-#### Model building / solving separation
-
-`OptimizationAccessor` (defined in `optimization/optimize.py`) exposes:
-
-- `n.optimize.create_model(snapshots, ...)` — builds and stores Linopy model at `n.model`
-- `n.optimize.solve_model(solver_name, ...)` — solves `n.model`, assigns solution
-- `n.optimize(...)` — convenience wrapper that calls both plus post-processing
-
-Advanced variants: `optimize_with_rolling_horizon()`, `optimize_security_constrained()`, `optimize_transmission_expansion_iteratively()`, `optimize_mga()` (Modeling to Generate Alternatives).
-
-#### Custom component types
-
-PyPSA 1.1 introduced `pypsa.components.types.add_component_type()` for registering new component types at module level:
-
-```python
-import pandas as pd
-import pypsa.components.types
-
-defaults_df = pd.DataFrame({
-    "attribute": ["name", "my_attr"],
-    "type": ["string", "float"],
-    "unit": ["n/a", "MW"],
-    "default": ["n/a", 1.0],
-    "description": ["Unique name", "My custom attribute"],
-    "status": ["Input (required)", "Input (optional)"],
-})
-pypsa.components.types.add_component_type(
-    name="MyComponent",
-    list_name="my_components",
-    description="Custom component",
-    category="custom",
-    defaults_df=defaults_df,
+class Network(
+    NetworkComponentsMixin,      # network/components.py — add/remove components
+    NetworkDescriptorsMixin,     # network/descriptors.py — property descriptors
+    NetworkTransformMixin,       # network/transform.py — topology transforms
+    NetworkIndexMixin,           # network/index.py — index helpers
+    NetworkConsistencyMixin,     # consistency.py — validation checks
+    NetworkGraphMixin,           # network/graph.py — NetworkX graph methods
+    NetworkPowerFlowMixin,       # network/power_flow.py — PF/LPF solvers
+    NetworkIOMixin,              # network/io.py — import/export
 )
 ```
 
-**Critical gap**: `Network.components` initializes from `component_types_df` (source:
-`network/components.py` line 127), which is the static CSV-loaded snapshot taken at module
-import time. The live `all_components` dict (which includes custom additions) is only consulted
-by `get()` for lookup, not during `Network.__init__`. Custom components added after import do
-NOT automatically appear in a new Network's `n.components` store. As of v1.1.2, integrating
-custom components into network instances requires either:
-  - calling `add_component_type()` before the first `import pypsa` (not practical), or
-  - manually patching `network_types_df` before instantiation, or
-  - using the `extra_functionality` approach with no new component type (just extra variables/constraints)
+`SubNetwork` inherits from `NetworkGraphMixin` and `SubNetworkPowerFlowMixin` only.
 
-This limitation is tracked in [GitHub issue #856](https://github.com/PyPSA/PyPSA/issues/856)
-which remains open as of May 2024, with no merged documentation or implementation fix.
+**Source:** `pypsa/networks.py` lines 78–88.
 
-#### Override / legacy API (pre-v1.0)
+This design means the `Network` class is a monolithic container but internally modular: each concern lives in its own file and could theoretically be tested or replaced independently. However, the mixins all share state through `self` (the Network instance), so they are tightly coupled at runtime.
 
-In versions before v1.0, `pypsa.Network(override_components=..., override_component_attrs=...)`
-allowed replacing the built-in component CSV definitions. This API has been removed or deprecated
-in v1.0+. The new `add_component_type()` function is the replacement but has the integration gap
-described above.
+### 1.2 Accessor Pattern
+
+Functional subsystems that are not mixins are attached as **accessor objects** initialized in `Network.__init__`:
+
+| Accessor | Class | Module |
+|---|---|---|
+| `n.optimize` | `OptimizationAccessor` | `optimization/optimize.py` |
+| `n.cluster` | `ClusteringAccessor` | `clustering/__init__.py` |
+| `n.statistics` | `StatisticsAccessor` | `statistics/expressions.py` |
+| `n.plot` | `PlotAccessor` | `plot/accessor.py` |
+
+Each accessor holds a back-reference `self._n` to the parent Network. The `OptimizationAccessor` is callable — `n.optimize(...)` invokes `OptimizationAccessor.__call__`.
+
+**Source:** `pypsa/networks.py` lines 171–177.
+
+### 1.3 Component System
+
+Components are stored in a `ComponentsStore` (a `dict` subclass) at `n.c` (new API) and also exposed as direct DataFrame attributes like `n.generators` (legacy API, still supported).
+
+Each component type is a `Components` instance assembled from its own mixin hierarchy:
+
+```
+class Components(
+    ComponentsData,                # dataclass: ctype, n, static, dynamic
+    ComponentsDescriptorsMixin,    # property descriptors
+    ComponentsTransformMixin,      # transforms
+    ComponentsIndexMixin,          # index helpers
+    ComponentsArrayMixin,          # xarray accessor (.da)
+)
+```
+
+Typed subclasses exist for each component (e.g., `Generators`, `Lines`, `Links`) in `components/_types/`, adding component-specific properties. These are defined with type annotations in `ComponentsStore` for IDE support.
+
+**Source:** `pypsa/components/components.py`, `pypsa/components/store.py`.
+
+### 1.4 Data Storage — Static and Dynamic Split
+
+All component data is stored as pandas DataFrames:
+
+- **Static data:** `c.static` — one row per component, columns are attributes. Accessible as `n.generators` (returns the DataFrame directly).
+- **Dynamic (time-varying) data:** `c.dynamic` — a dict-like (`Dict`) of DataFrames keyed by attribute name. Accessible as `n.generators_t` (e.g., `n.generators_t.p` for dispatch time series).
+
+This is a deliberate design choice documented in PyPSA's design philosophy: "stores data in memory using pandas DataFrames" to leverage modern RAM and computational speed.
+
+**Source:** [PyPSA Design documentation](https://docs.pypsa.org/v0.26.2/design.html); `pypsa/components/components.py` `ComponentsData` dataclass.
+
+### 1.5 Optimization Module Structure
+
+The optimization subsystem in `pypsa/optimization/` is cleanly separated:
+
+| File | Responsibility | LOC |
+|---|---|---|
+| `optimize.py` | `OptimizationAccessor`, orchestrates model build/solve | ~48 kB |
+| `variables.py` | Variable definitions (dispatch, status, start-up, etc.) | ~9 kB |
+| `constraints.py` | All standard constraints (nodal balance, KVL, ramp, storage) | ~78 kB |
+| `global_constraints.py` | Global constraints (emission limits, capacity expansion) | ~32 kB |
+| `expressions.py` | Statistic expressions for optimization | ~29 kB |
+| `mga.py` | Modeling to Generate Alternatives | ~28 kB |
+| `abstract.py` | Abstract/iterative optimization methods | ~24 kB |
+
+The `create_model` method in `OptimizationAccessor` orchestrates model construction by calling functions from `variables.py`, `constraints.py`, and `global_constraints.py` in sequence. A lookup CSV (`data/variables.csv`) drives which component/attribute combinations get variables and constraints.
+
+**Source:** `pypsa/optimization/optimize.py` lines 561–760.
 
 ---
 
-### Graph Access
+## 2. Extension Mechanisms
 
-`Network` and `SubNetwork` both inherit from `NetworkGraphMixin`
-(`network/graph.py`), providing:
+### 2.1 `extra_functionality` Callback
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `n.graph(branch_components, weight, inf_weight, include_inactive)` | `networkx.MultiGraph` (`OrderedGraph`) | Nodes = buses; edges = branches keyed by `(component_name, branch_name)` |
-| `n.adjacency_matrix(branch_components, investment_period, busorder, weights, return_dataframe)` | `pd.DataFrame` or `scipy.sparse.coo_matrix` | `return_dataframe=True` recommended (False emits `FutureWarning`) |
-| `n.incidence_matrix(branch_components, busorder)` | `scipy.sparse.csr_matrix` | Directed |
-
-`branch_components` defaults to `n.branch_components` for Network and
-`n.n.passive_branch_components` for SubNetwork.
-
-The `OrderedGraph` class is a `networkx.MultiGraph` subclass with
-`OrderedDict` factories — preserving insertion order of nodes and adjacency.
-
-NetworkX is a hard dependency of PyPSA; full NetworkX graph algorithms work on the returned objects.
-
-#### PTDF matrix
-
-Computed per SubNetwork:
+The primary extension mechanism is the `extra_functionality` callable parameter, accepted by both `n.optimize()` and `n.optimize.solve_model()`:
 
 ```python
-n.determine_network_topology()  # creates sub_networks
-for sub in n.sub_networks.obj:
-    sub.calculate_PTDF()        # sets sub.PTDF (dense numpy array, shape: branches × buses)
-    sub.calculate_BODF()        # Branch Outage Distribution Factor, uses sub.PTDF
+def my_extra(n, snapshots):
+    """Called after model building, before solving."""
+    m = n.model  # linopy.Model instance
+    # Add custom constraints, modify variables, change objective
+    gen_p = m.variables["Generator-p"]
+    m.add_constraints(gen_p.sum() >= 100, name="min_total_gen")
+
+n.optimize(extra_functionality=my_extra)
 ```
 
-`calculate_PTDF()` depends on `calculate_B_H()` which itself calls
-`calculate_dependent_values()` and `find_bus_controls()`.
-The result is stored as `sub_network.PTDF`, a dense `(n_branches × n_buses)` numpy array.
-No method exists to extract a network-wide PTDF directly; callers must iterate SubNetworks.
+The callback receives:
+- `n` — the Network instance (with `n.model` already populated)
+- `snapshots` — the snapshot index being optimized
 
----
+The callback is invoked at exactly one point: after `create_model()` completes and before `model.solve()` is called.
 
-### Architecture
+**Source:** `pypsa/optimization/optimize.py` lines 457–462 (docstring), 537–538 (invocation), 776–780 and 824–825 (solve_model variant).
 
-#### Mixin composition
+**Implications:**
+- This is a **single hook point**, not a plugin system. There is no hook before model creation, during variable/constraint definition, or after solving.
+- Only one callback can be passed; to compose multiple, the user must manually chain them.
+- The callback has full access to the linopy `Model` object, so it can add/remove/modify any variable, constraint, or objective term.
 
-```
-pypsa.Network
-  ├── NetworkComponentsMixin   — n.components / n.c, n.generators, n.buses, etc.
-  ├── NetworkDescriptorsMixin  — property accessors, type descriptors
-  ├── NetworkTransformMixin    — n.add(), n.remove(), n.madd() (bulk add)
-  ├── NetworkIndexMixin        — n.snapshots, n.investment_periods, n.set_snapshots()
-  ├── NetworkConsistencyMixin  — n.consistency_check()
-  ├── NetworkGraphMixin        — n.graph(), n.adjacency_matrix(), n.incidence_matrix()
-  ├── NetworkPowerFlowMixin    — n.pf(), n.lpf()
-  └── NetworkIOMixin           — import/export: CSV, netCDF, HDF5, Excel, pandapower, pypower
+### 2.2 Two-Step Model Build/Solve
 
-Accessor objects (set in __init__):
-  n.optimize    → OptimizationAccessor  (n.optimize.create_model, n.optimize.solve_model, ...)
-  n.cluster     → ClusteringAccessor
-  n.statistics  → StatisticsAccessor
-  n.plot        → PlotAccessor
+An alternative to `extra_functionality` is the explicit two-step pattern:
+
+```python
+m = n.optimize.create_model()   # Build the linopy model
+# ... modify m as desired ...
+status, condition = n.optimize.solve_model()  # Solve and write back
 ```
 
-#### Component data model
+This provides the same power as `extra_functionality` but with a clearer separation of build and modify phases. `solve_model` also accepts its own `extra_functionality` for additional last-minute modifications.
 
-Components are stored in a `ComponentsStore` (a dict-like container). Each entry is a
-`Component` (legacy API) wrapping a `ComponentType` metadata object. Data lives in:
+**Source:** [Custom Constraints documentation](https://docs.pypsa.org/latest/user-guide/optimization/custom-constraints/).
 
-- `c.static` — `pd.DataFrame`, one row per component instance (static attributes)
-- `c.dynamic` — dict of `pd.DataFrame` keyed by attribute name (time-varying attributes)
+### 2.3 Direct Linopy Model Access
 
-The v1.0 new-API equivalents are `n.c.<list_name>.static` and `n.c.<list_name>.dynamic`.
+Once the model is created (via `create_model` or `optimize`), it is stored at `n.model` (a `linopy.Model` instance). The user has full programmatic access:
 
-#### Optimization model construction
+- `n.model.variables` — dict-like access to all decision variables (e.g., `n.model.variables["Generator-p"]`)
+- `n.model.constraints` — dict-like access to all constraints
+- `n.model.objective` — the objective expression
+- `n.model.add_variables(...)` — add custom variables
+- `n.model.add_constraints(...)` — add custom constraints
+- Standard linopy expression algebra (`+`, `-`, `*`, `>=`, `<=`, `==`) for building constraint expressions
 
-Optimization is entirely in the `optimization/` subpackage:
-- `variables.py` — `define_*_variables()` functions (one per variable group)
-- `constraints.py` — `define_*_constraints()` functions
-- `global_constraints.py` — cross-component constraints
-- `optimize.py` — `OptimizationAccessor` orchestrates variable → constraint → objective construction
-- `mga.py` — Modeling-to-Generate-Alternatives
+Linopy is PyPSA's own companion project ([github.com/PyPSA/linopy](https://github.com/PyPSA/linopy)), purpose-built for N-dimensional labeled optimization with xarray-based variable/constraint storage.
 
-Constraint/variable functions are pure functions taking `(n, sns)` — they do not mutate
-the network object directly beyond writing to `n.model`. This makes them straightforward
-to replicate or override.
+**Source:** [Custom Constraints docs](https://docs.pypsa.org/latest/user-guide/optimization/custom-constraints/); [Optimization with Linopy example](https://docs.pypsa.org/v0.27.1/examples/optimization-with-linopy.html).
 
-The underlying solver interface is **Linopy** (not direct Pyomo/CVXPY). Linopy wraps multiple
-solvers (HiGHS default, Gurobi, CPLEX, GLPK, etc.) and uses xarray DataArrays for
-vectorized constraint building.
+### 2.4 Custom Components — Limited Support
 
----
+**This is a known gap.** Before PyPSA v0.25, there was an example for defining custom components (a combined heat-and-power link). After the switch from `lopf` to the linopy-based `optimize`, this example was removed and the capability became unsupported.
 
-### Interoperability
+GitHub issue [#856](https://github.com/PyPSA/PyPSA/issues/856) (opened 2025-02-17, still open) requests a template/guideline for custom components compatible with linopy. The PyPSA team recommends:
 
-#### DataFrames
+- Use existing component types (Generator, Link, Store) with custom attributes and carrier-based filtering rather than defining new component types.
+- Add custom constraints via `extra_functionality` for subsets of existing components (e.g., "all links with carrier='heat_pump'").
 
-All component data is pandas DataFrames. `n.add()` accepts:
-- scalar values (broadcast to all)
-- Python lists / numpy arrays (static, per-component)
-- `pd.Series` (static, indexed by component name)
-- `pd.DataFrame` (time-varying, index = snapshots, columns = component names)
+The internal `create_model` method iterates over a fixed lookup table (`data/variables.csv`) to decide which components get variables/constraints. Custom components would need to be registered in this lookup to participate in the standard optimization pipeline.
 
-`n.generators`, `n.lines`, etc. are direct references to `c.static` DataFrames —
-mutations to these DataFrames immediately affect the network.
+**Source:** [GitHub issue #856](https://github.com/PyPSA/PyPSA/issues/856); [PR #1075](https://github.com/PyPSA/PyPSA/pull/1075) introduced the new component class system.
 
-`import_components_from_dataframe()` / `import_series_from_dataframe()` exist as legacy
-methods for bulk DataFrame-based import.
+### 2.5 Custom Statistics Groupers
 
-#### NetworkX
+The statistics module provides a limited registration mechanism for custom groupers:
 
-Full NetworkX `MultiGraph` is returned by `n.graph()` — all standard NetworkX algorithms
-(shortest path, connected components, spectral, etc.) work out of the box. PyPSA does not
-wrap or limit the graph object post-creation.
+```python
+from pypsa.statistics.grouping import Groupers
+groupers = Groupers()
+groupers.add_grouper("my_region", my_region_func)
+```
 
-NetworkX is a **hard dependency** of PyPSA (not optional).
+A custom grouper function must accept `(n, c, port, nice_names)` and return a `pd.Series` aligned with the component index. Once registered, it can be used in `n.statistics.*()` calls.
 
-#### Graphs.jl
+**Source:** `pypsa/statistics/grouping.py` lines 222–243.
 
-No native Julia interoperability. PyPSA is Python-only. Cross-tool integration would require
-exporting to a shared format (netCDF/CSV) and importing in Julia.
+### 2.6 No Formal Plugin/Hook System
 
-#### pandapower
+A search of the entire PyPSA codebase (1.1.2) for patterns like "plugin", "hook", "callback", "register", "event", "signal", "listener", and "middleware" reveals:
 
-`n.import_from_pandapower_net(net, extra_line_data, use_pandapower_index)` is built in.
-Marked "still in beta"; unsupported features include three-winding transformers, switches,
-in_service status, shunt impedances, transformer tap positions.
+- `register`: 1 occurrence — the statistics grouper registration described above
+- `event`/`signal`: only in unrelated contexts (no event bus)
+- `callback`: 0 occurrences as a formal pattern
+- `plugin`/`hook`/`listener`/`middleware`: 0 occurrences
 
-#### PyPower
+**PyPSA has no formal plugin architecture, no event bus, no middleware pipeline, and no hook registry.** Extension is achieved through:
+1. The `extra_functionality` callback (single hook point)
+2. Direct manipulation of the linopy Model object
+3. Subclassing or monkey-patching (not officially supported)
 
-`n.import_from_pypower_ppc(ppc)` supports MATPOWER/PyPower ppc dict format.
+### 2.7 Configuration System
 
-#### Serialization formats
+PyPSA 1.1 includes a hierarchical options system (`pypsa.options`) with namespace-based access:
 
-| Format | Import | Export | Notes |
-|--------|--------|--------|-------|
-| netCDF (.nc) | `import_from_netcdf()` | `export_to_netcdf()` | Recommended; xarray-backed; supports compression |
-| CSV folder | `import_from_csv_folder()` | `export_to_csv_folder()` | Human-readable; one CSV per component |
-| HDF5 (.h5) | `import_from_hdf5()` | `export_to_hdf5()` | Compact binary |
-| Excel (.xlsx) | `import_from_excel()` | `export_to_excel()` | Sheet name length limit (31 chars) with built-in mapping workaround |
+```python
+pypsa.options.params.optimize.solver_name = "gurobi"
+pypsa.options.params.statistics.round = 3
+```
 
-The Linopy optimization model (`n.model`) is **not** included in any of these exports.
-It must be saved separately via `n.model.to_netcdf()` if persistence is required.
+Options are managed via `OptionsNode` and `Option` classes in `pypsa/_options.py`. This is a configuration system, not an extension mechanism, but it does allow runtime customization of solver settings, numerical tolerances, and output formatting.
 
-Network objects can also be loaded from URLs (HTTP/HTTPS, S3, GCS, Azure via `cloudpathlib`).
-
-#### Multi-energy carrier support
-
-Carriers are arbitrary strings — no enumeration. Buses carry a `carrier` attribute
-(e.g., `"AC"`, `"DC"`, `"heat"`, `"hydrogen"`, `"gas"`, `"methane"`).
-
-The `Link` component is the key sector-coupling primitive:
-- Supports up to N ports: `bus0` (input), `bus1`…`busN` (outputs)
-- Each output port has an `efficiencyK` scalar controlling the conversion ratio
-- Example CHP: `bus0="gas_bus"`, `bus1="elec_bus"`, `bus2="heat_bus"`, `efficiency=0.4`, `efficiency2=0.4`
-- Negative efficiency2 values model energy inputs at a secondary bus (e.g., CO₂ in methanation)
-- Dispatch variable `p0` is the primary flow; `p1 = efficiency * p0`, `p2 = efficiency2 * p0`, etc.
+**Source:** `pypsa/_options.py`.
 
 ---
 
-## Sources
+## 3. Graph Access & NetworkX Interoperability
 
-1. PyPSA source — `components/types.py`: `add_component_type()` function with docstring and implementation
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/components/types.py`
-2. PyPSA source — `network/components.py`: `NetworkComponentsMixin.components` property (line 127, uses `component_types_df`)
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/network/components.py`
-3. PyPSA source — `optimization/optimize.py`: `OptimizationAccessor.__call__()` with `extra_functionality` (lines 418–538) and `solve_model()` (lines 765–825)
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/optimization/optimize.py`
-4. PyPSA source — `network/graph.py`: `NetworkGraphMixin` with `graph()`, `adjacency_matrix()`, `incidence_matrix()`
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/network/graph.py`
-5. PyPSA source — `network/power_flow.py`: `SubNetwork.calculate_PTDF()` (line 1043)
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/network/power_flow.py`
-6. PyPSA source — `networks.py`: `Network` class mixin inheritance (lines 81–89) and accessor initialization (lines 173–187)
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/networks.py`
-7. PyPSA source — `network/io.py`: serialization methods (`import_from_netcdf`, `export_to_netcdf`, etc.) and `import_from_pandapower_net()`
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/network/io.py`
-8. PyPSA source — `data/components.csv`: built-in component type registry
-   - `/workspace/evaluations/pypsa/.venv/lib/python3.12/site-packages/pypsa/data/components.csv`
-9. PyPSA documentation — Custom Constraints
-   - https://docs.pypsa.org/latest/user-guide/optimization/custom-constraints/
-10. PyPSA documentation — v1.0 migration guide
-    - https://docs.pypsa.org/latest/user-guide/v1-guide/
-11. PyPSA documentation — Optimize API reference
-    - https://docs.pypsa.org/latest/api/networks/optimize/
-12. PyPSA documentation — Link component
-    - https://docs.pypsa.org/latest/user-guide/components/links/
-13. GitHub — Issue #856: Defining custom components compatible with Linopy optimization (open, May 2024)
-    - https://github.com/PyPSA/PyPSA/issues/856
-14. GitHub — PR #1075: feat: introduce component class
-    - https://github.com/PyPSA/PyPSA/pull/1075
+### 3.1 `n.graph()` — Full NetworkX Export
+
+The `graph()` method (from `NetworkGraphMixin`) builds a `networkx.MultiGraph` from the network topology:
+
+```python
+g = n.graph()                          # All branch components
+g = n.graph(branch_components=["Line"])  # Only lines
+g = n.graph(weight="x")                # Edge weights from reactance
+g = n.graph(include_inactive=False)    # Skip inactive components
+```
+
+Returns an `OrderedGraph` (subclass of `nx.MultiGraph` with ordered node/adjacency dicts). Edge keys are `(component_name, branch_index)` tuples, preserving the mapping back to PyPSA components.
+
+Once you have the NetworkX graph, the full NetworkX algorithm library is available (shortest paths, centrality, community detection, etc.).
+
+**Source:** `pypsa/network/graph.py` lines 41–107; [API docs](https://docs.pypsa.org/v0.29.0/api/_source/pypsa.Network.graph.html).
+
+### 3.2 Matrix Representations
+
+Additional graph representations are available as methods:
+
+| Method | Returns | Notes |
+|---|---|---|
+| `n.adjacency_matrix()` | `pd.DataFrame` or `scipy.sparse.coo_matrix` | Directed; `return_dataframe=True` for DataFrame |
+| `n.incidence_matrix()` | `scipy.sparse.csr_matrix` | Directed; buses x branches |
+| `n.cycle_matrix()` | (not directly, but `find_cycles()` is available) | Used internally by KVL constraints |
+
+The adjacency and incidence matrices support filtering by branch components, investment periods, and custom weights.
+
+**Source:** `pypsa/network/graph.py` lines 109–310.
+
+### 3.3 PTDF/BODF/Y Matrices
+
+Power-flow-specific matrix representations:
+
+- `calculate_PTDF(sub_network)` — Power Transfer Distribution Factor matrix
+- `calculate_BODF(sub_network)` — Branch Outage Distribution Factor matrix
+- `calculate_B_H(sub_network)` — B and H matrices for DC power flow
+- `calculate_Y(sub_network)` — Full nodal admittance matrix (for AC power flow)
+
+These are methods on `SubNetwork` (via `SubNetworkPowerFlowMixin`), returning numpy arrays or scipy sparse matrices.
+
+**Source:** `pypsa/network/power_flow.py`.
 
 ---
 
-## Gaps and Uncertainties
+## 4. DataFrame & xarray Interoperability
 
-- **Custom component + optimization integration**: The `add_component_type()` API registers metadata but there is no supported path to have custom components automatically included in the Linopy optimization model. Issue #856 describes this gap and remains open. Needs live testing to confirm workarounds (subclassing `Network`, monkey-patching `component_types_df`) actually work in 1.1.2.
+### 4.1 Native pandas Storage
 
-- **`component_types_df` vs `all_components` discrepancy**: The `Network.components` property uses `component_types_df` (static CSV snapshot) not `all_components` (live registry). It is unclear if this was an oversight or intentional (to keep networks deterministic). Needs verification whether calling `add_component_type()` before any `Network()` instantiation is sufficient.
+All component data is natively pandas:
 
-- **PTDF as a dense array**: `sub_network.PTDF` is documented as a dense numpy array. For large networks this could be memory-intensive. No sparse PTDF option was found in the source; needs confirmation at scale.
+```python
+n.generators          # pd.DataFrame — static data (42 columns in v1.1)
+n.generators_t.p      # pd.DataFrame — time-varying dispatch
+n.buses               # pd.DataFrame
+```
 
-- **Linopy model persistence**: `n.model.to_netcdf()` is mentioned as the path to persist the Linopy model, but round-trip fidelity (re-loading and re-solving) is not documented. Needs empirical testing.
+This means standard pandas operations (filtering, groupby, merge, plot) work directly on PyPSA data without any conversion step.
 
-- **Excel 31-char sheet name limitation**: Built-in mapping covers two known cases (`storage_units-state_of_charge_set`, `storage_units-efficiency_dispatch`). Whether other long attribute names silently fail needs testing.
+### 4.2 xarray DataArray View (`.da` accessor)
 
-- **pandapower bridge beta status**: Three-winding transformers, switches, in_service status, shunt impedances, and tap positions are unsupported. The extent of this limitation in practice depends on network complexity.
+The v1.0+ `Components` API adds an xarray accessor that provides a lazy, labeled view over the combined static/dynamic data:
 
-- **`override_components` / `override_component_attrs`**: These pre-v1.0 parameters were found referenced in community discussions but are not present in the v1.1.2 source. Their removal timeline and migration path needs clarification from the changelog.
+```python
+n.c.generators.da.p_nom      # xr.DataArray with 'name' dim
+n.c.generators.da.p_max_pu   # xr.DataArray with 'name', 'snapshot' dims
+```
 
-- **NetworkCollection API**: Introduced in v1.0, allows storing/operating on multiple networks. Interaction with `extra_functionality` and custom components has not been researched.
+The xarray view merges static and dynamic data into a unified N-dimensional labeled structure. This is the format used internally by the optimization module (variables and constraints are built from xarray coordinates).
+
+The `_from_xarray()` helper converts back to pandas format, handling scenarios and multi-index cases.
+
+**Source:** `pypsa/components/array.py` — `_XarrayAccessor` class, `ComponentsArrayMixin`.
+
+### 4.3 Serialization Formats
+
+PyPSA supports multiple import/export formats:
+
+| Method | Format | Notes |
+|---|---|---|
+| `n.export_to_netcdf()` | NetCDF4 (via xarray) | Default compression `zlib` level 4; primary format |
+| `n.export_to_hdf5()` | HDF5 | Legacy format |
+| `n.export_to_csv_folder()` | CSV folder | One CSV per component; human-readable |
+| `n.export_to_excel()` | Excel workbook | One sheet per component |
+| `n.import_from_pypower_ppc()` | PYPOWER PPC dict | Version 2 format; limited feature support |
+| `n.import_from_pandapower_net()` | pandapower network | **Beta**; unsupported: 3-winding transformers, switches, shunt impedances, tap positions |
+
+The `import_from_pandapower_net` method is explicitly marked as beta with known limitations, warning at runtime.
+
+**Source:** `pypsa/network/io.py`.
+
+### 4.4 NetworkCollection
+
+`NetworkCollection` (v0.35+) aggregates multiple Network objects and provides unified DataFrame access:
+
+```python
+nc = pypsa.NetworkCollection([n1, n2])
+nc.generators   # Multi-indexed DataFrame across all networks
+nc.statistics.energy_balance()  # Cross-network statistics
+```
+
+**Source:** `pypsa/collection.py`.
+
+---
+
+## 5. Interoperability with External Tools
+
+### 5.1 pandapower Import
+
+```python
+n = pypsa.Network()
+n.import_from_pandapower_net(net, extra_line_data=True)
+```
+
+Converts pandapower buses, lines, generators, external grids, static generators, loads, and transformers. Missing: three-winding transformers, switches, in_service status, shunt impedances, tap positions.
+
+**Source:** `pypsa/network/io.py` lines 2215–2260.
+
+### 5.2 PYPOWER Import
+
+```python
+n.import_from_pypower_ppc(ppc)
+```
+
+Imports from PYPOWER PPC version 2 dict format. Missing: areas, gencosts, component status.
+
+**Source:** `pypsa/network/io.py` lines 1962–2214.
+
+### 5.3 No Direct Graphs.jl Interoperability
+
+PyPSA is a Python-only package. There is no built-in bridge to Julia's Graphs.jl. However, since the NetworkX graph can be exported and NetworkX supports standard graph formats (edge lists, GraphML, GEXF, etc.), indirect interoperability is possible through file-based exchange.
+
+### 5.4 linopy (Optimization Backend)
+
+PyPSA delegates all optimization to [linopy](https://github.com/PyPSA/linopy), a purpose-built package by the same team. linopy provides:
+- N-dimensional labeled variables and constraints (xarray-based)
+- Support for multiple solvers: HiGHS, Gurobi, CPLEX, GLPK, CBC, SCIP
+- LP/MIP formulation and solving
+- Expression algebra for building constraints
+
+The linopy Model is the primary extension surface for adding custom optimization behavior.
+
+---
+
+## 6. Findings & Gaps
+
+### What Works Well
+
+1. **Constraint extension via linopy** is well-documented and flexible. The `extra_functionality` callback and two-step build/solve pattern provide practical extensibility for optimization customization.
+2. **Graph access** is first-class: `n.graph()` returns a standard NetworkX `MultiGraph`, and adjacency/incidence matrices are readily available.
+3. **DataFrame interoperability** is native — all data is pandas. No conversion friction for data science workflows.
+4. **xarray integration** (`.da` accessor) provides labeled multi-dimensional views useful for advanced analysis.
+
+### What Is Missing or Limited
+
+1. **No plugin/hook architecture.** There is exactly one extension hook (`extra_functionality`), and it only applies to optimization. No hooks exist for power flow, clustering, I/O, or consistency checking.
+2. **No custom component support** since v0.25. The ability to define new component types that participate in the optimization pipeline was removed and has not been restored ([#856](https://github.com/PyPSA/PyPSA/issues/856)).
+3. **No event/signal system.** There is no way to subscribe to lifecycle events (model created, solve started, component added, etc.).
+4. **pandapower import is beta quality**, with known unsupported features and runtime warnings.
+5. **No Graphs.jl interoperability** — Python-only; indirect exchange via file formats is the only option.
+6. **Single-callback limitation** — `extra_functionality` accepts one callable. Composing multiple independent extensions requires manual orchestration.
+
+### Contradictions or Surprises
+
+- The `CustomGroupers.__setitem__` method in `statistics/grouping.py` raises `NotImplementedError` (line 130), while `add_grouper` on the same class works via `setattr`. The dict-style assignment API appears broken or intentionally disabled.
+- The adjacency matrix method returns a sparse `coo_matrix` by default but issues a `FutureWarning` that it will return a DataFrame in future versions — the transition is in progress.
+
+---
+
+## 7. Source Links
+
+- [PyPSA Documentation (latest)](https://docs.pypsa.org/latest/)
+- [Custom Constraints Guide](https://docs.pypsa.org/latest/user-guide/optimization/custom-constraints/)
+- [Design Philosophy (v0.26.2)](https://docs.pypsa.org/v0.26.2/design.html)
+- [What's New in v1.0](https://docs.pypsa.org/latest/user-guide/v1-guide/)
+- [Network.graph API](https://docs.pypsa.org/v0.29.0/api/_source/pypsa.Network.graph.html)
+- [Components API](https://docs.pypsa.org/v1.0.3/api/components/components/)
+- [Import/Export Guide](https://docs.pypsa.org/v1.0.2/user-guide/import-export/)
+- [GitHub Issue #856 — Custom Components](https://github.com/PyPSA/PyPSA/issues/856)
+- [GitHub PR #1075 — Component Class](https://github.com/PyPSA/PyPSA/pull/1075)
+- [linopy Repository](https://github.com/PyPSA/linopy)
+- [Optimization with Linopy Example](https://docs.pypsa.org/v0.27.1/examples/optimization-with-linopy.html)
+- [PyPSA Releases](https://github.com/PyPSA/PyPSA/releases)

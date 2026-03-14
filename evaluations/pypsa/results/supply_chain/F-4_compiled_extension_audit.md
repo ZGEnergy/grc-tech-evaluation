@@ -3,64 +3,67 @@ test_id: F-4
 tool: pypsa
 dimension: supply_chain
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 03ce9dd3
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 8868c3f4
 ---
 
-# F-4: Compiled Extension Audit (compiled_extension_audit)
+# F-4: Compiled Extension Audit
 
-## Result: PASS
+## Findings
 
-## Finding
+### PyPSA Core
 
-248 `.so` files are present in the venv; all belong to well-known open-source packages with publicly available source code. The critical PyPSA-specific compiled extension is `highspy/_core.cpython-312-x86_64-linux-gnu.so` (HiGHS C++ solver binding). PyPSA itself has no compiled extensions — it is pure Python.
+PyPSA itself is **pure Python** with zero compiled extensions. All `.py`
+source files are inspectable and modifiable.
 
-## Evidence
+### Compiled Components in Execution Path
 
-**Total compiled extensions:**
-```bash
-find /workspace/evaluations/pypsa/.venv -name '*.so' | wc -l
-→ 248
-```
+The following packages in PyPSA's dependency chain contain compiled
+(`.so`) extensions:
 
-**Key compiled extensions by package:**
+| Package | Compiled Extensions | Source Available | Buildable | Role in PyPSA |
+|---------|-------------------|-----------------|-----------|---------------|
+| numpy | 19 .so files | Yes (GitHub) | Yes (C/Fortran) | Core array operations |
+| scipy | 114 .so files | Yes (GitHub) | Yes (C/Fortran/Cython) | Sparse linear algebra (spsolve) |
+| highspy | 1 .so file | Yes (GitHub) | Yes (C++) | HiGHS LP/MILP solver |
+| shapely | 3 .so files | Yes (GitHub) | Yes (C, wraps GEOS) | Geospatial operations |
+| Levenshtein | 1 .so file | Yes (GitHub) | Yes (C++) | String matching |
+| rapidfuzz | 8 .so files | Yes (GitHub) | Yes (C++) | Fuzzy string matching |
+| netCDF4 | 1 .so file | Yes (GitHub) | Yes (C, wraps HDF5/netCDF) | File I/O |
+| pyproj | 10 .so files | Yes (GitHub) | Yes (C, wraps PROJ) | Coordinate transforms |
+| pyogrio | 5 .so files | Yes (GitHub) | Yes (C, wraps GDAL) | Geospatial I/O |
 
-| Package | .so file | Source Available? | License |
-|---------|----------|------------------|---------|
-| highspy | `_core.cpython-312-x86_64-linux-gnu.so` | Yes — https://github.com/ERGO-Code/HiGHS | MIT |
-| numpy | Multiple `_core/*.so` (BLAS/LAPACK bindings) | Yes — https://github.com/numpy/numpy | BSD |
-| scipy | `scipy.libs/libscipy_openblas-b75cc656.so` | Yes — https://github.com/scipy/scipy | BSD |
-| shapely | `lib.cpython-312-x86_64-linux-gnu.so` (GEOS binding) | Yes — https://github.com/shapely/shapely | BSD |
-| pyproj | Multiple `.so` (PROJ binding) | Yes — https://github.com/pyproj4/pyproj | MIT |
-| netCDF4 | `_netCDF4.abi3.so` | Yes — https://github.com/Unidata/netcdf4-python | MIT |
-| cftime | `_cftime.cpython-312-x86_64-linux-gnu.so` | Yes | MIT |
-| cryptography | `_rust.abi3.so` (Rust extension) | Yes — https://github.com/pyca/cryptography | Apache/BSD |
-| rapidfuzz | Multiple `.so` (C++ string matching) | Yes — https://github.com/maxbachmann/RapidFuzz | MIT |
-| bottleneck | Multiple `.so` (NumPy acceleration) | Yes — https://github.com/pydata/bottleneck | BSD |
-| numexpr | `interpreter.cpython-312-x86_64-linux-gnu.so` | Yes | MIT |
-| contourpy | `_contourpy.cpython-312-x86_64-linux-gnu.so` | Yes | BSD |
+### Critical Path Analysis
 
-**PyPSA core:** Pure Python — no `.so` files in the `pypsa/` package directory itself. All computation delegated to numpy/scipy/linopy/highspy.
+For the core power-system computation path (`n.lpf()` and `n.optimize()`),
+only three compiled libraries are in the critical execution path:
 
-**HiGHS solver inspection:**
-- `highspy/_core.cpython-312-x86_64-linux-gnu.so` is a pybind11 wrapper around the HiGHS C++ LP/MILP solver
-- Source: https://github.com/ERGO-Code/HiGHS (MIT licensed)
-- Build system: CMake + pybind11, fully reproducible from source
-- The HiGHS C++ solver itself (libhighs) is statically linked into the `.so`; no runtime shared library dependencies beyond system libc
+1. **numpy** — array operations (BSD, fully open-source, buildable)
+2. **scipy** — `scipy.sparse.linalg.spsolve()` for DCPF B-matrix solve
+   (BSD, fully open-source, buildable)
+3. **highspy** — HiGHS solver for OPF (MIT, fully open-source, buildable)
 
-**No opaque binaries found.** All `.so` files trace to well-known open-source projects with public repositories, documented build systems, and permissive licenses.
+The geospatial packages (shapely, pyproj, pyogrio) are only invoked for
+plotting and GIS operations, not for power-system computation.
 
-## Implications
+### Source Availability
 
-The compiled extension audit raises no concerns. The most critical extension (highspy) is the HiGHS solver — the source is publicly available and MIT licensed. PyPSA's design as pure Python with delegated computation makes the source inspection chain straightforward. No proprietary or obscure binary blobs are present.
+All compiled dependencies have source code available on GitHub under
+permissive licenses. All are buildable from source on standard Linux
+platforms with common build tools (gcc, gfortran, cmake).
+
+### Assessment
+
+No proprietary or opaque compiled components in the execution path. All
+compiled extensions serve well-known numerical/scientific computing roles
+with mature, auditable source code.
+
+## Recorded Metrics
+
+- compiled_components: 9 packages with .so files
+- source_available: yes (all)
+- buildable: yes (all, from public GitHub repos with standard build tools)

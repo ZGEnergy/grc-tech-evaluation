@@ -3,103 +3,87 @@ test_id: A-1
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 32fb2553
+test_hash: 05bc255c
 status: pass
-workaround_class: stable
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.116
+wall_clock_seconds: 1.185
 timing_source: measured
-peak_memory_mb: null
+peak_memory_mb: 0.48
 convergence_residual: null
 convergence_iterations: null
-loc: 114
+loc: 145
 solver: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T23:09:44Z
 ---
 
-# A-1: DC Power Flow (dcpf)
+# A-1: Solve DCPF on TINY
 
 ## Result: PASS
 
 ## Approach
 
-Loaded IEEE 39-bus case39.m via `matpowercaseframes.CaseFrames` → PYPOWER ppc dict (with `.values` numpy arrays) → `pypsa.Network.import_from_pypower_ppc()`. Ran DC (linear) power flow via `n.lpf()`. Extracted outputs as pandas DataFrames from `n.buses_t.v_ang`, `n.buses_t.p`, and `n.lines_t.p0`.
+Loaded IEEE 39-bus network via the shared MATPOWER loader (`load_pypsa` from
+`evaluations/shared/matpower_loader.py`), which applies transformer susceptance
+and generator cost patches. Ran `n.lpf()` (PyPSA's linear power flow) which
+solves the DC power flow using the B-matrix factorization.
 
-The ppc dict must be constructed manually with `.values` arrays — `CaseFrames.to_dict()` returns DataFrames which `import_from_pypower_ppc` cannot handle.
+Verified that outputs are accessible as structured pandas DataFrames (not raw
+solver vectors): voltage angles via `n.buses_t.v_ang`, nodal injections via
+`n.buses_t.p`, and line flows via `n.lines_t.p0`. Transformer flows are also
+available via `n.transformers_t.p0`.
 
 ## Output
 
-All three required outputs confirmed as pandas DataFrames:
+| Metric | Value |
+|--------|-------|
+| Buses | 39 |
+| Lines | 35 |
+| Transformers | 11 |
+| Generators | 10 |
+| Nonzero angles (non-slack) | 38 / 38 |
+| Nonzero line flows | 35 / 35 |
+| Max voltage angle | 13.46 deg |
+| Max line flow | 608.8 MW |
+| Total generation capacity | 7,367 MW |
 
-**Voltage Angles (degrees, first 5 buses):**
+**Voltage angles (first 5 buses, degrees):**
 
 | Bus | Angle (deg) |
 |-----|-------------|
-| 1 | -12.304 |
-| 2 | -8.104 |
-| 3 | -10.989 |
-| 4 | -11.650 |
-| 5 | -10.346 |
+| 1 | -12.30 |
+| 2 | -8.10 |
+| 3 | -10.99 |
+| 4 | -11.65 |
+| 5 | -10.35 |
 
-**Line Flows p0 (MW, first 5 lines):**
+**Line flows (first 5 lines, MW):**
 
-| Line | Flow (MW) |
-|------|-----------|
-| L0 | -178.354 |
-| L1 | 80.754 |
-| L2 | 333.430 |
-| L3 | -261.784 |
-| L4 | 54.115 |
+| Line | P0 (MW) |
+|------|---------|
+| L0 | -178.4 |
+| L1 | 80.8 |
+| L2 | 333.4 |
+| L3 | -261.8 |
+| L4 | 54.1 |
 
-**Nodal Injections p (MW, first 5 buses):**
-
-| Bus | Injection (MW) |
-|-----|----------------|
-| 1 | -97.6 |
-| 2 | 0.0 |
-| 3 | -322.0 |
-| 4 | -500.0 |
-| 5 | 0.0 |
-
-**Summary statistics:**
-- Buses: 39, Lines: 35, Generators: 10
-- Non-zero voltage angles: 38 of 39 buses (slack bus = 0 by definition)
-- Non-zero line flows: 35 of 35 lines
-- Max voltage angle: ±13.46 degrees
-- Max line flow: 608.78 MW
-- Slack bus: Bus 31
+All outputs are pandas DataFrames with named indices, directly usable for
+downstream analysis.
 
 ## Workarounds
 
-- **What:** Used `matpowercaseframes.CaseFrames` to parse `.m` file, then manually constructed PYPOWER ppc dict with `cf.bus.values`, `cf.gen.values`, `cf.branch.values` (numpy arrays), then called `n.import_from_pypower_ppc(ppc)`.
-- **Why:** PyPSA has no native MATPOWER .m reader. `CaseFrames.to_dict()` returns pandas DataFrames, but `import_from_pypower_ppc` requires numpy array format.
-- **Durability:** stable — `matpowercaseframes` is a documented companion package; `import_from_pypower_ppc` is a public API method used in official examples.
-- **Grade impact:** B-level. The parsing pipeline is standard; only the intermediate step of constructing the ppc dict is non-obvious.
+None required.
 
 ## Timing
 
-- **Wall-clock:** 1.116 s (includes network load, lpf solve, and result extraction)
+- **Wall-clock:** 1.185s (including network loading)
+- **Solve-only:** 0.177s
 - **Timing source:** measured
-- **Peak memory:** not measured
-- **Solve time (lpf only):** 0.065 s
+- **Peak memory:** 0.48 MB (solve only, via tracemalloc)
 - **CPU cores used:** 1
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/expressiveness/test_a1_dcpf_tiny.py`
-
-Key API sequence:
-```python
-from matpowercaseframes import CaseFrames
-cf = CaseFrames(network_file)
-ppc = {"version": "2", "baseMVA": cf.baseMVA, "bus": cf.bus.values,
-       "gen": cf.gen.values, "branch": cf.branch.values}
-n = pypsa.Network()
-n.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=True)
-n.lpf()
-v_ang = n.buses_t.v_ang      # DataFrame
-p_inject = n.buses_t.p       # DataFrame
-p0 = n.lines_t.p0            # DataFrame
-```
+**Path:** `evaluations/pypsa/tests/expressiveness/test_a1_dcpf.py`

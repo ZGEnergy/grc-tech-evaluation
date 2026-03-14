@@ -1,93 +1,34 @@
 """
-Test G-FNM-3: DCPF Verification
+Test G-FNM-3: DCPF verification against reference solution on LARGE
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM Annual S01, ~30000 buses)
-Pass condition: Aggregate thresholds met per pass_conditions.json dcpf section.
-  - Bus angles: >=95% of non-excluded buses within 1.0 deg
-  - Branch flows: >=90% of in-service branches within 10% (floor 1 MW)
+Network: LARGE (FNM Annual S01, 27862-bus main island)
+Pass condition: Pass if all aggregate thresholds are met and no hard-fail condition
+  is triggered, per the dcpf section of data/fnm/reference/pass_conditions.json.
+  Buses and branches that exceed the aggregate tolerance but are classified as known
+  outlier causes are reported as classified outliers, not unqualified failures.
 Tool: PyPSA 1.1.2
+Input: MATPOWER fallback (data/fnm/reference/cleaned/fnm_main_island.m)
 """
 
 from __future__ import annotations
 
 import json
-import re
+import sys
 import time
 import traceback
 from pathlib import Path
 
 import numpy as np
 
-CLEANED_MAT = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.mat")
+# Make shared matpower_loader importable
+sys.path.insert(0, "/workspace/evaluations/shared")
+
 CLEANED_M = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.m")
 REF_BUSES = Path("/workspace/data/fnm/reference/dcpf/buses_dcpf.csv")
 REF_BRANCHES = Path("/workspace/data/fnm/reference/dcpf/branches_dcpf.csv")
-REF_SUMMARY = Path("/workspace/data/fnm/reference/dcpf/summary_dcpf.json")
 PASS_CONDITIONS = Path("/workspace/data/fnm/reference/pass_conditions.json")
 EXCLUDED_BUSES = Path("/workspace/data/fnm/reference/excluded_buses.json")
-
-
-def parse_matpower_m(filepath: str | Path) -> dict:
-    """Parse a MATPOWER .m case file into a PPC dict."""
-    with open(filepath) as f:
-        content = f.read()
-
-    ppc: dict = {"version": "2"}
-
-    m = re.search(r"mpc\.baseMVA\s*=\s*(\d+\.?\d*)", content)
-    if m:
-        ppc["baseMVA"] = float(m.group(1))
-
-    for name in ["bus", "gen", "branch"]:
-        pattern = rf"mpc\.{name}\s*=\s*\[(.*?)\];"
-        m = re.search(pattern, content, re.DOTALL)
-        if m:
-            data = m.group(1).strip()
-            rows = []
-            for line in data.split("\n"):
-                line = line.strip().rstrip(";")
-                if "%" in line:
-                    line = line[: line.index("%")]
-                line = line.strip()
-                if line:
-                    vals = [float(x) for x in line.split()]
-                    rows.append(vals)
-            ppc[name] = np.array(rows)
-
-    return ppc
-
-
-def load_cleaned_case() -> tuple[dict, str]:
-    """Load the pre-cleaned MATPOWER case. Prefer .mat, fall back to .m parser.
-
-    Note: fnm_main_island.mat is an Octave text-format .mat file, not scipy-compatible.
-    The .m file is the reliably-parseable format.
-    """
-    if CLEANED_M.exists():
-        return parse_matpower_m(CLEANED_M), "m"
-    elif CLEANED_MAT.exists():
-        # Try scipy as fallback (will fail for Octave text format)
-        import scipy.io
-
-        try:
-            mat = scipy.io.loadmat(str(CLEANED_MAT))
-            mpc_struct = mat["mpc"][0, 0]
-            ppc = {
-                "version": "2",
-                "baseMVA": float(mpc_struct["baseMVA"].flat[0]),
-                "bus": mpc_struct["bus"],
-                "gen": mpc_struct["gen"],
-                "branch": mpc_struct["branch"],
-            }
-            return ppc, "mat"
-        except ValueError:
-            raise FileNotFoundError(
-                f"{CLEANED_MAT} is Octave text format (not scipy-compatible) "
-                f"and {CLEANED_M} not found"
-            )
-    else:
-        raise FileNotFoundError(f"Neither {CLEANED_MAT} nor {CLEANED_M} found")
 
 
 def run() -> dict:
@@ -96,6 +37,8 @@ def run() -> dict:
 
     import pandas as pd
     import pypsa
+    from matpower_loader import load_pypsa
+    from matpowercaseframes import CaseFrames
 
     results: dict = {
         "status": "fail",
@@ -121,7 +64,6 @@ def run() -> dict:
         HARD_FAIL_BRANCH_FRAC = dcpf_conds["hard_fail"]["conditions"][1]["threshold"]
         HARD_FAIL_MAX_DEV_PCT = dcpf_conds["hard_fail"]["conditions"][2]["threshold_pct"]
 
-        results["details"]["pass_condition_source"] = str(PASS_CONDITIONS)
         results["details"]["pass_thresholds"] = {
             "bus_va_tol_deg": VA_TOL_DEG,
             "bus_min_pass_frac": BUS_PASS_FRAC,
@@ -136,51 +78,33 @@ def run() -> dict:
         excluded_bus_set = {int(b["bus_number"]) for b in excl_data.get("excluded_buses", [])}
         results["details"]["excluded_buses_count"] = len(excluded_bus_set)
 
-        # REF_SUMMARY is optional — the worktree copy serves as fallback values
-        if REF_SUMMARY.exists():
-            with open(REF_SUMMARY) as f:
-                ref_summary = json.load(f)
-        else:
-            # Known values from data/fnm/reference/dcpf/summary_dcpf.json
-            ref_summary = {
-                "success": 1,
-                "total_gen_mw": 165491.5460,
-                "total_load_mw": 165491.5460,
-                "slack_bus": 29421,
-                "n_buses": 27862,
-                "n_branches": 32532,
-                "n_gens": 5741,
-                "main_island_only": True,
-            }
-            results["details"]["ref_summary_source"] = "embedded_fallback"
-
+        # Load reference data
         ref_buses_df = pd.read_csv(REF_BUSES)
         ref_branches_df = pd.read_csv(REF_BRANCHES)
 
+        results["details"]["reference_counts"] = {
+            "ref_buses": len(ref_buses_df),
+            "ref_branches": len(ref_branches_df),
+        }
         results["details"]["tool_version"] = pypsa.__version__
-        results["details"]["ref_summary"] = ref_summary
 
-        # ── 2. Load cleaned MATPOWER case ────────────────────────────────
-        ppc, load_method = load_cleaned_case()
-        baseMVA = ppc["baseMVA"]
-        bus_array = ppc["bus"]
-        gen_array = ppc["gen"]
-        branch_array = ppc["branch"]
+        # ── 2. Load cleaned MATPOWER case via shared matpower_loader ──
+        # matpower_loader.load_pypsa() applies two correctness patches:
+        #   1. Transformer susceptance: b = 1/x (MATPOWER convention)
+        #      instead of PyPSA's default b = 1/(x*tap)
+        #   2. Generator marginal costs populated from gencost table
+        net = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
+        net.set_snapshots([0])
 
-        if load_method == "m":
-            results["workarounds"].append(
-                "Parsed MATPOWER .m file with regex-based parser since the .mat file "
-                "is Octave text format (not scipy-compatible) and PyPSA has no native "
-                "MATPOWER reader."
-            )
-        else:
-            results["workarounds"].append(
-                "Loaded pre-cleaned MATPOWER .mat file via scipy.io.loadmat. "
-                "PyPSA has no native MATPOWER reader."
-            )
+        # Also load raw arrays for branch comparison analysis
+        cf = CaseFrames(str(CLEANED_M))
+        bus_array = cf.bus.values
+        gen_array = cf.gen.values
+        branch_array = cf.branch.values
+        baseMVA = float(cf.baseMVA)
 
         results["details"]["baseMVA"] = baseMVA
-        results["details"]["load_method"] = load_method
+        results["details"]["input_path"] = "matpower"
 
         branch_status = branch_array[:, 10].astype(int)
         n_active = int((branch_status == 1).sum())
@@ -192,10 +116,11 @@ def run() -> dict:
             "generators": int(gen_array.shape[0]),
         }
 
-        # ── 3. Import into PyPSA ────────────────────────────────────────
-        net = pypsa.Network()
-        net.import_from_pypower_ppc(ppc)
-        net.set_snapshots([0])
+        results["workarounds"].append(
+            "MATPOWER fallback: G-FNM-1 failed (psse_parse_error). Loaded from "
+            "pre-cleaned MATPOWER .m file via shared matpower_loader.load_pypsa() "
+            "(applies transformer susceptance and gencost patches)."
+        )
 
         n_lines = len(net.lines)
         n_xfmrs = len(net.transformers)
@@ -203,6 +128,7 @@ def run() -> dict:
             "buses": len(net.buses),
             "lines": n_lines,
             "transformers": n_xfmrs,
+            "total_branches": n_lines + n_xfmrs,
             "generators": len(net.generators),
             "loads": len(net.loads),
         }
@@ -249,12 +175,10 @@ def run() -> dict:
         va_deviations = []
         va_bus_numbers = []
         for bus_name in pypsa_va_deg_series.index:
-            bus_num = int(bus_name) if str(bus_name).isdigit() else None
-            if bus_num is None:
-                try:
-                    bus_num = int(bus_name)
-                except (ValueError, TypeError):
-                    continue
+            try:
+                bus_num = int(bus_name)
+            except (ValueError, TypeError):
+                continue
             if bus_num in excluded_bus_set:
                 continue
             if bus_num in ref_bus_va:
@@ -264,13 +188,13 @@ def run() -> dict:
 
         va_deviations = np.array(va_deviations)
         n_nonexcl_buses = len(va_deviations)
-        buses_passing = np.sum(va_deviations <= VA_TOL_DEG)
+        buses_passing = int(np.sum(va_deviations <= VA_TOL_DEG))
         bus_pass_frac = float(buses_passing / n_nonexcl_buses) if n_nonexcl_buses > 0 else 0.0
 
         results["details"]["bus_angle_comparison"] = {
             "non_excluded_buses_matched": n_nonexcl_buses,
             "tolerance_deg": VA_TOL_DEG,
-            "buses_passing": int(buses_passing),
+            "buses_passing": buses_passing,
             "fraction_passing": round(bus_pass_frac, 6),
             "max_deviation_deg": round(float(np.max(va_deviations)), 6)
             if len(va_deviations) > 0
@@ -289,6 +213,36 @@ def run() -> dict:
             else None,
         }
 
+        # Voltage-level tier breakdown
+        ref_bus_kv = {
+            int(row["bus_number"]): float(row["base_kv"]) for _, row in ref_buses_df.iterrows()
+        }
+        tier_labels = {
+            "transmission_230kv_plus": (230.0, float("inf")),
+            "subtransmission_69_to_229kv": (69.0, 230.0),
+            "distribution_below_69kv": (0.0, 69.0),
+        }
+        tier_stats = {}
+        for label, (kv_min, kv_max) in tier_labels.items():
+            tier_devs = []
+            for i, bus_num in enumerate(va_bus_numbers):
+                kv = ref_bus_kv.get(bus_num, 0)
+                if kv_min <= kv < kv_max:
+                    tier_devs.append(va_deviations[i])
+            tier_devs = np.array(tier_devs) if tier_devs else np.array([])
+            if len(tier_devs) > 0:
+                tier_pass = int(np.sum(tier_devs <= VA_TOL_DEG))
+                tier_stats[label] = {
+                    "count": len(tier_devs),
+                    "passing": tier_pass,
+                    "fraction_passing": round(tier_pass / len(tier_devs), 6),
+                    "max_deviation_deg": round(float(np.max(tier_devs)), 4),
+                    "mean_deviation_deg": round(float(np.mean(tier_devs)), 4),
+                }
+            else:
+                tier_stats[label] = {"count": 0}
+        results["details"]["bus_angle_by_voltage_tier"] = tier_stats
+
         # ── 7. Hard-fail checks on buses ─────────────────────────────────
         bus_failing_frac = 1.0 - bus_pass_frac
         hard_fail_bus = bus_failing_frac > HARD_FAIL_BUS_FRAC
@@ -299,7 +253,7 @@ def run() -> dict:
             )
 
         # ── 8. Compare branch power flows ──────────────────────────────
-        # Build PyPSA branch name mapping by replicating split logic
+        # Build mapping from MATPOWER branch row to PyPSA component name
         bus_v_nom = dict(zip(bus_array[:, 0].astype(int), bus_array[:, 9]))
         n_branches_mat = branch_array.shape[0]
 
@@ -327,9 +281,8 @@ def run() -> dict:
         line_p0_dict = dict(zip(pypsa_line_p0.index, pypsa_line_p0.values))
         xfmr_p0_dict = dict(zip(pypsa_xfmr_p0.index, pypsa_xfmr_p0.values))
 
-        # Compare using v9 tolerance: |P_tool - P_ref| / max(|P_ref|, floor) * 100 < P_TOL_PCT
+        # Build ref branch lookup by index
         p_deviations_pct = []
-        p_ref_abs_list = []
         p_dev_lines = []
         p_dev_xfmrs = []
         max_dev_pct = 0.0
@@ -339,10 +292,10 @@ def run() -> dict:
             if branch_status[mat_row] == 0:
                 continue
 
-            comp_type, comp_name = branch_pypsa_name[mat_row]
             if active_row >= len(ref_branches_df):
                 break
 
+            comp_type, comp_name = branch_pypsa_name[mat_row]
             ref_p = float(ref_branches_df.iloc[active_row]["pf_mw"])
 
             if comp_type == "line":
@@ -355,7 +308,6 @@ def run() -> dict:
                 denom = max(abs(ref_p), P_BASE_FLOOR)
                 dev_pct = (abs_dev / denom) * 100.0
                 p_deviations_pct.append(dev_pct)
-                p_ref_abs_list.append(abs(ref_p))
                 if dev_pct > max_dev_pct:
                     max_dev_pct = dev_pct
                 if comp_type == "line":
@@ -435,10 +387,11 @@ def run() -> dict:
             "tap_eq_1": int(is_xfmr.sum()) - n_nonunity,
             "tap_ne_1": n_nonunity,
             "tap_range": [round(float(taps_xfmr.min()), 4), round(float(taps_xfmr.max()), 4)],
-            "note": (
-                "PyPSA DCPF includes tap ratio in susceptance (b=1/(x*tap)) "
-                "while MATPOWER DCPF ignores tap ratio (b=1/x). This causes "
-                f"systematic deviations on {n_nonunity} branches with non-unity taps."
+            "formulation_note": (
+                "Transformer susceptance patched by matpower_loader.load_pypsa() "
+                "to b=1/x (MATPOWER convention), overriding PyPSA's default "
+                "b=1/(x*tap). This aligns the DC B-matrix formulation with the "
+                "reference DCPF solution."
             ),
         }
 
@@ -448,8 +401,6 @@ def run() -> dict:
         results["details"]["power_balance"] = {
             "total_gen_mw_presolve": round(total_gen_mw, 3),
             "total_load_mw": round(total_load_mw, 3),
-            "ref_total_gen_mw": ref_summary.get("total_gen_mw"),
-            "ref_total_load_mw": ref_summary.get("total_load_mw"),
         }
 
         # ── 12. Pass/fail determination ──────────────────────────────────
@@ -464,19 +415,13 @@ def run() -> dict:
             "branch_flow_pass": branch_pass,
             "branch_flow_fraction": round(branch_pass_frac, 6),
             "branch_flow_required": BRANCH_PASS_FRAC,
-            "hard_fail": hard_fail,
+            "hard_fail_triggered": hard_fail,
         }
 
         if hard_fail:
             results["status"] = "fail"
         elif bus_pass and branch_pass:
-            results["status"] = "qualified_pass"
-            results["details"]["qualification_note"] = (
-                "Pass conditions met per v9 thresholds (95% buses within 1.0 deg, "
-                "90% branches within 10%). Qualified due to systematic PyPSA vs MATPOWER "
-                "transformer model difference (PyPSA includes tap ratio in DCPF susceptance, "
-                "MATPOWER does not)."
-            )
+            results["status"] = "pass"
         else:
             results["status"] = "fail"
             if not bus_pass:
