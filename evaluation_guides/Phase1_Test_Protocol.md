@@ -379,7 +379,7 @@ Suite G tests whether each tool can faithfully ingest and represent the Full Net
 
 **Suite G gate:** G-FNM-1 has two independent sub-checks: (a) PSS/E format compatibility — can the tool parse the intermediate CSV tables produced from the PSS/E source? and (b) record count fidelity — does the ingested model match the manifest counts?
 
-**If PSS/E parsing fails** (the tool cannot ingest the intermediate CSV tables at `FNM_PATH`): record a `blocking` `api-friction` observation, set G-FNM-1 `status: fail` with `failure_reason: psse_parse_error`. Proceed to G-FNM-3, G-FNM-4, and G-FNM-5 using the pre-cleaned MATPOWER fallback (`data/fnm/reference/cleaned/fnm_main_island.mat`) using the tool's native .m parser or the `matpower_loader.py` utility found in `evaluations/shared/`. Block only G-FNM-2 (which requires intermediate CSV tables for field-level comparison).
+**If PSS/E parsing fails** (the tool cannot ingest the intermediate CSV tables at `FNM_PATH`): record a `blocking` `api-friction` observation, set G-FNM-1 `status: fail` with `failure_reason: psse_parse_error`. Proceed to G-FNM-3, G-FNM-4, and G-FNM-5 using the pre-cleaned MATPOWER fallback (`data/fnm/reference/cleaned/fnm_main_island.mat`) using the tool's native .m parser or the `matpower_loader.py` utility found in `evaluations/shared/` whichever gives the highest loading fidelity. Block only G-FNM-2 (which requires intermediate CSV tables for field-level comparison).
 
 **If PSS/E parsing succeeds**, run the record count check. If any table count fails, set G-FNM-1 `status: fail` and skip G-FNM-2 through G-FNM-5. If all counts pass, G-FNM-1 passes and all downstream tests proceed normally.
 
