@@ -1,0 +1,45 @@
+---
+tag: formulation-difference
+source_dimension: fnm_ingestion
+source_test: G-FNM-3
+tool: gridcal
+severity: medium
+timestamp: 2026-03-13T00:00:00Z
+---
+
+# Observation: GridCal uses simplified B-matrix that omits transformer tap ratio corrections in DCPF
+
+## Finding
+
+GridCal's DCPF solver produces bus voltage angles identical to the MATPOWER
+reference (0.0 deg max deviation across all 27,862 buses) but exhibits extreme
+branch flow deviations (up to 562,955%) on 326 out of 32,532 branches. 88.7% of
+failing branches are adjacent to transformer buses. The deviations are systematic
+and signed (not random), consistent with a simplified B-matrix construction that
+computes branch susceptance as `b = -1/x` without incorporating transformer tap
+ratios and phase shift angles.
+
+## Context
+
+The MATPOWER reference uses the full `makeBdc()` formulation, which adjusts
+B-matrix entries for branches with off-nominal tap ratios. GridCal's `SolverType.Linear`
+solver appears to use the simplified formulation. The zero bus angle deviation
+confirms that the power injection vector (loads, generators) and network topology
+are correctly ingested; only the branch flow computation from angle differences
+is affected by the tap ratio omission.
+
+Key characteristics of the affected branches:
+- Flow magnitudes reach hundreds of thousands of MW (vs reference flows of ~100 MW)
+- Deviations cluster around buses connected to transformers with tap != 1.0
+- 37 non-transformer-adjacent branches also fail, likely due to cascading flow
+  redistribution effects from nearby transformer branches
+
+## Implications
+
+This formulation difference should be considered when evaluating GridCal's DCPF
+results on networks with many off-nominal-tap transformers. The cross-tool
+watchpoints note that this is a known variation across tools and does not indicate
+a bug. For the FNM (which has 9,481 transformers), the impact affects ~1% of
+branches. Tools using the full B-matrix (MATPOWER, pandapower, PyPSA) will produce
+more accurate branch flows on transformer branches, but the bus angle solution is
+identical regardless of formulation.
