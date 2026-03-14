@@ -6,7 +6,7 @@ Applies to: **PyPSA 1.1.2** (installed 2026-03-11; this is the current latest re
 
 ## Key Findings
 
-- PyPSA is **MIT-licensed** and has strong community adoption: ~1,897 GitHub stars, 616 forks, 99+ contributors, and an active PyPSA-Eur ecosystem model (545 stars, 379 forks).
+- PyPSA is **MIT-licensed** and has strong community adoption: ~1,898 GitHub stars, 617 forks, 99+ contributors, ~969K total PyPI downloads, and an active PyPSA-Eur ecosystem model (545 stars, 380 forks).
 - **AC OPF is implemented but requires Ipopt**, which is absent from the devcontainer — this test path is unavailable without installing Ipopt. The Newton-Raphson AC power flow (`n.pf()`) works without Ipopt and is robust (100-iteration limit, configurable tolerance).
 - **Unit commitment (MILP) is supported** via binary/integer `status` variables on Generators and Links, but StorageUnit UC constraints (min-up/down time, start-up cost on storage) are **not yet implemented** (open issue #1280). There is also an active bug (#1602) where committable StorageUnits cause a variable-collision crash in the current release.
 - **SCLOPF (security-constrained linear OPF) has a known intermittent test failure** (#1356, open): post-contingency line flows can exceed thermal limits by up to 7% on the SciGrid-DE example. This is attributed to solution degeneracy in the core `abstract.py` code and breaks CI on master intermittently.
@@ -79,6 +79,38 @@ No automatic constraint matrix scaling is implemented. For large mixed-integer p
 
 `n.pf()` requires a workaround for meshed DC networks (set all reactive components to zero, treat as AC). Native non-linear DC power flow using correct equations is not implemented. Issue #40 (open since early project history, `help wanted`). This primarily affects HVDC mesh modeling.
 
+#### FAQ-Documented Limitations (from official docs)
+
+The PyPSA FAQ (`docs/user-guide/faq.md`) explicitly documents several limitations relevant to the evaluation:
+
+1. **No AC OPF in optimization**: "AC power flow can only be computed post-optimization for analysis, not incorporated into the optimization itself." The optimization uses linear approximations only; full nonlinear AC constraints are not in the optimization formulation. ([source: faq.md](https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/faq.md))
+
+2. **No Monte Carlo generation adequacy**: Unplanned outage simulations (EENS, LOLP) are not built in — "must be built in an outer loop around PyPSA." Open issue [#1490](https://github.com/PyPSA/PyPSA/issues/1490) tracks adding robustness requirements.
+
+3. **No ancillary service co-optimization**: Frequency control reserves, spinning reserves co-optimized with dispatch require custom work. Open issue [#1542](https://github.com/PyPSA/PyPSA/issues/1542) tracks reserve margin approximation.
+
+4. **No CES demand functions**: Constant Elasticity of Substitution demand modeling requires custom modifications.
+
+5. **No GUI**: Python scripts or Jupyter notebooks required for all model building. Open issue [#1479](https://github.com/PyPSA/PyPSA/issues/1479) tracks a UI proposal.
+
+6. **MATPOWER conversion requires PYPOWER intermediate**: No direct `.m` file reader — must go through PYPOWER's `loadcase()` first, then `n.import_from_pypower_ppc()`.
+
+7. **No multi-stage stochastic optimization**: Only two-stage stochastic programming is supported natively (v1.0.0+). Multi-stage scenario trees are not supported. Open issue [#1477](https://github.com/PyPSA/PyPSA/issues/1477).
+
+8. **Optimization uses only LP/MILP/QP**: The Linopy backend "has a reduced set of optimization problem types" compared to Pyomo. Nonlinear programming (NLP) formulations are not available through the optimization API.
+
+#### Optimization Power Flow Linearization Details
+
+The optimization module uses linearized Kirchhoff's Voltage Law (KVL) constraints via a cycle-basis formulation that is "substantially faster than other formulations due to its sparsity." Two loss approximation modes are available:
+- **Secant-based**: overestimates losses (conservative)
+- **Tangent-based**: underestimates losses, uses 2-4 tangent segments
+
+Loss approximation is **not enabled by default** and must be explicitly activated. The `n.statistics.transmission` method does not account for losses (open issue [#787](https://github.com/PyPSA/PyPSA/issues/787)).
+
+When transmission capacity is optimized (expansion planning), series impedance does not automatically adjust — iterative methods are required, which is a known limitation for integrated TEP+OPF workflows.
+
+([source: docs/user-guide/optimization/power-flow.md](https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/optimization/power-flow.md))
+
 #### pandas 3.x compatibility
 
 PyPSA v1.1.0 added Pandas v3 compatibility improvements but the installed environment uses pandas 2.3.3. The `uv.lock` should be checked if pandas ≥ 3.0 is ever required; some optimization tests may break.
@@ -113,6 +145,14 @@ This suggests rolling horizon UC is a complex, recently stabilized feature that 
 | [#643](https://github.com/PyPSA/PyPSA/issues/643) | Three-Winding Transformers | Open, `wontfix` | Network import completeness |
 | [#456](https://github.com/PyPSA/PyPSA/issues/456) | Phase Shifting Transformers (PST) | Open | Advanced branch modeling |
 | [#40](https://github.com/PyPSA/PyPSA/issues/40) | Support DC networks in n.pf() without workaround | Open, `help wanted` | DC power flow correctness |
+| [#1477](https://github.com/PyPSA/PyPSA/issues/1477) | Support for Multi-Stage Stochastic Optimization | Open, `gap` | Stochastic optimization (only 2-stage supported) |
+| [#1490](https://github.com/PyPSA/PyPSA/issues/1490) | Add robustness requirements (EENS, LOLP) | Open, `gap` | Generation adequacy studies |
+| [#1542](https://github.com/PyPSA/PyPSA/issues/1542) | Approximation of reserve market via reserve margin | Open | Reserve/ancillary services |
+| [#787](https://github.com/PyPSA/PyPSA/issues/787) | n.statistics.transmission does not consider losses | Open | Loss reporting in statistics |
+| [#1315](https://github.com/PyPSA/PyPSA/issues/1315) | StorageUnit withdrawal not correctly assigned in expressions | Open | Storage dispatch correctness |
+| [#1516](https://github.com/PyPSA/PyPSA/issues/1516) | Incorrect n.objective when components have p_nom and p_nom_extendable=TRUE | Open | Objective value reporting accuracy |
+| [#1399](https://github.com/PyPSA/PyPSA/issues/1399) | Store marginal cost does not seem symmetric | Open | Storage cost modeling |
+| [#488](https://github.com/PyPSA/PyPSA/issues/488) | For storage units p_min_pu cannot have positive values | Open | Storage dispatch bounds |
 
 ---
 
@@ -142,7 +182,7 @@ In the devcontainer only HiGHS is available (`linopy.available_solvers == ['high
 
 **All core packages use MIT license**. Dependency licenses:
 - numpy (BSD 3-Clause), scipy (BSD 3-Clause), pandas (BSD 3-Clause), xarray (Apache-2.0), networkx (BSD 3-Clause), geopandas (BSD 3-Clause), shapely (BSD 3-Clause), linopy (MIT), highspy (MIT)
-- No GPL-licensed dependencies in the core stack — safe for proprietary integrations.
+- **One GPL dependency**: `Levenshtein` (GPL-2.0-or-later) is a core runtime dependency (used for fuzzy string matching in component lookups). All other core dependencies are BSD/MIT/Apache. The GPL-2.0-or-later license on `Levenshtein` may require legal review for proprietary distribution scenarios, though it does not affect PyPSA's own MIT license.
 
 ---
 
@@ -150,9 +190,24 @@ In the devcontainer only HiGHS is available (`linopy.available_solvers == ['high
 
 #### Community Size
 
-- **GitHub**: 1,897 stars, 616 forks, 121 open issues, 99+ code contributors (GitHub contributor page reports 99 when paginated at 100 per page, actual count may be higher)
-- **Ecosystem**: pypsa-eur alone has 545 stars and 379 forks, indicating significant real-world usage
+- **GitHub**: 1,898 stars, 617 forks, 125 open issues, 99+ code contributors (GitHub contributor page reports 99 when paginated at 100 per page, actual count may be higher). 68 watchers.
+- **PyPI downloads**: ~969K total downloads as of March 2026 ([source: pepy.tech/projects/pypsa](https://pepy.tech/projects/pypsa)). v1.0.7 is the most-downloaded recent version.
+- **Ecosystem**: pypsa-eur alone has 545 stars and 380 forks, indicating significant real-world usage. pypsa-earth has 326 stars and 307 forks (under `pypsa-meets-earth` org).
+- **Academic citations**: 895+ citations for the core PyPSA paper (Brown et al., 2018, "PyPSA: Python for Power System Analysis", JOSS). ([source: pypsa.org](https://pypsa.org))
 - **Industry users**: TenneT, d-fine, Fraunhofer ISI, AGGM (Austrian Gas Grid), Serentica listed in official `users.md` as of v1.1.x
+- **Commercial support**: OET (Open Energy Transition), d-fine, Energynautics, and CLIMACT offer paid support services. ([source: pypsa.org](https://pypsa.org))
+- **Institutional backing**: Led by Technische Universitat Berlin (TU Berlin), Department of Digital Transformation in Energy Systems. PyPSA-USA led by Stanford University. ([source: pypsa.org](https://pypsa.org))
+
+#### Operational Deployment Evidence
+
+- **PyPSA-Eur**: Used for European Commission energy system studies and national energy planning. Snakemake-based workflow covering all EU member states.
+- **PyPSA-USA**: Stanford-led model covering US energy system modeling.
+- **PyPSA-Earth**: Global energy system model (326 stars, 307 forks under pypsa-meets-earth org), used for developing-country energy planning.
+- **PyPSA-DE**: German national energy system model.
+- No evidence found of direct use by ISOs/RTOs for operational dispatch or market clearing. Usage appears concentrated in academic research, energy policy analysis, and consulting.
+
+#### Community Channels
+
 - **Forum**: A Discourse forum at `pypsa.discourse.group` exists but appears to have intermittent connectivity issues. GitHub Discussions are available with Q&A, General, Show-and-Tell, and Ideas categories. Many Q&A threads remain unanswered.
 - **Discord**: Active Discord community mentioned on the project website.
 - **Mailing list**: Legacy Google Groups mailing list still referenced in older issues.
@@ -237,6 +292,15 @@ All tests in this evaluation are written against v1.1.2, so these are only relev
 18. PyPSA release v1.0.0: `https://github.com/PyPSA/PyPSA/releases/tag/v1.0.0` — breaking changes summary
 19. linopy documentation: `https://linopy.readthedocs.io/en/latest/` — solver support matrix
 20. Cross-reference with prior research in `evaluations/pypsa/results/research-version.md` and `evaluations/pypsa/results/research-extensions.md`
+21. PyPI download statistics: `https://pepy.tech/projects/pypsa` — ~969K total downloads as of March 2026
+22. PyPSA FAQ (official): `https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/faq.md` — documented limitations
+23. PyPSA design document: `https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/design.md` — architectural constraints
+24. PyPSA optimization power flow docs: `https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/optimization/power-flow.md` — KVL formulation, loss approximation
+25. PyPSA power flow docs: `https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/user-guide/power-flow.md` — Newton-Raphson ACPF details
+26. PyPSA release notes: `https://raw.githubusercontent.com/PyPSA/PyPSA/master/docs/release-notes.md` — full changelog v0.x through v1.1.2
+27. Dependency license audit: `importlib.metadata` runtime check of all core dependencies — identified `Levenshtein` as GPL-2.0-or-later
+28. pypsa-earth repo: `https://github.com/pypsa-meets-earth/pypsa-earth` — 326 stars, 307 forks
+29. PyPSA project website: `https://pypsa.org` — institutional backing, commercial support, ecosystem overview
 
 ---
 
@@ -245,7 +309,9 @@ All tests in this evaluation are written against v1.1.2, so these are only relev
 - **AC OPF with Ipopt**: Could not be tested. If Ipopt is installed (`apt install coinor-libipopt-dev` + `pip install cyipopt`), `n.optimize.optimize_and_run_non_linear_powerflow()` should work. Convergence behavior at scale is unknown.
 - **PTDF accuracy (issue #604)**: The PTDF calculation issue (#604) has 13 comments but no resolution — the nature of the inaccuracy is unclear. Whether `calculate_PTDF()` produces correct values for all network topologies requires direct numerical verification.
 - **Largest networks successfully run**: No official benchmark numbers were found for maximum bus count. PyPSA-Eur uses 50–250 clustered nodes in practice; full-resolution European transmission networks are in the thousands. The 30k-bus MATPOWER FNM case has not been documented as tested. The dense PTDF matrix at 30k buses × 35k lines would require ~30k × 35k × 8 bytes ≈ 8 GB of RAM per SubNetwork.
-- **PyPI download statistics**: Not researched; would provide clearer adoption signal than GitHub stars alone.
+- **PyPI download statistics**: ~969K total downloads as of March 2026 (pepy.tech). v1.0.7 is the most popular recent version with 200-700+ daily downloads.
 - **Discourse forum accessibility**: `pypsa.discourse.group` was unreachable during this research session (ECONNREFUSED). The GitHub Discussions page shows moderate activity with unanswered questions.
 - **gencost type 1 (piecewise) import**: The exact behavior when a MATPOWER case with piecewise linear gencosts is imported is not tested — whether it silently drops costs or raises an error needs empirical verification.
 - **pandas ≥ 3.0 compatibility**: Issue #1585 (ArrowStringArray from NetCDF breaks optimize()) is open and was confirmed on `pandas >= 2.0`. The exact pandas version boundary for this bug is unclear.
+- **GPL dependency**: The `Levenshtein` package (GPL-2.0-or-later) is a core runtime dependency introduced for fuzzy matching in component name lookups. This is the only GPL-licensed package in PyPSA's core dependency tree. Whether this creates a copyleft obligation for proprietary applications that embed PyPSA requires legal analysis.
+- **ISO/RTO operational use**: No evidence found that any ISO, RTO, or utility uses PyPSA for operational dispatch or market clearing. All documented deployments are for planning, policy analysis, or academic research.

@@ -3,22 +3,20 @@ tag: doc-gaps
 source_dimension: extensibility
 source_test: B-9
 tool: pypsa
-severity: medium
-timestamp: 2026-03-11T00:00:00Z
+severity: low
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: PTDF bus ordering (buses_o) is undocumented
+# Observation: PTDF column ordering requires reading source code to discover
 
 ## Finding
 
-PyPSA's `sub_network.PTDF` matrix uses `sn.buses_o` column ordering (slack bus first, then pvpq buses), not `n.buses` alphabetical ordering. This is not documented in user-facing API documentation or examples.
+The PTDF matrix columns follow `sub_network.buses_o` order (slack bus first, then pvpq buses), not the more intuitive `n.buses.index` alphabetical order. Using the wrong bus ordering produces incorrect flow predictions. This ordering convention is not prominently documented in the PyPSA user documentation; it must be discovered by reading the source code or through trial and error.
 
 ## Context
 
-B-9 requires predicting DCPF branch flows using `PTDF @ P_inj`. The naive approach — assembling `P_inj` in `n.buses` alphabetical order — produces flow predictions with errors of up to 14 pu. The correct approach requires using `buses_o` ordering (discoverable only by reading PyPSA source code: `pf.py`, line 1064 `B[1:, 1:]` shows the slack-removed convention).
-
-Once the `buses_o` ordering is used, predictions match DCPF flows to machine precision (< 2e-14 pu). The PTDF matrix itself is correct; the ordering convention is simply undiscoverable from documentation.
+During B-9 (PTDF extraction), the injection vector had to be assembled in `sn.buses_o` order for `PTDF @ P_inj` to produce correct results. The v9 test script already documented this finding. The convention is internally consistent (SubNetwork uses this ordering throughout), but new users would likely assemble injections in `n.buses.index` order first and get wrong results.
 
 ## Implications
 
-Any user attempting to use the PTDF for flow prediction or sensitivity analysis will produce incorrect results unless they know about `buses_o`. The Accessibility audit (D-tests) should verify that the PTDF user guide, if any, specifies the column ordering convention. The Maturity audit should note that this API subtlety has no corresponding example or warning in the PyPSA documentation.
+For accessibility assessment: this is a minor but reproducible documentation gap. Users attempting PTDF-based analysis will need to discover the bus ordering convention, which adds friction to the first use. A note in the `calculate_PTDF()` docstring or user guide would address this.

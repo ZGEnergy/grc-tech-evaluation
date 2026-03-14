@@ -3,60 +3,68 @@ test_id: F-6
 tool: pypsa
 dimension: supply_chain
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 65965672
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: e598e441
 ---
 
-# F-6: Distribution Integrity (distribution_integrity)
+# F-6: Distribution Integrity
 
-## Result: PASS
+## Findings
 
-## Finding
+### Distribution Channel
 
-PyPSA is distributed via PyPI with versioned releases, both source distributions and wheels. The `uv.lock` file provides SHA256 hashes for all packages, ensuring integrity. No mutable download links are present in documentation.
+**PyPI** (Python Package Index) — the standard Python package repository.
 
-## Evidence
+- Package URL: https://pypi.org/project/pypsa/
+- Source URL: https://github.com/PyPSA/PyPSA
 
-**PyPI distribution:** https://pypi.org/project/pypsa/
+### Versioned Releases
 
-- Package: `pypsa`
-- Current version: 1.1.2 (latest as of 2026-02-23)
-- Distribution formats available:
-  - Source distribution (sdist): `pypsa-1.1.2.tar.gz`
-  - Pure Python wheel: `pypsa-1.1.2-py3-none-any.whl` (no compiled extensions — pure Python)
+**Yes.** All releases are versioned using semantic versioning. The PyPI
+release history shows 50+ versioned releases going back to the initial
+PyPI upload.
 
-**Versioned releases:** Yes — standard semver versioning. Each release is tagged and published to PyPI independently. Version history shows consistent release cadence.
+### Release Artifacts
 
-**Lock file integrity (from `uv.lock` sample):**
-```toml
-[[package]]
-name = "pypsa"
-version = "1.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/.../pypsa-1.1.2.tar.gz",
-          hash = "sha256:<hash>", ... }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/.../pypsa-1.1.2-py3-none-any.whl",
-      hash = "sha256:<hash>", ... }
-]
-```
-All packages in `uv.lock` include `hash = "sha256:<hash>"` — content-addressable, tamper-evident.
+For v1.1.2 (current):
+- `pypsa-1.1.2-py3-none-any.whl` — Python wheel (pure Python, platform-independent)
+- `pypsa-1.1.2.tar.gz` — Source distribution
 
-**Mutable URLs check:** Documentation at https://pypsa.readthedocs.io/ links to versioned PyPI packages, not to `main`/`master` branch tarballs. Installation instructions use `pip install pypsa` (PyPI-resolved, not git URL). No `git+https://github.com/...` links in official install docs.
+Both artifacts include SHA-256, MD5, and BLAKE2b-256 digest hashes
+provided by PyPI's infrastructure.
 
-**GitHub releases:** https://github.com/PyPSA/PyPSA/releases — each release has a tagged commit, release notes, and links to the corresponding PyPI upload.
+### Signed Artifacts
 
-## Implications
+**No.** PyPI indicates `has_sig: false` for both the wheel and source
+distribution. PGP signatures are not provided.
 
-Distribution integrity is excellent. SHA256-hashed lock file, versioned PyPI releases, pure-Python wheel (no platform-specific binaries for PyPSA itself), and no mutable download links. The supply chain is reproducible and auditable. No concerns.
+This is typical for the Python ecosystem — PyPI deprecated PGP signature
+support in 2023 in favor of Trusted Publishers and Sigstore-based
+attestations. PyPSA's release workflow (`release.yml`) uses GitHub Actions,
+which enables PyPI Trusted Publishers but does not currently produce
+Sigstore attestations.
+
+### Release Process
+
+The GitHub repository has a `release.yml` workflow that automates:
+1. Package build via `setuptools_scm` (version from git tags)
+2. Upload to PyPI
+
+Releases are tagged in git with the version number (e.g., `v1.1.2`).
+
+### Flags
+
+- No unversioned tarballs or blob store artifacts
+- No mutable download URLs
+- Standard PyPI distribution channel
+
+## Recorded Metrics
+
+- versioned: yes (semantic versioning)
+- signed: no (PGP deprecated on PyPI; no Sigstore attestations)
+- channel: PyPI (standard)
+- flags: none

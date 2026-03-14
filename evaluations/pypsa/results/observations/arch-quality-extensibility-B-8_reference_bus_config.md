@@ -4,21 +4,19 @@ source_dimension: extensibility
 source_test: B-8
 tool: pypsa
 severity: low
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: PyPSA DC OPF uses KVL formulation — LMPs are reference-bus-agnostic
+# Observation: DCOPF LMPs invariant to slack bus choice — mathematically correct
 
 ## Finding
 
-PyPSA's DC OPF optimizer uses a KVL (Kirchhoff Voltage Law) formulation that solves for branch flows via voltage angle differences. This formulation does not require a reference bus to anchor the angle vector for the LP solution. As a result, changing `n.buses["control"]` to designate a different slack bus has no effect on LMPs or dispatch in `n.optimize()`.
+PyPSA's LP-based DCOPF (`n.optimize()`) produces identical LMPs regardless of which bus is designated as the slack/reference bus. Three configurations (bus 31, bus 1, bus 20) all produced the same objective ($370,208.16), LMP range ($10.00 - $763.27), and per-bus LMP values. This is mathematically correct: in the LP formulation, the slack bus determines which angle is zero, but the dual variables (LMPs) are invariant to this choice.
 
 ## Context
 
-Discovered during B-8 (reference bus configuration). All three slack configurations (default bus 31, alternate bus 1, and distributed slack via extra_functionality) produced identical LMPs ($10–$763/MWh, spread $753/MWh) and identical objectives ($370,208/h).
+The B-8 test changed the slack bus via `n.buses.at[bus_name, 'control'] = 'Slack'` — a 2-line API change with no model reconstruction. The finding that LMPs don't change is a property of the formulation, not a limitation.
 
 ## Implications
 
-This is a positive architectural property for the Maturity dimension (E-series): PyPSA's formulation avoids the spurious LMP sensitivity to reference bus choice that exists in B-matrix OPF implementations. Practitioners migrating from MATPOWER (which uses a B-matrix / angle-injection formulation) may be confused by this difference and mistakenly interpret identical LMPs as a bug.
-
-For the Accessibility dimension (D-4 error quality): the API accepts `n.buses["control"]` updates silently without warning that this has no effect on the LP optimizer. A developer expecting LMP changes when swapping the slack bus will see no change and no explanation. A warning or documentation note would improve usability.
+For accessibility assessment: users expecting LMP shifts when changing the slack bus (as would happen in DCPF) will find this behavior counterintuitive. Documentation could clarify that the slack bus affects DCPF angle assignments but not OPF dual variables.

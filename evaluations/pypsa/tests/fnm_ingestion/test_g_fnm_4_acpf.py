@@ -1,7 +1,7 @@
-"""G-FNM-4: ACPF convergence capability on ERCOT FNM main island.
+"""G-FNM-4: ACPF convergence capability on FNM main island.
 
 Dimension: fnm_ingestion (Suite G)
-Network: LARGE — ERCOT FNM main island (27,862 buses, 32,532 active branches)
+Network: LARGE — FNM main island (27,862 buses, 32,532 active branches)
 Pass condition: Informational — convergence is a positive finding, not a requirement.
   MATPOWER 8.1 cannot solve this case (voltage collapse at ~30% load).
   If PyPSA converges, that is a solver robustness strength.
@@ -192,7 +192,7 @@ def run() -> dict:
         # ── 5. If converged, extract solution statistics ────────────────
         if overall_converged:
             results["details"]["convergence_finding"] = (
-                "POSITIVE: PyPSA converged on the ERCOT FNM main island with flat start, "
+                "POSITIVE: PyPSA converged on the FNM main island with flat start, "
                 "where MATPOWER 8.1 failed (voltage collapse at ~30% load)."
             )
 
@@ -269,7 +269,7 @@ def run() -> dict:
 
         else:
             results["details"]["convergence_finding"] = (
-                "EXPECTED: PyPSA did not converge on the ERCOT FNM main island, "
+                "EXPECTED: PyPSA did not converge on the FNM main island, "
                 "consistent with MATPOWER 8.1 failure. The FNM RAW file is a "
                 "planning model with flat start and no solved voltage profile."
             )

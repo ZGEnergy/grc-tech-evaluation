@@ -3,60 +3,86 @@ test_id: E-7
 tool: pypsa
 dimension: maturity
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 9c014aa2
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: c1355776
 ---
 
-# E-7: Operational Adoption (operational_adoption)
+# E-7: Operational Adoption
 
-## Result: PASS
+## Findings
 
-## Finding
+### Documented Deployments and Case Studies
 
-PyPSA has documented operational deployment by TenneT (major European TSO) for transmission planning and widespread use by Fraunhofer ISI for national energy scenario studies. Beyond these two anchor users, PyPSA-Eur has 300+ users including multiple government energy agencies.
+PyPSA has significant adoption beyond academic citation, spanning energy
+policy modeling, grid planning, and operational analysis.
 
-## Evidence
+#### 1. European Grid and Policy Modeling
 
-**Production/operational deployments (from research context):**
+- **PyPSA-Eur**: Pan-European energy system model covering 30+ countries,
+  used for EU energy policy analysis. Maintained as a separate project
+  (PyPSA/pypsa-eur) with its own contributor base.
+- **PyPSA-Earth**: Global energy system model extending PyPSA-Eur's
+  methodology worldwide, funded by multiple international development
+  organizations.
+- **European Commission references**: PyPSA models have been cited in
+  European Commission technical reports on energy system integration and
+  sector coupling.
 
-| Organization | Type | Use Case | Evidence Type |
-|-------------|------|----------|--------------|
-| TenneT TSO | Transmission System Operator (Netherlands/Germany) | Operational transmission planning | Documented in academic papers and conference presentations by TenneT staff |
-| Fraunhofer ISI | Research institute (German government-linked) | National energy scenario studies | Multiple published studies using PyPSA |
-| Multiple EU energy agencies | Government/policy | European energy transition modeling | Via PyPSA-Eur tool |
+#### 2. National Grid Studies
 
-**TenneT deployment:**
-TenneT is one of the largest TSOs in Europe (operating in Netherlands and Germany). Their use of PyPSA for transmission planning represents operational-grade deployment with real grid data. This is the strongest evidence of production-grade use.
+- Used in German energy transition studies (Energiewende)
+- Applied in Dutch grid congestion analysis (visible in issue #1590:
+  200 MW BESS congestion study using JAO Static Grid Model impedance
+  values for Tennet grid connections)
+- Open Energy Transition (OET) uses PyPSA for national grid modeling
+  projects (NGV-FBMC project referenced in GitHub issues)
 
-**Fraunhofer ISI deployment:**
-Fraunhofer ISI (Institute for Systems and Innovation Research) is a leading German research institute that advises the federal government on energy policy. Their PyPSA-based scenario studies are policy-relevant (not just academic). This represents institutionalized operational use at national scale.
+#### 3. Commercial and Industry Use
 
-**PyPSA-Eur scale:**
-- 300+ users of the PyPSA-Eur European energy system model
-- Users include universities (25+ countries), national energy agencies, and private consultancies
-- This creates a large secondary user base that depends on PyPSA core
+- Issue tracker shows users from energy consulting firms and commercial
+  entities (e.g., the #1517 contributor appears to be from an Australian
+  energy company, discussing SCUC ramp modeling for coal generators)
+- The v1.0.0 release and "Development Status :: 5 - Production/Stable"
+  classifier indicate the developers consider it production-ready
 
-**Academic adoption:**
-- PyPSA has been cited in hundreds of peer-reviewed papers
-- Standard tool in European power system research curricula
-- This academic adoption is distinct from operational use but signals broad familiarity in the expert community
+#### 4. Community Scale
 
-**Distinguishing production vs academic:**
-- TenneT: operational planning (confirmed production use)
-- Fraunhofer ISI: policy-advisory scenario studies (operational in policy context)
-- Academic citations: research/teaching (not production dispatch/operations)
+- 1,898 GitHub stars (as of evaluation date)
+- 617 forks
+- 99 total contributors
+- Active issue tracker with user reports from industry practitioners
 
-## Implications
+### Distinction from Academic-Only Citation
 
-Operational adoption is A-level: confirmed operational use by a major European TSO (TenneT) and government-advisory institute (Fraunhofer ISI) is strong evidence of production readiness. The 300+ PyPSA-Eur users create a large installed base. For ZGE's use case (power system modeling and optimization), PyPSA has well-established operational credibility in the European energy sector.
+PyPSA transcends academic-only use in several ways:
+
+1. **Operational grid analysis**: Issue #1590 describes using PyPSA for
+   real-world BESS project siting and congestion analysis with actual
+   grid impedance data from JAO
+2. **Industry practitioners**: Multiple issue reporters are from commercial
+   energy companies, not just academic institutions
+3. **Policy-grade modeling**: PyPSA-Eur is used for energy policy
+   recommendations at the EU level, which is quasi-operational
+4. **Grid operator engagement**: References to Tennet (Dutch TSO) grid
+   connection analysis in user reports
+
+### Limitations
+
+PyPSA is not known to be used by ISOs/TSOs as their primary operational
+dispatch tool. Its primary use case is planning-grade analysis (capacity
+expansion, scenario analysis, congestion studies) rather than real-time
+dispatch. This is consistent with its design as an optimization tool
+rather than a real-time SCADA/EMS platform.
+
+## Recorded Metrics
+
+- deployments: PyPSA-Eur (EU-wide), PyPSA-Earth (global), multiple
+  national studies
+- case_studies: Dutch BESS congestion analysis, German Energiewende,
+  EU policy reports
+- references: European Commission technical reports, academic papers
+  (1000+ citations), industry user engagement in issue tracker
