@@ -2,93 +2,107 @@
 test_id: D-4
 tool: pypsa
 dimension: accessibility
-network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 02801176
-status: qualified_pass
+network: TINY
+status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 95535864
 ---
 
-# D-4: Error Quality (error_quality)
+# D-4: Error Quality
 
-## Result: QUALIFIED PASS
+## Summary
 
-## Finding
+PyPSA produces meaningful diagnostics for 2 of 3 deliberate error scenarios. The
+third error (missing cost curve) produces a clear exception, though the message
+could be more specific. No errors fail silently.
 
-Two of three deliberate errors produce meaningful diagnostics; one produces only a WARNING (silent failure). Error quality is good for model-building errors but inadequate for invalid topology references.
+## Error Test Results
 
-## Evidence
+### Error 1: Line limit set to 0 (infeasible OPF)
 
-**Error 1: Infeasible OPF (zero line capacity)**
+**Setup:** Single line with `s_nom=0` connecting a 100 MW generator to a 50 MW load.
 
-Command: Load case39, set all `n.lines.s_nom = 0`, call `n.optimize(solver_name='highs')`.
-
-Output excerpt:
+**Result:** HiGHS detects infeasibility during presolve. PyPSA reports:
 ```
-Presolving model
-Problem status detected on presolve: Infeasible
-Model status        : Infeasible
-Objective value     :  0.0000000000e+00
-HiGHS run time      :          0.00
-WARNING:linopy.constants:Optimization potentially failed:
 Status: warning
 Termination condition: infeasible
-Solution: 0 primals, 0 duals
-Objective: nan
-Solver message: Infeasible
 ```
 
-**Classification: meaningful diagnostic.** HiGHS correctly reports `Infeasible` with presolve detection. The `linopy` layer surfaces this as `TerminationCondition.infeasible` with a WARNING. The function returns a tuple `(status, condition)` rather than raising — user must check return value rather than catching an exception. This is documented behavior.
+**Diagnostic quality: GOOD.** The solver correctly identifies the problem as infeasible
+during presolve (zero iterations). The status is `warning` rather than `ok`, and the
+termination condition is `infeasible`. A user would immediately understand the problem.
+The error is surfaced through linopy's standard reporting, not buried in solver logs.
 
----
+### Error 2: Missing generator cost curve (marginal_cost omitted)
 
-**Error 2: Generator with no cost curve**
+**Setup:** Two generators with no `marginal_cost` specified, connected to a 50 MW load.
 
-Command: Add `Generator('G1', bus='A')` with no `marginal_cost`, then call `n.optimize()`.
-
-Output:
+**Result:** PyPSA raises:
 ```
-Traceback (most recent call last):
-  File "pypsa/optimization/optimize.py", line 323, in define_objective
-    raise ValueError(msg)
-ValueError: Objective function could not be created. Please make sure the components have assigned costs.
-```
-
-**Classification: meaningful diagnostic.** Clear `ValueError` with an actionable message. The traceback points directly to the objective construction failure. The fix is obvious: assign `marginal_cost` to the generator.
-
----
-
-**Error 3: Line referencing invalid bus**
-
-Command: Add `Line('L1', bus0='INVALID_BUS', bus1='B', x=0.1, s_nom=100)`.
-
-Output:
-```
-WARNING:pypsa.consistency:The following lines have buses which are not defined. Add them using n.add() or run n.sanitize() to add them automatically. Components with undefined buses:
-Index(['L1'], dtype='object', name='name')
+ValueError: Objective function could not be created. Please make sure the
+components have assigned costs.
 ```
 
-**Classification: silent failure.** `n.add()` succeeds without raising an exception. The invalid bus reference produces only a WARNING (not an error), and the network object is left in an inconsistent state. The WARNING message is clear and actionable, but a user who does not check logs would proceed with a broken network. No exception is raised at add time or at solve time (solve might fail later with a less obvious error).
+**Diagnostic quality: GOOD.** The exception is raised before the solver is invoked,
+with a clear message that identifies the root cause (missing costs). In PyPSA v1.1.2,
+`marginal_cost` defaults to 0.0, but the optimizer requires at least one non-zero
+cost term to construct a meaningful objective. The error message directly tells the
+user what to fix.
 
----
+Note: In older PyPSA versions, zero marginal cost was silently accepted and produced
+a degenerate LP with non-unique optimal dispatch. The v1.1.2 behavior (explicit error)
+is an improvement.
 
-**Summary:**
+### Error 3: Invalid bus reference (generator assigned to nonexistent bus)
 
-| Error | Output | Classification |
-|-------|--------|----------------|
-| Infeasible OPF (zero capacity) | `TerminationCondition.infeasible` + `Objective: nan` | Meaningful diagnostic |
-| Missing cost curve | `ValueError: Objective function could not be created` | Meaningful diagnostic |
-| Invalid bus reference | WARNING only, no exception | Silent failure |
+**Setup:** Generator with `bus='nonexistent_bus'` added to a network that only has
+`bus0`.
 
-## Implications
+**Result:** The `n.add()` call succeeds without error. The problem is caught at
+`n.optimize()` time with:
+```
+ConsistencyError: The following generators have buses which are not defined.
+Add them using n.add() or run n.sanitize() to add them automatically.
+Components with undefined buses:
+Index(['gen'], dtype='object', name='name')
+```
 
-Error quality is mixed: model-building errors produce clear, actionable exceptions, but topology/referential integrity errors produce only warnings. PyPSA's design choice to defer validation to consistency checks (rather than raising at `n.add()`) means broken networks can be constructed silently. The `n.sanitize()` suggestion in the warning message is helpful but requires the user to check logs. Grade impact: B level — two good, one silent failure on a common mistake (typo in bus name).
+**Diagnostic quality: GOOD.** The error identifies the exact component (`gen`) and
+the nature of the problem (undefined bus). The suggestion to use `n.add()` or
+`n.sanitize()` provides an actionable fix path. The only weakness is that the
+error is deferred to solve time rather than caught at `n.add()` time -- a user
+building a network interactively would not know about the invalid reference until
+they attempt to solve.
+
+### Supplementary: Invalid bus control type
+
+**Setup:** Bus added with `control='InvalidType'`.
+
+**Result:** No error raised. PyPSA accepts arbitrary control type strings without
+validation. This is a minor gap -- invalid control types would manifest as incorrect
+PF behavior rather than an error message.
+
+## Cross-Reference to Observations
+
+- **api-friction A-9:** The SCOPF API produces a clear error when transformer names
+  are passed to `branch_outages`: "The following passive branches are not in the
+  network: {('Line', 'T0'), ...}". The error message is technically accurate but
+  does not explain the transformer exclusion limitation or suggest a workaround.
+
+- **api-friction B-3:** `n.lpf_contingency()` is broken on Python 3.12+ and
+  produces an opaque internal error rather than a version-compatibility diagnostic.
+
+- **convergence-quality A-2:** ACPF convergence diagnostics (converged, n_iter,
+  error) are first-class return values, making it easy to diagnose NR failures.
+
+## Assessment
+
+PyPSA's error reporting is generally good. Infeasibility is clearly reported through
+the solver status. Missing costs produce an explicit ValueError. Invalid bus
+references are caught with a ConsistencyError that names the offending components.
+The main weakness is deferred validation -- component-level errors are caught at
+solve time rather than at construction time, which can lead to confusing debugging
+sessions when building networks incrementally.

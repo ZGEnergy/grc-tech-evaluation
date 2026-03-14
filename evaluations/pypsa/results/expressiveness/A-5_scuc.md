@@ -3,133 +3,147 @@ test_id: A-5
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v9
+protocol_version: v10
 skill_version: v1
-test_hash: 314538b0
+test_hash: 2fe64f1c
 status: pass
-workaround_class: stable
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 2.70
+wall_clock_seconds: 4.347
 timing_source: measured
-peak_memory_mb: null
+peak_memory_mb: 6.23
 convergence_residual: null
 convergence_iterations: null
-loc: 312
-solver: highs
-timestamp: 2026-03-11T00:00:00Z
+loc: 362
+solver: HiGHS
+timestamp: 2026-03-14T00:30:00Z
 ---
 
-# A-5: SCUC — 24-hour Unit Commitment
+# A-5: Solve 24-hour unit commitment as MILP on TINY
 
 ## Result: PASS
 
 ## Approach
 
-Loaded case39.m via `matpowercaseframes.CaseFrames` → pypower ppc dict → `n.import_from_pypower_ppc()`. Assigned per-generator parameters from Modified Tiny `gen_temporal_params.csv`:
+Loaded IEEE 39-bus network via the shared MATPOWER loader, then applied
+Modified Tiny augmentation:
 
-- **Marginal costs** by tech class: hydro $5, nuclear $10, coal $25, gas_CC $40/MWh
-- **Startup costs** (cold start): from CSV — nuclear $64,000, coal $36,750, gas_CC $28,047 per start
-- **Ramp limits**: converted from MW/hr to per-unit fraction of p_nom, capped at 1.0
-- **Min up/down times**: integer hours from CSV (hydro 1h/1h, nuclear 24h/48h, coal 24h/48h, gas_CC 8h/4.5h rounded to 8h/5h)
-- **p_min_pu = 0.3** for all generators (minimum stable generation when committed)
-- Set `n.generators["committable"] = True` for all 10 generators
-- 24-hour load profile from Modified Tiny `load_24h.csv`, summed across all buses and distributed proportionally to load components
+1. **Differentiated generator costs** from `gen_temporal_params.csv`:
+   hydro $5, nuclear $10, coal $25, gas CC $40 per MWh.
 
-Called `n.optimize(snapshots=n.snapshots, solver_name="highs", solver_options={time_limit:300, mip_rel_gap:0.01, presolve:"on", threads:1, output_flag:True})`.
+2. **UC parameters** from `gen_temporal_params.csv`: startup costs (cold
+   start), ramp rates (MW/hr converted to per-unit), min up/down times
+   (hours, cast to int for PyPSA's rolling window constraints).
 
-**API friction noted:** `min_up_time` and `min_down_time` default to int64 dtype in PyPSA's generators DataFrame. Assigning float values (e.g., 4.5 hours) triggers a FutureWarning and then causes a `TypeError: pad_width must be of integral type` deep in PyPSA's rolling-window constraint builder for min up/down time constraints. Fix: cast values to `int` before assignment and enforce dtype with `.astype(int)`. Classified as stable workaround (documented public attribute, type requirement findable from error trace).
+3. **24-hour load profile** from `load_24h.csv`: distributed proportionally
+   across 21 load buses. System load ranges 4,237--6,254 MW.
+
+4. **All generators set `committable=True`** with `p_min_pu=0.3` (30%
+   minimum stable generation when committed).
+
+Solved via `n.optimize()` with HiGHS MILP settings per `solver-config.md`
+(mip_rel_gap=0.01, time_limit=300, threads=1). PyPSA activates binary
+commitment variables automatically when `committable=True`.
+
+### Built-in vs user-assembled constraint types
+
+| Constraint | Type | PyPSA attribute |
+|-----------|------|-----------------|
+| Binary commitment | built-in | `n.generators.committable = True` |
+| Min up time | built-in | `n.generators.min_up_time` |
+| Min down time | built-in | `n.generators.min_down_time` |
+| Startup cost | built-in | `n.generators.start_up_cost` |
+| Shutdown cost | built-in | `n.generators.shut_down_cost` |
+| Ramp limits | built-in | `n.generators.ramp_limit_up/down` |
+| Min stable gen | built-in | `n.generators.p_min_pu` |
+| Reserve requirement | user-assembled | via `extra_functionality` callback |
+| Joint UC + dispatch | built-in | single `n.optimize()` call |
+
+All standard SCUC constraints except reserve requirements are expressible
+as built-in generator attributes. Reserve constraints require the
+`extra_functionality` callback mechanism (tested in B-1).
 
 ## Output
 
-HiGHS 1.13.1 MILP problem:
-- **Rows:** 6,107 | **Columns:** 2,064 (720 binary) | **Nonzeros:** 15,892
-- **Termination:** Optimal
-- **MIP gap:** 0.818% (within 1% tolerance)
-- **Objective:** $1,743,649.64 (total 24-hour generation cost)
-- **Solve time:** 1.62s (wall-clock)
-- **B&B nodes:** 1
+### Solver
 
-**Commitment schedule:**
+| Metric | Value |
+|--------|-------|
+| Solver status | ok (optimal) |
+| MIP gap | 0.82% (< 1% threshold) |
+| Objective | $1,743,649.64 |
+| Solve time | 3.29s |
+| HiGHS iterations | 3,213 (LP) |
+| Binary variables | 720 (10 gens x 24 hours x 3: status, startup, shutdown) |
 
-| Generator | Tech | p_nom (MW) | MC ($/MWh) | Hours OFF |
-|-----------|------|-----------|------------|-----------|
-| G0 | Hydro | 1040 | 5 | 0 (all on) |
-| G1 | Nuclear | 646 | 10 | 0 (all on) |
-| G2 | Nuclear | 725 | 10 | 0 (all on) |
-| G3 | Coal | 652 | 25 | 1 (H24) |
-| G4 | Coal | 508 | 25 | 0 (all on) |
-| G5 | Nuclear | 687 | 10 | 0 (all on) |
-| G6 | Gas CC | 580 | 40 | 3 (H21–H23) |
-| G7 | Nuclear | 564 | 10 | 0 (all on) |
-| G8 | Nuclear | 865 | 10 | 0 (all on) |
-| G9 | Gas CC | 1100 | 40 | 6 (H4–H9, H23–H24) |
+### Generator Cycling
 
-**Cycling generators (≥1 commitment transition):**
-- G3 (coal $25): 1 transition — decommits at H24 (low load overnight)
-- G6 (gas CC $40): 1 transition — decommits at H21–H23 (post-peak hours)
-- G9 (gas CC $40): 3 transitions — decommits H4–H9 (deep overnight), recommits H10, decommits again H23–H24
+3 generators cycle during the 24-hour horizon (pass condition requires >= 2):
 
-**3 generators cycle** → pass condition met (≥2 required).
+| Generator | Tech | Transitions | Startups | Shutdowns |
+|-----------|------|------------|----------|-----------|
+| G3 | coal | 1 | 0 | 1 |
+| G6 | gas CC | 1 | 0 | 1 |
+| G9 | gas CC | 3 | 1 | 2 |
 
-**Formulation expressiveness confirmed:**
+G9 (gas CC, $40/MWh) shuts down during hours 3--8 (low load), restarts at
+hour 9, shuts down again at hour 22. G6 (gas CC, $40/MWh) shuts down at
+hour 20. G3 (coal, $25/MWh) shuts down only in the final hour. The cycling
+pattern follows economic merit: expensive gas CC units are decommitted first
+during low-load hours, while cheap nuclear and hydro units remain online.
 
-| Feature | Supported | Constraint name in solver output |
-|---------|-----------|----------------------------------|
-| Binary commitment variables | Yes | `Generator-com-status-*` |
-| Min up time | Yes | `Generator-com-up-time`, `Generator-com-status-min_up_time_must_stay_up` |
-| Min down time | Yes | `Generator-com-down-time` |
-| Startup cost | Yes | `Generator-start_up-p-fixed-upper` |
-| Ramp limits | Yes | `Generator-p-ramp_limit_up/down` |
-| Joint UC+dispatch | Yes | Single MILP solved by HiGHS |
-| Reserve (extra_functionality) | Expressible | Via custom constraint injection callback |
+### Commitment Schedule (binary matrix)
 
-**Dispatch range:**
+```
+Hour    G0  G1  G2  G3  G4  G5  G6  G7  G8  G9
+  0      1   1   1   1   1   1   1   1   1   1
+  1      1   1   1   1   1   1   1   1   1   1
+  2      1   1   1   1   1   1   1   1   1   1
+  3      1   1   1   1   1   1   1   1   1   0
+  4-8    1   1   1   1   1   1   1   1   1   0
+  9-19   1   1   1   1   1   1   1   1   1   1
+ 20-21   1   1   1   1   1   1   0   1   1   1
+ 22      1   1   1   1   1   1   0   1   1   0
+ 23      1   1   1   0   1   1   0   1   1   0
+```
 
-| Gen | Min dispatch (MW) | Max dispatch (MW) |
-|-----|-------------------|-------------------|
-| G0 (hydro) | 843.1 | 900.0 |
-| G1 (nuclear) | 461.2 | 646.0 |
-| G2 (nuclear) | 725.0 | 725.0 |
-| G3 (coal) | 0.0 | 652.0 |
-| G4 (coal) | 152.4 | 508.0 |
-| G5 (nuclear) | 344.4 | 687.0 |
-| G6 (gas CC) | 0.0 | 472.2 |
-| G7 (nuclear) | 169.2 | 564.0 |
-| G8 (nuclear) | 259.5 | 865.0 |
-| G9 (gas CC) | 0.0 | 330.0 |
+The commitment schedule is directly extractable as `n.generators_t.status`,
+a time-indexed DataFrame with binary (0/1) values per generator per hour.
+
+### Dispatch Summary (MW)
+
+| Generator | Tech | Cost | Min | Max | Mean |
+|-----------|------|------|-----|-----|------|
+| G0 | hydro | $5 | 843 | 900 | 898 |
+| G1 | nuclear | $10 | 461 | 646 | 628 |
+| G2 | nuclear | $10 | 725 | 725 | 725 |
+| G3 | coal | $25 | 0 | 652 | 452 |
+| G4 | coal | $25 | 152 | 508 | 339 |
+| G5 | nuclear | $10 | 344 | 687 | 663 |
+| G6 | gas CC | $40 | 0 | 472 | 170 |
+| G7 | nuclear | $10 | 169 | 564 | 356 |
+| G8 | nuclear | $10 | 260 | 865 | 789 |
+| G9 | gas CC | $40 | 0 | 330 | 220 |
+
+Capacity-to-peak-load ratio: 1.18. Load range: 4,237--6,254 MW.
 
 ## Workarounds
 
-- **What:** `min_up_time` and `min_down_time` must be explicitly cast to `int` dtype before assignment to `n.generators`
-- **Why:** PyPSA's rolling-window constraint builder for min up/down time constraints uses these values as `pad_width` in `xarray.variable.rolling_window()`, which requires an integral type. The generators DataFrame initializes these columns as int64, but `.at[name, col] = float_value` silently stores the float without dtype enforcement in pandas until the FutureWarning becomes an error. PyPSA does not validate or coerce this internally.
-- **Durability:** stable — using publicly documented generator attributes (`min_up_time`, `min_down_time`); the fix is a standard Python `int()` cast. The underlying requirement (integer hours) is mentioned in PyPSA issue discussions.
-- **Grade impact:** Minor API friction. Does not affect expressiveness grade — the feature is fully functional once the type is correct.
-- **Version tested:** PyPSA 1.1.2, xarray 2024.x, numpy 1.26+
+None required. All SCUC formulation elements (binary commitment, min up/down
+times, startup costs, ramp limits, minimum stable generation) are built-in
+PyPSA generator attributes. The commitment schedule is directly accessible
+as a time-indexed binary DataFrame.
 
 ## Timing
 
-- **Wall-clock:** 2.70s total (1.62s solve, 1.08s model build + data load)
-- **Timing source:** measured (`time.perf_counter()`)
-- **Peak memory:** not measured
-- **Solver iterations:** 3,213 LP iterations (B&B tree: 1 node)
-- **Convergence residual:** N/A (MILP)
-- **MIP gap at termination:** 0.818%
-- **CPU cores used:** 1 (single-threaded per solver-config.md)
+- **Wall-clock:** 4.347s (total: load + model build + solve + extract)
+- **Solve-only:** 3.289s (includes linopy model build + HiGHS MILP solve)
+- **Timing source:** measured
+- **Peak memory:** 6.23 MB (solve only, via tracemalloc)
+- **HiGHS iterations:** 3,213 (LP iterations in branch-and-bound)
+- **MIP gap:** 0.82%
+- **CPU cores used:** 1
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/expressiveness/test_a5_scuc_tiny.py`
-
-Key API pattern for SCUC:
-```python
-# Enable binary UC variables
-n.generators["committable"] = True
-n.generators["min_up_time"] = n.generators["min_up_time"].astype(int)   # must be int
-n.generators["min_down_time"] = n.generators["min_down_time"].astype(int)
-
-# Solve MILP (HiGHS automatically uses binary branching for committable generators)
-n.optimize(snapshots=snapshots, solver_name="highs", solver_options={...})
-
-# Read commitment schedule
-status_df = n.generators_t.status  # DataFrame(snapshots × generators), values 0.0/1.0
-```
+**Path:** `evaluations/pypsa/tests/expressiveness/test_a5_scuc.py`

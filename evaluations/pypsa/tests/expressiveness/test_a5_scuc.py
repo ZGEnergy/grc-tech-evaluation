@@ -2,13 +2,15 @@
 Test A-5: SCUC — 24-hour Unit Commitment (scuc)
 
 Dimension: expressiveness
-Network: SMALL (ACTIVSg 2k, case_ACTIVSg2000.m, ~2000 buses, 544 generators)
-Pass condition: Solves to feasibility (MIP gap <= 10% on SMALL). At least 2 generators
-  must cycle (commit/decommit) during the 24-hour horizon. Min up/down times, startup
-  costs, and ramp rates are all expressible in the model. UC and dispatch are solved jointly.
+Network: TINY (IEEE 39-bus, case39.m)
+Pass condition: Solves to feasibility (MIP gap <= 1%). At least 2 generators must cycle
+  (commit/decommit) during the 24-hour horizon. Commitment schedule extractable
+  as a time-indexed binary matrix. Built-in constraint types vs. user-assembled noted.
+Solver: HiGHS
 Tool: PyPSA 1.1.2
 """
 
+import sys
 import time
 import traceback
 from pathlib import Path
@@ -17,158 +19,47 @@ import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-DEFAULT_NETWORK = str(REPO_ROOT / "data" / "networks" / "case_ACTIVSg2000.m")
+sys.path.insert(0, str(REPO_ROOT / "evaluations" / "shared"))
+DEFAULT_NETWORK = str(REPO_ROOT / "data" / "networks" / "case39.m")
+DEFAULT_TIMESERIES = str(REPO_ROOT / "data" / "timeseries" / "case39")
 
-# Solver configuration (per solver-config.md) — 5-minute timeout for SMALL MILP
+# Solver configuration (per solver-config.md)
 SOLVER_NAME = "highs"
 SOLVER_OPTIONS = {
     "time_limit": 300,
-    "mip_rel_gap": 0.10,  # 10% MIP gap tolerance for SMALL (per pre-knowledge)
+    "mip_rel_gap": 0.01,
     "presolve": "on",
     "threads": 1,
     "output_flag": True,
     "log_to_console": True,
 }
 
-# Tech class cost map (same as TINY)
-TECH_COST_MAP = {
+# Cost map from Modified Tiny data
+COST_MAP = {
     "hydro": 5.0,
     "nuclear": 10.0,
     "coal_large": 25.0,
     "gas_CC": 40.0,
-    "wind": 0.0,
-    "solar": 0.0,
-    "other": 30.0,
 }
 
-# SMALL network has 544 generators — assign costs by index range
-# We use a monotone cost schedule: $10–$80/MWh spread across generators
-# to ensure economic differentiation and force cycling
-GEN_COST_MIN = 10.0
-GEN_COST_MAX = 80.0
 
-
-def load_network(network_file: str):
-    """Load ACTIVSg2000 via matpowercaseframes -> pypower ppc dict -> pypsa."""
-    import pypsa
-    from matpowercaseframes import CaseFrames
-
-    cf = CaseFrames(network_file)
-    ppc = {
-        "version": "2",
-        "baseMVA": float(cf.baseMVA),
-        "bus": cf.bus.values,
-        "gen": cf.gen.values,
-        "branch": cf.branch.values,
-    }
-    n = pypsa.Network()
-    n.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=True)
-    return n
-
-
-def assign_generator_params(n) -> list:
-    """Assign varied marginal costs, startup costs, ramp limits, and min up/down times
-    to the 544 generators in the ACTIVSg2000 network.
-
-    Uses linearly-spaced marginal costs to ensure economic differentiation.
-    Startup costs, ramp limits, and min up/down times are assigned based on
-    generator size class.
-    """
-    gen_names = list(n.generators.index)
-    n_gens = len(gen_names)
-
-    # Assign linearly-spaced marginal costs from 10 to 80 $/MWh
-    costs = np.linspace(GEN_COST_MIN, GEN_COST_MAX, n_gens)
-
-    for i, gen_name in enumerate(gen_names):
-        mc = float(costs[i])
-        n.generators.at[gen_name, "marginal_cost"] = mc
-
-        p_nom = float(n.generators.at[gen_name, "p_nom"])
-
-        # Assign startup cost proportional to generator size and cost
-        # Large expensive generators: high startup cost (~$28k for gas CC equivalent)
-        # Small cheap generators: low startup cost (~$1k)
-        startup_cost = max(1000.0, mc * p_nom * 0.5)  # $0.5/MW * p_nom * relative_cost
-        n.generators.at[gen_name, "start_up_cost"] = startup_cost
-
-        # Ramp limit: 20-50% of p_nom per hour based on cost tier
-        # Cheap/baseload: slow ramp (20%); expensive/peaker: fast ramp (50%)
-        ramp_frac = 0.20 + (mc - GEN_COST_MIN) / (GEN_COST_MAX - GEN_COST_MIN) * 0.30
-        n.generators.at[gen_name, "ramp_limit_up"] = ramp_frac
-        n.generators.at[gen_name, "ramp_limit_down"] = ramp_frac
-
-        # Min up/down times based on cost tier
-        # Cheap (baseload): long min up/down (4h/4h)
-        # Expensive (peaker): short min up/down (1h/1h)
-        if mc < 25:
-            min_up = 4
-            min_down = 4
-        elif mc < 50:
-            min_up = 2
-            min_down = 2
-        else:
-            min_up = 1
-            min_down = 1
-        n.generators.at[gen_name, "min_up_time"] = min_up
-        n.generators.at[gen_name, "min_down_time"] = min_down
-
-        # Minimum stable generation
-        n.generators.at[gen_name, "p_min_pu"] = 0.3
-
-    # Enforce integer dtype for min_up_time and min_down_time (A-5 workaround)
-    n.generators["min_up_time"] = n.generators["min_up_time"].astype(int)
-    n.generators["min_down_time"] = n.generators["min_down_time"].astype(int)
-
-    # Make all generators committable
-    n.generators["committable"] = True
-
-    return gen_names
-
-
-def build_load_profile(n, snapshots):
-    """Build a 24-hour sinusoidal load profile for the SMALL network."""
-    # Use existing load data: scale original p_set with a daily profile
-    original_loads = n.loads.p_set.copy()
-    total_original_load = float(original_loads.sum())
-
-    # Daily load profile: shape follows typical daily pattern
-    # Peak at hour 18 (6pm), trough at hour 4 (4am)
-    hours = np.arange(24)
-    # Shape: 0.75 baseline + 0.25 * sinusoidal variation
-    load_shape = 0.75 + 0.25 * np.sin(np.pi * (hours - 4) / 12.0)
-    load_shape = np.maximum(load_shape, 0.6)  # floor at 60% of peak
-
-    # Assign time-varying load to each load component proportionally
-    load_fractions = (
-        original_loads / total_original_load if total_original_load > 0 else original_loads
-    )
-
-    for load_name in n.loads.index:
-        frac = float(load_fractions.get(load_name, 0.0))
-        load_series = pd.Series(total_original_load * frac * load_shape, index=snapshots)
-        n.loads_t.p_set[load_name] = load_series
-
-    return total_original_load, load_shape
-
-
-def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) -> dict:
-    """Execute SCUC 24-hour unit commitment test on SMALL network.
+def run(
+    network_file: str = DEFAULT_NETWORK,
+    timeseries_dir: str | None = DEFAULT_TIMESERIES,
+) -> dict:
+    """Execute SCUC 24-hour unit commitment test.
 
     Methodology:
-    1. Load case_ACTIVSg2000.m and assign varied marginal costs to 544 generators
+    1. Load case39.m via shared loader and assign generator parameters from Modified Tiny data
     2. Set committable=True, min_up_time, min_down_time, ramp limits, startup costs
-    3. Create 24-hour sinusoidal load profile
-    4. Call n.optimize() with HiGHS MILP (5-min timeout, 10% MIP gap)
-    5. Check MIP gap and verify at least 2 generators cycle
+    3. Create 24-hour load profile from Modified Tiny load_24h.csv
+    4. Apply differentiated costs to force economic cycling
+    5. Call n.optimize() with HiGHS MILP (linearized_unit_commitment=False)
+    6. Extract commitment schedule as time-indexed binary matrix
+    7. Check MIP gap and verify at least 2 generators cycle
 
     Returns:
-        dict with keys:
-        - status: "pass" | "fail" | "qualified_pass"
-        - wall_clock_seconds: float
-        - details: dict of test-specific outputs
-        - errors: list of error messages (empty if pass)
-        - workarounds: list of workaround descriptions (empty if none)
+        dict with standard keys (status, wall_clock_seconds, details, errors, workarounds)
     """
     results: dict = {
         "status": "fail",
@@ -180,57 +71,116 @@ def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) 
 
     start = time.perf_counter()
     try:
-        # 1. Load network
-        print(f"Loading SMALL network: {network_file}")
-        n = load_network(network_file)
+        # 1. Load network via shared loader
+        from matpower_loader import load_pypsa
+
+        n = load_pypsa(network_file)
         results["details"]["n_buses"] = len(n.buses)
         results["details"]["n_generators"] = len(n.generators)
         results["details"]["n_lines"] = len(n.lines)
-        results["details"]["n_transformers"] = len(n.transformers)
-        print(
-            f"Network loaded: {len(n.buses)} buses, {len(n.generators)} generators, "
-            f"{len(n.lines)} lines, {len(n.transformers)} transformers"
-        )
+        print(f"Loaded network: {len(n.buses)} buses, {len(n.generators)} generators")
 
         # 2. Set up 24-hour time horizon
         snapshots = pd.date_range("2024-01-01", periods=24, freq="h")
         n.set_snapshots(snapshots)
 
-        # 3. Assign generator parameters
-        print("Assigning generator parameters (costs, ramp, min up/down, startup)...")
-        gen_names = assign_generator_params(n)
-        results["details"]["gen_cost_range"] = {
-            "min_mc": float(n.generators["marginal_cost"].min()),
-            "max_mc": float(n.generators["marginal_cost"].max()),
-        }
-        results["workarounds"].append(
-            "Manually assigned marginal costs — import_from_pypower_ppc does not import gencost"
-        )
-        results["workarounds"].append(
-            "min_up_time and min_down_time cast to int dtype to avoid PyPSA rolling-window constraint bug"
+        # 3. Load Modified Tiny temporal parameters
+        if timeseries_dir is None:
+            results["errors"].append("timeseries_dir is required for Modified Tiny data")
+            return results
+
+        ts_dir = Path(timeseries_dir)
+        gen_params_df = pd.read_csv(ts_dir / "gen_temporal_params.csv")
+        load_24h_df = pd.read_csv(ts_dir / "load_24h.csv")
+
+        # Build per-gen params dict indexed by gen_index
+        gen_params_by_idx = {}
+        for _, row in gen_params_df.iterrows():
+            gen_params_by_idx[int(row["gen_index"])] = row
+
+        gen_names = list(n.generators.index)
+        print(f"Generator names: {gen_names}")
+
+        # 4. Assign parameters from Modified Tiny to each generator
+        for i, gen_name in enumerate(gen_names):
+            if i in gen_params_by_idx:
+                row = gen_params_by_idx[i]
+                tech = row["tech_class_key"]
+                mc = COST_MAP.get(tech, 20.0)
+                n.generators.at[gen_name, "marginal_cost"] = mc
+
+                # Startup cost (cold start)
+                n.generators.at[gen_name, "start_up_cost"] = float(row["startup_cost_cold_dollar"])
+
+                # Ramp rate: MW/hr / pmax = per-unit ramp limit
+                pmax = float(n.generators.at[gen_name, "p_nom"])
+                if pmax > 0:
+                    ramp_mw_hr = float(row["ramp_rate_mw_per_hr"])
+                    ramp_pu = min(ramp_mw_hr / pmax, 1.0)
+                    n.generators.at[gen_name, "ramp_limit_up"] = ramp_pu
+                    n.generators.at[gen_name, "ramp_limit_down"] = ramp_pu
+
+                # Min up/down times (hours) — must be integers
+                n.generators.at[gen_name, "min_up_time"] = int(round(float(row["min_up_time_hr"])))
+                n.generators.at[gen_name, "min_down_time"] = int(
+                    round(float(row["min_down_time_hr"]))
+                )
+
+        # Enforce integer dtype on min_up_time/min_down_time
+        n.generators["min_up_time"] = n.generators["min_up_time"].astype(int)
+        n.generators["min_down_time"] = n.generators["min_down_time"].astype(int)
+
+        # Minimum stable generation when committed (0.3 pu)
+        n.generators["p_min_pu"] = 0.3
+
+        # 5. Make all generators committable (binary UC variables)
+        n.generators["committable"] = True
+
+        # Print parameter summary
+        print("\nGenerator parameters after assignment:")
+        cols = [
+            "marginal_cost",
+            "start_up_cost",
+            "min_up_time",
+            "min_down_time",
+            "ramp_limit_up",
+            "ramp_limit_down",
+            "p_nom",
+            "p_min_pu",
+        ]
+        print(n.generators[[c for c in cols if c in n.generators.columns]].to_string())
+
+        # 6. Build 24-hour load profile from Modified Tiny load_24h.csv
+        hr_cols = [f"HR_{h}" for h in range(1, 25)]
+        total_load_by_hour = load_24h_df[hr_cols].sum(axis=0).values  # shape (24,)
+        results["details"]["load_min_mw"] = float(total_load_by_hour.min())
+        results["details"]["load_max_mw"] = float(total_load_by_hour.max())
+        print(
+            f"\nSystem load: min={total_load_by_hour.min():.0f} MW, "
+            f"max={total_load_by_hour.max():.0f} MW"
         )
 
-        # 4. Build load profile
-        total_orig_load, load_shape = build_load_profile(n, snapshots)
-        peak_load = float(n.generators["p_nom"].sum())
-        results["details"]["total_original_load_mw"] = total_orig_load
-        results["details"]["peak_load_at_system_mw"] = total_orig_load * float(load_shape.max())
-        results["details"]["total_gen_capacity_mw"] = peak_load
-        cap_ratio = (
-            peak_load / (total_orig_load * float(load_shape.max())) if total_orig_load > 0 else 0
+        # Distribute load proportionally across load buses
+        original_loads = n.loads.p_set.copy()
+        total_original_load = original_loads.sum()
+        load_fractions = (
+            original_loads / total_original_load if total_original_load > 0 else original_loads
         )
-        results["details"]["capacity_to_peak_load_ratio"] = cap_ratio
-        print(
-            f"Total load: {total_orig_load:.0f} MW, Gen capacity: {peak_load:.0f} MW, "
-            f"Capacity/peak ratio: {cap_ratio:.2f}"
-        )
+        for load_name in n.loads.index:
+            frac = float(load_fractions.get(load_name, 0.0))
+            n.loads_t.p_set[load_name] = pd.Series(total_load_by_hour * frac, index=snapshots)
 
-        # 5. Solve MILP UC with HiGHS
-        print(f"\n=== Starting MILP UC solve on SMALL network ({len(gen_names)} generators) ===")
-        print(
-            f"Solver: {SOLVER_NAME}, time_limit={SOLVER_OPTIONS['time_limit']}s, "
-            f"mip_rel_gap={SOLVER_OPTIONS['mip_rel_gap']}"
-        )
+        total_gen_capacity = float(n.generators.p_nom.sum())
+        results["details"]["total_gen_capacity_mw"] = total_gen_capacity
+        cap_ratio = total_gen_capacity / total_load_by_hour.max()
+        results["details"]["capacity_to_peak_load_ratio"] = float(cap_ratio)
+        print(f"Total capacity: {total_gen_capacity:.0f} MW, Ratio: {cap_ratio:.2f}")
+
+        # 7. Solve MILP UC with HiGHS
+        import tracemalloc
+
+        print(f"\n=== Starting MILP UC solve with {SOLVER_NAME} ===")
+        tracemalloc.start()
         solve_start = time.perf_counter()
 
         opt_result = n.optimize(
@@ -240,110 +190,161 @@ def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) 
         )
 
         solve_elapsed = time.perf_counter() - solve_start
-        print(f"Solve completed in {solve_elapsed:.2f}s")
+        _current, peak_mem = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
         results["details"]["solve_seconds"] = solve_elapsed
-        results["details"]["solver_termination"] = str(opt_result)
+        results["details"]["peak_memory_mb"] = peak_mem / (1024 * 1024)
+        print(f"Solve completed in {solve_elapsed:.2f}s")
 
-        # 6. Extract results
-        feasible = False
-        try:
-            obj_val = float(n.objective)
-            if np.isfinite(obj_val):
-                feasible = True
-            results["details"]["objective_dollar"] = obj_val
-            print(f"Objective (total cost): ${obj_val:,.2f}")
-        except Exception:
-            results["details"]["objective_dollar"] = None
+        # 8. Extract results
+        # opt_result is (status, condition) tuple
+        if isinstance(opt_result, tuple):
+            status_str, condition_str = opt_result
+        else:
+            status_str, condition_str = str(opt_result), "unknown"
+        results["details"]["solver_status"] = str(status_str)
+        results["details"]["solver_condition"] = str(condition_str)
+        print(f"Solver: {status_str}, {condition_str}")
 
+        # Check feasibility
+        feasible = str(status_str).lower() in ("ok", "optimal")
         if not feasible:
-            # Check termination string for clues
-            term_str = str(opt_result).lower()
-            if "optimal" in term_str or "feasible" in term_str or "ok" in term_str:
-                feasible = True
-            else:
-                results["errors"].append(f"Solver did not find feasible solution: {opt_result}")
-                results["status"] = "fail"
-                return results
+            try:
+                obj_val = float(n.objective)
+                if np.isfinite(obj_val):
+                    feasible = True
+            except Exception:
+                pass
 
         results["details"]["solver_feasible"] = feasible
 
-        # Commitment schedule
+        if not feasible:
+            results["errors"].append(f"Solver did not find feasible solution: {status_str}")
+            return results
+
+        # Objective value
+        try:
+            objective = float(n.objective)
+            results["details"]["objective_dollar"] = objective
+            print(f"Objective (total cost): ${objective:,.2f}")
+        except Exception:
+            results["details"]["objective_dollar"] = None
+
+        # 9. Extract commitment schedule (binary matrix)
+        commitment_matrix = None
         n_cycling = 0
         cycling_gens = []
-        if (
-            hasattr(n, "generators_t")
-            and hasattr(n.generators_t, "status")
-            and len(n.generators_t.status) > 0
-        ):
-            status_df = n.generators_t.status
-            results["details"]["commitment_matrix_shape"] = list(status_df.shape)
-            print(f"Commitment matrix: {status_df.shape}")
 
+        if hasattr(n.generators_t, "status") and len(n.generators_t.status) > 0:
+            status_df = n.generators_t.status
+            commitment_matrix = status_df
+            results["details"]["commitment_matrix_shape"] = list(status_df.shape)
+            results["details"]["commitment_matrix_extractable"] = True
+            print(f"\nCommitment matrix: {status_df.shape}")
+            print(status_df.to_string())
+
+            # Count cycling generators (any transition 0->1 or 1->0)
             for gen_name in gen_names:
                 if gen_name in status_df.columns:
-                    status_series = status_df[gen_name].values
-                    transitions = int(np.sum(np.abs(np.diff(status_series.astype(float))) > 0.5))
+                    vals = status_df[gen_name].values.astype(float)
+                    transitions = int(np.sum(np.abs(np.diff(vals)) > 0.5))
                     if transitions > 0:
-                        cycling_gens.append({"generator": gen_name, "transitions": transitions})
-
+                        startups = int(np.sum(np.diff(vals) > 0.5))
+                        shutdowns = int(np.sum(np.diff(vals) < -0.5))
+                        cycling_gens.append(
+                            {
+                                "generator": gen_name,
+                                "transitions": transitions,
+                                "startups": startups,
+                                "shutdowns": shutdowns,
+                            }
+                        )
             n_cycling = len(cycling_gens)
-            results["details"]["n_cycling_generators"] = n_cycling
-            print(f"Generators with cycling transitions: {n_cycling}")
-            # Report only first 10 cycling generators
-            for item in cycling_gens[:10]:
-                print(f"  {item['generator']}: {item['transitions']} transitions")
-            if n_cycling > 10:
-                print(f"  ... and {n_cycling - 10} more")
         else:
-            print("WARNING: n.generators_t.status not populated")
             results["details"]["commitment_matrix_shape"] = None
+            results["details"]["commitment_matrix_extractable"] = False
             results["errors"].append(
                 "n.generators_t.status not populated — binary UC variables may not have been created"
             )
 
-        # Dispatch summary
-        if (
-            hasattr(n, "generators_t")
-            and hasattr(n.generators_t, "p")
-            and len(n.generators_t.p) > 0
-        ):
+        results["details"]["cycling_generators"] = cycling_gens
+        results["details"]["n_cycling_generators"] = n_cycling
+
+        print(f"\nCycling generators: {n_cycling}")
+        for item in cycling_gens:
+            print(
+                f"  {item['generator']}: {item['transitions']} transitions "
+                f"({item['startups']} startups, {item['shutdowns']} shutdowns)"
+            )
+
+        # 10. Dispatch summary
+        if hasattr(n.generators_t, "p") and len(n.generators_t.p) > 0:
             dispatch_df = n.generators_t.p
             results["details"]["dispatch_shape"] = list(dispatch_df.shape)
-            total_gen_mw = float(dispatch_df.sum(axis=1).mean())
-            results["details"]["mean_total_dispatch_mw"] = total_gen_mw
-            print(f"Mean total dispatch: {total_gen_mw:.0f} MW")
+            results["details"]["dispatch_summary"] = {
+                gen: {
+                    "min_mw": round(float(dispatch_df[gen].min()), 1),
+                    "max_mw": round(float(dispatch_df[gen].max()), 1),
+                    "mean_mw": round(float(dispatch_df[gen].mean()), 1),
+                }
+                for gen in gen_names
+                if gen in dispatch_df.columns
+            }
+            print("\nDispatch summary (MW):")
+            for gen, v in results["details"]["dispatch_summary"].items():
+                print(f"  {gen}: min={v['min_mw']:.1f}, max={v['max_mw']:.1f}")
 
-        # Record formulation expressiveness
+        # 11. Record formulation expressiveness (built-in vs user-assembled)
         results["details"]["uc_formulation"] = {
-            "binary_commitment": True,
-            "min_up_time": True,
-            "min_down_time": True,
-            "startup_cost": True,
-            "ramp_limits": True,
-            "joint_uc_dispatch": True,
-            "reserve_expressible": True,
+            "binary_commitment": "built-in (committable=True activates binary vars)",
+            "min_up_time": "built-in (n.generators.min_up_time attribute)",
+            "min_down_time": "built-in (n.generators.min_down_time attribute)",
+            "startup_cost": "built-in (n.generators.start_up_cost attribute)",
+            "shut_down_cost": "built-in (n.generators.shut_down_cost attribute)",
+            "ramp_limits": "built-in (n.generators.ramp_limit_up/down attributes)",
+            "p_min_pu": "built-in (n.generators.p_min_pu — minimum stable generation)",
+            "reserve_requirement": "user-assembled (via extra_functionality callback)",
+            "joint_uc_dispatch": "built-in (n.optimize() solves UC and dispatch jointly)",
+            "commitment_schedule_extraction": "built-in (n.generators_t.status DataFrame)",
         }
 
-        # 7. Pass condition
+        # 12. Pass condition check
         if not feasible:
+            results["errors"].append(f"Solver infeasible: {status_str}")
             results["status"] = "fail"
         elif n_cycling >= 2:
             results["status"] = "pass"
-        elif results["details"]["commitment_matrix_shape"] is None:
-            results["status"] = "fail"
-            results["errors"].append("UC binary variables not populated")
-        else:
-            # All generators committed — check if economically justified
+        elif n_cycling >= 1:
             results["status"] = "qualified_pass"
-            results["errors"].append(
-                f"Only {n_cycling} generator(s) cycled. "
-                f"Capacity/peak ratio: {cap_ratio:.2f}. "
-                "SCUC formulation is correct but optimizer found all-on solution."
+            results["workarounds"].append(
+                f"Only {n_cycling} generator(s) cycled (pass condition requires >= 2). "
+                "Modified Tiny cost differentiation was applied. SCUC formulation is "
+                "correctly expressed with all built-in constraint types."
             )
+        else:
+            # No cycling — check if commitment matrix was extractable
+            if commitment_matrix is not None:
+                results["status"] = "qualified_pass"
+                results["details"]["cycling_explanation"] = (
+                    f"All generators committed for all 24 hours. "
+                    f"Capacity-to-peak-load ratio: {cap_ratio:.2f}. "
+                    "Modified Tiny differentiated costs were applied. "
+                    "SCUC formulation correctly expressed (binary vars, min up/down, startup costs) "
+                    "but optimizer found all-on as the economic optimum."
+                )
+                results["workarounds"].append(
+                    "No generator cycling observed despite differentiated costs. "
+                    "Optimizer correctly minimizes cost but finds all-on solution. "
+                    "SCUC formulation expressiveness confirmed by presence of binary variables "
+                    "and commitment schedule extraction."
+                )
+            else:
+                results["status"] = "fail"
+                results["errors"].append("UC binary variables not populated")
 
         print(f"\n=== RESULT: {results['status'].upper()} ===")
-        print(f"Cycling generators: {n_cycling}")
-        print(f"Feasible solve: {feasible}")
+        print(f"Cycling generators: {n_cycling}, Feasible: {feasible}")
 
     except Exception as e:
         results["errors"].append(f"{type(e).__name__}: {e}")

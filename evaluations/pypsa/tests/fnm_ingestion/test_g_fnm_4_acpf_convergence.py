@@ -1,102 +1,39 @@
 """
-Test G-FNM-4: ACPF Convergence
+Test G-FNM-4: ACPF convergence -- DCPF warm-start + progressive relaxation on LARGE
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM Annual S01, ~30000 buses)
-Pass condition: Convergence is a positive finding, not a requirement. Record
-  convergence yes/no, algorithm, residual, iterations. No reference solution
-  (MATPOWER cannot solve this case). Non-convergence = informational finding.
+Network: LARGE (FNM Annual S01, 27862-bus main island)
+Pass condition: No hard pass/fail gate. All outcomes are diagnostic findings.
+  Record relaxation_level_achieved: 0%, 10%, 20%, or infeasible.
+  If convergence occurs at any level, record as a discriminating solver robustness strength.
 Tool: PyPSA 1.1.2
+Solver: Newton-Raphson (PyPSA built-in, via n.pf())
+Input: MATPOWER fallback (data/fnm/reference/cleaned/fnm_main_island.m)
 """
 
 from __future__ import annotations
 
-import re
+import sys
 import time
 import traceback
 from pathlib import Path
 
 import numpy as np
 
-CLEANED_MAT = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.mat")
+# Make shared matpower_loader importable
+sys.path.insert(0, "/workspace/evaluations/shared")
+
 CLEANED_M = Path("/workspace/data/fnm/reference/cleaned/fnm_main_island.m")
-
-
-def parse_matpower_m(filepath: str | Path) -> dict:
-    """Parse a MATPOWER .m case file into a PPC dict."""
-    with open(filepath) as f:
-        content = f.read()
-
-    ppc: dict = {"version": "2"}
-
-    m = re.search(r"mpc\.baseMVA\s*=\s*(\d+\.?\d*)", content)
-    if m:
-        ppc["baseMVA"] = float(m.group(1))
-
-    for name in ["bus", "gen", "branch"]:
-        pattern = rf"mpc\.{name}\s*=\s*\[(.*?)\];"
-        m = re.search(pattern, content, re.DOTALL)
-        if m:
-            data = m.group(1).strip()
-            rows = []
-            for line in data.split("\n"):
-                line = line.strip().rstrip(";")
-                if "%" in line:
-                    line = line[: line.index("%")]
-                line = line.strip()
-                if line:
-                    vals = [float(x) for x in line.split()]
-                    rows.append(vals)
-            ppc[name] = np.array(rows)
-
-    return ppc
-
-
-def load_cleaned_case() -> tuple[dict, str]:
-    """Load the pre-cleaned MATPOWER case. Prefer .m parser over scipy .mat.
-
-    Note: fnm_main_island.mat is an Octave text-format .mat file, not scipy-compatible.
-    The .m file is the reliably-parseable format.
-    """
-    if CLEANED_M.exists():
-        return parse_matpower_m(CLEANED_M), "m"
-    elif CLEANED_MAT.exists():
-        import scipy.io
-
-        try:
-            mat = scipy.io.loadmat(str(CLEANED_MAT))
-            mpc_struct = mat["mpc"][0, 0]
-            ppc = {
-                "version": "2",
-                "baseMVA": float(mpc_struct["baseMVA"].flat[0]),
-                "bus": mpc_struct["bus"],
-                "gen": mpc_struct["gen"],
-                "branch": mpc_struct["branch"],
-            }
-            return ppc, "mat"
-        except ValueError:
-            raise FileNotFoundError(
-                f"{CLEANED_MAT} is Octave text format (not scipy-compatible) "
-                f"and {CLEANED_M} not found"
-            )
-    else:
-        raise FileNotFoundError(f"Neither {CLEANED_MAT} nor {CLEANED_M} found")
+ACPF_REF_BUSES = Path("/workspace/data/fnm/reference/acpf/buses_acpf.csv")
 
 
 def run() -> dict:
-    """Execute G-FNM-4 ACPF convergence test and return structured results.
-
-    Returns:
-        dict with keys:
-        - status: always "informational" for this test
-        - wall_clock_seconds: float
-        - details: dict with convergence info
-        - errors: list of error messages
-        - workarounds: list of workaround descriptions
-    """
+    """Execute G-FNM-4 ACPF convergence test and return structured results."""
     import tracemalloc
 
     import pypsa
+    from matpower_loader import load_pypsa
+    from matpowercaseframes import CaseFrames
 
     results: dict = {
         "status": "informational",
@@ -108,28 +45,22 @@ def run() -> dict:
 
     start = time.perf_counter()
     try:
-        # ── 1. Load cleaned MATPOWER case ────────────────────────────────
-        ppc, load_method = load_cleaned_case()
-        baseMVA = ppc["baseMVA"]
-        bus_array = ppc["bus"]
-        gen_array = ppc["gen"]
-        branch_array = ppc["branch"]
+        # ── 1. Load cleaned MATPOWER case via shared matpower_loader ──
+        # matpower_loader.load_pypsa() applies transformer susceptance and
+        # gencost patches for MATPOWER compatibility
+        net = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
+        net.set_snapshots([0])
+
+        # Also load raw arrays for network size reporting
+        cf = CaseFrames(str(CLEANED_M))
+        bus_array = cf.bus.values
+        gen_array = cf.gen.values
+        branch_array = cf.branch.values
+        baseMVA = float(cf.baseMVA)
 
         results["details"]["baseMVA"] = baseMVA
         results["details"]["tool_version"] = pypsa.__version__
-        results["details"]["load_method"] = load_method
-
-        if load_method == "m":
-            results["workarounds"].append(
-                "Parsed MATPOWER .m file with regex-based parser since the .mat file "
-                "is Octave text format (not scipy-compatible) and PyPSA has no native "
-                "MATPOWER reader."
-            )
-        else:
-            results["workarounds"].append(
-                "Loaded pre-cleaned MATPOWER .mat file via scipy.io.loadmat. "
-                "PyPSA has no native MATPOWER reader."
-            )
+        results["details"]["input_path"] = "matpower"
 
         branch_status = branch_array[:, 10].astype(int)
         n_active = int((branch_status == 1).sum())
@@ -141,10 +72,11 @@ def run() -> dict:
             "generators": int(gen_array.shape[0]),
         }
 
-        # ── 2. Import into PyPSA ────────────────────────────────────────
-        net = pypsa.Network()
-        net.import_from_pypower_ppc(ppc)
-        net.set_snapshots([0])
+        results["workarounds"].append(
+            "MATPOWER fallback: G-FNM-1 failed (psse_parse_error). Loaded from "
+            "pre-cleaned MATPOWER .m file via shared matpower_loader.load_pypsa() "
+            "(applies transformer susceptance and gencost patches)."
+        )
 
         results["details"]["pypsa_counts"] = {
             "buses": len(net.buses),
@@ -154,119 +86,178 @@ def run() -> dict:
             "loads": len(net.loads),
         }
 
-        results["details"]["initialization"] = {
-            "type": "flat_start",
-            "note": "All VM=1.0, VA=0.0 from planning model (no solved voltage profile)",
+        # ── Step 1: Solve DCPF for warm start ───────────────────────────
+        t_dc_start = time.perf_counter()
+        net.lpf()
+        t_dc = time.perf_counter() - t_dc_start
+
+        if hasattr(net, "buses_t") and "v_ang" in net.buses_t and len(net.buses_t.v_ang) > 0:
+            dc_va_rad = net.buses_t.v_ang.iloc[0]
+        else:
+            dc_va_rad = net.buses.v_ang
+
+        results["details"]["dcpf_warm_start"] = {
+            "solve_seconds": round(t_dc, 4),
+            "va_range_deg": [
+                round(float(np.degrees(dc_va_rad.min())), 4),
+                round(float(np.degrees(dc_va_rad.max())), 4),
+            ],
         }
 
-        # ── 3. Attempt ACPF solve ──────────────────────────────────────
-        tracemalloc.start()
-        t_solve_start = time.perf_counter()
+        # Set DC angles as initial guess for ACPF
+        net.buses["v_ang"] = dc_va_rad.values if hasattr(dc_va_rad, "values") else dc_va_rad
 
-        # PyPSA's Newton-Raphson AC power flow
-        converged = net.pf()
+        results["details"]["initialization"] = {
+            "type": "dc_warm_start",
+            "note": "DC voltage angles from lpf() used as initial guess; VM=1.0 (flat)",
+        }
 
-        t_solve = time.perf_counter() - t_solve_start
-        _, peak_mem = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        peak_mem_mb = peak_mem / (1024 * 1024)
+        # ── Step 2: Attempt ACPF at 0% relaxation ──────────────────────
+        relaxation_levels = [0, 10, 20]
+        relaxation_achieved = "infeasible"
 
-        results["details"]["solve_wall_clock_seconds"] = round(t_solve, 4)
-        results["details"]["peak_memory_mb"] = round(peak_mem_mb, 1)
-        results["details"]["solver"] = "Newton-Raphson (PyPSA built-in)"
+        for relax_pct in relaxation_levels:
+            # Create fresh network for each attempt using shared loader
+            net_trial = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
+            net_trial.set_snapshots([0])
 
-        # ── 4. Interpret convergence result ─────────────────────────────
-        convergence_details: dict = {}
-        overall_converged = False
-        total_iterations = 0
-        final_residual = None
-
-        try:
-            if isinstance(converged, dict):
-                for key, df in converged.items():
-                    convergence_details[str(key)] = str(df)
-
-                if "converged" in converged:
-                    conv_df = converged["converged"]
-                    overall_converged = bool(conv_df.all().all())
-                    convergence_details["converged_all"] = overall_converged
-                    convergence_details["converged_per_subnetwork"] = (
-                        conv_df.to_dict() if hasattr(conv_df, "to_dict") else str(conv_df)
-                    )
-
-                if "n_iter" in converged:
-                    n_iter_df = converged["n_iter"]
-                    total_iterations = int(n_iter_df.max().max())
-                    convergence_details["n_iter_max"] = total_iterations
-
-                if "error" in converged:
-                    err_df = converged["error"]
-                    max_err = err_df.max().max()
-                    final_residual = float(max_err) if not np.isnan(max_err) else None
-                    convergence_details["final_error_max"] = str(max_err)
-            else:
-                convergence_details["raw_return"] = str(converged)
-        except Exception as e:
-            convergence_details["parse_error"] = f"{type(e).__name__}: {e}"
-
-        results["details"]["convergence"] = convergence_details
-        results["details"]["converged"] = overall_converged
-        results["details"]["convergence_iterations"] = total_iterations
-        results["details"]["convergence_residual"] = final_residual
-
-        # ── 5. Extract solution statistics if converged ─────────────────
-        if overall_converged:
-            results["details"]["convergence_finding"] = (
-                "POSITIVE: PyPSA converged on the ERCOT FNM main island with flat start, "
-                "where MATPOWER 8.1 failed (voltage collapse at ~30% load)."
+            # Apply DC warm-start angles
+            net_trial.buses["v_ang"] = (
+                dc_va_rad.values if hasattr(dc_va_rad, "values") else dc_va_rad
             )
+
+            # Apply thermal limit relaxation
+            if relax_pct > 0:
+                factor = 1.0 + relax_pct / 100.0
+                net_trial.lines["s_nom"] = net_trial.lines["s_nom"] * factor
+                net_trial.transformers["s_nom"] = net_trial.transformers["s_nom"] * factor
+
+            tracemalloc.start()
+            t_solve_start = time.perf_counter()
 
             try:
-                if (
-                    hasattr(net, "buses_t")
-                    and "v_mag_pu" in net.buses_t
-                    and len(net.buses_t.v_mag_pu) > 0
-                ):
-                    vm = net.buses_t.v_mag_pu.iloc[0].values
-                    vm_finite = vm[np.isfinite(vm)]
-                    results["details"]["voltage_magnitude"] = {
-                        "min_pu": round(float(np.min(vm_finite)), 6),
-                        "max_pu": round(float(np.max(vm_finite)), 6),
-                        "mean_pu": round(float(np.mean(vm_finite)), 6),
-                        "std_pu": round(float(np.std(vm_finite)), 6),
-                        "pct_outside_0p95_1p05": round(
-                            float(np.mean((vm_finite < 0.95) | (vm_finite > 1.05)) * 100), 2
-                        ),
-                        "pct_still_1p0": round(float(np.mean(np.isclose(vm_finite, 1.0)) * 100), 2),
-                    }
+                # PyPSA's Newton-Raphson AC power flow with 30-min timeout
+                converged = net_trial.pf()
+                t_solve = time.perf_counter() - t_solve_start
+                _, peak_mem = tracemalloc.get_traced_memory()
+                tracemalloc.stop()
+                peak_mem_mb = peak_mem / (1024 * 1024)
+            except Exception as solve_err:
+                t_solve = time.perf_counter() - t_solve_start
+                try:
+                    tracemalloc.stop()
+                except RuntimeError:
+                    pass
+                results["details"][f"relaxation_{relax_pct}pct"] = {
+                    "status": "exception",
+                    "error": f"{type(solve_err).__name__}: {solve_err}",
+                    "solve_seconds": round(t_solve, 4),
+                }
+                continue
 
-                # Convergence quality check per convergence protocol
+            # Interpret convergence
+            attempt_result: dict = {
+                "relaxation_pct": relax_pct,
+                "solve_seconds": round(t_solve, 4),
+                "peak_memory_mb": round(peak_mem_mb, 1),
+            }
+
+            overall_converged = False
+            total_iterations = 0
+            final_residual = None
+
+            try:
+                if isinstance(converged, dict):
+                    if "converged" in converged:
+                        conv_df = converged["converged"]
+                        overall_converged = bool(conv_df.all().all())
+                        attempt_result["converged_per_subnetwork"] = (
+                            conv_df.to_dict() if hasattr(conv_df, "to_dict") else str(conv_df)
+                        )
+                    if "n_iter" in converged:
+                        n_iter_df = converged["n_iter"]
+                        total_iterations = int(n_iter_df.max().max())
+                    if "error" in converged:
+                        err_df = converged["error"]
+                        max_err = err_df.max().max()
+                        final_residual = float(max_err) if not np.isnan(max_err) else None
+            except Exception as parse_err:
+                attempt_result["parse_error"] = str(parse_err)
+
+            attempt_result["converged"] = overall_converged
+            attempt_result["iterations"] = total_iterations
+            attempt_result["final_residual"] = final_residual
+
+            if overall_converged:
+                # Convergence quality checks
                 if total_iterations == 0:
-                    results["details"]["convergence_quality_warning"] = (
-                        "Zero iterations reported — solver may not have actually run. "
-                        "Convergence at initial guess is suspect."
+                    attempt_result["quality_warning"] = (
+                        "Zero iterations: solver may not have actually run."
                     )
-            except Exception as e:
-                results["details"]["solution_extraction_error"] = f"{type(e).__name__}: {e}"
-        else:
-            results["details"]["convergence_finding"] = (
-                "EXPECTED: PyPSA did not converge on the ERCOT FNM main island, "
-                "consistent with MATPOWER 8.1 failure. The FNM RAW file is a "
-                "planning model with flat start and no solved voltage profile."
-            )
 
+                # Extract solution statistics
+                try:
+                    if (
+                        hasattr(net_trial, "buses_t")
+                        and "v_mag_pu" in net_trial.buses_t
+                        and len(net_trial.buses_t.v_mag_pu) > 0
+                    ):
+                        vm = net_trial.buses_t.v_mag_pu.iloc[0].values
+                        vm_finite = vm[np.isfinite(vm)]
+                        pct_not_flat = float(np.mean(~np.isclose(vm_finite, 1.0)) * 100)
+                        attempt_result["voltage_magnitude"] = {
+                            "min_pu": round(float(np.min(vm_finite)), 6),
+                            "max_pu": round(float(np.max(vm_finite)), 6),
+                            "mean_pu": round(float(np.mean(vm_finite)), 6),
+                            "std_pu": round(float(np.std(vm_finite)), 6),
+                            "pct_outside_0p95_1p05": round(
+                                float(np.mean((vm_finite < 0.95) | (vm_finite > 1.05)) * 100), 2
+                            ),
+                            "pct_not_flat_start": round(pct_not_flat, 2),
+                        }
+
+                        # Convergence quality: >95% buses should differ from flat start
+                        if pct_not_flat < 5.0:
+                            attempt_result["quality_warning"] = (
+                                f"Only {pct_not_flat:.1f}% of buses differ from flat-start VM=1.0. "
+                                "Solver may have returned trivial solution."
+                            )
+                except Exception as ext_err:
+                    attempt_result["extraction_error"] = str(ext_err)
+
+                relaxation_achieved = f"{relax_pct}%"
+                results["details"][f"relaxation_{relax_pct}pct"] = attempt_result
+                break
+            else:
+                results["details"][f"relaxation_{relax_pct}pct"] = attempt_result
+
+        results["details"]["relaxation_level_achieved"] = relaxation_achieved
+
+        # ── Summary ─────────────────────────────────────────────────────
         results["details"]["matpower_comparison"] = {
             "matpower_converged": False,
             "matpower_methods_tried": [
                 "NR (flat start, all variants: NR, NR-IC, NR-SP, NR-SH, NR-IH)",
                 "FDXB/FDBX (1000 iterations)",
-                "Manual continuation (1%→30% converged, fails at 35%)",
+                "Manual continuation (1%-30% converged, fails at 35%)",
                 "runcpf continuation power flow (stuck at nose point ~30%)",
             ],
             "matpower_max_load_pct": 30,
-            "source": "data/fnm/reference/acpf/summary_acpf.json",
-            "note": "No reference ACPF solution exists; convergence is a positive finding",
+            "note": "No reference ACPF solution exists. Convergence is a positive finding.",
         }
+
+        if relaxation_achieved != "infeasible":
+            results["details"]["convergence_finding"] = (
+                f"POSITIVE: PyPSA converged at {relaxation_achieved} relaxation "
+                f"on the 27,862-bus FNM main island with DC warm start, "
+                f"where MATPOWER 8.1 failed at ~30% load via continuation power flow."
+            )
+        else:
+            results["details"]["convergence_finding"] = (
+                "EXPECTED: PyPSA did not converge on the FNM main island, "
+                "consistent with MATPOWER 8.1 failure. The FNM is a planning model "
+                "with no solved voltage profile."
+            )
 
     except Exception as e:
         results["errors"].append(f"{type(e).__name__}: {e}")

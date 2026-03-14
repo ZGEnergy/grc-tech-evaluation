@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# pypsa  (TRIVIAL — two patches applied post-load)
+# pypsa  (TRIVIAL — three patches applied post-load)
 # ---------------------------------------------------------------------------
 
 
@@ -30,16 +30,21 @@ def load_pypsa(
 ) -> object:  # pypsa.Network — imported lazily inside function body
     """Load a MATPOWER .m file into a PyPSA Network with correctness patches.
 
-    Classification: TRIVIAL — two patches applied post-load; see LOADING_NOTES.md
+    Classification: TRIVIAL — three patches applied post-load; see LOADING_NOTES.md
 
-    The raw ``matpowercaseframes → import_from_pypower_ppc`` bridge has two bugs
+    The raw ``matpowercaseframes → import_from_pypower_ppc`` bridge has three bugs
     that this function corrects:
 
-    1. **Transformer susceptance** — PyPSA computes ``b = 1/(x * tap)`` but the
+    1. **Branch status** — ``import_from_pypower_ppc`` ignores the MATPOWER
+       BR_STATUS column (column 10).  All branches are imported as active
+       regardless of their status flag.  This function sets ``active = False``
+       on lines and transformers whose MATPOWER status is 0.
+
+    2. **Transformer susceptance** — PyPSA computes ``b = 1/(x * tap)`` but the
        MATPOWER DC convention is ``b = 1/x``.  This function resets every
        transformer's susceptance to ``1/x`` after loading.
 
-    2. **Generator cost (gencost)** — ``import_from_pypower_ppc`` ignores the
+    3. **Generator cost (gencost)** — ``import_from_pypower_ppc`` ignores the
        ``gencost`` table in the ppc dict, so all generators get ``marginal_cost=0``.
        This function populates ``marginal_cost`` from the gencost data.  For
        polynomial (model-2) entries the marginal cost is approximated as the
@@ -54,8 +59,8 @@ def load_pypsa(
             Pass a float (e.g. ``100000.0``) for very large AC networks.
 
     Returns:
-        A ``pypsa.Network`` with transformer susceptances and generator marginal
-        costs corrected.
+        A ``pypsa.Network`` with branch status, transformer susceptances, and
+        generator marginal costs corrected.
     """
     import numpy as np
     import pypsa
@@ -69,34 +74,60 @@ def load_pypsa(
         "bus": cf.bus.values,
         "gen": cf.gen.values,
         "branch": cf.branch.values,
-        "gencost": cf.gencost.values,
     }
+
+    # gencost is optional — not all MATPOWER .m files include it (e.g. FNM)
+    has_gencost = (
+        hasattr(cf, "gencost") and cf.gencost is not None and len(cf.gencost) > 0
+    )
+    if has_gencost:
+        ppc["gencost"] = cf.gencost.values
 
     n = pypsa.Network()
     n.import_from_pypower_ppc(ppc, overwrite_zero_s_nom=overwrite_zero_s_nom)
 
-    # --- Patch 1: Transformer susceptance ---
+    # --- Patch 1: Branch status ---
+    # import_from_pypower_ppc ignores MATPOWER BR_STATUS (column 10).
+    # It imports the value as a custom 'status' column but does not map it
+    # to PyPSA's 'active' flag.  Deactivate branches with status == 0.
+    n_deactivated = 0
+    if "status" in n.lines.columns:
+        inactive_mask = n.lines["status"] == 0.0
+        if inactive_mask.any():
+            n.lines.loc[inactive_mask, "active"] = False
+            n_deactivated += int(inactive_mask.sum())
+    if "status" in n.transformers.columns:
+        inactive_mask = n.transformers["status"] == 0.0
+        if inactive_mask.any():
+            n.transformers.loc[inactive_mask, "active"] = False
+            n_deactivated += int(inactive_mask.sum())
+    if n_deactivated > 0:
+        logger.info(
+            "load_pypsa: deactivated %d branches with MATPOWER status=0", n_deactivated
+        )
+
+    # --- Patch 2: Transformer susceptance ---
     # PyPSA uses b = 1/(x*tap); MATPOWER DC convention is b = 1/x.
     for t_id in n.transformers.index:
         x = n.transformers.at[t_id, "x"]
         if x != 0:
             n.transformers.at[t_id, "b"] = 1.0 / x
 
-    # --- Patch 2: Generator marginal costs from gencost ---
-    gencost = cf.gencost
-    if gencost is None or len(gencost) == 0:
+    # --- Patch 3: Generator marginal costs from gencost ---
+    if not has_gencost:
         logger.warning(
             "load_pypsa: no gencost data in %s; marginal_cost left at 0", path
         )
         return n
 
+    gencost_df = cf.gencost
     gen_names = n.generators.index.tolist()
 
     for i, gen_name in enumerate(gen_names):
-        if i >= len(gencost):
+        if i >= len(gencost_df):
             break
 
-        row = gencost.iloc[i]
+        row = gencost_df.iloc[i]
 
         # gencost columns: MODEL, STARTUP, SHUTDOWN, NCOST, c(n)...c1, c0
         model = int(row.iloc[0])

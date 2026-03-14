@@ -4,21 +4,19 @@ source_dimension: expressiveness
 source_test: A-6
 tool: pypsa
 severity: medium
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T00:00:00Z
 ---
 
-# Observation: No first-class API to fix UC commitment and re-solve ED as LP
+# Observation: No fix_commitment() API for two-stage UC/ED workflow
 
 ## Finding
 
-PyPSA has no `fix_commitment()` or equivalent convenience method to freeze a UC binary solution and re-dispatch as a pure LP. The two-stage SCED workflow requires manually translating `n.generators_t.status` into time-varying `p_min_pu`/`p_max_pu` bounds after setting `committable=False`.
+PyPSA has no dedicated API to fix a UC commitment schedule and re-solve as pure LP economic dispatch. The two-stage UC-then-ED workflow requires manually setting `committable=False` and constructing time-varying `p_min_pu`/`p_max_pu` DataFrames to encode the commitment schedule as generator bounds.
 
 ## Context
 
-Discovered during A-6 (SCED): to demonstrate cleanly separable UC+ED stages, the test ran Stage 1 as MILP (`committable=True`), extracted the 24×10 commitment schedule from `n.generators_t.status`, then constructed a fresh network for Stage 2 where each decommitted generator-hour had `p_max_pu=0` (forced off) and `committable=False` (no binary variables). The `n.optimize.fix_optimal_capacities()` method does not serve this purpose — it fixes generator nameplate capacity (p_nom), not the per-hour commitment schedule. There is also no `fix_optimal_dispatch()` for this use case.
+Test A-6 (SCED) demonstrated the two-stage workflow by: (1) solving UC with `committable=True`, (2) extracting `generators_t.status`, (3) reloading the network with `committable=False`, (4) building per-hour bounds where committed=1 maps to [0.3, 1.0] and committed=0 maps to [0.0, 0.0]. The approach works and uses only documented public API, but requires ~20 lines of boilerplate that could be a single method call.
 
 ## Implications
 
-- **Accessibility (D-2):** The documentation does not describe how to perform a two-stage UC+ED workflow. Users implementing SCED must discover the `generators_t.p_min_pu` / `p_max_pu` workaround from source examples or GitHub discussions. This is a doc-gap risk.
-- **Extensibility:** The absence of a `fix_commitment()` utility makes it slightly harder to build rolling-horizon UC+SCED pipelines that alternate between MILP and LP solves. The workaround is stable and low-effort (~10 lines), so grade impact is minor.
-- The workaround itself is classified as **stable** (documented public API, natural PyPSA idiom), but the missing convenience method is a legitimate API friction point worth tracking.
+This affects the Accessibility assessment (D-dimension): a common power systems workflow (fix commitment, re-solve dispatch) requires non-obvious manual steps. Users must understand the relationship between `committable`, `generators_t.p_min_pu`, and `generators_t.p_max_pu` to implement the two-stage pattern. A `fix_commitment()` or `freeze_uc()` convenience method would significantly reduce friction.

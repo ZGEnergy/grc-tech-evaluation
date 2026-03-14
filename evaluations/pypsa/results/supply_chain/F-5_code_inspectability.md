@@ -3,73 +3,99 @@ test_id: F-5
 tool: pypsa
 dimension: supply_chain
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 9eeed31c
 status: pass
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: 6108ab51
 ---
 
-# F-5: Code Inspectability (code_inspectability)
+# F-5: Code Inspectability
 
-## Result: PASS
+## Findings
 
-## Finding
+### Execution Path: `n.lpf()` (DCPF)
 
-The complete call chain from `n.optimize()` to HiGHS solver invocation is fully inspectable in Python source code. There are no opaque binary steps — every layer is either pure Python or source-available C++.
+| Step | Module | Function | Inspectable |
+|------|--------|----------|-------------|
+| 1 | `pypsa/network/abstract.py` | `Network.lpf()` | Yes (Python) |
+| 2 | `pypsa/network/power_flow.py` | `SubNetworkPowerFlowMixin.lpf()` | Yes (Python) |
+| 3 | `pypsa/network/power_flow.py` | `calculate_B_H()` | Yes (Python) |
+| 4 | `scipy.sparse` | `csc_matrix`, `lil_matrix` | Yes (Python/C) |
+| 5 | `scipy.sparse.linalg` | `spsolve()` | Yes (Python wrapper -> UMFPACK C) |
+| 6 | `pypsa/network/power_flow.py` | Result assignment to DataFrames | Yes (Python) |
 
-## Evidence
+### Execution Path: `n.optimize()` (OPF)
 
-**Call chain traced via source inspection:**
+| Step | Module | Function | Inspectable |
+|------|--------|----------|-------------|
+| 1 | `pypsa/optimization/optimize.py` | `OptimizationAccessor.__call__()` | Yes (Python) |
+| 2 | `pypsa/optimization/optimize.py` | `create_model()` | Yes (Python) |
+| 3 | `pypsa/optimization/variables.py` | Variable definitions | Yes (Python) |
+| 4 | `pypsa/optimization/constraints.py` | Constraint definitions | Yes (Python) |
+| 5 | `pypsa/optimization/optimize.py` | `solve_model()` | Yes (Python) |
+| 6 | `linopy/model.py` | `Model.solve()` | Yes (Python) |
+| 7 | `linopy/solvers.py` | Solver dispatch | Yes (Python) |
+| 8 | `highspy` | HiGHS solver binary | Source available (C++) |
+| 9 | `pypsa/optimization/optimize.py` | `assign_solution()` | Yes (Python) |
+
+### Module Inventory
+
+PyPSA v1.1.2 source modules in the execution path:
 
 ```
-n.optimize(solver_name='highs')
-  → pypsa/optimization/optimize.py: OptimizationAccessor.__call__()
-      → n.optimize.create_model(snapshots, ...)
-          → pypsa/optimization/optimize.py: create_model()
-              → define_objective(), define_constraints(), etc.
-              → returns linopy.Model object (n.model)
-      → n.model.solve(solver_name='highs', ...)
-          → linopy/model.py: Model.solve()
-              → linopy/solvers.py: HiGHSSolver.solve_model()
-                  → import highspy
-                  → h = highspy.Highs()  ← pybind11 binding
-                  → h.passModel(...)     ← passes LP/MILP data to HiGHS C++
-                  → h.run()             ← calls HiGHS C++ solver
-                  → extract solution from h.getSolution()
+pypsa/
+  network/
+    abstract.py          - Network class, top-level API
+    components.py        - Component add/remove methods
+    graph.py             - Graph topology methods
+    io.py                - Import/export
+    power_flow.py        - PF and LPF solvers
+  optimization/
+    optimize.py          - OPF entry point, model build/solve
+    variables.py         - Decision variable definitions
+    constraints.py       - Constraint definitions
+    global_constraints.py - System-wide constraints
+    mga.py               - Modelling-to-Generate-Alternatives
+  components/
+    store.py             - Component data storage
+  data/
+    components.csv       - Component type definitions
+    component_attrs/     - Per-component attribute definitions
+    variables.csv        - Variable naming conventions
 ```
 
-**Layer-by-layer inspectability:**
+### Opaque Steps
 
-| Layer | Type | Source Location | Inspectable? |
-|-------|------|----------------|--------------|
-| `pypsa/optimization/optimize.py` | Pure Python | `.venv/.../pypsa/optimization/optimize.py` | Yes — full source |
-| `linopy/model.py` | Pure Python | `.venv/.../linopy/model.py` | Yes — full source |
-| `linopy/solvers.py` | Pure Python | `.venv/.../linopy/solvers.py` | Yes — full source |
-| `highspy/_core.cpython-312.so` | pybind11 C++ | `https://github.com/ERGO-Code/HiGHS` | Binary in venv; source on GitHub |
-| HiGHS C++ solver | C++ | `https://github.com/ERGO-Code/HiGHS` | Source-available |
+**None.** The entire execution path from API call to solver invocation
+is inspectable:
 
-**Confirmed via source inspection:**
-```python
-# linopy/solvers.py key lines
-import highspy
-h = highspy.Highs()                       # line 563
-h = model.to_highspy(...)                 # line 859 — alternative direct API
-h.run()                                   # implied by solve flow
-```
+1. **PyPSA source**: Pure Python, fully readable
+2. **Linopy source**: Pure Python, fully readable
+3. **Solver interface**: HiGHS is called via highspy Python bindings
+   with an inspectable C++ source. The solver itself is a black box
+   in the sense that verifying LP/MILP solver correctness requires
+   understanding the simplex/interior point algorithms, but the solver
+   source is available and auditable.
 
-The `highspy` package is a thin pybind11 wrapper (`_core.so`) that exposes the HiGHS C++ API as Python objects. The wrapper itself is ~500 lines of Python (`highs.py`) with the C++ binding loaded as `_core`.
+The only non-trivial opacity is in scipy's sparse linear algebra
+(`spsolve`), which delegates to UMFPACK (C library). However, UMFPACK
+is a well-known, audited library with published source code and
+extensive academic validation.
 
-**No opaque steps:** The entire path from Python `n.optimize()` to the HiGHS C++ solver is traceable through inspectable Python source, with the single compiled boundary at the `highspy._core.so` pybind11 layer where C++ takes over. That boundary is documented by the HiGHS project.
+### Consumed Observations
 
-## Implications
+Architecture quality observation from B-6 confirmed:
+- 4-layer architecture: User API -> Mixin Dispatch -> SubNetwork
+  Computation -> Linear Algebra Backend
+- Clean separation between data model (pandas DataFrames), formulation
+  (power_flow.py / constraints.py), and solver (linopy/scipy)
+- 5 documented injection points for extending behavior
 
-Excellent code inspectability. The pure-Python architecture of PyPSA and linopy means the model formulation, constraint construction, and solver interface are all readable and auditable without any binary analysis. The only non-inspectable step (HiGHS C++ execution) is at a clearly defined, well-documented boundary. This is the best possible structure for a compiled solver integration.
+## Recorded Metrics
+
+- module_list: pypsa.network.{abstract,power_flow,graph,components,io},
+  pypsa.optimization.{optimize,variables,constraints,global_constraints},
+  linopy.{model,solvers}, scipy.sparse.linalg, highspy
+- opaque_steps: 0 (all Python source inspectable; solver C++ source available)

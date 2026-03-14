@@ -3,65 +3,62 @@ test_id: D-2
 tool: pypsa
 dimension: accessibility
 network: N/A
-protocol_version: v9
-skill_version: v1
-test_hash: 52df27b8
-status: qualified_pass
+status: informational
 workaround_class: null
-blocked_by: null
-wall_clock_seconds: null
-timing_source: null
-peak_memory_mb: null
-convergence_residual: null
-convergence_iterations: null
-loc: null
-timestamp: 2026-03-11T00:00:00Z
+timestamp: 2026-03-13T12:00:00Z
+protocol_version: v10
+skill_version: v1
+test_hash: cf89565f
 ---
 
-# D-2: Documentation Audit (documentation_audit)
+# D-2: Documentation Audit
 
-## Result: QUALIFIED PASS
+## Summary
 
-## Finding
+Of the 10 Suite A tests (A-1 through A-12, excluding removed A-7/A-8), 5 could be
+completed from official PyPSA documentation alone, 3 required source code reading or
+GitHub issue searches, and 2 required trial-and-error or guessing.
 
-PyPSA documentation (https://pypsa.readthedocs.io/) covers the standard workflow well for 9 of 12 test types. Three test types have significant documentation gaps: contingency sweep (`lpf_contingency` bug undocumented), shadow price access (fragile workaround undocumented), and lossy OPF (deprecated `transmission_losses` syntax with poor migration guidance).
+## Per-Test Documentation Assessment
 
-## Evidence
+| Test | Completable from Docs? | Gap Description |
+|------|----------------------|-----------------|
+| A-1 (DCPF) | Yes | `n.lpf()` is well-documented. The API page and examples cover basic linear power flow. |
+| A-2 (ACPF) | Yes | `n.pf()` is documented with convergence return values. However, the transformer `b` field dual semantics (DC vs AC) are not documented (observation: api-friction A-2). Users would discover the loader issue by trial and error. |
+| A-3 (DCOPF) | Partially | `n.optimize()` is documented for OPF. However, shadow price extraction requires knowledge that `mu_upper`/`mu_lower` are NOT populated on the network after solve; users must read linopy model constraints (observation: api-friction A-3). This is not documented. |
+| A-4 (AC Feasibility) | No | Chaining DC OPF dispatch into AC PF requires understanding the transformer `b` field convention mismatch (observation: unit-mismatch A-4). The documentation does not explain that the shared loader's DC susceptance patch must be removed for AC analysis. |
+| A-5 (SCUC) | Yes | `committable=True`, `min_up_time`, `min_down_time`, `start_up_cost`, `shut_down_cost` are documented generator attributes. The UC formulation is well-covered in the docs. |
+| A-6 (SCED) | Partially | No `fix_commitment()` API exists (observation: api-friction A-6). The two-stage UC-then-ED workflow requires manually constructing `p_min_pu`/`p_max_pu` time-varying bounds, which is not shown in any documentation example. |
+| A-9 (SCOPF) | Partially | `n.optimize.optimize_security_constrained()` is documented, but the limitation that only Line (not Transformer) contingencies are accepted is not documented (observation: api-friction A-9). Users discover this by error message. |
+| A-10 (Lossy DCOPF) | Yes | Loss factors and `marginal_cost_quadratic` are documented generator attributes. |
+| A-11 (Distributed Slack) | No | `n.pf(distribute_slack=True)` is documented, but using it after DC OPF hits the same transformer `b` mismatch as A-4 (observation: convergence-quality A-11). The loader incompatibility is not documented anywhere. |
+| A-12 (Multi-period Storage) | Yes | `StorageUnit`, `cyclic_state_of_charge`, `max_hours`, `efficiency_store`/`efficiency_dispatch` are well-documented (observation: api-friction A-12 -- positive). |
 
-**Documentation coverage by Suite A test type:**
+## Summary Statistics
 
-| Test | API Entry Point | Documented? | Notes |
-|------|----------------|-------------|-------|
-| A-1 DCPF | `n.lpf()` | Yes | Examples in "Linear Power Flow" docs; `.values` ppc requirement NOT documented |
-| A-2 ACPF | `n.pf()` | Yes | Newton-Raphson docs present; convergence dict structure only discoverable from source |
-| A-3 DC OPF | `n.optimize()` + HiGHS | Yes | Optimization tutorial present; `mu_upper`/`mu_lower` emptiness NOT documented |
-| A-4 AC feasibility | `n.optimize.optimize_and_run_non_linear_powerflow()` | Partial | Function exists in API ref; Ipopt dependency for AC OPF not prominently flagged |
-| A-5 SCUC | Committable generators in `n.optimize()` | Yes | UC tutorial with `committable=True`, startup/shutdown costs documented |
-| A-6 SCED | Multi-period `n.optimize()` | Yes | Two-stage dispatch mentioned; not a dedicated SCED tutorial |
-| A-7 Contingency sweep | `n.lpf_contingency()` | Yes/Broken | API reference documents the function; **BUG in v1.1.2 not documented anywhere** |
-| A-8 Stochastic | Multi-period with scenario snapshots | Partial | Multi-period OPF documented; stochastic scenario construction not shown in docs |
-| A-9 SCOPF | `n.optimize_security_constrained()` | Yes | Dedicated docs section present |
-| A-10 Lossy OPF | `transmission_losses` param | Partial | Dict syntax `{'mode': 'tangents', 'segments': 3}` poorly documented; deprecation notice vague |
-| A-11 Distributed slack | `slack_weightings` param in `n.optimize()` | Yes | Documented with examples |
-| A-12 Multi-period BESS | `StorageUnit` + time series snapshots | Yes | StorageUnit tutorial with `cyclic_state_of_charge`, charging/discharging efficiency documented |
+- **Completable from docs alone:** 5 of 10 (A-1, A-2, A-5, A-10, A-12)
+- **Required source code / GitHub issues:** 3 of 10 (A-3, A-6, A-9)
+- **Required trial-and-error / guessing:** 2 of 10 (A-4, A-11)
 
-**Key documentation gaps (from consumed observations):**
+## Key Documentation Gaps
 
-1. **`n.lpf_contingency()` bug (A-7):** The function is documented with correct signature and description, but the Python 3.12 compatibility bug (`pd.Index` not recognized as `collections.abc.Sequence`) is not mentioned in any changelog, GitHub issue tracker prominent warning, or docs. A user following the docs would hit this bug with no guidance.
+1. **Shadow price assignment:** The docs do not explain that branch constraint duals
+   are not assigned to `n.lines_t.mu_upper`/`mu_lower` after `optimize()`. Users must
+   discover the linopy model constraint access pattern independently.
 
-2. **Shadow prices / `mu_upper` empty (A-3):** The PyPSA docs show `n.buses_t.marginal_price` for LMPs but do not document that `n.lines_t.mu_upper` is empty after `n.optimize()`. The workaround via `n.model.constraints["Line-fix-s-upper"].dual` requires reading linopy source code.
+2. **Transformer `b` field semantics:** The dual meaning of the `b` attribute
+   (shunt susceptance for AC, series susceptance for DC B-matrix) is not documented.
+   This causes silent AC PF divergence when using a DC-oriented loader.
 
-3. **`transmission_losses` deprecation (A-10):** The v1.1.2 docs mention the dict syntax but the deprecation warning in the code (`FutureWarning`) is more informative than the docs themselves. No migration guide is present.
+3. **SCOPF transformer exclusion:** The restriction of `branch_outages` to Line-only
+   components is not mentioned in the API documentation or docstring.
 
-4. **PYPOWER ppc `.values` requirement (A-1):** `import_from_pypower_ppc` documentation does not state that array fields must be numpy arrays (not DataFrames). This is a silent failure — DataFrames cause wrong results, not an error.
+4. **Two-stage UC/ED workflow:** No example or guide shows how to fix a commitment
+   schedule and re-solve as economic dispatch.
 
-**Strengths:**
-- Comprehensive "Components" reference docs for all PyPSA component types
-- Good optimization tutorial with worked examples (AC vs DC formulations)
-- API reference auto-generated from docstrings is mostly complete
-- Official examples on GitHub cover most standard use cases
-- `StorageUnit` multi-period BESS (A-12) is well-documented with examples
+5. **Mixin architecture and SubNetwork API:** Advanced computational methods
+   (`calculate_PTDF`, `calculate_BODF`, `calculate_B_H`) are only discoverable
+   through source code reading (observation: doc-gaps B-6).
 
-## Implications
-
-Documentation is B-level: strong fundamentals with notable gaps on advanced features and compatibility issues. The undocumented `lpf_contingency` bug is the most significant gap — it causes a test to fail with no documented workaround. Shadow price access and `transmission_losses` deprecation are secondary gaps. A new user could achieve ~75% of the Suite A tests from docs alone.
+6. **PTDF bus ordering:** The convention that PTDF columns follow `sub_network.buses_o`
+   order (not `n.buses.index`) is not documented (observation: doc-gaps B-9).
