@@ -1,0 +1,455 @@
+tool: pandapower
+source_version: "v10"
+timestamp: "2026-03-14T00:00:00Z"
+
+evaluation_summary:
+  total_tests: 60
+  pass: 24
+  fail: 12
+  qualified_pass: 2
+  informational: 14
+  skip: 8
+  # Note: skip count (8) reflects cascaded C-SMALL-gate blockage from A-5, not
+  # independent scale failures. C-5 has separate SMALL (pass) and MEDIUM (skip) files.
+
+findings:
+  - id: pandapower-F01
+    category: test_design_gap
+    severity: high
+    test_ids: [C-4, C-1, C-2, C-3, C-5, C-7, C-8, C-9, C-10]
+    title: C-SMALL gate design conflates feature absence with scale failure, muting 8 MEDIUM tests
+    description: >
+      The protocol requires C-4 (SCUC on SMALL) to pass before unlocking MEDIUM-tier
+      scalability tests. For pandapower, C-4 fails because SCUC is absent from the
+      tool's scope, not because of any scale limitation. This design choice causes 8
+      MEDIUM tests — covering DCPF, ACPF, DC OPF, solver swap, SCOPF, PTDF, and
+      distributed-slack OPF at scale — to be reported as skipped rather than executed.
+      The tool demonstrably handles DCPF at 28K buses in 0.4 s (G-FNM-3) and ACPF at
+      2K buses in 1.3 s (C-5 SMALL), yet these observations cannot be compared across
+      tools at the MEDIUM tier because the gate design blocks execution. The net effect
+      is that the scalability grade for a tool with a narrow feature scope is always
+      under-evidenced, regardless of its actual scale performance within its scope.
+    evidence:
+      - file: evaluations/pandapower/results/scalability/C-4_scuc_small.md
+        excerpt: "Skipped because Suite C SMALL gate failed (C-4 failed with blocked_by: A-5). The SMALL gate failure was a cascaded failure from A-5 (SCUC unsupported), not a scale-related failure."
+      - file: evaluations/pandapower/results/scalability/C-1_dcpf_medium.md
+        excerpt: "Result: SKIP — Skipped because Suite C SMALL gate failed (C-4 failed with blocked_by: A-5)."
+      - file: evaluations/pandapower/results/synthesis.md
+        excerpt: "8 MEDIUM-tier tests skipped due to C-SMALL-gate; no actual scale failures observed; FNM DCPF solved 28K buses in 0.4s"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+    # Redesign: C-SMALL gate should only block MEDIUM tests that *depend* on the
+    # failed feature (e.g., C-4 fail blocks C-SCUC-MEDIUM). Feature-agnostic MEDIUM
+    # tests (C-1 DCPF, C-2 ACPF, C-3 DC OPF) should be independently runnable.
+
+  - id: pandapower-F02
+    category: missing_verification
+    severity: medium
+    test_ids: [A-2, C-5]
+    title: ACPF convergence residual not verifiable — protocol accepts private-attribute iteration count as verification
+    description: >
+      The A-2 pass condition requires the convergence residual to be "reported and
+      below the tool's stated tolerance." pandapower does not expose the final NR
+      residual as a scalar from the public API; the exact mismatch value is not stored
+      in any result attribute. The test records "convergence_residual: null" in the
+      frontmatter and notes "below 1e-8 (tolerance_mva setting; exact value not
+      extractable)." Iteration count (4) is accessible only via the private
+      net._ppc["iterations"] attribute. The pass is accepted on the basis of 100%
+      of buses diverging from the flat-start 1.0 pu, which demonstrates convergence
+      indirectly but does not satisfy the letter of the pass condition. The tolerance_mva
+      parameter itself has an unfixed unit-interpretation bug (issue #2750) that is noted
+      but not flagged as a qualification.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-2_acpf.md
+        excerpt: "Convergence residual: below 1e-8 (tolerance_mva setting; exact value not extractable)"
+      - file: evaluations/pandapower/results/expressiveness/A-2_acpf.md
+        excerpt: "Note on tolerance_mva: pandapower documents this parameter as MVA but internally compares against per-unit mismatches (known bug #2750, unfixed in v3.4.0)."
+      - file: evaluations/pandapower/results/observations/convergence-quality-expressiveness-A-2_acpf.md
+        excerpt: "pandapower's Newton-Raphson solver reports iteration count via net._ppc['iterations'] (private attribute) but does not expose the final convergence residual as a scalar."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+    # Proposed: Protocol should accept indirect convergence evidence (voltage profile
+    # divergence from flat start + iteration count) as sufficient when the tool does
+    # not expose a residual scalar, documenting this as a diagnostic quality limitation
+    # rather than treating residual-absence as a pass-condition gap.
+
+  - id: pandapower-F03
+    category: misleading_result
+    severity: medium
+    test_ids: [A-3]
+    title: DC OPF branch shadow prices extracted from internal _ppc structure, but result counted as "no workaround"
+    description: >
+      A-3 is scored as a clean pass with workaround_class: null. The pass condition
+      requires shadow prices (dual values on flow limits) to be "extractable." The
+      result shows LMPs are available via the public res_bus.lam_p column, which is
+      correctly labeled as no-workaround. However, branch shadow prices (MU_SF/MU_ST)
+      are extracted from net._ppc["branch"][:, 13:15] — a private internal PYPOWER
+      array requiring knowledge of PYPOWER column indices. The result text notes "Branch
+      shadow prices require accessing the internal net._ppc structure" but still counts
+      the test as no-workaround. The synthesis reiterates "OPF duals discarded during
+      result extraction" as an arch-quality finding. This is accurately documented but
+      the scoring does not reflect the friction involved in extracting branch duals.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-3_dcopf.md
+        excerpt: "Branch shadow prices: Extracted from net._ppc['branch'][:, 13:15] (MU_SF, MU_ST columns). With 70% derating, all 46 branches have non-zero shadow prices."
+      - file: evaluations/pandapower/results/expressiveness/A-3_dcopf.md
+        excerpt: "Branch shadow prices require accessing the internal net._ppc structure, but the test's pass condition only requires LMP/shadow price extractability, which is satisfied by the public API."
+      - file: evaluations/pandapower/results/synthesis.md
+        excerpt: "OPF duals discarded during result extraction: The 6-layer architecture is clean, but constraint multipliers and shadow prices from the PYPOWER result dict are dropped during DataFrame conversion (B-6, severity: medium)"
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+    # Proposed: Pass condition for A-3 should distinguish between LMP extraction
+    # (public API) and branch dual extraction (internal API), scoring the branch
+    # dual extraction as a mild workaround rather than no-workaround.
+
+  - id: pandapower-F04
+    category: network_insufficiency
+    severity: medium
+    test_ids: [A-11, B-8]
+    title: Distributed slack tests on 39-bus TINY network — single slack bus and no physical evidence of LMP sensitivity
+    description: >
+      A-11 (distributed slack OPF) and B-8 (reference bus configuration) both run on
+      the 39-bus TINY network. A-11 fails because pandapower does not support distributed
+      slack OPF — a correct and well-supported finding. However, B-8's comparative LMP
+      analysis would be poorly designed even for a capable tool: with only 1 ext_grid
+      (slack) in the base model, the "three slack configurations" test manually
+      reconstructs the network with different element types. For distributed slack
+      specifically, the TINY network has no quantitative evidence that LMPs differ in
+      a "physically consistent manner" because the feature is absent; the protocol's
+      pass condition for A-11 requires LMP comparison against single-slack results —
+      impossible to verify when the feature is missing. The network size itself is not
+      the core issue, but a network with only one existing slack element limits the
+      ability to stress-test slack configuration behavior for tools that do support it.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-11_distributed_slack_opf.md
+        excerpt: "LMPs are identical across all 39 buses. The distributed_slack=True kwarg is silently accepted by rundcopp() via **kwargs but has zero effect on the PYPOWER optimization."
+      - file: evaluations/pandapower/results/extensibility/B-8_reference_bus_config.md
+        excerpt: "Maximum LMP change: 8.58 $/MWh (between configs 1 and 2/3)"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+    # Proposed: A-11 pass condition should clarify that for tools not supporting
+    # distributed slack OPF, the test measures API transparency (does the tool
+    # surface a clear error or silently absorb the parameter?) rather than LMP
+    # comparison. A "silent kwarg absorption" outcome should have an explicit scoring
+    # category distinct from "feature not implemented."
+
+  - id: pandapower-F05
+    category: missing_verification
+    severity: high
+    test_ids: [A-3, A-9]
+    title: A-3 binding branch count inflated — all 46 branches reported as shadow-price-nonzero under 70% derating
+    description: >
+      A-3's pass condition requires "at least 2 branches with non-zero shadow prices
+      (binding flow constraints)" with 70% derating. The pandapower result reports
+      "Binding branches: 46 of 46" — every branch has a nonzero shadow price. This
+      is anomalous: in a well-posed DC OPF on a 39-bus system with differentiated
+      costs, far fewer than all 46 branches would typically be at their flow limit
+      simultaneously. A possible explanation is that the PYPOWER interior-point solver
+      returns small nonzero duals on inactive constraints (numerical noise) rather
+      than true structural binding. The result does not distinguish between genuinely
+      binding constraints and near-zero duals, and there is no reported threshold for
+      what qualifies as a "non-zero shadow price." The test passes because the minimum
+      threshold (2 binding) is easily met, but the 46-of-46 result is suspicious and
+      was not investigated further.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-3_dcopf.md
+        excerpt: "Binding branches: 46 of 46 | Lines > 95% loading: 7"
+      - file: evaluations/pandapower/results/expressiveness/A-3_dcopf.md
+        excerpt: "Branch shadow prices: Extracted from net._ppc['branch'][:, 13:15] (MU_SF, MU_ST columns). With 70% derating, all 46 branches have non-zero shadow prices, far exceeding the 2-branch minimum threshold."
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: convergence_check
+    proposed_action: add_verification
+    # Probe: Re-run A-3 DC OPF, extract branch shadow prices with an explicit
+    # threshold (e.g., |dual| > 1e-4 $/MWh), compare against the loading_percent
+    # column for the same branches, and verify that shadow-price-nonzero branches
+    # are actually at or near (>99%) their thermal limit.
+
+  - id: pandapower-F06
+    category: misleading_result
+    severity: medium
+    test_ids: [G-FNM-3]
+    title: G-FNM-3 classified as data_ingestion_error but no alternative ingestion path was tested
+    description: >
+      G-FNM-3 fails due to localized angle deviations of 14-21 degrees in ~101 buses,
+      triggering the hard-fail (596.6% max branch flow deviation). The result classifies
+      this as "data_ingestion_error" because 0% of the failing buses are adjacent to
+      transformers with non-unity tap ratios, ruling out formulation difference. However,
+      the classification is limited: only one ingestion path was tested (MATPOWER PPC
+      fallback via matpowercaseframes + from_ppc). No attempt was made to ingest the
+      FNM via intermediate CSV or another route that might avoid the localized anomaly.
+      The claim that this is an ingestion-path artifact rather than a pandapower solver
+      characteristic is plausible but not verified by testing an alternative path. The
+      synthesis acknowledges this as a workaround path but does not flag the
+      classification confidence limitation.
+    evidence:
+      - file: evaluations/pandapower/results/fnm_ingestion/G-FNM-3_dcpf_verification.md
+        excerpt: "Deviation pattern: systematic bias (~14-21 degrees) in a connected cluster, not scattered across the network. Classification: data_ingestion_error (not formulation_difference)"
+      - file: evaluations/pandapower/results/fnm_ingestion/G-FNM-3_dcpf_verification.md
+        excerpt: "input_path: matpower — Used pre-cleaned fnm_main_island.m via matpowercaseframes.CaseFrames + from_ppc (same ingestion path as G-FNM-1, using MATPOWER fallback since pandapower has no native CSV import)."
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+    # Proposed: If intermediate CSV import were attempted (even with manual mapping),
+    # it would allow distinguishing whether the localized cluster deviation is
+    # path-dependent. This is a protocol limitation: the FNM fallback path is the
+    # only viable option for pandapower, so the single-path limitation is inherent.
+
+  - id: pandapower-F07
+    category: test_design_gap
+    severity: medium
+    test_ids: [A-5, A-6, A-9, A-10, A-11, A-12]
+    title: Six expressiveness tests are structural scope assessments, not capability probes — all confirm tool-design-boundary in same way
+    description: >
+      Five of the six expressiveness failures (A-5 SCUC, A-9 SCOPF, A-10 Lossy OPF,
+      A-11 Distributed Slack OPF, A-12 Multi-Period Storage OPF) follow the same
+      pattern: the test checks for a feature that is architecturally outside pandapower's
+      scope as a steady-state network analysis tool, confirms its absence by API
+      inspection, and correctly records a blocking fail. While each failure is accurate
+      and correctly scored, the tests function as scope boundary audits rather than
+      capability probes. The timing entries for these tests (0.75–2.07 s) are
+      "import and capability check only" — not solves — and the LOC (73–338) reflects
+      the length of the audit code rather than any implemented capability. The cumulative
+      effect is that 60% of expressiveness tests are measuring what pandapower is not,
+      rather than how well it does what it claims to do. The remaining 4 tests (A-1,
+      A-2, A-3, A-4) that pandapower passes are all within its declared scope and
+      pass cleanly. This is a protocol-design issue, not an evaluator error.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-5_scuc.md
+        excerpt: "Wall-clock: 0.79 s (import and capability check only — no solve attempted)"
+      - file: evaluations/pandapower/results/expressiveness/A-9_scopf.md
+        excerpt: "Wall-clock: 0.83 s (includes network loading, base-case DC OPF solve, and contingency analysis attempt)"
+      - file: evaluations/pandapower/results/expressiveness/A-11_distributed_slack_opf.md
+        excerpt: "Result: FAIL — rundcopp() accepts arbitrary **kwargs and silently ignores distributed_slack=True without raising an error or warning."
+      - file: evaluations/pandapower/results/synthesis.md
+        excerpt: "5 independent blocking failures (SCUC, SCOPF, lossy OPF, distributed slack OPF, multi-period OPF)"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+    # Proposed: Add a sub-dimension or secondary scoring axis for "expressiveness within
+    # declared scope" to distinguish scope-boundary tools (pandapower, matpower) from
+    # scope-broader tools (pypsa, gridcal). The current protocol scores all failures
+    # equally regardless of whether the tool claims the capability.
+
+  - id: pandapower-F08
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [A-3]
+    title: DC OPF objective ($156,929) appears plausible but OPF solver iterations not reported — convergence verification relies only on boolean flag
+    description: >
+      A-3 reports DC OPF convergence in 0.10 s solve time with objective $156,929.
+      The PYPOWER interior-point solver does not report iteration count for the DC OPF
+      case (convergence_iterations: null in frontmatter). The pass is accepted on the
+      basis of "OPF converged = True." The known case9 DC OPF silent failure mentioned
+      in D-3 demonstrates that the PYPOWER solver can return converged=True for
+      degenerate cases. The objective value and LMP spread ($76.05/MWh) are physically
+      plausible for the 39-bus case with 70% branch derating, and the full dispatch
+      table is reported, providing indirect verification. However, no residual or
+      iteration count confirms true optimality.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-3_dcopf.md
+        excerpt: "Solver iterations: not reported by PYPOWER DC OPF solver | OPF converged: True"
+      - file: evaluations/pandapower/results/accessibility/D-3_example_verification.md
+        excerpt: "15/16 examples pass; case9 DC OPF fails silently"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: convergence_check
+    proposed_action: add_verification
+    # Probe: Verify A-3 result by cross-checking the dual feasibility: for a binding
+    # DC OPF, the LMPs should satisfy the stationarity condition (LMP at generator bus
+    # equals its marginal cost when at its limit, or the shadow-price-adjusted marginal
+    # cost when not at its limit). Check 2-3 generator buses to confirm LMP == marginal
+    # cost relationship rather than just accepting the converged boolean.
+
+  - id: pandapower-F09
+    category: low_signal
+    severity: low
+    test_ids: [G-1, G-2, G-3]
+    title: Gate tests are effectively universal passes across all tools — low discriminative value
+    description: >
+      All three gate tests (G-1 TINY, G-2 SMALL, G-3 MEDIUM) pass for pandapower with
+      standard MATPOWER .m file ingestion. The gate tests only check bus/branch/gen
+      counts and absence of NaN values. They do not test any formulation capability
+      or data fidelity. For all tools evaluated, loading a standard MATPOWER case is
+      expected to succeed; a gate failure would represent a fundamental tool bug or
+      wrong file format rather than a meaningful discriminator. The load times (0.085 s
+      for TINY) are not even compared across tools as a performance metric.
+    evidence:
+      - file: evaluations/pandapower/results/gate/G-1_ingest_tiny.md
+        excerpt: "Result: PASS — Actual counts: 39 buses / 46 branches / 10 generators. Load time: 0.085s. Errors/warnings: None."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+    # Proposed: Gate tests should verify a minimum functional capability (e.g., DCPF
+    # convergence + result structure) rather than just element count matching, to provide
+    # some discriminative signal across tools.
+
+  - id: pandapower-F10
+    category: scoring_inconsistency
+    severity: medium
+    test_ids: [B-1, B-9]
+    title: B-9 PTDF extraction via internal net._ppc scores as clean pass while B-1 accessing _ppc for duals scores as fragile qualified_pass
+    description: >
+      B-9 (PTDF extraction) is scored as a clean pass (workaround_class: null) even
+      though it requires accessing net._ppc["bus"] and net._ppc["branch"] to get the
+      PYPOWER bus/branch arrays. The result notes "Access to these arrays requires the
+      internal net._ppc attribute (set after solving DCPF), but this is the standard
+      pandapower pattern for accessing PYPOWER-level data." In contrast, B-1 (custom
+      constraints) is scored as qualified_pass/fragile partly because it requires
+      capturing data from the PYPOWER result dict before pandapower discards it.
+      Both tests access the same _ppc internal structure, but B-9 is treated as
+      no-workaround while B-1 is fragile. The distinction is that B-9 only reads from
+      _ppc (post-solve, stable) while B-1 intercepts _ppc during solve (requiring
+      monkey-patching), but this distinction is not made explicit in the scoring rationale.
+    evidence:
+      - file: evaluations/pandapower/results/extensibility/B-9_ptdf_extraction.md
+        excerpt: "Workarounds: None required. Access to these arrays requires the internal net._ppc attribute (set after solving DCPF), but this is the standard pandapower pattern for accessing PYPOWER-level data."
+      - file: evaluations/pandapower/results/extensibility/B-1_custom_constraints.md
+        excerpt: "Workaround: Replicated pandapower's internal _optimal_powerflow function to inject a PYPOWER userfcn callback and capture the PYPOWER result dict. Durability: fragile."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+    # Proposed: Explicitly define the line between "standard pandapower pattern for
+    # internal access" (acceptable, no-workaround) and "fragile internal intercept"
+    # (workaround-fragile). Reading post-solve _ppc arrays should be documented as
+    # a stable pattern; intercepting the solve pipeline should remain fragile.
+
+  - id: pandapower-F11
+    category: missing_verification
+    severity: low
+    test_ids: [B-3]
+    title: B-3 contingency sweep counts every DCPF call as converged but connectivity may mask topology errors
+    description: >
+      B-3 reports "3,276 contingency cases, 100% converged." However, pandapower's
+      DCPF is a direct linear solve that always "converges" (the system Ax=b either
+      has a solution or the network is disconnected). The convergence rate is checked
+      via check_connectivity=True in the rundcpp call, which raises an error for
+      disconnected networks. The 100% figure therefore reflects "no disconnection
+      errors" rather than "physically meaningful convergence." For cases with load
+      loss (924 of 3,276), the DCPF may produce solution values for the connected
+      components while ignoring the disconnected load — which is correct behavior but
+      means the result includes some trivial cases. This is an accurate characterization
+      of DCPF behavior but is not explicitly noted in the result.
+    evidence:
+      - file: evaluations/pandapower/results/extensibility/B-3_contingency_sweep.md
+        excerpt: "Converged cases: 3,276 (100%) | Cases with load loss: 924 (28.2%)"
+      - file: evaluations/pandapower/results/extensibility/B-3_contingency_sweep.md
+        excerpt: "Ran pp.rundcpp(net, check_connectivity=True), detected unsupplied buses via top.unsupplied_buses(net)"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+    # Proposed: Protocol should clarify that for DCPF contingency sweeps, "converged"
+    # means "direct solve completed on connected components" and should require
+    # distinguishing this from ACPF-style iterative convergence.
+
+  - id: pandapower-F12
+    category: test_design_gap
+    severity: medium
+    test_ids: [A-11]
+    title: Silent **kwargs absorption is a test-design boundary case — FAIL and feature-absent-with-misleading-API are distinct failure modes
+    description: >
+      A-11 fails because pandapower does not support distributed slack OPF. However,
+      the failure mode is more nuanced than simple feature absence: rundcopp() silently
+      accepts distributed_slack=True via **kwargs, produces identical results to
+      single-slack, and raises no warning. This is qualitatively different from a tool
+      that raises NotImplementedError (unambiguous absence) and different from a tool
+      that actually implements the feature. The protocol currently has no scoring
+      category for "feature absent with misleading API behavior" — it records the
+      same FAIL as a tool that raises an error. The misleading API could cause real
+      users to believe the feature is active, which is a safety concern for production
+      use. The A-11 result correctly documents this, but the FAIL status does not
+      capture the severity distinction.
+    evidence:
+      - file: evaluations/pandapower/results/expressiveness/A-11_distributed_slack_opf.md
+        excerpt: "rundcopp() accepts arbitrary **kwargs and silently ignores distributed_slack=True without raising an error or warning. This could mislead users into thinking the feature is active."
+      - file: evaluations/pandapower/results/expressiveness/A-11_distributed_slack_opf.md
+        excerpt: "OPF LMP comparison: LMPs are identical across all 39 buses. Difference: 0.0 at every bus."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+    # Proposed: Add a sub-category for fails: "absent" (tool raises error or lacks
+    # function) vs "silent-mismatch" (tool accepts parameter, runs, but produces
+    # incorrect results). Silent-mismatch should carry a penalty in accessibility
+    # scoring beyond the expressiveness FAIL.
+
+  - id: pandapower-F13
+    category: infrastructure_friction
+    severity: medium
+    test_ids: [G-FNM-1, G-FNM-3, G-FNM-4]
+    title: FNM MATPOWER fallback path required for all pandapower FNM tests — tests measure format-compatibility, not pandapower capability
+    description: >
+      pandapower has no native intermediate CSV ingestion capability. All FNM Suite G
+      tests use the MATPOWER PPC fallback path (matpowercaseframes.CaseFrames + from_ppc).
+      This means the FNM tests for pandapower are measuring the quality of the
+      MATPOWER fallback preprocessing rather than pandapower's own data model. The
+      G-FNM-3 failure (localized 596.6% flow deviation) is attributed to "the MATPOWER
+      PPC import path's handling of specific impedance details" — which may not be a
+      pandapower problem at all. The G-FNM-4 ACPF infeasibility is partly attributed
+      to "PPC import path loses AC-critical transformer data." A tool with native CSV
+      import might handle these cases differently. The FNM tests therefore measure
+      pandapower's performance on a preprocessed, format-converted version of the FNM
+      rather than on the FNM directly.
+    evidence:
+      - file: evaluations/pandapower/results/fnm_ingestion/G-FNM-1_intermediate_ingestion.md
+        excerpt: "input_path: matpower"
+      - file: evaluations/pandapower/results/fnm_ingestion/G-FNM-3_dcpf_verification.md
+        excerpt: "pandapower has no native CSV import capability. The MATPOWER PPC format is the standard programmatic entry point."
+      - file: evaluations/pandapower/results/synthesis.md
+        excerpt: "The ACPF non-convergence is attributable to a combination of factors: 1. Data ingestion path limitations. pandapower ingests the FNM via the MATPOWER PPC path, which flattens transformer-specific data."
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+    # Proposed: G-FNM test results for tools using the MATPOWER fallback path should
+    # be tagged with a path_type field (native_csv | matpower_fallback) so cross-tool
+    # comparison of FNM results appropriately accounts for the preprocessing step.
+
+extraordinary_claims:
+  - test_id: A-3
+    claim: "All 46 branches have non-zero shadow prices with 70% branch derating on the 39-bus TINY network"
+    concern: >
+      In a well-posed DC OPF on a 39-bus network with 46 branches and 10 generators,
+      having every single branch simultaneously at its flow limit (all 46 binding) is
+      physically unexpected. Interior-point solvers can produce small non-zero duals
+      on inactive constraints due to complementary slackness relaxation. Only 7 branches
+      are reported above 95% loading, which is inconsistent with all 46 having binding
+      shadow prices. The threshold for "non-zero" shadow price is not reported.
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: convergence_check
+    # Probe: Extract branch shadow prices with an explicit magnitude threshold
+    # (|dual| > 1e-4 or > 0.1 $/MWh), compare against branch loading_percent,
+    # and verify that claimed-binding branches are actually at or near flow limit.
+    # Expected: 7-15 branches binding (matching the 7 branches >95% loading),
+    # not all 46.
+
+  - test_id: B-4
+    claim: "240 DC OPF solves at 22.3 ms/solve with 100% convergence rate across all 20 scenarios x 12 hours"
+    concern: >
+      22.3 ms per DC OPF solve on a 39-bus network is physically reasonable. The
+      concern is the 100% convergence rate across scenarios with differentiated costs
+      and renewable scenario multipliers. With aggressive scenario multipliers, some
+      scenarios may produce infeasible dispatch (renewables exceed load or generators
+      hit limits). The result notes "no infeasibility checks across scenarios were
+      performed." If all 240 scenarios trivially converge, the test may not be
+      exercising meaningful stochastic variation. The scenario_multipliers_50x24.csv
+      details are not shown, so it is unclear how extreme the scenarios are.
+    evidence_quality: weak
+    probe_recommended: false
+    probe_type: null
+    # Note: The 3.6% spread across hour-1 scenarios suggests scenarios are
+    # not extreme, making the 100% convergence rate plausible. Low concern.

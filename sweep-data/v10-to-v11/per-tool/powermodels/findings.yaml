@@ -1,0 +1,384 @@
+tool: powermodels
+source_version: "v10"
+timestamp: "2026-03-14T00:00:00Z"
+
+evaluation_summary:
+  total_tests: 37
+  pass: 12
+  fail: 5
+  qualified_pass: 16
+  informational: 4
+
+findings:
+
+  - id: pm-F01
+    category: misleading_result
+    severity: high
+    test_ids: [A-5, C-4]
+    title: "SCUC qualified_pass awarded when PowerModels provides zero UC capability"
+    description: >
+      Both A-5 (TINY) and C-4 (SMALL) receive qualified_pass status despite PowerModels
+      contributing nothing to the unit commitment formulation beyond file parsing. The
+      entire MILP -- binary commitment variables, min up/down time constraints, startup
+      cost terms, ramp coupling -- was assembled by the evaluator from scratch using raw
+      JuMP. A qualified_pass with a "blocking" workaround class on the tool's most
+      operationally important expressiveness feature conveys that PowerModels can do SCUC
+      with effort; the accurate characterization is that PowerModels cannot do SCUC and
+      the result measures the evaluator's ability to write a JuMP MILP.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-5_scuc_TINY.md"
+        excerpt: "PowerModels used ONLY for data parsing ... Everything else is raw JuMP"
+      - file: "evaluations/powermodels/results/scalability/C-4_scuc_scale_SMALL.md"
+        excerpt: "PowerModels v0.21.5 does NOT natively support SCUC; the entire UC formulation (~300 LOC) was user-assembled"
+      - file: "evaluations/powermodels/results/expressiveness/A-5_scuc_TINY.md"
+        excerpt: "workaround_class: blocking"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F02
+    category: misleading_result
+    severity: high
+    test_ids: [C-8]
+    title: "SCOPF MEDIUM awarded pass despite not converging within the time budget"
+    description: >
+      C-8 records status: pass even though the Benders decomposition completed only 1 of
+      an unknown required number of iterations before the 600s time budget was exhausted.
+      The result file itself states "Benders converged: No (1 iteration, time budget)."
+      The protocol states C-8 is a "measurement test" where metrics are recorded regardless
+      of convergence, but awarding pass to a non-converged SCOPF run overstates capability.
+      A qualified_pass noting incomplete convergence would more accurately represent the
+      result. The same SCOPF algorithm converged in ~110s at SMALL scale (A-9), so the
+      MEDIUM result meaningfully limits practical usability.
+    evidence:
+      - file: "evaluations/powermodels/results/scalability/C-8_scopf_scale_MEDIUM.md"
+        excerpt: "Benders converged: No (1 iteration, time budget)"
+      - file: "evaluations/powermodels/results/scalability/C-8_scopf_scale_MEDIUM.md"
+        excerpt: "status: pass ... wall_clock_seconds: 595.18"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "C-8 SCOPF MEDIUM (pass, 1 iteration, not converged) -- Only 1 Benders iteration completed within 595s budget. Verify whether a non-converged result qualifies as pass vs. qualified_pass"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F03
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [A-9]
+    title: "SCOPF TINY qualified_pass on an N-1 infeasible network"
+    description: >
+      A-9 demonstrates the two-level API SCOPF mechanism on a network that is provably
+      N-1 infeasible under the Modified Tiny load profile. The iterative algorithm runs
+      exactly 1 iteration, then hits infeasibility because the joint N-1 constraint set
+      is overconstrained. The mechanism verification claim -- that SCOPF "works correctly"
+      -- rests entirely on confirming that 46/46 individual single-contingency SCOPFs are
+      feasible and that joint N-1 infeasibility is mathematically correct for this network.
+      This is plausible but the test does not verify that the Benders algorithm converges
+      to a secure solution on any network; the only convergence evidence is for the trivial
+      base-case OPF. The qualified_pass may overstate what was demonstrated.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-9_scopf_TINY.md"
+        excerpt: "Full SCOPF LP (all 46 N-1 simultaneously): INFEASIBLE ... Iterative iterations: 1 (hits infeasibility at iteration 2)"
+      - file: "evaluations/powermodels/results/expressiveness/A-9_scopf_TINY.md"
+        excerpt: "convergence_iterations: 1"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: add_verification
+
+  - id: pm-F04
+    category: test_design_gap
+    severity: medium
+    test_ids: [G-FNM-3]
+    title: "DCPF verification test mandates solve_dc_pf (DCPPowerModel) when DCMPPowerModel exists and would likely pass"
+    description: >
+      G-FNM-3 hard-fails (2.43% bus angle pass rate) because the test specification
+      requires solve_dc_pf, which internally uses DCPPowerModel's simplified B-matrix
+      that ignores transformer tap ratios. The evaluator identifies that DCMPPowerModel
+      (full B-matrix including taps) exists in PowerModels and "could potentially produce
+      results closer to the MATPOWER reference" but was not tested because the spec
+      requires a specific function. The failure reflects a test design choice (constraining
+      the API to use) rather than a fundamental tool limitation. A production user would
+      select the appropriate formulation for their network characteristics.
+    evidence:
+      - file: "evaluations/powermodels/results/fnm_ingestion/G-FNM-3_dcpf_verification.md"
+        excerpt: "PowerModels' DCMPPowerModel formulation would incorporate taps into the B-matrix but is not available through solve_dc_pf ... this was not tested because the task specification explicitly requires solve_dc_pf"
+      - file: "evaluations/powermodels/results/fnm_ingestion/G-FNM-3_dcpf_verification.md"
+        excerpt: "Bus angle pass rate: 678 (2.43%) ... Root cause: DCPPowerModel uses a simplified B-matrix"
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: redesign_test
+
+  - id: pm-F05
+    category: missing_verification
+    severity: medium
+    test_ids: [A-2, A-4, C-5]
+    title: "ACPF convergence accepted without residual or iteration count due to API gap"
+    description: >
+      compute_ac_pf returns only a Bool termination_status with no NR iteration count and
+      no convergence residual exposed in the result dict. At TINY and SMALL scale the
+      result file validates convergence indirectly (100% of PQ buses have Vm != 1.0 pu,
+      Vm range within physical bounds). This indirect check does not verify convergence
+      residual below the standard tolerance and cannot detect partial convergence where
+      the solver stopped early due to iteration limits. The protocol requires reporting
+      both iteration count and residual; both are structurally unavailable for the
+      compute_ac_pf path.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-2_acpf_TINY.md"
+        excerpt: "convergence_residual: null ... convergence_iterations: null ... NR iteration count and convergence residual not exposed"
+      - file: "evaluations/powermodels/results/expressiveness/A-2_acpf_TINY.md"
+        excerpt: "Convergence verified indirectly from: termination_status == true ... 100% of PQ buses (29/29) have Vm ≠ 1.0 pu"
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: pm-F06
+    category: scoring_inconsistency
+    severity: medium
+    test_ids: [A-12, A-5]
+    title: "A-12 awarded pass (not qualified_pass) despite three simultaneous stable workarounds"
+    description: >
+      A-12 records status: pass with three simultaneous workarounds -- solver switch to
+      SCIP for MIQP, manual cyclic SoC constraint injection, and two-phase LMP extraction
+      via fix-and-price. The evaluation synthesis flags this as a human spot-check item:
+      "verify whether three simultaneous workarounds should remain pass or be reclassified
+      as qualified_pass." By contrast, A-5 receives qualified_pass with a blocking
+      workaround. The distinction between pass-with-three-stable-workarounds and
+      qualified_pass is not consistently applied. All three workarounds in A-12 are
+      non-obvious and domain-specific; a new user would not discover any of them from
+      PowerModels documentation.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-12_multiperiod_dcopf_storage_TINY.md"
+        excerpt: "status: pass ... Three workarounds were required: 1. Solver switch (SCIP) ... 2. Cyclic SoC via manual JuMP constraint injection ... 3. Two-phase LMP extraction"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "A-12 (pass with 3 stable workarounds) -- SCIP solver switch, cyclic SoC manual constraint, two-phase LMP extraction. Verify whether three simultaneous workarounds should remain pass or be reclassified as qualified_pass"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: pm-F07
+    category: infrastructure_friction
+    severity: medium
+    test_ids: [G-FNM-1, G-FNM-2, G-FNM-3, G-FNM-4]
+    title: "FNM ingestion suite tests MATPOWER fallback capability, not PowerModels PSS/E parsing"
+    description: >
+      The entire FNM ingestion suite was executed against the MATPOWER fallback file
+      (fnm_main_island.m) because PowerModels' PSS/E v31 parser crashes on the Case
+      Identification header. The fallback is a pre-cleaned main-island subset with
+      record deficits vs. the manifest (bus -8.1%, load -42.7%). G-FNM-2's 100%
+      DCPF-critical field coverage and G-FNM-1's qualified_pass both measure MATPOWER
+      PPC format ingestion, not PowerModels' claimed PSS/E capability. The PSS/E failure
+      is characterized as a 1-2 day fix, but its effect on the FNM test suite results
+      is structural: all FNM test conclusions apply to the MATPOWER fallback path only.
+    evidence:
+      - file: "evaluations/powermodels/results/fnm_ingestion/G-FNM-1_intermediate_ingestion.md"
+        excerpt: "input_path: matpower"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "FNM ingestion used the MATPOWER .m fallback because PowerModels' PSS/E v31 RAW parser crashes on the Case Identification header"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "Record counts show deficits vs. manifest (bus -8.1%, load -42.7%, gen -0.5%, branch -3.6%) because the fallback is a pre-cleaned main-island subset"
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+
+  - id: pm-F08
+    category: scoring_inconsistency
+    severity: low
+    test_ids: [F-3, F-8]
+    title: "SCIP license classification conflict between F-3 (ZIB Academic) and F-8 (Apache 2.0)"
+    description: >
+      F-3 classifies SCIP_jll v0.2.1 (SCIP 8.0.0) as ZIB Academic License and flags it
+      as non-commercial. F-8 classifies the same artifact as Apache 2.0 and concludes it
+      is permissive for commercial use, explicitly noting "prior assessment incorrectly
+      identified SCIP as ZIB Academic." Both tests reference the same Julia environment
+      and the same binary. The conflict is unresolved in the evaluation and is called out
+      as a human spot-check item in the synthesis. The A- supply chain grade depends on
+      whether SCIP (which is required for A-12 multi-period storage OPF) is commercially
+      usable.
+    evidence:
+      - file: "evaluations/powermodels/results/supply_chain/F-3_dependency_license_audit.md"
+        excerpt: "SCIP_jll v0.2.1 (SCIP 8.0.0): ZIB Academic -- Non-commercial only"
+      - file: "evaluations/powermodels/results/supply_chain/F-8_solver_dependency_assessment.md"
+        excerpt: "SCIP v8.0 (November 2021) switched from the ZIB Academic License to Apache 2.0 ... The SCIP_jll v0.2.1 in this manifest wraps SCIP 8.0, confirmed by SCIP.SCIPversion() returning 8.0"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "F-3 vs. F-8 SCIP license discrepancy -- F-3 classifies SCIP_jll as ZIB Academic; F-8 reports SCIP 8.0.0 as Apache 2.0. Both reference the same JLL version. Needs definitive resolution"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: claim_verification
+    proposed_action: add_verification
+
+  - id: pm-F09
+    category: network_insufficiency
+    severity: low
+    test_ids: [A-5]
+    title: "39-bus network cycling guardrail is weak: only 3 of 10 generators cycle, all at end-of-horizon"
+    description: >
+      A-5 demonstrates UC cycling by showing 3 of 10 generators decommitting in hours
+      H22-H24 of a 24-hour horizon with no recommitment. All transitions are shutdowns
+      (3 shutdown events, 0 startups). The 39-bus network's high capacity-to-load ratio
+      (7,367 MW / 6,254 MW peak = 1.18x) means commitment decisions are economically
+      marginal: the optimizer sheds expensive gas CC units during the last few hours
+      only. A network with tighter capacity margins or more diverse cost structure would
+      force more meaningful cycling (mid-cycle startups, alternating unit commitment).
+      The result verifies the MILP constraint logic but does not demonstrate robust
+      UC cycling behavior.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-5_scuc_TINY.md"
+        excerpt: "Total shutdowns: 3. Total startups: 0 (generators only decommit toward end of horizon, no recommitment needed within 24h)"
+      - file: "evaluations/powermodels/results/expressiveness/A-5_scuc_TINY.md"
+        excerpt: "case39 has a high capacity-to-load ratio (7,367 MW capacity vs 6,254 MW peak load)"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: pm-F10
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [C-3, C-7]
+    title: "GLPK convergence on MEDIUM DCOPF contradicts v9 timeout failure; no explanation for improvement"
+    description: >
+      C-3 reports GLPK converging on the MEDIUM 10k-bus DC OPF in 61.86s wall-clock
+      time. The result file notes: "In the v9 evaluation, GLPK hit the 300s time limit
+      without finding an optimal solution. In this v10 run, GLPK converged in 61.86s.
+      The difference may be due to JIT warm-up improving the model construction or solver
+      configuration differences." No definitive explanation is provided. The 5x speedup
+      (300s+ to 61.86s) without a protocol change is extraordinary and could reflect a
+      solver configuration difference, a cost linearization change (v10 linearizes 45.5%
+      of quadratic costs which v9 may not have), or a test artifact. This matters because
+      the GLPK comparison is part of C-7 solver swap testing and affects the A- supply
+      chain assessment (GLPK is GPL v3).
+    evidence:
+      - file: "evaluations/powermodels/results/scalability/C-3_dcopf_scale_MEDIUM.md"
+        excerpt: "Improvement from v9: In the v9 evaluation, GLPK hit the 300s time limit without finding an optimal solution. In this v10 run, GLPK converged in 61.86s. The difference may be due to JIT warm-up improving the model construction or solver configuration differences."
+      - file: "evaluations/powermodels/results/scalability/C-3_dcopf_scale_MEDIUM.md"
+        excerpt: "Generators cost-linearized: 1,130 (45.5%) ... GLPK wall-clock: 63.20s"
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+  - id: pm-F11
+    category: low_signal
+    severity: low
+    test_ids: [B-6]
+    title: "Architecture audit (B-6) is documentation-based with no runtime execution"
+    description: >
+      B-6 (code architecture) is classified as a pass based on a static audit of the
+      PowerModels source tree structure and documentation review. No code is executed.
+      The test contributes to the A- extensibility grade but measures the evaluator's
+      reading of source code rather than any runtime capability. The four-layer
+      architecture finding -- while accurate -- would be reproducible through any source
+      code inspection and does not differentiate PowerModels from other tools in a
+      runtime-measurable way. This is likely the pattern for all tools in the evaluation.
+    evidence:
+      - file: "evaluations/powermodels/results/extensibility/B-6_code_architecture.md"
+        excerpt: "Test: N/A ... Time: -- ... LOC: --"
+      - file: "evaluations/powermodels/results/synthesis.md"
+        excerpt: "B-6 Architecture audit | N/A | pass | -- | -- | -- | -- |"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: pm-F12
+    category: extraordinary_claim
+    severity: low
+    test_ids: [C-9]
+    title: "PTDF timing discrepancy: B-9 MEDIUM (106s) vs C-9 MEDIUM (7.55s) on identical API call"
+    description: >
+      B-9 ran at MEDIUM scale (same 10k-bus network, same calc_basic_ptdf_matrix call)
+      in 106.44s total. C-9 ran the same call in 7.55s total. The result file attributes
+      the 14x speedup to JIT warm-up. This implies the JIT compilation overhead for
+      PTDF computation alone is ~100s, which is extraordinary for a function that
+      performs dense linear algebra on a known-size matrix. The explanation is plausible
+      (Julia's JIT for specialized BLAS/sparse operations can be significant) but the
+      magnitude suggests either the test conditions differ in ways not captured, or the
+      "warm JIT" claim for C-9 should be verified against the actual test sequence.
+    evidence:
+      - file: "evaluations/powermodels/results/scalability/C-9_ptdf_scale_MEDIUM.md"
+        excerpt: "B-9: make_basic_network 15.5s, calc_basic_ptdf_matrix 35.5s, total 106.44s | C-9: make_basic_network 1.16s, calc_basic_ptdf_matrix 2.37s, total 7.55s ... The large performance improvement is due to JIT warm-up."
+      - file: "evaluations/powermodels/results/scalability/C-9_ptdf_scale_MEDIUM.md"
+        excerpt: "timing_source: measured"
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+  - id: pm-F13
+    category: test_design_gap
+    severity: low
+    test_ids: [A-6]
+    title: "SCED test bypasses UC stage by design, making it an independent ED test"
+    description: >
+      A-6 explicitly bypasses the SCUC stage because PowerModels cannot do UC, treating
+      all generators as committed. This reduces SCED to a pure multi-period ED LP. The
+      test correctly documents this as a "stable scope reduction" workaround. However,
+      the rubric criterion for A-6 is SCED (Security-Constrained Economic Dispatch with
+      commitment), not standalone ED. The resulting qualified_pass grades a capability
+      PowerModels does have (multi-period LP with ramp constraints) rather than the
+      capability being assessed. The test result is accurate but the scoring may overstate
+      SCED capability since the security-constraint component (binding N-1 contingency
+      constraints on dispatch) is also absent.
+    evidence:
+      - file: "evaluations/powermodels/results/expressiveness/A-6_sced_TINY.md"
+        excerpt: "Since A-5 (SCUC) is a blocking fail, the UC stage is bypassed: all generators are assumed committed across all periods."
+      - file: "evaluations/powermodels/results/expressiveness/A-6_sced_TINY.md"
+        excerpt: "workaround_class: stable ... Grade impact: B-level. The two-stage architecture is cleanly separable. The ED stage is fully implemented via documented API. The UC gap is a hard capability boundary"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+extraordinary_claims:
+
+  - test_id: C-8
+    claim: >
+      SCOPF MEDIUM awarded status: pass after completing only 1 Benders iteration within
+      the 600s budget, with 17 identified binding contingencies and 8 blocks added, but
+      without converging to a security-constrained optimal solution.
+    concern: >
+      The protocol states C-8 is a "measurement test," but pass status is awarded for a
+      non-converged run. The remaining 9 binding contingency blocks were not added within
+      budget, meaning the "optimal" objective ($2,162,360/h) reflects only partial
+      security constraint coverage. A tool that runs faster on the contingency screening
+      loop could produce a converged result within the same budget.
+    evidence_quality: strong
+    probe_recommended: true
+    probe_type: convergence_check
+
+  - test_id: A-9
+    claim: >
+      SCOPF TINY mechanism is "fully demonstrated" via a qualified_pass on a network
+      where the full N-1 SCOPF is provably infeasible, and the iterative algorithm
+      completed only 1 iteration before terminating.
+    concern: >
+      The claim that the mechanism is verified rests on 46 individual single-contingency
+      SCOPFs being feasible, but the key question -- does the Benders cutting-plane
+      algorithm converge to a security-constrained dispatch when one exists? -- is
+      never answered because the network chosen is N-1 infeasible under the evaluation
+      load profile. A different network configuration or load profile would be needed to
+      demonstrate convergence.
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: formulation_audit
+
+  - test_id: G-FNM-3
+    claim: >
+      DCPF hard-fails on the FNM production network (2.43% bus angle pass rate) due to
+      DCPPowerModel ignoring transformer tap ratios, but DCMPPowerModel (full B-matrix)
+      was not tested despite being available in PowerModels.
+    concern: >
+      The test result presents a tool failure that may actually be a test design failure:
+      constraining the test to solve_dc_pf (which hardcodes DCPPowerModel) when
+      DCMPPowerModel is available and would produce a physically correct result for a
+      transformer-heavy network. The synthesis calls this out as a human spot-check item.
+    evidence_quality: strong
+    probe_recommended: true
+    probe_type: formulation_audit

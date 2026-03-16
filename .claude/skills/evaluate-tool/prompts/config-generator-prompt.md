@@ -126,7 +126,17 @@ Build an execution DAG that respects:
 4. Audit dimensions can run in parallel with code dimensions on the same tier
 5. Observation consumers must run after their producers complete
 6. Suite G (FNM ingestion) runs after the gate step, in parallel with or after TINY functional tests. Suite G is independent of Suites A-F (no dependency in either direction). Mark the Suite G DAG step with `fnm_path_gated: true` so the orchestrator can skip it when FNM_PATH is not set.
-7. **Suite C SMALL tier gate.** For Suite C (scalability), the SMALL-tier DAG step must be marked `c_scale_gate: true`. The MEDIUM-tier step for scalability must appear as a separate, subsequent DAG step. The orchestrator will skip the MEDIUM step if any SMALL test fails.
+7. **Suite C SMALL tier gate (v11 semantics).** For Suite C (scalability), the SMALL-tier
+   DAG step must be marked `c_scale_gate: true`. The MEDIUM-tier step for scalability must
+   appear as a separate, subsequent DAG step. The orchestrator applies the following gate logic:
+   - **Only MILP MEDIUM tests are gated by C-4 (SCUC SMALL).** If C-4 fails, skip MILP
+     MEDIUM tests (C-4 MEDIUM and any future MILP-dependent tests).
+   - **LP and PF MEDIUM tests run unconditionally** regardless of C-4 outcome. These include
+     C-1 (DCPF MEDIUM), C-2 (ACPF MEDIUM), C-3 (DCOPF MEDIUM), C-9 (PTDF MEDIUM),
+     C-10 (distributed slack MEDIUM).
+   - **C-8 (SCOPF MEDIUM) is gated only by C-3** (DCOPF MEDIUM), not by C-4.
+   Mark LP/PF MEDIUM tests with `milp_gated: false` and MILP MEDIUM tests with
+   `milp_gated: true` in the DAG step entries so the orchestrator can apply selective gating.
 
 Structure as ordered steps, each listing dimensions + tier + test IDs that can run in parallel:
 
@@ -169,7 +179,7 @@ grouped semantically (e.g., by shared setup requirements or dependency chains).
 # Generated: <timestamp>
 
 tool: {{tool_name}}
-protocol_version: "v10"
+protocol_version: "v11"
 
 networks:
   TINY:
@@ -204,7 +214,12 @@ dimensions:
     consumes: []
     tests:
       - id: G-1
+        test_category: gate_minimum_bar  # excluded from pass rate statistics
         # ... full test details
+      - id: G-2
+        test_category: gate_minimum_bar
+      - id: G-3
+        test_category: gate_minimum_bar
 
   - name: expressiveness
     criterion_number: 1

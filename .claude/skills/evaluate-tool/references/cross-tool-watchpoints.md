@@ -352,6 +352,123 @@ When evaluating G-FNM-3:
 - A trivial solution combined with correct ingestion counts (G-FNM-1 passing) points
   to a formulation or solver configuration issue rather than a data problem
 
+## DCOPF Soft Constraints (Hard Limit Enforcement)
+
+Standard DC OPF must enforce branch thermal limits as hard constraints — the LP
+formulation must forbid branch flows from exceeding their derated ratings in the optimal
+solution. Some tools use soft branch flow constraints (LP slack variables) that allow
+branches to exceed thermal limits by absorbing the violation into a penalty term in the
+objective function.
+
+**Why this matters:** Soft constraints produce LMPs that reflect penalty costs, not true
+congestion relief costs. This affects market clearing validity and congestion revenue
+adequacy. A tool with soft-constraint DCOPF will pass basic LMP extraction tests but may
+award incorrect credit for hard-constraint enforcement.
+
+**Detection method:** After solving DCOPF, check `max(loading_percent)` across all
+branches. If any branch exceeds 100% (allowing a numerical tolerance of 1e-4 p.u. =
+0.01% for solver precision), the tool uses soft constraints. Source code inspection may
+reveal explicit slack variables (`flow_slacks_pos`, `flow_slacks_neg`). A confirming
+test: set all branch ratings to zero — a hard-constraint DCOPF must report infeasibility;
+a soft-constraint solver will return a "feasible" solution where all limits are violated.
+
+**Classification for A-3:** If max_loading > 1.0 + 1e-4 p.u. in the DCOPF solution,
+classify A-3 as `partial_pass` (not `pass`) and document the penalty coefficient. Soft-
+constraint DCOPF is a legitimate numerical stabilization technique but must be labeled.
+
+**Confirmed instance:** GridCal `linear_opf` uses soft constraints (probe-005, v10-to-v11 sweep).
+
+## Display Rounding vs Full Precision
+
+Do not use `round(..., N)` or equivalent fixed-point formatting when storing deviation
+metrics in result files. Six-decimal-place rounding causes sub-1e-6 deviations to
+display as 0.000000, making non-zero floating-point noise indistinguishable from
+true machine-zero agreement.
+
+**Required format for deviation metrics (G-FNM-3 and any test reporting numerical deviations):**
+- Python: `f'{value:.6e}'` (scientific notation)
+- Julia: `@sprintf("%.6e", value)`
+- Octave: `sprintf("%.6e", value)`
+
+This applies to `max_deviation_deg`, `max_deviation_mw`, and any other deviation field.
+Pass/fail thresholds are unchanged — only the storage format changes.
+
+**Evidence:** Probe-001 (pypsa G-FNM-3, v10-to-v11 sweep) confirmed that a reported
+0.0 deviation is actually 1.07e-8 degrees of float64 noise.
+
+## SCIP_jll License — Binary vs Wrapper
+
+In the Julia JLL ecosystem, binary artifact licenses frequently differ from the Julia
+wrapper package license. For SCIP specifically:
+
+| SCIP_jll version | SCIP binary version | License |
+|-----------------|---------------------|---------|
+| v0.2.1+0 | 8.0.0 | ZIB Academic (non-commercial) |
+| v800.0.300+0 | 8.0.3 | Apache 2.0 (commercial ok) |
+
+The Apache 2.0 switch happened at SCIP 8.0.3, not 8.0.0. The Julia wrapper package
+itself uses MIT, but the binary artifact license governs actual deployments.
+
+**When auditing JLL packages (F-3, F-8):**
+1. Record the Julia wrapper package license from `Pkg.status()` metadata.
+2. Record the bundled binary artifact license from the JuliaBinaryWrappers release README
+   and the upstream source tarball.
+3. If they differ, the **binary license governs** the supply chain classification.
+4. Use `SCIPversion()` or equivalent to determine the actual binary version at runtime
+   — do not rely solely on the Julia package version number.
+
+**Evidence:** Probe-010 (powermodels SCIP, v10-to-v11 sweep) confirmed F-3 correct
+(ZIB Academic at v0.2.1=8.0.0). The Apache 2.0 assumption in F-8 was incorrect.
+
+## Convergence Diagnostics — Julia Logging API
+
+Several Julia power system tools emit convergence diagnostics at `@info` log level that
+are suppressed by default when the global logger is set to `Logging.Error` or higher.
+Before concluding that a tool "provides no convergence diagnostics," enable info logging:
+
+```julia
+using Logging
+with_logger(ConsoleLogger(stderr, Logging.Info)) do
+    result = solve_powerflow(sys, method)
+end
+```
+
+Or capture to a string buffer:
+```julia
+log_buffer = IOBuffer()
+with_logger(ConsoleLogger(log_buffer, Logging.Info)) do
+    result = solve_powerflow(sys, method)
+end
+log_output = String(take!(log_buffer))
+```
+
+**Convergence evidence quality tiers (highest to lowest):**
+1. `residual_reported` — solver API exposes final Newton-Raphson residual value
+2. `iteration_count_reported` — iteration count available via API or log capture
+3. `binary_convergence_api` — return type structurally indicates convergence (e.g., `missing` on failure vs `Dict` on success)
+4. `proxy_voltage` — inferred from voltage profile diverging from flat-start defaults
+
+Attempt all tiers. Document which tier was achieved in `convergence_evidence_quality`
+frontmatter. See `result-template.md` for the frontmatter field definition.
+
+**Evidence:** Probe-013 (powersimulations A-2, v10-to-v11 sweep) confirmed that
+PowerFlows.jl emits `[ Info: The NewtonRaphsonACPowerFlow solver converged after N iterations. ]`
+when `@info` logging is enabled — the original evaluation suppressed this.
+
+## C-SMALL Gate Scope (v11 Change)
+
+As of protocol v11, the C-SMALL gate no longer blocks all MEDIUM-tier scalability tests:
+
+- **LP and power-flow MEDIUM tests** (C-1 DCPF, C-2 ACPF, C-3 DCOPF, C-9 PTDF, C-10
+  distributed slack) **run unconditionally** — they are not gated by C-4 (SCUC SMALL).
+- **MILP MEDIUM tests** remain gated by C-4. A tool that fails C-4 should not receive
+  credit for MILP capability at MEDIUM scale.
+- **C-8 SCOPF** is gated only by C-3 (DCOPF MEDIUM), not by C-4.
+
+The config-generator will enforce this in the DAG. When reviewing skip results, verify
+that LP/PF MEDIUM tests are not recorded as `blocked_by: C-SMALL-gate` — that would
+indicate stale results from a v10 evaluation.
+
 ## A-12 Multi-Period DCOPF with Storage
 
 A-12 exercises multi-period DCOPF with inter-temporal storage constraints. Key

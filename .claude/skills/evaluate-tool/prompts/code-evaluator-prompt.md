@@ -259,11 +259,52 @@ prior evaluation rounds. Apply them to all relevant tests.
   for all hours is the expected optimal solution. The test then verifies formulation
   expressiveness rather than commitment optimality. If the protocol modifies network
   parameters to force cycling, verify that at least some generators cycle.
+  **Binding verification sub-step (v11):** After the primary solve, re-run with
+  `min_up_time=min_down_time=0` and compare commitment schedules. If at least one
+  generator's commitment changes, the constraints were binding — record the generator
+  index and the commitment change. If schedules are identical, note that binding was
+  not confirmed. Attempt to extract MIP gap from the solver; if unavailable, document
+  as a formulation transparency limitation.
 
 - **Cascaded failure distinction (Suite C):** If a scalability test fails solely
   because its prerequisite expressiveness test failed (e.g., C-4 fails because A-5
   failed), record `blocked_by: <prerequisite_test_id>` in the result frontmatter.
   This distinguishes independent failures from cascaded ones.
+
+- **DCOPF hard constraint check (A-3):** After solving DCOPF, check the maximum
+  branch loading across all branches. If `max(loading_percent) > 100 + 1e-4`
+  (i.e., any branch exceeds its thermal limit by more than numerical tolerance),
+  the tool uses soft branch flow constraints. Record `status: partial_pass` (not
+  `pass`) and document the penalty coefficient if determinable. A hard-constraint
+  DCOPF must produce max_loading ≤ 100% (+ 1e-4 tolerance) in the optimal solution.
+
+- **Full-precision result storage:** All numerical deviation metrics must be stored
+  in scientific notation (:.6e format), not fixed-point (:.6f). Fixed-point rounding
+  at 6 decimal places causes sub-1e-6 deviations to display as 0.000000. Use
+  `f'{value:.6e}'` in Python, `@sprintf("%.6e", value)` in Julia.
+
+- **Suite C thread reporting:** All Suite C (scalability) result files must include
+  `cpu_threads_used` and `cpu_threads_available` in frontmatter. Record the actual
+  thread count used by the solver (check solver-specific APIs or documentation), not
+  an assumption. For MILP tests (C-4, C-8), if the solver supports parallelism,
+  report both 1-thread and max-thread wall-clock times if feasible.
+
+- **A-6/B-6 SCED mode recording:** Record `sced_mode` in frontmatter:
+  - `full_sced` — two-stage SCUC+SCED with security constraints (full capability)
+  - `ed_with_security` — multi-period ED with N-1 security constraints but no UC
+  - `ed_only` — multi-period economic dispatch only (no UC, no security constraints)
+  Check whether A-5 (SCUC) passed before setting A-6 mode. If A-5 failed or was
+  unsupported, A-6 can be at most `ed_only` or `ed_with_security`.
+
+- **Suite G ingestion path recording:** For all G-FNM tests, record `ingestion_path`
+  in frontmatter: `pss_e_v33` if native PSS/E v33 parsing succeeded, `matpower_ppc`
+  if the tool ingested via PyPOWER/MATPOWER PPC dict/struct, `matpower_raw` if loaded
+  from a `.m` or `.mat` file. This field is required even if G-FNM-1 failed — record
+  the path actually used for G-FNM-3/4/5 regardless.
+  **v11 cascade change:** G-FNM-1 failure for PSS/E parsing does NOT cascade to block
+  G-FNM-3/4/5. These tests proceed using the MATPOWER fallback. Only G-FNM-2 (field
+  coverage audit) is blocked by G-FNM-1 PSS/E failure, since field coverage requires
+  the full intermediate CSV tables.
 
 ### Formulation Difference Classification (G-FNM-3)
 
@@ -368,10 +409,13 @@ Record which input path was used in the result frontmatter:
 - Attempt to load every intermediate CSV table from `$FNM_PATH/intermediate/`
 - If this fails (parse error, unsupported format, missing columns):
   - Record a `blocking` observation with tag `api-friction`, detail: PSS/E parse error
-  - Write G-FNM-1 result with `status: fail`, `failure_reason: psse_parse_error`
+  - Write G-FNM-1 result with `status: fail`, `failure_reason: psse_parse_error`,
+    `ingestion_path: null`
   - Write G-FNM-2 result with `status: skip`, `blocked_by: G-FNM-1`
+    (field coverage audit requires the full CSV tables — cannot proceed via fallback)
   - Proceed to G-FNM-3, G-FNM-4, G-FNM-5 using the MATPOWER fallback path
     (`data/fnm/reference/cleaned/fnm_main_island.mat`) — do NOT skip G-FNM-3/4/5
+  - Record `ingestion_path: matpower_raw` in G-FNM-3, G-FNM-4, G-FNM-5 result files
 
 **Sub-check (b): Record count fidelity (only if PSS/E parsing succeeded)**
 - Load `manifest.json` from `$FNM_PATH/intermediate/manifest.json`

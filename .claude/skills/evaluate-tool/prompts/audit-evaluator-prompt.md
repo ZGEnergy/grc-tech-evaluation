@@ -187,6 +187,15 @@ naming convention from the config.
 **F-8 — Solver dependency assessment:**
 - Confirm functionality on open-source solvers alone (HiGHS, SCIP, Ipopt, GLPK)
 - Flag any test cases requiring commercial solvers
+- **For Julia JLL packages:** The Julia wrapper package license (from `Pkg.status()`)
+  may differ from the bundled binary artifact license. Check both:
+  1. Julia wrapper license: from `Pkg.status()` or `Project.toml`
+  2. Binary artifact license: from the JuliaBinaryWrappers release README and the
+     upstream source tarball for the pinned version
+  If they differ, the **binary license governs** the supply chain classification.
+  For SCIP specifically: Apache 2.0 applies only at SCIP ≥ 8.0.3. Versions before
+  8.0.3 (including 8.0.0 = SCIP_jll v0.2.1) are ZIB Academic (non-commercial).
+  Use `SCIPversion()` at runtime to verify the actual binary version installed.
 
 **F-9 — Getting-started artifact integrity:**
 - Are official examples pinned to a specific release?

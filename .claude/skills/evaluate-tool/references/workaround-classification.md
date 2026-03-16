@@ -105,6 +105,45 @@ If a single test requires multiple workarounds, the overall classification is th
 - stable + fragile = fragile
 - anything + blocking = blocking
 
+## Outcome Tier Mapping
+
+Workaround class determines which status tiers are permissible:
+
+| workaround_class | Permitted status values |
+|-----------------|------------------------|
+| null | pass, fail, informational |
+| stable | pass, qualified_pass, fail |
+| fragile | qualified_pass, partial_pass, fail |
+| blocking | partial_pass, fail |
+
+**Critical rule:** `workaround_class: blocking` must never map to `qualified_pass`.
+A blocking workaround means the goal is not fully achievable with the tool as-is —
+this is `partial_pass` at best, or `fail` if the criterion is entirely unmet.
+
+### Five-Tier Outcome System
+
+The v11 protocol introduces five outcome tiers to replace the overloaded `qualified_pass`:
+
+- **pass** — No workaround needed. Pass condition fully met via documented public API.
+- **qualified_pass** — Stable workaround exists. Full capability demonstrated, low friction.
+  Workaround uses documented (possibly non-obvious) public API. Grade stays at B level.
+- **partial_pass** — Non-trivial workaround, some criterion unmet, moderate friction.
+  Maps from `workaround_class: fragile` or `blocking`. Scores below qualified_pass.
+- **constrained_pass** — Capability demonstrated under constraints that limit
+  generalizability (e.g., uncongested network, single-threaded solver, simplified
+  formulation, LP relaxation instead of true MILP). The result is valid but the
+  evaluation condition was not representative of typical deployment.
+- **fail** — Pass condition not met. Includes: solver crash on grade network, non-converged
+  OPF when convergence is required, blocking workaround where full capability is unachievable.
+
+**Solver crash semantics:** A solver crash (exception, signal, process kill) on the
+grade-network test is always `fail` — never `qualified_pass` or `constrained_pass`.
+Document the crash mode and any error output in the result file.
+
+**Non-converged SCOPF:** If a SCOPF solve runs but does not converge (e.g., Benders
+completes only 1 iteration due to time budget), record `constrained_pass` if partial
+results are informative, or `fail` if no useful output was produced.
+
 ## Taxonomy Enforcement
 
 Only three durability classes exist: **stable**, **fragile**, **blocking**. Do not invent

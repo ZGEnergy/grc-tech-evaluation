@@ -1,0 +1,60 @@
+tools:
+  pypsa:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pypsa/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pypsa/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pypsa/results/eval-config.yaml
+    result_count: 98
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/pypsa-v10 worktree)
+
+  pandapower:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pandapower/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pandapower/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/pandapower/results/eval-config.yaml
+    result_count: 94
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/pandapower-v10 worktree)
+
+  gridcal:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/gridcal/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/gridcal/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/gridcal/results/eval-config.yaml
+    result_count: 94
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/gridcal-v10 worktree)
+
+  powermodels:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powermodels/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powermodels/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powermodels/results/eval-config.yaml
+    result_count: 120
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/powermodels-v10 worktree)
+
+  powersimulations:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powersimulations/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powersimulations/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/powersimulations/results/eval-config.yaml
+    result_count: 67
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/powersimulations-v10 worktree)
+
+  matpower:
+    worktree: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11
+    results_dir: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/matpower/results
+    synthesis: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/matpower/results/synthesis.md
+    config: /home/joe/code/zge-workspace/grc-tech-evaluation/.claude/worktrees/sweep/v10-to-v11/evaluations/matpower/results/eval-config.yaml
+    result_count: 86
+    protocol_version: v10
+    status: available
+    note: results on main branch (merged from eval/matpower-v10 worktree)
