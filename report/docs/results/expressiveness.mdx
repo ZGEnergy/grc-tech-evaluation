@@ -140,12 +140,11 @@ they reflect a design scope limited to single-period steady-state analysis.
 <details className="eval-details">
 <summary>
 
-### GridCal — <span className="grade-c-plus">C+</span> (#4)
+### GridCal — <span className="grade-b-minus">B-</span> (#4)
 
 </summary>
 
-> **Note:** GridCal grades were reconstructed from sweep findings and
-> secondary test evidence. Primary synthesis was not conducted for this tool.
+> **Note:** GridCal's expressiveness grade was corrected from C+ to B- during principal review, reflecting that the TapPhaseControl bug cascade artificially inflated the apparent gap count and that native capabilities (DCPF, ACPF, DCOPF, contingency analysis, lossy DCOPF) warranted a higher baseline.
 
 GridCal provides clean power flow and basic OPF capability with pass on A-1
 through A-4 and A-7 at both TINY and MEDIUM scales. Lossy DCOPF (A-10) also
@@ -218,7 +217,7 @@ A-4 results.
 <details className="eval-details">
 <summary>
 
-### MATPOWER — <span className="grade-a-minus">A-</span> (Reference Only)
+### MATPOWER — <span className="grade-b-minus">B-</span> (Reference Only)
 
 </summary>
 
@@ -232,10 +231,11 @@ MATPOWER provides the broadest native expressiveness among all evaluated tools,
 serving as the baseline against which other tools are compared. It passes A-1
 through A-7 and A-9 through A-11 at TINY, with clean scaling to SMALL for most
 tests. A-8 (stochastic optimization) passes at TINY via MOST but was skipped at
-SMALL. The A- grade reflects one structural limitation: SCUC on the 39-bus
+SMALL. The B- grade reflects structural limitations: SCUC on the 39-bus
 network produces all-committed schedules with no unit cycling
 ([matpower-F05](./sweep-findings#matpower-f05)), reducing the discriminative
-value of the UC test.
+value of the UC test, and several MEDIUM-scale tests were not executed or
+produced incomplete results under Octave.
 
 | Test ID | TINY | SMALL | MEDIUM | Notes |
 |---------|------|-------|--------|-------|

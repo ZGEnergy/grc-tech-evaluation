@@ -1,15 +1,14 @@
 {
     "_provenance": {
         "sources": [
-            ".claude/worktrees/eval/pypsa-v4/evaluations/pypsa/results/synthesis.md",
-            ".claude/worktrees/eval/pandapower-v4/evaluations/pandapower/results/synthesis.md",
-            ".claude/worktrees/eval/powermodels-v4/evaluations/powermodels/results/synthesis.md",
-            ".claude/worktrees/eval/matpower-v4/evaluations/matpower/results/synthesis.md",
-            "sweep-data/v4-to-v5/per-tool/gridcal/findings.md",
-            "sweep-data/v4-to-v5/per-tool/powersimulations/findings.md",
-            "report/selection-report-v4.md"
+            "evaluations/pypsa/results/synthesis.md",
+            "evaluations/pandapower/results/synthesis.md",
+            "evaluations/powermodels/results/synthesis.md",
+            "evaluations/matpower/results/synthesis.md",
+            "evaluations/gridcal/results/synthesis.md",
+            "evaluations/powersimulations/results/synthesis.md"
         ],
-        "extracted": "2026-03-10"
+        "extracted": "2026-03-19"
     },
     "tools": [
         {
@@ -70,8 +69,7 @@
             "funding": "Individual maintainer; no institutional backing identified",
             "repository": "https://github.com/SanPen/GridCal",
             "version_tested": "5.6.28",
-            "profile_source": "reconstructed",
-            "_comment": "No synthesis file available; profile reconstructed from sweep findings and selection report grades"
+            "profile_source": "synthesis"
         },
         {
             "id": "powersimulations",
@@ -82,9 +80,8 @@
             "maintainer": "National Renewable Energy Laboratory (NREL)",
             "funding": "DOE/NREL funded",
             "repository": "https://github.com/NREL-Sienna/PowerSimulations.jl",
-            "version_tested": "0.27.x",
-            "profile_source": "reconstructed",
-            "_comment": "No synthesis file available; profile reconstructed from sweep findings and selection report grades. Version approximated from evaluation date."
+            "version_tested": "0.30.2",
+            "profile_source": "synthesis"
         }
     ]
 }

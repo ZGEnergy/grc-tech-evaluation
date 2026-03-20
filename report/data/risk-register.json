@@ -1,37 +1,44 @@
 {
     "_provenance": {
-        "source": "report/selection-report-v4.md",
-        "lines": "69-77",
-        "extracted": "2026-03-10"
+        "source": "report/selection-report-v10.md",
+        "lines": "98-105",
+        "extracted": "2026-03-19"
     },
     "risks": [
         {
             "id": "R1",
-            "title": "SCUC scalability",
+            "title": "No PSS/E RAW ingestion",
             "severity": "HIGH",
-            "description": "PyPSA SCUC times out at SMALL scale (2k-bus) with HiGHS single-threaded (A-5). The target FNM is ~6,000 buses.",
-            "mitigation": "Evaluate commercial-grade open-source solver configurations (HiGHS parallel, SCIP). Implement temporal decomposition (4-6 hour blocks). If PyPSA SCUC remains intractable, use PowerModels/JuMP for commitment stage only, feeding dispatch back to PyPSA."
+            "description": "PyPSA has no PSS/E RAW ingestion path; the full network model (FNM) is delivered in v31 format (G-FNM-1 fail). Phase 2 cannot start without a conversion pipeline.",
+            "mitigation": "Develop a PSS/E v31 → MATPOWER .m converter in Phase 2 pre-work using the shared matpower_loader that already passes G-FNM-3. Estimated 1–2 weeks. Validate against the MATPOWER DCPF baseline before any PyPSA optimization run."
         },
         {
             "id": "R2",
-            "title": "No native stochastic optimization",
+            "title": "No native PWL cost curves",
             "severity": "HIGH",
-            "description": "PyPSA has no stochastic formulation -- scenario trees, two-stage programs, and chance constraints are absent (A-8). This is a blocking gap for multi-scenario congestion analysis.",
-            "mitigation": "Implement deterministic scenario loop with post-hoc aggregation for Phase 2 MVP. Evaluate Linopy-level stochastic extension feasibility. Accept that stochastic optimization is a Phase 3 capability if native support is not forthcoming."
+            "description": "PyPSA has no native PWL cost curve support (tracked as issue #1020). Accurate LMP decomposition requires convex piecewise-linear heat rates.",
+            "mitigation": "Implement PWL costs via extra_functionality using SOS2 binary variables injected into the HiGHS MILP. Prototype and validate against PowerSimulations' native SOS2 output before committing to the architecture. Estimated 1–2 weeks."
         },
         {
             "id": "R3",
-            "title": "PWL cost curves require extension",
-            "severity": "MEDIUM",
-            "description": "Production market clearing uses piecewise-linear bid curves. PyPSA supports only linear/quadratic costs natively (P2-2). SOS2 formulation via extra_functionality is ~50-100 LOC.",
-            "mitigation": "Implement SOS2 PWL extension early in Phase 2. The extra_functionality callback API is stable and documented (B-1). Validate against MATPOWER reference solutions with identical cost data."
+            "title": "SCUC SMALL timeout",
+            "severity": "MED",
+            "description": "SCUC at SMALL scale fails due to HiGHS single-threaded MILP timeout (C-4). Production UC runs at the target scale will be larger.",
+            "mitigation": "Evaluate Gurobi or CPLEX as a drop-in HiGHS replacement for MILP workloads — PyPSA's solver interface is a single parameter change. If a commercial solver is unavailable in the classified environment, implement a Lagrangian relaxation pre-solve to warm-start HiGHS."
         },
         {
             "id": "R4",
-            "title": "Linopy post-processing bottleneck",
-            "severity": "MEDIUM",
-            "description": "Shadow-price extraction via linopy creates 10+ minute overhead at 10k-bus scale. This affects LMP computation in operational-speed workflows.",
-            "mitigation": "Profile linopy shadow-price path and identify optimization targets. Evaluate direct solver dual extraction bypassing linopy post-processing. If unresolvable, accept longer solve times for planning studies and implement caching for repeated analyses."
+            "title": "Shadow price assignment bug",
+            "severity": "MED",
+            "description": "Shadow price assignment bug: lines_t.mu_upper and lines_t.mu_lower are silently empty after n.optimize(). Congestion pricing logic in Phase 2 depends on binding constraint duals.",
+            "mitigation": "Use n.statistics() to extract shadow prices post-solve and validate against manually computed dual variables on a small reference network before integrating into LMP decomposition. File an upstream bug report."
+        },
+        {
+            "id": "R5",
+            "title": "Transformer b field dual semantics",
+            "severity": "LOW",
+            "description": "PyPSA's transformer b field carries dual semantics (susceptance vs. tap-ratio) that are undocumented. Incorrect FNM parameterization will produce silently wrong power flows.",
+            "mitigation": "Establish a transformer round-trip test: load FNM, run DCPF, compare branch flows to the MATPOWER baseline used in G-FNM-3. Enforce this as a regression gate before any production optimization run."
         }
     ]
 }
