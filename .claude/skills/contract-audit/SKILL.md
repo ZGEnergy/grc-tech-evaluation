@@ -57,7 +57,11 @@ SENSITIVITY_JSON = report/data/sensitivity.json
 
 ## Phase 1: Gather Context
 
-Read these files in parallel — you need all of them before proceeding:
+Read these files in parallel — you need all of them before proceeding.
+
+**Note on gitignored files:** The SOW (`data/whitepaper_proposal.md`) is gitignored
+and will not appear in git worktrees. If you are running in a worktree, read the SOW
+from the main checkout at the repo root instead.
 
 1. **SOW document** (`data/whitepaper_proposal.md`) — extract every requirement,
    deliverable, and scope statement. Pay attention to Task 1.1, 1.2, 1.3 and the
@@ -107,9 +111,19 @@ These are the specific cross-page consistency checks that catch real errors:
 
 ## Phase 3: Run Reviewer Subagents
 
-Launch three reviewer subagents **in parallel** using the Agent tool. Each reviewer
-reads all deliverable content and produces a findings report. The reviewers are
-adversarial — they look for problems, not confirmation.
+Launch three reviewer subagents **in parallel** using the Agent tool. You MUST use the
+Agent tool to spawn independent subagents — do NOT perform the reviewer analyses
+yourself inline. This is not a performance optimization; it is a correctness
+requirement. The reason: each reviewer needs a fresh context window where it follows
+its prompt instructions without being influenced by the orchestrator's own cross-
+reference analysis from Phase 2. When you perform reviews inline, you unconsciously
+skip checks you've already "resolved" in your own analysis, missing issues that an
+independent reviewer would catch. The adversarial value of the reviewers comes from
+their independence.
+
+For each reviewer, read the corresponding prompt file, then pass its full content as
+the Agent prompt. Use `subagent_type: "Explore"` (read-only research agents). Launch
+all three in the same message so they run concurrently.
 
 ### Reviewer 1: Contract Officer Adversary
 

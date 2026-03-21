@@ -38,12 +38,18 @@ Files to cross-reference:
 - `report/data/sensitivity.json` vs `index.mdx` and `results/index.mdx`
 
 ### Head-to-Head Consistency
-- Capability ratings (Native/Workaround/Gap/Extension) in `head-to-head.json`
-  vs `results/head-to-head.mdx`
-- Watch for contradictions between summary tables and detailed sections
+- For EVERY capability row and EVERY tool in `head-to-head.json`, check that the
+  boolean (true/false) and detail string match the MDX summary table AND the
+  detailed per-capability sections. Do not skip rows — contradictions hide in
+  the rows that seem least important.
+- Specific rows known to have had issues: Distributed Slack (pandapower rated
+  "Native" in MDX detail but `false`/Gap in JSON), Custom Constraints (MATPOWER).
+- Watch for contradictions between the summary table at the top of head-to-head.mdx
+  and the detailed per-capability sections further down in the same page.
 
 Files to cross-reference:
-- `report/data/head-to-head.json` vs `results/head-to-head.mdx`
+- `report/data/head-to-head.json` vs `results/head-to-head.mdx` (both summary
+  table AND detailed sections)
 
 ### Phase 2 Scope Consistency
 - Scope tables in `index.mdx` should match `selection-report-v10.md` lines 109-137
