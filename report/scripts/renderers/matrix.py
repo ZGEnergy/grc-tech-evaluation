@@ -12,8 +12,8 @@ from chart_types import (
     FULL_WIDTH_PX,
     DEFAULT_HEIGHT_PX,
     TestResultsData,
+    register_renderer,
 )
-from generate_charts import register_renderer
 
 STATUS_COLORS: dict[str, str] = {
     "pass": "#4caf50",
