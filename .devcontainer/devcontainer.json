@@ -11,8 +11,9 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
   "mounts": [
-    "source=${localEnv:FNM_PATH},target=/data/fnm-source,type=bind,readonly"
+    "source=${localEnv:FNM_PATH:-/tmp/fnm-placeholder},target=/data/fnm-source,type=bind,readonly"
   ],
+  "initializeCommand": "mkdir -p ${FNM_PATH:-/tmp/fnm-placeholder}",
   "containerEnv": {
     "JULIA_DEPOT_PATH": "/opt/julia-depot",
     "FNM_PATH": "/data/fnm-source"

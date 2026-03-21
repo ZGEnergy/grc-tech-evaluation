@@ -25,7 +25,7 @@ The report site is only partially automated.
 
 Refresh the report from these upstream artifacts:
 
-- `report/selection-report-v4.md` or its successor for grades, rankings, risks,
+- `report/selection-report-v10.md` or its successor for grades, rankings, risks,
   and head-to-head conclusions
 - `sweep-data/<protocol-version>/aggregation/comparison-matrices.md` for
   per-test outcomes
@@ -62,7 +62,7 @@ Refresh the report from these upstream artifacts:
    - criterion pages under `report/docs/results/`
    - `report/docs/results/head-to-head.mdx`
    - `report/docs/tools-evaluated.mdx`
-   - `report/selection-report-v4.md` or its successor
+   - `report/selection-report-v10.md` or its successor
 
 5. Rebuild the site locally.
 

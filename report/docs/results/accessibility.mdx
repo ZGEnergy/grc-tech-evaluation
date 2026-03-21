@@ -11,7 +11,7 @@ import Placeholder from '@site/src/components/Placeholder';
 
 Accessibility measures how easy it is for a new user to install, learn, and productively use each tool. The Suite D tests evaluate documentation quality (D-2), API consistency (D-4), onboarding friction (D-1: time from install to first successful solve), example verification (D-3), and code volume required for standard tasks (D-5). This criterion carries **moderate priority** in the rubric — a tool with outstanding expressiveness but poor accessibility creates adoption risk and ongoing maintenance burden.
 
-The six tools split into three tiers. PyPSA and pandapower share the top tier (B+) with mature Python ecosystems, extensive documentation, and low onboarding friction. PowerModels earns B- due to strong API documentation offset by the Julia ecosystem learning curve. MATPOWER (B, reference only) benefits from decades of textbook references. GridCal and PowerSimulations share the bottom tier (C+), each with meaningful documentation gaps that raise the barrier to programmatic use.
+The six tools split into three tiers. PyPSA leads the top tier (A-) with pandapower close behind (B+), both benefiting from mature Python ecosystems, extensive documentation, and low onboarding friction. PowerModels earns B- due to strong API documentation offset by the Julia ecosystem learning curve. MATPOWER (B, reference only) benefits from decades of textbook references. GridCal and PowerSimulations share the bottom tier (C+), each with meaningful documentation gaps that raise the barrier to programmatic use.
 
 <Placeholder title="Accessibility Grade Comparison" />
 
@@ -20,7 +20,7 @@ The six tools split into three tiers. PyPSA and pandapower share the top tier (B
 <details className="eval-details" open>
 <summary>
 
-### PyPSA — <span className="grade-b-plus">B+</span> (#1)
+### PyPSA — <span className="grade-a-minus">A-</span> (#1)
 
 </summary>
 
@@ -86,8 +86,6 @@ The primary accessibility barrier is the Julia ecosystem itself: first-time Juli
 ### GridCal — <span className="grade-c-plus">C+</span> (#4)
 
 </summary>
-
-> **Note:** GridCal grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
 
 GridCal's primary interface is a GUI application, which provides excellent visual feedback for network construction and power flow analysis but creates a significant barrier for programmatic use. The scripting API documentation is sparse compared to the GUI documentation, and several API functions lack docstrings or usage examples. Users attempting to automate workflows must often reverse-engineer the GUI's behavior to find the correct API calls.
 
