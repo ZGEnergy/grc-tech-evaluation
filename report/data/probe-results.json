@@ -1,5 +1,6 @@
 {
     "_provenance": {
+        "_note": "Probes from v4-to-v5 sweep; no new probes conducted for v10. Findings remain valid and were incorporated into v10 grading.",
         "sources": [
             "sweep-data/v4-to-v5/probes/pypsa/probe-001.md",
             "sweep-data/v4-to-v5/probes/pypsa/probe-002.md",

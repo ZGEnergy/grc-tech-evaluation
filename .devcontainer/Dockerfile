@@ -8,6 +8,8 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 # === System packages (rarely changes) ===
 # Python 3.12 ships with Ubuntu 24.04.
 # Octave 8.x from apt. curl needed for Julia download and MATPOWER setup.
+# Node.js 22 LTS for Docusaurus report site build.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3 \
@@ -21,7 +23,10 @@ RUN apt-get update \
         unzip \
         curl \
         ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && node --version && npm --version
 
 # === Julia 1.10 installation (rarely changes) ===
 # Julia 1.10 is the current LTS release. Pinned here rather than using the
@@ -97,6 +102,15 @@ RUN julia --project=@format -e 'using Pkg; Pkg.add("JuliaFormatter"); Pkg.precom
 # Make depot writable by vscode user (packages installed as root during build,
 # but Pkg.instantiate() at runtime writes logs/pidfiles as vscode).
 RUN chmod -R a+rw /opt/julia-depot
+
+# === Report site dependencies ===
+# Copy lockfiles first so these layers are cached independently of source edits.
+# Python (chart generation + validation scripts)
+COPY report/pyproject.toml report/uv.lock /workspace/report/
+RUN cd /workspace/report && uv sync
+# Node.js (Docusaurus site build)
+COPY report/package.json report/package-lock.json /workspace/report/
+RUN cd /workspace/report && npm ci
 
 # === Full source copy (cheap — only adds/overwrites non-dep files) ===
 COPY . /workspace

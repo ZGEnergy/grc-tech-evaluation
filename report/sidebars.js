@@ -5,6 +5,7 @@ const sidebars = {
     'grid-primer',
     'use-cases-criteria',
     'tools-evaluated',
+    'contract-traceability',
     {
       type: 'category',
       label: 'Evaluation Results',

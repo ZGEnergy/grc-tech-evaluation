@@ -1,8 +1,8 @@
 {
     "_provenance": {
-        "source": "report/selection-report-v4.md",
-        "lines": "50-61",
-        "extracted": "2026-03-10"
+        "source": "report/selection-report-v10.md",
+        "lines": "84-91",
+        "extracted": "2026-03-19"
     },
     "capabilities": [
         {
@@ -10,21 +10,29 @@
             "pypsa": true,
             "powermodels": true,
             "powersimulations": false,
+            "pandapower": false,
+            "gridcal": true,
             "matpower": true,
             "pypsa_detail": "Native optimize_security_constrained() (A-9)",
-            "powermodels_detail": "Extension, ~140 LOC JuMP",
+            "powermodels_detail": "Workaround (~250 LOC user MILP)",
             "powersimulations_detail": "Gap",
+            "pandapower_detail": "Gap",
+            "gridcal_detail": "Native (consider_contingencies=True, A-9)",
             "matpower_detail": "Native MOST (A-9)"
         },
         {
             "capability": "Distributed Slack",
-            "pypsa": true,
-            "powermodels": true,
+            "pypsa": false,
+            "powermodels": false,
             "powersimulations": false,
+            "pandapower": false,
+            "gridcal": false,
             "matpower": true,
-            "pypsa_detail": "Extension via reference bus config",
-            "powermodels_detail": "Extension via API",
-            "powersimulations_detail": "Gap",
+            "pypsa_detail": "Gap (A-11; architecturally blocked in n.optimize())",
+            "powermodels_detail": "Gap (A-11 fail)",
+            "powersimulations_detail": "Gap (A-11 fail)",
+            "pandapower_detail": "Gap",
+            "gridcal_detail": "Gap (hardcoded off in OPF, A-11)",
             "matpower_detail": "Native makePTDF weights (B-9)"
         },
         {
@@ -32,10 +40,14 @@
             "pypsa": false,
             "powermodels": true,
             "powersimulations": true,
+            "pandapower": true,
+            "gridcal": false,
             "matpower": true,
-            "pypsa_detail": "Gap; SOS2 via extra_functionality ~50-100 LOC",
-            "powermodels_detail": "Native (P2-2)",
-            "powersimulations_detail": "Native (P2-2)",
+            "pypsa_detail": "Gap (issue #1020)",
+            "powermodels_detail": "Native (convex PWL, no SOS2)",
+            "powersimulations_detail": "Native (SOS2, all formulations)",
+            "pandapower_detail": "Native (create_pwl_cost())",
+            "gridcal_detail": "Not tested",
             "matpower_detail": "Native (P2-2)"
         },
         {
@@ -43,10 +55,14 @@
             "pypsa": false,
             "powermodels": true,
             "powersimulations": true,
+            "pandapower": false,
+            "gridcal": false,
             "matpower": true,
-            "pypsa_detail": "Gap; bridge via grg-psse, 1-2 days (P2-1)",
-            "powermodels_detail": "Native v33 parser (P2-1)",
-            "powersimulations_detail": "Native v30/32/33 (P2-1)",
+            "pypsa_detail": "Gap (no ingestion path, G-FNM-1 fail)",
+            "powermodels_detail": "Workaround (v33 only; 1–2d fix for v31)",
+            "powersimulations_detail": "Workaround (v33/35; 3–6wk for v31)",
+            "pandapower_detail": "Gap (no parser)",
+            "gridcal_detail": "Gap (v35 only; FNM is v31)",
             "matpower_detail": "Native psse2mpc() Rev 23-33+ (P2-1)"
         },
         {
@@ -54,21 +70,29 @@
             "pypsa": true,
             "powermodels": true,
             "powersimulations": true,
+            "pandapower": true,
+            "gridcal": true,
             "matpower": true,
-            "pypsa_detail": "Native, 2 LOC Linopy model split (B-1)",
-            "powermodels_detail": "Native, two-level JuMP API (B-1)",
-            "powersimulations_detail": "Extension",
+            "pypsa_detail": "Native (extra_functionality callback, B-1)",
+            "powermodels_detail": "Native (two-level API, B-1)",
+            "powersimulations_detail": "Extension (2–3wk, internal APIs)",
+            "pandapower_detail": "Workaround (monkey-patch, B-1)",
+            "gridcal_detail": "Workaround (fragile monkey-patch only, B-1)",
             "matpower_detail": "Native callbacks (B-1)"
         },
         {
             "capability": "UC/ED Pipeline",
-            "pypsa": true,
+            "pypsa": false,
             "powermodels": true,
             "powersimulations": true,
+            "pandapower": false,
+            "gridcal": true,
             "matpower": true,
-            "pypsa_detail": "SCUC times out at 2k-bus with HiGHS (A-5)",
-            "powermodels_detail": "SCUC requires ~140 LOC JuMP (A-5)",
-            "powersimulations_detail": "Native rich formulations (A-5, A-6)",
+            "pypsa_detail": "Gap (SCUC SMALL timeout, C-4 fail)",
+            "powermodels_detail": "Workaround (~250 LOC user MILP, A-5)",
+            "powersimulations_detail": "Native (ThermalStandardUnitCommitment, A-5)",
+            "pandapower_detail": "Gap (no UC capability)",
+            "gridcal_detail": "Native (24hr SCUC with min up/down, A-5)",
             "matpower_detail": "Native MOST (A-5, A-6)"
         }
     ]
