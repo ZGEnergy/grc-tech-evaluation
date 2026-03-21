@@ -1,6 +1,348 @@
 {
-  "generated_at": "2026-03-20T16:44:18.815548+00:00",
+  "generated_at": "2026-03-21T13:21:28.848287+00:00",
   "generator_version": "0.1.0",
-  "chart_count": 0,
-  "charts": []
+  "chart_count": 31,
+  "charts": [
+    {
+      "id": "bar_expressiveness",
+      "type": "bar",
+      "subject": "expressiveness_grades",
+      "files": {
+        "svg": "img/bar_expressiveness_grades.svg",
+        "png": "img/bar_expressiveness_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Expressiveness \u2014 Grade Comparison"
+    },
+    {
+      "id": "bar_extensibility",
+      "type": "bar",
+      "subject": "extensibility_grades",
+      "files": {
+        "svg": "img/bar_extensibility_grades.svg",
+        "png": "img/bar_extensibility_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Extensibility \u2014 Grade Comparison"
+    },
+    {
+      "id": "bar_scalability",
+      "type": "bar",
+      "subject": "scalability_grades",
+      "files": {
+        "svg": "img/bar_scalability_grades.svg",
+        "png": "img/bar_scalability_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Scalability \u2014 Grade Comparison"
+    },
+    {
+      "id": "bar_accessibility",
+      "type": "bar",
+      "subject": "accessibility_grades",
+      "files": {
+        "svg": "img/bar_accessibility_grades.svg",
+        "png": "img/bar_accessibility_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Accessibility \u2014 Grade Comparison"
+    },
+    {
+      "id": "bar_maturity",
+      "type": "bar",
+      "subject": "maturity_grades",
+      "files": {
+        "svg": "img/bar_maturity_grades.svg",
+        "png": "img/bar_maturity_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Maturity \u2014 Grade Comparison"
+    },
+    {
+      "id": "bar_supply_chain",
+      "type": "bar",
+      "subject": "supply_chain_grades",
+      "files": {
+        "svg": "img/bar_supply_chain_grades.svg",
+        "png": "img/bar_supply_chain_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Supply Chain \u2014 Grade Comparison"
+    },
+    {
+      "id": "heatmap_grades",
+      "type": "heatmap",
+      "subject": "grades",
+      "files": {
+        "svg": "img/heatmap_grades.svg",
+        "png": "img/heatmap_grades.png"
+      },
+      "data_source": "grades.json",
+      "title": "Grade Comparison Heatmap"
+    },
+    {
+      "id": "matrix_test-results-gate",
+      "type": "matrix",
+      "subject": "test-results-gate",
+      "files": {
+        "svg": "img/matrix_test-results-gate.svg",
+        "png": "img/matrix_test-results-gate.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 gate"
+    },
+    {
+      "id": "matrix_test-results-expressiveness",
+      "type": "matrix",
+      "subject": "test-results-expressiveness",
+      "files": {
+        "svg": "img/matrix_test-results-expressiveness.svg",
+        "png": "img/matrix_test-results-expressiveness.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 expressiveness"
+    },
+    {
+      "id": "matrix_test-results-extensibility",
+      "type": "matrix",
+      "subject": "test-results-extensibility",
+      "files": {
+        "svg": "img/matrix_test-results-extensibility.svg",
+        "png": "img/matrix_test-results-extensibility.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 extensibility"
+    },
+    {
+      "id": "matrix_test-results-scalability",
+      "type": "matrix",
+      "subject": "test-results-scalability",
+      "files": {
+        "svg": "img/matrix_test-results-scalability.svg",
+        "png": "img/matrix_test-results-scalability.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 scalability"
+    },
+    {
+      "id": "matrix_test-results-accessibility",
+      "type": "matrix",
+      "subject": "test-results-accessibility",
+      "files": {
+        "svg": "img/matrix_test-results-accessibility.svg",
+        "png": "img/matrix_test-results-accessibility.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 accessibility"
+    },
+    {
+      "id": "matrix_test-results-maturity",
+      "type": "matrix",
+      "subject": "test-results-maturity",
+      "files": {
+        "svg": "img/matrix_test-results-maturity.svg",
+        "png": "img/matrix_test-results-maturity.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 maturity"
+    },
+    {
+      "id": "matrix_test-results-supply_chain",
+      "type": "matrix",
+      "subject": "test-results-supply_chain",
+      "files": {
+        "svg": "img/matrix_test-results-supply_chain.svg",
+        "png": "img/matrix_test-results-supply_chain.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 supply_chain"
+    },
+    {
+      "id": "matrix_test-results-fnm_ingestion",
+      "type": "matrix",
+      "subject": "test-results-fnm_ingestion",
+      "files": {
+        "svg": "img/matrix_test-results-fnm_ingestion.svg",
+        "png": "img/matrix_test-results-fnm_ingestion.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Test Matrix \u2014 fnm_ingestion"
+    },
+    {
+      "id": "radar_pypsa",
+      "type": "radar",
+      "subject": "pypsa",
+      "files": {
+        "svg": "img/radar_pypsa.svg",
+        "png": "img/radar_pypsa.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 pypsa"
+    },
+    {
+      "id": "radar_pandapower",
+      "type": "radar",
+      "subject": "pandapower",
+      "files": {
+        "svg": "img/radar_pandapower.svg",
+        "png": "img/radar_pandapower.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 pandapower"
+    },
+    {
+      "id": "radar_powermodels",
+      "type": "radar",
+      "subject": "powermodels",
+      "files": {
+        "svg": "img/radar_powermodels.svg",
+        "png": "img/radar_powermodels.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 powermodels"
+    },
+    {
+      "id": "radar_matpower",
+      "type": "radar",
+      "subject": "matpower",
+      "files": {
+        "svg": "img/radar_matpower.svg",
+        "png": "img/radar_matpower.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 matpower"
+    },
+    {
+      "id": "radar_gridcal",
+      "type": "radar",
+      "subject": "gridcal",
+      "files": {
+        "svg": "img/radar_gridcal.svg",
+        "png": "img/radar_gridcal.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 gridcal"
+    },
+    {
+      "id": "radar_powersimulations",
+      "type": "radar",
+      "subject": "powersimulations",
+      "files": {
+        "svg": "img/radar_powersimulations.svg",
+        "png": "img/radar_powersimulations.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 powersimulations"
+    },
+    {
+      "id": "radar_overlay",
+      "type": "radar",
+      "subject": "overlay",
+      "files": {
+        "svg": "img/radar_overlay.svg",
+        "png": "img/radar_overlay.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 All Tools Overlay"
+    },
+    {
+      "id": "line_scalability-ACPF",
+      "type": "line",
+      "subject": "scalability-ACPF",
+      "files": {
+        "svg": "img/line_scalability-ACPF.svg",
+        "png": "img/line_scalability-ACPF.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 ACPF"
+    },
+    {
+      "id": "line_scalability-Contingency",
+      "type": "line",
+      "subject": "scalability-Contingency",
+      "files": {
+        "svg": "img/line_scalability-Contingency.svg",
+        "png": "img/line_scalability-Contingency.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 Contingency"
+    },
+    {
+      "id": "line_scalability-DCOPF",
+      "type": "line",
+      "subject": "scalability-DCOPF",
+      "files": {
+        "svg": "img/line_scalability-DCOPF.svg",
+        "png": "img/line_scalability-DCOPF.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 DCOPF"
+    },
+    {
+      "id": "line_scalability-DCPF",
+      "type": "line",
+      "subject": "scalability-DCPF",
+      "files": {
+        "svg": "img/line_scalability-DCPF.svg",
+        "png": "img/line_scalability-DCPF.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 DCPF"
+    },
+    {
+      "id": "line_scalability-DistributedSlack",
+      "type": "line",
+      "subject": "scalability-DistributedSlack",
+      "files": {
+        "svg": "img/line_scalability-DistributedSlack.svg",
+        "png": "img/line_scalability-DistributedSlack.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 DistributedSlack"
+    },
+    {
+      "id": "line_scalability-PTDF",
+      "type": "line",
+      "subject": "scalability-PTDF",
+      "files": {
+        "svg": "img/line_scalability-PTDF.svg",
+        "png": "img/line_scalability-PTDF.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 PTDF"
+    },
+    {
+      "id": "line_scalability-SCOPF",
+      "type": "line",
+      "subject": "scalability-SCOPF",
+      "files": {
+        "svg": "img/line_scalability-SCOPF.svg",
+        "png": "img/line_scalability-SCOPF.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 SCOPF"
+    },
+    {
+      "id": "line_scalability-SCUC",
+      "type": "line",
+      "subject": "scalability-SCUC",
+      "files": {
+        "svg": "img/line_scalability-SCUC.svg",
+        "png": "img/line_scalability-SCUC.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 SCUC"
+    },
+    {
+      "id": "line_scalability-SolverSwap",
+      "type": "line",
+      "subject": "scalability-SolverSwap",
+      "files": {
+        "svg": "img/line_scalability-SolverSwap.svg",
+        "png": "img/line_scalability-SolverSwap.png"
+      },
+      "data_source": "test-results.json",
+      "title": "Scalability \u2014 SolverSwap"
+    }
+  ]
 }

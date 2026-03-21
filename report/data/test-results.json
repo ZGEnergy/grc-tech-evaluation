@@ -1,2325 +1,2607 @@
 {
-    "_provenance": {
-        "sources": [
-            "evaluations/pypsa/results/synthesis.md",
-            "evaluations/pandapower/results/synthesis.md",
-            "evaluations/powermodels/results/synthesis.md",
-            "evaluations/matpower/results/synthesis.md",
-            "evaluations/gridcal/results/synthesis.md",
-            "evaluations/powersimulations/results/synthesis.md"
-        ],
-        "extracted": "2026-03-19",
-        "_note": "Results extracted from per-tool synthesis.md files (protocol v10). 'pass' and 'qualified_pass' counted as pass; 'fail' counted as fail; 'skip' and 'informational' counted as skip. Each test ID at each scale tier counts as one test."
-    },
-    "suites": [
-        "gate",
-        "expressiveness",
-        "extensibility",
-        "scalability",
-        "accessibility",
-        "maturity",
-        "supply_chain",
-        "fnm_ingestion"
+  "_provenance": {
+    "sources": [
+      "evaluations/pypsa/results/synthesis.md",
+      "evaluations/pandapower/results/synthesis.md",
+      "evaluations/powermodels/results/synthesis.md",
+      "evaluations/matpower/results/synthesis.md",
+      "evaluations/gridcal/results/synthesis.md",
+      "evaluations/powersimulations/results/synthesis.md"
     ],
-    "tools": [
+    "extracted": "2026-03-19",
+    "_note": "Results extracted from per-tool synthesis.md files (protocol v10). 'pass' and 'qualified_pass' counted as pass; 'fail' counted as fail; 'skip' and 'informational' counted as skip. Each test ID at each scale tier counts as one test."
+  },
+  "suites": [
+    "gate",
+    "expressiveness",
+    "extensibility",
+    "scalability",
+    "accessibility",
+    "maturity",
+    "supply_chain",
+    "fnm_ingestion"
+  ],
+  "tools": [
+    {
+      "tool": "pypsa",
+      "total_pass": 44,
+      "total_fail": 2,
+      "total_skip": 12,
+      "by_suite": [
         {
-            "tool": "pypsa",
-            "total_pass": 44,
-            "total_fail": 2,
-            "total_skip": 12,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 10,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable workaround)"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (blocking limitation in OPF context)"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 3,
-                    "fail": 1,
-                    "skip": 7,
-                    "tests": [
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "FNM DCPF verification",
-                            "result": "pass",
-                            "_note": "scalability evidence from FNM suite"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 9,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass",
-                            "_note": "qualified_pass (1 GPL dep replaceable)"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 1,
-                    "fail": 1,
-                    "skip": 3,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "fail",
-                            "_note": "no PSS/E ingestion capability"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "skip",
-                            "_note": "blocked by G-FNM-1"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "pass",
-                            "_note": "0.0 deviation via shared matpower_loader; counted under scalability"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ],
-                    "_note": "G-FNM-3 pass counted in scalability suite to avoid double-counting; fnm_ingestion counts it as skip for totals"
-                }
-            ]
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
         },
         {
-            "tool": "pandapower",
-            "total_pass": 37,
-            "total_fail": 8,
-            "total_skip": 12,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 4,
-                    "fail": 6,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "fail",
-                            "_note": "blocked by A-5"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "fail"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile monkey-patch)"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable workaround)"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 1,
-                    "fail": 1,
-                    "skip": 8,
-                    "tests": [
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "fail",
-                            "_note": "cascaded from A-5"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 9,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 2,
-                    "fail": 1,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "pass",
-                            "_note": "stable workarounds required"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "fail",
-                            "_note": "99.6% buses pass but hard-fail on localized outliers"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                }
-            ]
+          "suite": "expressiveness",
+          "pass": 10,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "pass"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "pass",
+              "_note": "qualified_pass (stable workaround)"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "pass"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "pass",
+              "_note": "qualified_pass (blocking limitation in OPF context)"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "pass"
+            }
+          ]
         },
         {
-            "tool": "powermodels",
-            "total_pass": 49,
-            "total_fail": 5,
-            "total_skip": 4,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 9,
-                    "fail": 1,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (branch flows manual)"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (branch flows, no NR diag)"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "pass",
-                            "_note": "qualified_pass (blocking workaround, 250 LOC user MILP)"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable workaround)"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable workaround)"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "pass",
-                            "_note": "qualified_pass (requires Ipopt)"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable ~12 LOC workaround)"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable ~150 LOC distributed slack)"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 7,
-                    "fail": 3,
-                    "skip": 1,
-                    "tests": [
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (branch flows manual)"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (cost linearization)"
-                        },
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (user MILP, SCIP 15 min)"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "fail",
-                            "_note": "cascaded from C-2"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "pass",
-                            "_note": "qualified_pass (cost linearization)"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "fail",
-                            "_note": "cascaded from A-11"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "FNM DCPF verification",
-                            "result": "skip",
-                            "_note": "fail in fnm_ingestion suite; not counted here"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 4,
-                    "fail": 0,
-                    "skip": 1,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass",
-                            "_note": "qualified_pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "pass",
-                            "_note": "qualified_pass"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "pass",
-                            "_note": "qualified_pass (7/10 pass)"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "pass",
-                            "_note": "qualified_pass"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 9,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass",
-                            "_note": "qualified_pass (GLPK GPL, SCIP ZIB Academic -- both optional)"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "pass",
-                            "_note": "qualified_pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 2,
-                    "fail": 1,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "pass",
-                            "_note": "qualified_pass via MATPOWER fallback"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "pass",
-                            "_note": "100% DCPF-critical field coverage"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "fail",
-                            "_note": "simplified B-matrix ignores transformer taps"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ],
-                    "_note": "G-FNM-1 and G-FNM-2 both pass; corrected pass count to 2"
-                }
-            ]
+          "suite": "extensibility",
+          "pass": 8,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "pass"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
         },
         {
-            "tool": "matpower",
-            "total_pass": 43,
-            "total_fail": 4,
-            "total_skip": 13,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 8,
-                    "fail": 2,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "pass",
-                            "_note": "qualified_pass (GLPK exit flag bug, validated on bundled test case)"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (post-processing via makePTDF)"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "pass",
-                            "_note": "qualified_pass (linear costs with GLPK)"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass",
-                            "_note": "qualified_pass (GLPK with linear costs)"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass",
-                            "_note": "qualified_pass (verbose CSV export)"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 4,
-                    "fail": 1,
-                    "skip": 8,
-                    "tests": [
-                        {
-                            "id": "C-1 SMALL",
-                            "name": "DCPF scale SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-2 SMALL",
-                            "name": "ACPF scale SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-3 SMALL",
-                            "name": "DCOPF scale SMALL",
-                            "result": "pass",
-                            "_note": "qualified_pass (MIPS)"
-                        },
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "fail",
-                            "_note": "cascaded from A-5 GLPK bug"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale MEDIUM",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale MEDIUM",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale MEDIUM",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "skip",
-                            "_note": "blocked by C-SMALL-gate"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 9,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 1,
-                    "fail": 1,
-                    "skip": 3,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "fail",
-                            "_note": "no CSV import capability"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "skip",
-                            "_note": "blocked by G-FNM-1"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "pass",
-                            "_note": "0.0 deviation (self-consistent reference)"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                }
-            ]
+          "suite": "scalability",
+          "pass": 3,
+          "fail": 1,
+          "skip": 7,
+          "tests": [
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "fail"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "pass"
+            },
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "FNM DCPF verification",
+              "result": "pass",
+              "_note": "scalability evidence from FNM suite"
+            }
+          ]
         },
         {
-            "tool": "gridcal",
-            "total_pass": 45,
-            "total_fail": 7,
-            "total_skip": 6,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 8,
-                    "fail": 2,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "pass",
-                            "_note": "stable workaround (profile manipulation)"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "pass",
-                            "_note": "qualified_pass (negligible losses)"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "fail",
-                            "_note": "battery energy balance sign error"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 1,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile monkey-patch)"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable sequential snapshots)"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 10,
-                    "fail": 1,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (sequential snapshots)"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-8 SMALL",
-                            "name": "SCOPF scale SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale MEDIUM",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "fail",
-                            "_note": "cascaded from A-11"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 1,
-                    "fail": 2,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "fail",
-                            "_note": "0/2 tutorials run unmodified"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "fail",
-                            "_note": "OPF reports converged=True on infeasible"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 6,
-                    "fail": 1,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "fail",
-                            "_note": "no tests run in CI"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 9,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 1,
-                    "fail": 1,
-                    "skip": 3,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "fail",
-                            "_note": "no CSV import, PSS/E v31 unsupported (v35 only)"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "skip",
-                            "_note": "blocked by G-FNM-1"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "pass",
-                            "_note": "qualified_pass; bus angles exact, 1% branch flow deviations (transformer formulation difference)"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                }
-            ]
+          "suite": "accessibility",
+          "pass": 3,
+          "fail": 0,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "pass"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "pass"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
         },
         {
-            "tool": "powersimulations",
-            "total_pass": 45,
-            "total_fail": 6,
-            "total_skip": 6,
-            "by_suite": [
-                {
-                    "suite": "gate",
-                    "pass": 3,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "G-1",
-                            "name": "TINY ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-2",
-                            "name": "SMALL ingest",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "G-3",
-                            "name": "MEDIUM ingest",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "expressiveness",
-                    "pass": 8,
-                    "fail": 2,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "A-1",
-                            "name": "DCPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-2",
-                            "name": "ACPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (no NR diagnostics)"
-                        },
-                        {
-                            "id": "A-3",
-                            "name": "DCOPF",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-4",
-                            "name": "AC feasibility",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "A-5",
-                            "name": "SCUC",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile init bypass)"
-                        },
-                        {
-                            "id": "A-6",
-                            "name": "SCED",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile, no UC-ED handoff)"
-                        },
-                        {
-                            "id": "A-9",
-                            "name": "SCOPF",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable manual LODF+JuMP)"
-                        },
-                        {
-                            "id": "A-10",
-                            "name": "Lossy DCOPF LMP",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-11",
-                            "name": "Distributed slack OPF",
-                            "result": "fail"
-                        },
-                        {
-                            "id": "A-12",
-                            "name": "Multi-period DCOPF storage",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile manual JuMP storage)"
-                        }
-                    ]
-                },
-                {
-                    "suite": "extensibility",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "B-1",
-                            "name": "Custom constraints",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-2",
-                            "name": "Graph access",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable manual BFS)"
-                        },
-                        {
-                            "id": "B-3",
-                            "name": "Contingency sweep",
-                            "result": "pass",
-                            "_note": "qualified_pass (stable LODF screening)"
-                        },
-                        {
-                            "id": "B-4",
-                            "name": "Stochastic scenario",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-5",
-                            "name": "Interoperability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-6",
-                            "name": "Code architecture",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-8",
-                            "name": "Reference bus config",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "B-9",
-                            "name": "PTDF extraction",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "scalability",
-                    "pass": 9,
-                    "fail": 1,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "C-1 MEDIUM",
-                            "name": "DCPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-2 MEDIUM",
-                            "name": "ACPF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-3 MEDIUM",
-                            "name": "DCOPF scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (5 stacked fragile workarounds)"
-                        },
-                        {
-                            "id": "C-4 SMALL",
-                            "name": "SCUC scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile init bypass)"
-                        },
-                        {
-                            "id": "C-5 SMALL",
-                            "name": "AC feasibility SMALL",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-5 MEDIUM",
-                            "name": "AC feasibility MEDIUM",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-7 MEDIUM",
-                            "name": "Solver swap",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-8 MEDIUM",
-                            "name": "SCOPF scale",
-                            "result": "pass",
-                            "_note": "qualified_pass (fragile, solver crash on MEDIUM)"
-                        },
-                        {
-                            "id": "C-9 MEDIUM",
-                            "name": "PTDF scale",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "C-10 MEDIUM",
-                            "name": "Distributed slack scale",
-                            "result": "fail",
-                            "_note": "cascaded from A-11"
-                        }
-                    ]
-                },
-                {
-                    "suite": "accessibility",
-                    "pass": 2,
-                    "fail": 1,
-                    "skip": 2,
-                    "tests": [
-                        {
-                            "id": "D-1",
-                            "name": "Install to first solve",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-2",
-                            "name": "Documentation audit",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "D-3",
-                            "name": "Example verification",
-                            "result": "fail",
-                            "_note": "0/10 examples run unmodified"
-                        },
-                        {
-                            "id": "D-4",
-                            "name": "Error quality",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "D-5",
-                            "name": "Code volume",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                },
-                {
-                    "suite": "maturity",
-                    "pass": 7,
-                    "fail": 0,
-                    "skip": 0,
-                    "tests": [
-                        {
-                            "id": "E-1",
-                            "name": "Release cadence",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-2",
-                            "name": "Commit activity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-3",
-                            "name": "Contributor concentration",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-4",
-                            "name": "Funding model",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-5",
-                            "name": "Issue tracker health",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-6",
-                            "name": "CI/test coverage",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "E-7",
-                            "name": "Operational adoption",
-                            "result": "pass"
-                        }
-                    ]
-                },
-                {
-                    "suite": "supply_chain",
-                    "pass": 8,
-                    "fail": 0,
-                    "skip": 1,
-                    "tests": [
-                        {
-                            "id": "F-1",
-                            "name": "Core license",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-2",
-                            "name": "Dependency tree",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-3",
-                            "name": "Dependency license audit",
-                            "result": "pass",
-                            "_note": "GLPK GPL-3.0 removable"
-                        },
-                        {
-                            "id": "F-4",
-                            "name": "Compiled extension audit",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-5",
-                            "name": "Code inspectability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-6",
-                            "name": "Distribution integrity",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-7",
-                            "name": "Air-gap installability",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-8",
-                            "name": "Solver dependency",
-                            "result": "pass"
-                        },
-                        {
-                            "id": "F-9",
-                            "name": "Getting started integrity",
-                            "result": "skip",
-                            "_note": "informational (mutable URLs, unversioned imports)"
-                        }
-                    ]
-                },
-                {
-                    "suite": "fnm_ingestion",
-                    "pass": 0,
-                    "fail": 2,
-                    "skip": 3,
-                    "tests": [
-                        {
-                            "id": "G-FNM-1",
-                            "name": "CSV ingestion",
-                            "result": "fail",
-                            "_note": "PSS/E v31 parser fails, no CSV parser"
-                        },
-                        {
-                            "id": "G-FNM-2",
-                            "name": "PSS/E field coverage",
-                            "result": "skip",
-                            "_note": "blocked by G-FNM-1"
-                        },
-                        {
-                            "id": "G-FNM-3",
-                            "name": "DCPF verification",
-                            "result": "fail",
-                            "_note": "simplified B-matrix ignores tap ratios; 13.2% bus angle pass rate"
-                        },
-                        {
-                            "id": "G-FNM-4",
-                            "name": "ACPF convergence",
-                            "result": "skip",
-                            "_note": "informational"
-                        },
-                        {
-                            "id": "G-FNM-5",
-                            "name": "Supplemental CSV representability",
-                            "result": "skip",
-                            "_note": "informational"
-                        }
-                    ]
-                }
-            ]
+          "suite": "maturity",
+          "pass": 7,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "pass"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 9,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass",
+              "_note": "informational"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass",
+              "_note": "qualified_pass (1 GPL dep replaceable)"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 1,
+          "fail": 1,
+          "skip": 3,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "fail",
+              "_note": "no PSS/E ingestion capability"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "skip",
+              "_note": "blocked by G-FNM-1"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "pass",
+              "_note": "0.0 deviation via shared matpower_loader; counted under scalability"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ],
+          "_note": "G-FNM-3 pass counted in scalability suite to avoid double-counting; fnm_ingestion counts it as skip for totals"
         }
-    ]
+      ]
+    },
+    {
+      "tool": "pandapower",
+      "total_pass": 37,
+      "total_fail": 8,
+      "total_skip": 12,
+      "by_suite": [
+        {
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "expressiveness",
+          "pass": 4,
+          "fail": 6,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "fail"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "fail",
+              "_note": "blocked by A-5"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "fail"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "fail"
+            }
+          ]
+        },
+        {
+          "suite": "extensibility",
+          "pass": 8,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass",
+              "_note": "qualified_pass (fragile monkey-patch)"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "pass"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass",
+              "_note": "qualified_pass (stable workaround)"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "scalability",
+          "pass": 1,
+          "fail": 1,
+          "skip": 8,
+          "tests": [
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "fail",
+              "_note": "cascaded from A-5"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            }
+          ]
+        },
+        {
+          "suite": "accessibility",
+          "pass": 3,
+          "fail": 0,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "pass"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "pass"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        },
+        {
+          "suite": "maturity",
+          "pass": 7,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "pass"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 9,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 2,
+          "fail": 1,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "pass",
+              "_note": "stable workarounds required"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "pass"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "fail",
+              "_note": "99.6% buses pass but hard-fail on localized outliers"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "powermodels",
+      "total_pass": 49,
+      "total_fail": 5,
+      "total_skip": 4,
+      "by_suite": [
+        {
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "expressiveness",
+          "pass": 9,
+          "fail": 1,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass",
+              "_note": "qualified_pass (branch flows manual)"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass",
+              "_note": "qualified_pass (branch flows, no NR diag)"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "pass",
+              "_note": "qualified_pass (blocking workaround, 250 LOC user MILP)"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "pass",
+              "_note": "qualified_pass (stable workaround)"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "pass",
+              "_note": "qualified_pass (stable workaround)"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "pass",
+              "_note": "qualified_pass (requires Ipopt)"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "extensibility",
+          "pass": 8,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass",
+              "_note": "qualified_pass (stable ~12 LOC workaround)"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "pass"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass",
+              "_note": "qualified_pass (stable ~150 LOC distributed slack)"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "scalability",
+          "pass": 7,
+          "fail": 3,
+          "skip": 1,
+          "tests": [
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale",
+              "result": "pass",
+              "_note": "qualified_pass (branch flows manual)"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale",
+              "result": "fail"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale",
+              "result": "pass",
+              "_note": "qualified_pass (cost linearization)"
+            },
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "pass",
+              "_note": "qualified_pass (user MILP, SCIP 15 min)"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "fail",
+              "_note": "cascaded from C-2"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "pass",
+              "_note": "qualified_pass (cost linearization)"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "fail",
+              "_note": "cascaded from A-11"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "FNM DCPF verification",
+              "result": "skip",
+              "_note": "fail in fnm_ingestion suite; not counted here"
+            }
+          ]
+        },
+        {
+          "suite": "accessibility",
+          "pass": 4,
+          "fail": 0,
+          "skip": 1,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass",
+              "_note": "qualified_pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "pass",
+              "_note": "qualified_pass"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "pass",
+              "_note": "qualified_pass (7/10 pass)"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "pass",
+              "_note": "qualified_pass"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        },
+        {
+          "suite": "maturity",
+          "pass": 7,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "pass"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 9,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass",
+              "_note": "qualified_pass (GLPK GPL, SCIP ZIB Academic -- both optional)"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "pass",
+              "_note": "qualified_pass"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 2,
+          "fail": 1,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "pass",
+              "_note": "qualified_pass via MATPOWER fallback"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "pass",
+              "_note": "100% DCPF-critical field coverage"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "fail",
+              "_note": "simplified B-matrix ignores transformer taps"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ],
+          "_note": "G-FNM-1 and G-FNM-2 both pass; corrected pass count to 2"
+        }
+      ]
+    },
+    {
+      "tool": "matpower",
+      "total_pass": 43,
+      "total_fail": 4,
+      "total_skip": 13,
+      "by_suite": [
+        {
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "expressiveness",
+          "pass": 8,
+          "fail": 2,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "pass",
+              "_note": "qualified_pass (GLPK exit flag bug, validated on bundled test case)"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "pass"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "fail"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "pass",
+              "_note": "qualified_pass (post-processing via makePTDF)"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "pass",
+              "_note": "qualified_pass (linear costs with GLPK)"
+            }
+          ]
+        },
+        {
+          "suite": "extensibility",
+          "pass": 8,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass",
+              "_note": "qualified_pass (GLPK with linear costs)"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass",
+              "_note": "qualified_pass (verbose CSV export)"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "pass"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "scalability",
+          "pass": 4,
+          "fail": 1,
+          "skip": 8,
+          "tests": [
+            {
+              "id": "C-1 SMALL",
+              "name": "DCPF scale SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-2 SMALL",
+              "name": "ACPF scale SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-3 SMALL",
+              "name": "DCOPF scale SMALL",
+              "result": "pass",
+              "_note": "qualified_pass (MIPS)"
+            },
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "fail",
+              "_note": "cascaded from A-5 GLPK bug"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale MEDIUM",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale MEDIUM",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale MEDIUM",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "skip",
+              "_note": "blocked by C-SMALL-gate"
+            }
+          ]
+        },
+        {
+          "suite": "accessibility",
+          "pass": 3,
+          "fail": 0,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "pass"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "pass"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        },
+        {
+          "suite": "maturity",
+          "pass": 7,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "pass"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 9,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 1,
+          "fail": 1,
+          "skip": 3,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "fail",
+              "_note": "no CSV import capability"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "skip",
+              "_note": "blocked by G-FNM-1"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "pass",
+              "_note": "0.0 deviation (self-consistent reference)"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "gridcal",
+      "total_pass": 45,
+      "total_fail": 7,
+      "total_skip": 6,
+      "by_suite": [
+        {
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "expressiveness",
+          "pass": 8,
+          "fail": 2,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "pass"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "pass",
+              "_note": "stable workaround (profile manipulation)"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "pass",
+              "_note": "qualified_pass (negligible losses)"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "fail",
+              "_note": "battery energy balance sign error"
+            }
+          ]
+        },
+        {
+          "suite": "extensibility",
+          "pass": 7,
+          "fail": 0,
+          "skip": 1,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass",
+              "_note": "qualified_pass (fragile monkey-patch)"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass",
+              "_note": "qualified_pass (stable sequential snapshots)"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "scalability",
+          "pass": 10,
+          "fail": 1,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "pass",
+              "_note": "qualified_pass (sequential snapshots)"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "pass"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "pass"
+            },
+            {
+              "id": "C-8 SMALL",
+              "name": "SCOPF scale SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale MEDIUM",
+              "result": "pass"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "fail",
+              "_note": "cascaded from A-11"
+            }
+          ]
+        },
+        {
+          "suite": "accessibility",
+          "pass": 1,
+          "fail": 2,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "fail",
+              "_note": "0/2 tutorials run unmodified"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "fail",
+              "_note": "OPF reports converged=True on infeasible"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        },
+        {
+          "suite": "maturity",
+          "pass": 6,
+          "fail": 1,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "fail",
+              "_note": "no tests run in CI"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 9,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 1,
+          "fail": 1,
+          "skip": 3,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "fail",
+              "_note": "no CSV import, PSS/E v31 unsupported (v35 only)"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "skip",
+              "_note": "blocked by G-FNM-1"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "pass",
+              "_note": "qualified_pass; bus angles exact, 1% branch flow deviations (transformer formulation difference)"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "powersimulations",
+      "total_pass": 45,
+      "total_fail": 6,
+      "total_skip": 6,
+      "by_suite": [
+        {
+          "suite": "gate",
+          "pass": 3,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "G-1",
+              "name": "TINY ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-2",
+              "name": "SMALL ingest",
+              "result": "pass"
+            },
+            {
+              "id": "G-3",
+              "name": "MEDIUM ingest",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "expressiveness",
+          "pass": 8,
+          "fail": 2,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "A-1",
+              "name": "DCPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-2",
+              "name": "ACPF",
+              "result": "pass",
+              "_note": "qualified_pass (no NR diagnostics)"
+            },
+            {
+              "id": "A-3",
+              "name": "DCOPF",
+              "result": "pass"
+            },
+            {
+              "id": "A-4",
+              "name": "AC feasibility",
+              "result": "pass"
+            },
+            {
+              "id": "A-5",
+              "name": "SCUC",
+              "result": "pass",
+              "_note": "qualified_pass (fragile init bypass)"
+            },
+            {
+              "id": "A-6",
+              "name": "SCED",
+              "result": "pass",
+              "_note": "qualified_pass (fragile, no UC-ED handoff)"
+            },
+            {
+              "id": "A-9",
+              "name": "SCOPF",
+              "result": "pass",
+              "_note": "qualified_pass (stable manual LODF+JuMP)"
+            },
+            {
+              "id": "A-10",
+              "name": "Lossy DCOPF LMP",
+              "result": "fail"
+            },
+            {
+              "id": "A-11",
+              "name": "Distributed slack OPF",
+              "result": "fail"
+            },
+            {
+              "id": "A-12",
+              "name": "Multi-period DCOPF storage",
+              "result": "pass",
+              "_note": "qualified_pass (fragile manual JuMP storage)"
+            }
+          ]
+        },
+        {
+          "suite": "extensibility",
+          "pass": 8,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "B-1",
+              "name": "Custom constraints",
+              "result": "pass"
+            },
+            {
+              "id": "B-2",
+              "name": "Graph access",
+              "result": "pass",
+              "_note": "qualified_pass (stable manual BFS)"
+            },
+            {
+              "id": "B-3",
+              "name": "Contingency sweep",
+              "result": "pass",
+              "_note": "qualified_pass (stable LODF screening)"
+            },
+            {
+              "id": "B-4",
+              "name": "Stochastic scenario",
+              "result": "pass"
+            },
+            {
+              "id": "B-5",
+              "name": "Interoperability",
+              "result": "pass"
+            },
+            {
+              "id": "B-6",
+              "name": "Code architecture",
+              "result": "pass"
+            },
+            {
+              "id": "B-8",
+              "name": "Reference bus config",
+              "result": "pass"
+            },
+            {
+              "id": "B-9",
+              "name": "PTDF extraction",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "scalability",
+          "pass": 9,
+          "fail": 1,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "C-1 MEDIUM",
+              "name": "DCPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-2 MEDIUM",
+              "name": "ACPF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-3 MEDIUM",
+              "name": "DCOPF scale",
+              "result": "pass",
+              "_note": "qualified_pass (5 stacked fragile workarounds)"
+            },
+            {
+              "id": "C-4 SMALL",
+              "name": "SCUC scale",
+              "result": "pass",
+              "_note": "qualified_pass (fragile init bypass)"
+            },
+            {
+              "id": "C-5 SMALL",
+              "name": "AC feasibility SMALL",
+              "result": "pass"
+            },
+            {
+              "id": "C-5 MEDIUM",
+              "name": "AC feasibility MEDIUM",
+              "result": "pass"
+            },
+            {
+              "id": "C-7 MEDIUM",
+              "name": "Solver swap",
+              "result": "pass"
+            },
+            {
+              "id": "C-8 MEDIUM",
+              "name": "SCOPF scale",
+              "result": "pass",
+              "_note": "qualified_pass (fragile, solver crash on MEDIUM)"
+            },
+            {
+              "id": "C-9 MEDIUM",
+              "name": "PTDF scale",
+              "result": "pass"
+            },
+            {
+              "id": "C-10 MEDIUM",
+              "name": "Distributed slack scale",
+              "result": "fail",
+              "_note": "cascaded from A-11"
+            }
+          ]
+        },
+        {
+          "suite": "accessibility",
+          "pass": 2,
+          "fail": 1,
+          "skip": 2,
+          "tests": [
+            {
+              "id": "D-1",
+              "name": "Install to first solve",
+              "result": "pass"
+            },
+            {
+              "id": "D-2",
+              "name": "Documentation audit",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "D-3",
+              "name": "Example verification",
+              "result": "fail",
+              "_note": "0/10 examples run unmodified"
+            },
+            {
+              "id": "D-4",
+              "name": "Error quality",
+              "result": "pass"
+            },
+            {
+              "id": "D-5",
+              "name": "Code volume",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        },
+        {
+          "suite": "maturity",
+          "pass": 7,
+          "fail": 0,
+          "skip": 0,
+          "tests": [
+            {
+              "id": "E-1",
+              "name": "Release cadence",
+              "result": "pass"
+            },
+            {
+              "id": "E-2",
+              "name": "Commit activity",
+              "result": "pass"
+            },
+            {
+              "id": "E-3",
+              "name": "Contributor concentration",
+              "result": "pass"
+            },
+            {
+              "id": "E-4",
+              "name": "Funding model",
+              "result": "pass"
+            },
+            {
+              "id": "E-5",
+              "name": "Issue tracker health",
+              "result": "pass"
+            },
+            {
+              "id": "E-6",
+              "name": "CI/test coverage",
+              "result": "pass"
+            },
+            {
+              "id": "E-7",
+              "name": "Operational adoption",
+              "result": "pass"
+            }
+          ]
+        },
+        {
+          "suite": "supply_chain",
+          "pass": 8,
+          "fail": 0,
+          "skip": 1,
+          "tests": [
+            {
+              "id": "F-1",
+              "name": "Core license",
+              "result": "pass"
+            },
+            {
+              "id": "F-2",
+              "name": "Dependency tree",
+              "result": "pass"
+            },
+            {
+              "id": "F-3",
+              "name": "Dependency license audit",
+              "result": "pass",
+              "_note": "GLPK GPL-3.0 removable"
+            },
+            {
+              "id": "F-4",
+              "name": "Compiled extension audit",
+              "result": "pass"
+            },
+            {
+              "id": "F-5",
+              "name": "Code inspectability",
+              "result": "pass"
+            },
+            {
+              "id": "F-6",
+              "name": "Distribution integrity",
+              "result": "pass"
+            },
+            {
+              "id": "F-7",
+              "name": "Air-gap installability",
+              "result": "pass"
+            },
+            {
+              "id": "F-8",
+              "name": "Solver dependency",
+              "result": "pass"
+            },
+            {
+              "id": "F-9",
+              "name": "Getting started integrity",
+              "result": "skip",
+              "_note": "informational (mutable URLs, unversioned imports)"
+            }
+          ]
+        },
+        {
+          "suite": "fnm_ingestion",
+          "pass": 0,
+          "fail": 2,
+          "skip": 3,
+          "tests": [
+            {
+              "id": "G-FNM-1",
+              "name": "CSV ingestion",
+              "result": "fail",
+              "_note": "PSS/E v31 parser fails, no CSV parser"
+            },
+            {
+              "id": "G-FNM-2",
+              "name": "PSS/E field coverage",
+              "result": "skip",
+              "_note": "blocked by G-FNM-1"
+            },
+            {
+              "id": "G-FNM-3",
+              "name": "DCPF verification",
+              "result": "fail",
+              "_note": "simplified B-matrix ignores tap ratios; 13.2% bus angle pass rate"
+            },
+            {
+              "id": "G-FNM-4",
+              "name": "ACPF convergence",
+              "result": "skip",
+              "_note": "informational"
+            },
+            {
+              "id": "G-FNM-5",
+              "name": "Supplemental CSV representability",
+              "result": "skip",
+              "_note": "informational"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "timing_records": [
+    {
+      "tool": "pypsa",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 665.66,
+      "status": "fail"
+    },
+    {
+      "tool": "pypsa",
+      "benchmark_type": "Contingency",
+      "network_size": 10000,
+      "solve_time_seconds": 86.74,
+      "status": "pass"
+    },
+    {
+      "tool": "pypsa",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 15.05,
+      "status": "pass"
+    },
+    {
+      "tool": "pandapower",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "pandapower",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 2.84,
+      "status": "pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "DistributedSlack",
+      "network_size": 10000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "DCPF",
+      "network_size": 10000,
+      "solve_time_seconds": 1.67,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "ACPF",
+      "network_size": 10000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "DCOPF",
+      "network_size": 10000,
+      "solve_time_seconds": 72.45,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 2712.72,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "Contingency",
+      "network_size": 10000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 1.442,
+      "status": "pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "SolverSwap",
+      "network_size": 10000,
+      "solve_time_seconds": 5.88,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "SCOPF",
+      "network_size": 10000,
+      "solve_time_seconds": 595.18,
+      "status": "pass"
+    },
+    {
+      "tool": "powermodels",
+      "benchmark_type": "PTDF",
+      "network_size": 10000,
+      "solve_time_seconds": 7.55,
+      "status": "pass"
+    },
+    {
+      "tool": "matpower",
+      "benchmark_type": "DCPF",
+      "network_size": 2000,
+      "solve_time_seconds": 0.103,
+      "status": "pass"
+    },
+    {
+      "tool": "matpower",
+      "benchmark_type": "ACPF",
+      "network_size": 2000,
+      "solve_time_seconds": 0.165,
+      "status": "pass"
+    },
+    {
+      "tool": "matpower",
+      "benchmark_type": "DCOPF",
+      "network_size": 2000,
+      "solve_time_seconds": 0.507,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "matpower",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 1.112,
+      "status": "fail"
+    },
+    {
+      "tool": "matpower",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 0.168,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "DistributedSlack",
+      "network_size": 10000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "DCPF",
+      "network_size": 10000,
+      "solve_time_seconds": 1.049,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "ACPF",
+      "network_size": 10000,
+      "solve_time_seconds": 3.103,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "DCOPF",
+      "network_size": 10000,
+      "solve_time_seconds": 8.449,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 286.37,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "Contingency",
+      "network_size": 10000,
+      "solve_time_seconds": 2.865,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 54.09,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "SolverSwap",
+      "network_size": 10000,
+      "solve_time_seconds": 12.629,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "SCOPF",
+      "network_size": 10000,
+      "solve_time_seconds": 29.306,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "SCOPF",
+      "network_size": 2000,
+      "solve_time_seconds": 9.73,
+      "status": "pass"
+    },
+    {
+      "tool": "gridcal",
+      "benchmark_type": "PTDF",
+      "network_size": 10000,
+      "solve_time_seconds": 6.67,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "DistributedSlack",
+      "network_size": 10000,
+      "solve_time_seconds": 0.0,
+      "status": "fail"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "DCPF",
+      "network_size": 10000,
+      "solve_time_seconds": 0.275,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "ACPF",
+      "network_size": 10000,
+      "solve_time_seconds": 0.638,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "DCOPF",
+      "network_size": 10000,
+      "solve_time_seconds": 11.303,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "SCUC",
+      "network_size": 2000,
+      "solve_time_seconds": 404.213,
+      "status": "qualified_pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "Contingency",
+      "network_size": 10000,
+      "solve_time_seconds": 1.567,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "Contingency",
+      "network_size": 2000,
+      "solve_time_seconds": 0.74,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "SolverSwap",
+      "network_size": 10000,
+      "solve_time_seconds": 95.895,
+      "status": "pass"
+    },
+    {
+      "tool": "powersimulations",
+      "benchmark_type": "PTDF",
+      "network_size": 10000,
+      "solve_time_seconds": 1.618,
+      "status": "pass"
+    }
+  ]
 }

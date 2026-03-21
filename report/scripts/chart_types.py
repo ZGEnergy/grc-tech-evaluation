@@ -24,6 +24,7 @@ class ChartType(StrEnum):
     HEATMAP = "heatmap"
     MATRIX = "matrix"
     LINE = "line"
+    BAR = "bar"
 
 
 class ExportFormat(StrEnum):
@@ -111,3 +112,23 @@ class ChartOutput:
 
 
 ChartRendererFn = Callable[..., list[ChartOutput]]
+
+
+# ---------------------------------------------------------------------------
+# Renderer registry — lives here (not in generate_charts) to avoid the
+# __main__ vs module-name circular-import problem when renderers call
+# ``from generate_charts import register_renderer``.
+# ---------------------------------------------------------------------------
+_RENDERERS: dict[str, ChartRendererFn] = {}
+
+
+def register_renderer(name: str, renderer_fn: ChartRendererFn) -> None:
+    """Register a chart rendering function by name."""
+    if name in _RENDERERS:
+        raise ValueError(f"Renderer already registered: {name}")
+    _RENDERERS[name] = renderer_fn
+
+
+def get_registered_renderers() -> dict[str, ChartRendererFn]:
+    """Return a copy of all registered renderers."""
+    return dict(_RENDERERS)
