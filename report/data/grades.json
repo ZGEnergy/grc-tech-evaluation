@@ -1,8 +1,8 @@
 {
     "_provenance": {
-        "source": "report/selection-report-v4.md",
+        "source": "report/selection-report-v10.md",
         "lines": "15-22",
-        "extracted": "2026-03-10"
+        "extracted": "2026-03-19"
     },
     "scale": {
         "A+": 4.3, "A": 4.0, "A-": 3.7,
@@ -16,14 +16,14 @@
     "grades": [
         {"tool": "pypsa", "criterion": "expressiveness", "letter": "B+", "numeric": 3.3},
         {"tool": "pypsa", "criterion": "extensibility", "letter": "A-", "numeric": 3.7},
-        {"tool": "pypsa", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
-        {"tool": "pypsa", "criterion": "accessibility", "letter": "B+", "numeric": 3.3},
-        {"tool": "pypsa", "criterion": "maturity", "letter": "A-", "numeric": 3.7},
-        {"tool": "pypsa", "criterion": "supply_chain", "letter": "A", "numeric": 4.0},
+        {"tool": "pypsa", "criterion": "scalability", "letter": "C+", "numeric": 2.3},
+        {"tool": "pypsa", "criterion": "accessibility", "letter": "A-", "numeric": 3.7},
+        {"tool": "pypsa", "criterion": "maturity", "letter": "A", "numeric": 4.0},
+        {"tool": "pypsa", "criterion": "supply_chain", "letter": "B+", "numeric": 3.3},
 
         {"tool": "pandapower", "criterion": "expressiveness", "letter": "C+", "numeric": 2.3},
         {"tool": "pandapower", "criterion": "extensibility", "letter": "B", "numeric": 3.0},
-        {"tool": "pandapower", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
+        {"tool": "pandapower", "criterion": "scalability", "letter": "C+", "numeric": 2.3},
         {"tool": "pandapower", "criterion": "accessibility", "letter": "B+", "numeric": 3.3},
         {"tool": "pandapower", "criterion": "maturity", "letter": "A-", "numeric": 3.7},
         {"tool": "pandapower", "criterion": "supply_chain", "letter": "A", "numeric": 4.0},
@@ -32,28 +32,28 @@
         {"tool": "powermodels", "criterion": "extensibility", "letter": "A-", "numeric": 3.7},
         {"tool": "powermodels", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
         {"tool": "powermodels", "criterion": "accessibility", "letter": "B-", "numeric": 2.7},
-        {"tool": "powermodels", "criterion": "maturity", "letter": "C+", "numeric": 2.3},
-        {"tool": "powermodels", "criterion": "supply_chain", "letter": "A", "numeric": 4.0},
+        {"tool": "powermodels", "criterion": "maturity", "letter": "B", "numeric": 3.0},
+        {"tool": "powermodels", "criterion": "supply_chain", "letter": "A-", "numeric": 3.7},
 
-        {"tool": "matpower", "criterion": "expressiveness", "letter": "A-", "numeric": 3.7},
+        {"tool": "matpower", "criterion": "expressiveness", "letter": "B-", "numeric": 2.7},
         {"tool": "matpower", "criterion": "extensibility", "letter": "A-", "numeric": 3.7},
-        {"tool": "matpower", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
+        {"tool": "matpower", "criterion": "scalability", "letter": "C+", "numeric": 2.3},
         {"tool": "matpower", "criterion": "accessibility", "letter": "B", "numeric": 3.0},
         {"tool": "matpower", "criterion": "maturity", "letter": "C+", "numeric": 2.3},
         {"tool": "matpower", "criterion": "supply_chain", "letter": "A", "numeric": 4.0},
 
-        {"tool": "gridcal", "criterion": "expressiveness", "letter": "C+", "numeric": 2.3},
-        {"tool": "gridcal", "criterion": "extensibility", "letter": "B", "numeric": 3.0},
-        {"tool": "gridcal", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
+        {"tool": "gridcal", "criterion": "expressiveness", "letter": "B-", "numeric": 2.7, "_note": "Corrected from initial B on GRC principal review — battery energy balance sign error (A-12)"},
+        {"tool": "gridcal", "criterion": "extensibility", "letter": "B-", "numeric": 2.7},
+        {"tool": "gridcal", "criterion": "scalability", "letter": "B", "numeric": 3.0},
         {"tool": "gridcal", "criterion": "accessibility", "letter": "C+", "numeric": 2.3},
-        {"tool": "gridcal", "criterion": "maturity", "letter": "B-", "numeric": 2.7},
-        {"tool": "gridcal", "criterion": "supply_chain", "letter": "B", "numeric": 3.0},
+        {"tool": "gridcal", "criterion": "maturity", "letter": "C", "numeric": 2.0},
+        {"tool": "gridcal", "criterion": "supply_chain", "letter": "B-", "numeric": 2.7},
 
         {"tool": "powersimulations", "criterion": "expressiveness", "letter": "B-", "numeric": 2.7},
-        {"tool": "powersimulations", "criterion": "extensibility", "letter": "B+", "numeric": 3.3},
+        {"tool": "powersimulations", "criterion": "extensibility", "letter": "A-", "numeric": 3.7},
         {"tool": "powersimulations", "criterion": "scalability", "letter": "B-", "numeric": 2.7},
         {"tool": "powersimulations", "criterion": "accessibility", "letter": "C+", "numeric": 2.3},
         {"tool": "powersimulations", "criterion": "maturity", "letter": "B", "numeric": 3.0},
-        {"tool": "powersimulations", "criterion": "supply_chain", "letter": "A-", "numeric": 3.7}
+        {"tool": "powersimulations", "criterion": "supply_chain", "letter": "B+", "numeric": 3.3}
     ]
 }

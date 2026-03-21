@@ -6,14 +6,14 @@ Single source of truth for all quantitative content on the report site.
 
 | File | Purpose | Records | Source Material |
 |------|---------|---------|-----------------|
-| `grades.json` | Letter and numeric grades for 6 tools x 6 criteria | 36 grade entries | `report/selection-report-v4.md` |
-| `sensitivity.json` | Ranking scenarios (baseline + 3 alternatives) | 4 scenarios | `report/selection-report-v4.md` |
-| `risk-register.json` | Risks for the selected tool (PyPSA) | 4 risks | `report/selection-report-v4.md` |
-| `head-to-head.json` | Phase 2 capability comparison matrix | 6 capabilities | `report/selection-report-v4.md` |
+| `grades.json` | Letter and numeric grades for 6 tools x 6 criteria | 36 grade entries | `report/selection-report-v10.md` |
+| `sensitivity.json` | Ranking scenarios (baseline + 3 alternatives) | 4 scenarios | `report/selection-report-v10.md` |
+| `risk-register.json` | Risks for the selected tool (PyPSA) | 5 risks | `report/selection-report-v10.md` |
+| `head-to-head.json` | Phase 2 capability comparison matrix | 6 capabilities | `report/selection-report-v10.md` |
 | `sweep-themes.json` | Cross-cutting themes from v4-to-v5 sweep | 13 themes | `sweep-data/v4-to-v5/aggregation/themes.md` |
 | `probe-results.json` | All 18 spot-check probes with verdicts | 18 probes | `sweep-data/v4-to-v5/probes/*/probe-*.md` |
-| `tool-profiles.json` | Metadata for each evaluated tool | 6 tools | Synthesis files + sweep findings |
-| `test-results.json` | Per-tool, per-suite test outcomes | 6 tools x 7 suites | `sweep-data/v4-to-v5/aggregation/comparison-matrices.md` |
+| `tool-profiles.json` | Metadata for each evaluated tool | 6 tools | Synthesis files (all 6 tools) |
+| `test-results.json` | Per-tool, per-suite test outcomes | 6 tools x 8 suites | `evaluations/*/results/synthesis.md` |
 
 ## Schema Conventions
 
@@ -71,15 +71,8 @@ These JSON files are consumed by:
 ## Source Material
 
 Primary sources for data extraction:
-- **Selection report**: `report/selection-report-v4.md` -- grades, rankings, risks, head-to-head
+- **Selection report**: `report/selection-report-v10.md` -- grades, rankings, risks, head-to-head
 - **Themes analysis**: `sweep-data/v4-to-v5/aggregation/themes.md` -- 13 cross-cutting themes
-- **Comparison matrices**: `sweep-data/v4-to-v5/aggregation/comparison-matrices.md` -- test outcome matrix
 - **Probe results**: `sweep-data/v4-to-v5/probes/*/probe-*.md` -- 18 individual probe files
-- **Synthesis files**: `.claude/worktrees/eval/*/evaluations/*/results/synthesis.md` -- 4 available (pypsa, pandapower, powermodels, matpower)
+- **Synthesis files**: `evaluations/*/results/synthesis.md` -- all 6 tools available (pypsa, pandapower, powermodels, matpower, gridcal, powersimulations)
 - **Sweep findings**: `sweep-data/v4-to-v5/per-tool/*/findings.md` -- per-tool sweep findings for all 6 tools
-
-### Data Gaps
-
-- **GridCal and PowerSimulations** do not have synthesis files. Their profiles in `tool-profiles.json` are marked `"profile_source": "reconstructed"` and were derived from sweep findings and the selection report.
-- **PowerSimulations version** is approximated as `0.27.x` from evaluation date context.
-- **Sensitivity scenario 2** uses a simplified numeric scale (A=9, A-=8, etc.) from the selection report, not the standard 4.3-point GPA scale used in `grades.json`.
