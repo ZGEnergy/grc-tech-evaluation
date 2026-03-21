@@ -21,28 +21,28 @@ from chart_types import (
     FONT_FAMILY,
     FULL_WIDTH_PX,
     GradesData,
+    register_renderer,
 )
-from generate_charts import register_renderer
 
 GRADE_COLOR_SCALE: list[list[float | str]] = [
-    [0.0, "#d32f2f"],  # F = red
-    [0.25, "#f57c00"],  # D = orange
-    [0.5, "#fbc02d"],  # C = yellow
-    [0.75, "#7cb342"],  # B = light green
-    [1.0, "#2e7d32"],  # A = dark green
+    [0.0, "#c0392b"],  # F = red (matches .grade-f in evaluation.css)
+    [0.25, "#d4764e"],  # D = orange (matches .grade-d)
+    [0.5, "#e8b44d"],  # C = amber (matches .grade-c)
+    [0.75, "#7ec8a0"],  # B = light green (matches .grade-b)
+    [1.0, "#1b7a3d"],  # A = dark green (matches .grade-a)
 ]
 
 
 def annotation_font_color(grade_value: float) -> str:
-    """Return white for dark cells (A, F), dark gray for light cells (B, C, D).
+    """Return white for dark cells (A/A-, F), dark gray for light cells (B, C, D).
 
-    A grades (>=3.5) sit on dark green; F grades (<=0.5) sit on dark red.
-    Both need white text. Mid-range grades (B, C, D) sit on lighter backgrounds
-    and need dark text for readability.
+    A/A- grades (>=3.5) sit on dark green; F grades (<=0.5) sit on dark red.
+    Both need white text. Mid-range grades (B+, B, B-, C+, C, D) sit on lighter
+    backgrounds and need dark text for readability.
     """
     if grade_value >= 3.5 or grade_value <= 0.5:
         return "#ffffff"
-    return "#212121"
+    return "#1a1a1a"
 
 
 def grade_colorscale_to_plotly(

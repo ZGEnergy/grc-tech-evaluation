@@ -22,12 +22,15 @@ from chart_types import (
     ChartManifest,
     ChartManifestEntry,
     ChartOutput,
-    ChartRendererFn,
+    ChartRendererFn,  # noqa: F401 — re-exported for tests
     ChartType,
     ExportFormat,
     GradesData,
     TestResultsData,
     TimingRecord,
+    _RENDERERS,  # noqa: F401 — re-exported for tests
+    get_registered_renderers,
+    register_renderer,  # noqa: F401 — re-exported for tests
 )
 
 SCRIPT_DIR = Path(__file__).parent
@@ -50,27 +53,6 @@ DATA_FILES: dict[str, list[str]] = {
     "tool-profiles.json": ["tools"],
     "test-results.json": ["suites", "tools"],
 }
-
-# ---------------------------------------------------------------------------
-# Renderer registry
-# ---------------------------------------------------------------------------
-_RENDERERS: dict[str, ChartRendererFn] = {}
-
-
-def register_renderer(name: str, renderer_fn: ChartRendererFn) -> None:
-    """Register a chart rendering function by name.
-
-    Raises ValueError if the name is already registered.
-    """
-    if name in _RENDERERS:
-        raise ValueError(f"Renderer already registered: {name}")
-    _RENDERERS[name] = renderer_fn
-
-
-def get_registered_renderers() -> dict[str, ChartRendererFn]:
-    """Return a copy of all registered renderers."""
-    return dict(_RENDERERS)
-
 
 # ---------------------------------------------------------------------------
 # Stage 1: Data loading
@@ -252,8 +234,18 @@ def build_test_results_data(raw: dict[str, Any]) -> TestResultsData:
     # Fill any missing entries with "skip"
     matrix_df = matrix_df.fillna("skip")
 
-    # No timing data in the current JSON structure; return empty list
+    # Build timing records from the optional timing_records array
     timing_records: list[TimingRecord] = []
+    for rec in raw.get("timing_records", []):
+        timing_records.append(
+            TimingRecord(
+                tool=rec["tool"],
+                benchmark_type=rec["benchmark_type"],
+                network_size=rec["network_size"],
+                solve_time_seconds=rec["solve_time_seconds"],
+                status=rec["status"],
+            )
+        )
 
     return TestResultsData(
         matrix_df=matrix_df,
@@ -274,12 +266,13 @@ def run_renderers(
     test_results_data: TestResultsData,
 ) -> list[ChartOutput]:
     """Execute all registered renderers and collect their outputs."""
+    renderers = get_registered_renderers()
     outputs: list[ChartOutput] = []
-    for name, fn in _RENDERERS.items():
+    for name, fn in renderers.items():
         print(f"  Running renderer: {name}")
         results = fn(grades_data=grades_data, test_results_data=test_results_data)
         outputs.extend(results)
-    if not _RENDERERS:
+    if not renderers:
         print("  No renderers registered (Phase 1 skeleton)")
     return outputs
 
@@ -371,6 +364,15 @@ def write_chart_manifest(entries: list[ChartManifestEntry], dest_path: Path) -> 
 # ---------------------------------------------------------------------------
 
 
+def _import_renderers() -> None:
+    """Import renderer modules to trigger self-registration in chart_types."""
+    from renderers import bar as _bar  # noqa: F401
+    from renderers import heatmap as _heatmap  # noqa: F401
+    from renderers import matrix as _matrix  # noqa: F401
+    from renderers import radar as _radar  # noqa: F401
+    from renderers import scalability as _scalability  # noqa: F401
+
+
 def generate_all_charts(
     data_dir: Path | None = None,
     output_dir: Path | None = None,
@@ -384,6 +386,8 @@ def generate_all_charts(
     Returns:
         The ChartManifest describing all generated charts.
     """
+    _import_renderers()
+
     data_dir = data_dir or DATA_DIR
     output_dir = output_dir or IMG_DIR
 

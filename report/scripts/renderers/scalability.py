@@ -22,8 +22,8 @@ from chart_types import (
     TestResultsData,
     TimingRecord,
     TOOL_COLORS,
+    register_renderer,
 )
-from generate_charts import register_renderer
 
 TOOL_MARKERS: dict[str, str] = {
     "pypsa": "circle",

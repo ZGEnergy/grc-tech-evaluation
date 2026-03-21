@@ -214,7 +214,7 @@ def test_navigation_descriptions(mdx_text: str) -> None:
 
 
 def test_three_chart_slots_total(mdx_text: str) -> None:
-    """Verify exactly 3 chart embed slots (Placeholder or img)."""
+    """Verify at least 3 chart embed slots (Placeholder or img)."""
     # Only count actual JSX Placeholder tags, not those inside MDX comments {/* ... */}
     # Remove MDX comments first
     uncommented = re.sub(r"\{/\*.*?\*/\}", "", mdx_text, flags=re.DOTALL)
@@ -223,7 +223,8 @@ def test_three_chart_slots_total(mdx_text: str) -> None:
         r"<img\b[^>]*(?:heatmap_grades|matrix_test-results|radar_overlay)", uncommented
     )
     total = len(placeholders) + len(imgs)
-    assert total == 3, f"Expected exactly 3 chart slots, found {total}"
+    # The matrix may be split into per-suite charts (>40 tests), so total >= 3
+    assert total >= 3, f"Expected >= 3 chart slots, found {total}"
 
 
 # ── 13. No full 6x6 grade table ──────────────────────────────────────
