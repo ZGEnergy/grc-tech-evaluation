@@ -207,8 +207,12 @@ def test_sensitivity_link_to_results(mdx_text: str) -> None:
 
 
 def test_radar_placeholder_slot(mdx_text: str) -> None:
-    assert re.search(r"<Placeholder[^>]*title\s*=\s*\"[^\"]*Radar[^\"]*\"", mdx_text), (
-        "Page must contain a Placeholder with 'Radar' in the title"
+    has_placeholder = re.search(
+        r"<Placeholder[^>]*title\s*=\s*\"[^\"]*Radar[^\"]*\"", mdx_text
+    )
+    has_img = re.search(r"<img\b[^>]*radar_overlay", mdx_text)
+    assert has_placeholder or has_img, (
+        "Page must contain a Radar Placeholder or an <img> referencing radar_overlay"
     )
 
 
