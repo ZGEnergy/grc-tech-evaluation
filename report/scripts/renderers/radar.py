@@ -19,8 +19,8 @@ from chart_types import (
     GradesData,
     PER_TOOL_WIDTH_PX,
     TOOL_COLORS,
+    register_renderer,
 )
-from generate_charts import register_renderer
 
 GRADE_TICKS: dict[int, str] = {0: "F", 1: "D", 2: "C", 3: "B", 4: "A"}
 

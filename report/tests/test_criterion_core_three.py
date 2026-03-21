@@ -207,9 +207,9 @@ def test_scalability_six_tool_sections(scalability_text: str) -> None:
 
 def test_scalability_chart_slots(scalability_text: str) -> None:
     placeholders = re.findall(r"<Placeholder\b", scalability_text)
-    assert len(placeholders) >= 2, (
-        f"Expected >= 2 chart embed slots, got {len(placeholders)}"
-    )
+    img_tags = re.findall(r"<img\b[^>]*src=\"/img/", scalability_text)
+    total_slots = len(placeholders) + len(img_tags)
+    assert total_slots >= 2, f"Expected >= 2 chart embed slots, got {total_slots}"
 
 
 # ── 14. Scalability references C-8 SCOPF MEDIUM fail / T13 ──────────

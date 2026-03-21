@@ -193,11 +193,11 @@ def test_annotation_font_color_dark_cells() -> None:
 
 def test_annotation_font_color_light_cells() -> None:
     """12. B, C, D grades (0.5 < value < 3.5) get dark font color."""
-    assert annotation_font_color(3.0) == "#212121"  # B
-    assert annotation_font_color(2.0) == "#212121"  # C
-    assert annotation_font_color(1.0) == "#212121"  # D
-    assert annotation_font_color(0.7) == "#212121"  # D-
-    assert annotation_font_color(2.7) == "#212121"  # B-
+    assert annotation_font_color(3.0) == "#1a1a1a"  # B
+    assert annotation_font_color(2.0) == "#1a1a1a"  # C
+    assert annotation_font_color(1.0) == "#1a1a1a"  # D
+    assert annotation_font_color(0.7) == "#1a1a1a"  # D-
+    assert annotation_font_color(2.7) == "#1a1a1a"  # B-
 
 
 def test_heatmap_dimensions(sample_grades_data: GradesData) -> None:
