@@ -11,7 +11,7 @@ import Placeholder from '@site/src/components/Placeholder';
 
 Supply Chain is the **gate criterion** — every tool must achieve at least C+ to proceed to the full evaluation. The Suite F tests assess core licensing (F-1), dependency tree health (F-2), dependency license audit (F-3), compiled extension audit (F-4), code inspectability (F-5), distribution integrity (F-6), air-gap installability (F-7), solver dependency analysis (F-8), and getting-started integrity (F-9). These tests ensure that a selected tool can be deployed in ZGE's operational environment without licensing conflicts, supply chain vulnerabilities, or runtime barriers.
 
-All 6 tools passed the C+ gate threshold. This makes Supply Chain the shortest criterion page — there are no gate failures to analyze and the primary differentiators are licensing model (particularly GridCal's MPL-2.0 copyleft) and dependency tree completeness. PyPSA, pandapower, and PowerModels lead with A grades reflecting clean permissive licenses, healthy dependency trees, and verified distribution integrity.
+All 6 tools passed the C+ gate threshold. This makes Supply Chain the shortest criterion page — there are no gate failures to analyze and the primary differentiators are licensing model (particularly GridCal's MPL-2.0 copyleft) and dependency tree completeness. pandapower leads with an A grade, followed by PowerModels (A-) and PyPSA (B+), reflecting permissive licenses, healthy dependency trees, and verified distribution integrity.
 
 ### License Summary
 
@@ -31,7 +31,7 @@ All 6 tools passed the C+ gate threshold. This makes Supply Chain the shortest c
 <details className="eval-details" open>
 <summary>
 
-### PyPSA — <span className="grade-a">A</span> (#1)
+### PyPSA — <span className="grade-b-plus">B+</span> (#1)
 
 </summary>
 
@@ -77,7 +77,7 @@ pandapower has an equally clean supply chain. The BSD-3-Clause license is permis
 <details className="eval-details">
 <summary>
 
-### PowerModels — <span className="grade-a">A</span> (#3)
+### PowerModels — <span className="grade-a-minus">A-</span> (#3)
 
 </summary>
 
@@ -100,7 +100,7 @@ PowerModels carries an MIT license with a clean dependency chain within the Juli
 <details className="eval-details">
 <summary>
 
-### PowerSimulations — <span className="grade-a-minus">A-</span> (#4)
+### PowerSimulations — <span className="grade-b-plus">B+</span> (#4)
 
 </summary>
 
@@ -125,11 +125,9 @@ PowerSimulations uses the BSD-3-Clause license, consistent with NREL's open-sour
 <details className="eval-details">
 <summary>
 
-### GridCal — <span className="grade-b">B</span> (#5)
+### GridCal — <span className="grade-b-minus">B-</span> (#5)
 
 </summary>
-
-> **Note:** GridCal grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
 
 :::caution[MPL-2.0 License]
 GridCal uses the Mozilla Public License 2.0, which requires that modifications to GridCal source files be distributed under MPL-2.0. This is a file-level copyleft — it does not affect code that merely imports GridCal, but any patches to GridCal itself must be shared.

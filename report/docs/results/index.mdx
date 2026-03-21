@@ -11,7 +11,7 @@ The Results section presents the complete evaluation findings for all six power-
 
 Each criterion page is organized identically: six collapsible tool sections (ordered by final rank), each containing a grade summary, a pass/fail evidence table covering all test IDs at three network scales (TINY, SMALL, MEDIUM), and a narrative explaining the grade rationale with references to specific test outcomes. Grades use a letter scale from A through F, displayed with color-coded badges. MATPOWER appears on every criterion page as a reference-only benchmark — it is not ranked due to its MATLAB licensing requirement, but its results provide a calibration baseline for the other five tools.
 
-Grades were derived from a standardized evaluation protocol that executed six test suites (A through F) across three network scales (IEEE 39-bus, ACTIVSg 2000-bus, and ACTIVSg 10,000-bus). Each test produced a structured result with pass/fail status, wall-clock timing, and diagnostic notes. Letter grades aggregate these per-test outcomes within each criterion, weighting MEDIUM-scale results most heavily to reflect production relevance. The protocol's v4-to-v5 revision incorporated findings from 18 targeted probes and 13 cross-cutting themes to ensure grading consistency.
+Grades were derived from a standardized evaluation protocol that executed six test suites (A through F) across three network scales (IEEE 39-bus, ACTIVSg 2000-bus, and ACTIVSg 10,000-bus). Each test produced a structured result with pass/fail status, wall-clock timing, and diagnostic notes. Letter grades aggregate these per-test outcomes within each criterion, weighting MEDIUM-scale results most heavily to reflect production relevance. The protocol v10 revision incorporated findings from 18 targeted probes and 13 cross-cutting themes identified during the v4-to-v5 sweep, along with subsequent principal review corrections, to ensure grading consistency.
 
 ## Grade Comparison
 
@@ -31,16 +31,16 @@ Grades were derived from a standardized evaluation protocol that executed six te
 
 ## Sensitivity Analysis
 
-PyPSA's #1 ranking is robust to alternative criterion weighting schemes. The table below presents four scenarios — the baseline lexicographic priority ordering used in the evaluation, plus three alternative schemes — each producing a different tool ranking. In all four scenarios, PyPSA holds the top position, confirming that the recommendation does not depend on a particular weighting choice. MATPOWER is excluded from ranking per the rubric's reference-only designation.
+PyPSA's #1 ranking is robust to most alternative criterion weighting schemes. The table below presents four scenarios — the baseline lexicographic priority ordering used in the evaluation, plus three alternative schemes. PyPSA holds the top position in three of four scenarios; the sole exception is Scenario 3 (Scalability as top priority), where GridCal takes #1. MATPOWER is excluded from ranking per the rubric's reference-only designation.
 
 | Scenario | PyPSA | pandapower | PowerModels | PowerSimulations | GridCal |
 |----------|-------|------------|-------------|------------------|---------|
-| Baseline (lexicographic priority) | **#1** | #4 | #2 | #3 | #5 |
-| Maturity as top priority | **#1** | #2 | #5 | #3 | #4 |
-| Equal-weight scoring (sum) | **#1** (35) | #2 (30) | #3 (27) | #3 (27) | #5 (24) |
-| Extensibility over Expressiveness | **#1** | #4 | #2 | #3 | #5 |
+| Baseline (lexicographic priority) | **#1** | #5 | #2 | #3 | #4 |
+| Extensibility as top priority | **#1** | #4 | #2 | #3 | #5 |
+| Maturity gate at C (GridCal DQ'd) | **#1** | #4 | #2 | #3 | DQ |
+| Scalability as top priority | #4 | #5 | #2 | #3 | **#1** |
 
-PyPSA holds #1 in all four scenarios. The runner-up varies — PowerModels takes #2 under expressiveness-priority and extensibility-priority orderings, while pandapower takes #2 when maturity or equal weighting is prioritized — but the top position is invariant.
+PyPSA holds #1 in three of four scenarios. Scenario 3 (Scalability as top priority) is the only configuration where PyPSA loses the top position — GridCal's improved scalability grade (B) places it first when scalability is weighted most heavily. The Maturity gate scenario disqualifies GridCal (grade C, below the C+ threshold), which does not affect PyPSA's #1 position.
 
 ## Overall Profile
 

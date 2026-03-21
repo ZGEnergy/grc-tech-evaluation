@@ -1,0 +1,90 @@
+---
+sidebar_position: 5
+title: "Contract Traceability"
+---
+
+# Contract Traceability
+
+This page maps each requirement from the Statement of Work (Contract ) to the
+report content that addresses it. It also explains scope boundaries where the evaluation
+intentionally diverges from SOW language.
+
+## SOW Requirement → Report Mapping
+
+| SOW Ref | Requirement | Report Coverage | Notes |
+|---------|-------------|-----------------|-------|
+| Task 1.1 | "Comprehensive review of open-source and proprietary technologies" | [Tools Evaluated](/tools-evaluated), [Use Cases & Criteria](/use-cases-criteria), all [Evaluation Results](/results) pages | See [Proprietary Tool Scope](#proprietary-tool-scope) below |
+| Task 1.1 | "Support for long-term forecasting" | [Expressiveness](/results/expressiveness) (A-5, A-8), [Extensibility](/results/extensibility) (B-4) | See [Forecasting Scope](#forecasting-scope) below |
+| Task 1.1 | "Vulnerability identification" | [Expressiveness](/results/expressiveness) (A-7, A-9), [Extensibility](/results/extensibility) (B-3), [Head-to-Head](/results/head-to-head) | See [Vulnerability Identification Scope](#vulnerability-identification-scope) below |
+| Task 1.2 | "Down-select to an initial tech stack" | [Phase 1 Tool Selection Report](/) (recommendation + runner-up), [Results Overview](/results) (sensitivity analysis) | PyPSA selected; PowerModels identified as fallback |
+| Task 1.3 | "Produce white paper" | `selection-report-v10.md` serves as the narrative backbone of the separately delivered white paper | This report site contains the comprehensive evaluation data backing the white paper's conclusions |
+| §5 Deliverable 1 | "Technology Evaluation Report — preliminary document sharing key conclusions" | This report site in its entirety | All evaluation data, grades, rankings, risk register, and Phase 2 scope |
+
+## Scope Rationale
+
+### Proprietary Tool Scope
+
+The SOW specifies evaluation of "open-source and proprietary" technologies. This evaluation
+focused exclusively on open-source tools. This was a deliberate scope decision driven by the
+program's deployment requirements:
+
+The **Supply Chain** criterion serves as a gate — a grade of C+ or below is disqualifying
+regardless of performance on all other criteria (see [Use Cases & Criteria](/use-cases-criteria#supply-chain-gate-criterion)).
+This gate exists because the program requires deployment in restricted environments where every
+component in the execution stack must be fully inspectable and open-source.
+
+Any proprietary tool — by definition — contains non-inspectable components. A proprietary tool
+would receive at most C+ on Supply Chain and be disqualified before other criteria are
+evaluated. MATPOWER's exclusion from primary ranking demonstrates this principle: despite
+strong technical performance, its dependency on the proprietary MATLAB runtime makes it
+unsuitable for recommendation (see [Tools Evaluated](/tools-evaluated) and
+[Supply Chain results](/results/supply-chain)). MATPOWER is retained as a reference benchmark
+precisely because it illustrates the boundary — technically capable but architecturally
+disqualified.
+
+Evaluating proprietary tools that would be immediately disqualified by the gate criterion would
+consume evaluation resources without producing actionable recommendations. The six tools
+selected for evaluation represent the complete set of mature, open-source power system modeling
+tools that could plausibly pass the Supply Chain gate.
+
+### Forecasting Scope
+
+The SOW references "support for long-term forecasting." The tools under evaluation are power
+system *analysis* engines — they solve power flow, optimal power flow, unit commitment, and
+contingency analysis. They *consume* forecasts as inputs; they do not *produce* them.
+
+"Support for forecasting" in this context means the tool's ability to accept scenario-based
+inputs over multi-period time horizons and produce meaningful results across those scenarios.
+This capability is directly tested by:
+
+- **UC-4 / A-5 (SCUC):** 24-hour security-constrained unit commitment with hourly time steps
+  — the tool must accept and optimize over a time-series load forecast
+- **B-4 (Stochastic scenario wrapping):** The tool's ability to wrap deterministic solves in
+  scenario loops with correlated input variations — the mechanism by which forecast uncertainty
+  is propagated through the analysis
+
+The forecasting *engine* itself (load forecasting, renewable generation forecasting, price
+forecasting) is a separate capability that will be integrated in Task 2 model development,
+using the selected tool's scenario ingestion interface.
+
+### Vulnerability Identification Scope
+
+The SOW references "identifying vulnerabilities and pressure points" in the grid. This maps
+directly to **contingency analysis** — the systematic identification of conditions under which
+equipment failure leads to constraint violations, overloads, or voltage collapse.
+
+The evaluation tests this capability through:
+
+- **A-7 (N-M Contingency Sweep):** Enumerate and evaluate N-1 and N-M contingencies to
+  identify which equipment failures cause violations — i.e., the grid's vulnerability points
+- **A-9 (Security-Constrained OPF):** Optimize generation dispatch subject to contingency
+  constraints, ensuring the system remains feasible under the identified vulnerabilities
+- **B-3 (Contingency loop construction):** The extensibility to build custom contingency
+  screening pipelines that prioritize vulnerabilities by severity and likelihood
+- **UC-5 (Contingency Analysis use case):** The overarching use case that integrates these
+  tests into a production vulnerability identification workflow
+
+The term "pressure points" maps to binding constraints identified through SCOPF and contingency
+screening — locations where the network is most stressed under credible failure scenarios. The
+[Head-to-Head comparison](/results/head-to-head) and [Expressiveness results](/results/expressiveness)
+document each tool's capability to perform this analysis.
