@@ -207,8 +207,9 @@ def test_scalability_six_tool_sections(scalability_text: str) -> None:
 
 def test_scalability_chart_slots(scalability_text: str) -> None:
     placeholders = re.findall(r"<Placeholder\b", scalability_text)
-    img_tags = re.findall(r"<img\b[^>]*src=\"/img/", scalability_text)
-    total_slots = len(placeholders) + len(img_tags)
+    html_imgs = re.findall(r"<img\b[^>]*src=\"/img/", scalability_text)
+    md_imgs = re.findall(r"!\[.*?\]\(/img/", scalability_text)
+    total_slots = len(placeholders) + len(html_imgs) + len(md_imgs)
     assert total_slots >= 2, f"Expected >= 2 chart embed slots, got {total_slots}"
 
 

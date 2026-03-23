@@ -245,14 +245,16 @@ def test_matpower_exclusion_footnote(mdx_text: str) -> None:
 
 def test_radar_placeholder_slots(mdx_text: str) -> None:
     has_overlay = "Tool Comparison Radar" in mdx_text or re.search(
-        r"<img\b[^>]*radar_overlay", mdx_text
+        r"(<img\b[^>]*|!\[.*\]\(/img/)radar_overlay", mdx_text
     )
     assert has_overlay, (
-        "Missing 'Tool Comparison Radar' placeholder or radar_overlay img"
+        "Missing 'Tool Comparison Radar' placeholder or radar_overlay image"
     )
-    # At least 1 per-tool radar (either Placeholder or img)
+    # At least 1 per-tool radar (either Placeholder, <img>, or markdown image)
     tool_radar_placeholders = re.findall(r'title="[^"]*Radar"', mdx_text)
-    tool_radar_imgs = re.findall(r"<img\b[^>]*radar_\w+\.svg", mdx_text)
+    tool_radar_imgs = re.findall(
+        r"(?:<img\b[^>]*|!\[.*\]\(/img/)radar_\w+\.svg", mdx_text
+    )
     total = len(tool_radar_placeholders) + len(tool_radar_imgs)
     assert total >= 7, f"Expected >=7 radar chart slots, found {total}"
 

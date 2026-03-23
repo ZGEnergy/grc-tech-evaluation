@@ -88,9 +88,12 @@ def test_heatmap_placeholder_or_image(mdx_text: str) -> None:
     has_placeholder = bool(
         re.search(r"<Placeholder[^>]*title\s*=\s*\"[^\"]*Heatmap[^\"]*\"", mdx_text)
     )
-    has_image = bool(re.search(r"<img[^>]*heatmap_grades", mdx_text))
+    has_image = bool(
+        re.search(r"<img[^>]*heatmap_grades", mdx_text)
+        or re.search(r"!\[.*\]\(/img/heatmap_grades", mdx_text)
+    )
     assert has_placeholder or has_image, (
-        "Page must contain a Heatmap Placeholder or an <img> referencing heatmap_grades"
+        "Page must contain a Heatmap Placeholder or an image referencing heatmap_grades"
     )
 
 
@@ -210,9 +213,9 @@ def test_radar_placeholder_slot(mdx_text: str) -> None:
     has_placeholder = re.search(
         r"<Placeholder[^>]*title\s*=\s*\"[^\"]*Radar[^\"]*\"", mdx_text
     )
-    has_img = re.search(r"<img\b[^>]*radar_overlay", mdx_text)
+    has_img = re.search(r"(<img\b[^>]*|!\[.*\]\(/img/)radar_overlay", mdx_text)
     assert has_placeholder or has_img, (
-        "Page must contain a Radar Placeholder or an <img> referencing radar_overlay"
+        "Page must contain a Radar Placeholder or an image referencing radar_overlay"
     )
 
 
