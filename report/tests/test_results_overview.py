@@ -219,10 +219,14 @@ def test_three_chart_slots_total(mdx_text: str) -> None:
     # Remove MDX comments first
     uncommented = re.sub(r"\{/\*.*?\*/\}", "", mdx_text, flags=re.DOTALL)
     placeholders = re.findall(r"<Placeholder\b.*?/>", uncommented)
-    imgs = re.findall(
+    html_imgs = re.findall(
         r"<img\b[^>]*(?:heatmap_grades|matrix_test-results|radar_overlay)", uncommented
     )
-    total = len(placeholders) + len(imgs)
+    md_imgs = re.findall(
+        r"!\[.*?\]\(/img/(?:heatmap_grades|matrix_test-results|radar_overlay)",
+        uncommented,
+    )
+    total = len(placeholders) + len(html_imgs) + len(md_imgs)
     # The matrix may be split into per-suite charts (>40 tests), so total >= 3
     assert total >= 3, f"Expected >= 3 chart slots, found {total}"
 
