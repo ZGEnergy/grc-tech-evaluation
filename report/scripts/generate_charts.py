@@ -124,32 +124,22 @@ def validate_data_files(data_dir: Path) -> dict[str, dict[str, Any]]:
     return data
 
 
-def grade_to_numeric(letter: str) -> float:
-    """Convert a letter grade to its numeric equivalent.
+def tier_to_numeric(tier: str) -> float:
+    """Convert a tier label to its numeric equivalent.
 
-    A+=4.3, A=4.0, A-=3.7, B+=3.3, B=3.0, B-=2.7,
-    C+=2.3, C=2.0, C-=1.7, D+=1.3, D=1.0, D-=0.7, F=0.0.
+    Strong=3, Adequate=2, Weak=1, Failing=0.
 
-    Raises ValueError for unrecognized grades.
+    Raises ValueError for unrecognized tiers.
     """
     scale: dict[str, float] = {
-        "A+": 4.3,
-        "A": 4.0,
-        "A-": 3.7,
-        "B+": 3.3,
-        "B": 3.0,
-        "B-": 2.7,
-        "C+": 2.3,
-        "C": 2.0,
-        "C-": 1.7,
-        "D+": 1.3,
-        "D": 1.0,
-        "D-": 0.7,
-        "F": 0.0,
+        "Strong": 3.0,
+        "Adequate": 2.0,
+        "Weak": 1.0,
+        "Failing": 0.0,
     }
-    key = letter.upper().strip()
+    key = tier.strip()
     if key not in scale:
-        raise ValueError(f"Unrecognized grade: {letter!r}")
+        raise ValueError(f"Unrecognized tier: {tier!r}")
     return scale[key]
 
 
@@ -157,7 +147,7 @@ def build_grades_data(raw: dict[str, Any]) -> GradesData:
     """Transform the grades.json payload into a GradesData instance.
 
     The raw dict must contain 'grades', 'criteria', and 'tools' keys.
-    Each grade entry has 'tool', 'criterion', 'letter', and 'numeric' fields.
+    Each grade entry has 'tool', 'criterion', 'tier', and 'numeric' fields.
     """
     grades_list: list[dict[str, Any]] = raw["grades"]
     criteria: list[str] = raw["criteria"]
@@ -165,21 +155,21 @@ def build_grades_data(raw: dict[str, Any]) -> GradesData:
 
     # Build numeric DataFrame: rows=criteria, columns=tools
     rows: dict[str, dict[str, float]] = {}
-    letter_grades: dict[str, dict[str, str]] = {}
+    tier_labels: dict[str, dict[str, str]] = {}
 
     for entry in grades_list:
         tool = entry["tool"]
         criterion = entry["criterion"]
         numeric = float(entry["numeric"])
-        letter = entry["letter"]
+        tier = entry["tier"]
 
         if criterion not in rows:
             rows[criterion] = {}
         rows[criterion][tool] = numeric
 
-        if tool not in letter_grades:
-            letter_grades[tool] = {}
-        letter_grades[tool][criterion] = letter
+        if tool not in tier_labels:
+            tier_labels[tool] = {}
+        tier_labels[tool][criterion] = tier
 
     df = pd.DataFrame(rows).T  # rows=criteria, columns=tools
     # Reindex to match declared order
@@ -187,7 +177,7 @@ def build_grades_data(raw: dict[str, Any]) -> GradesData:
 
     return GradesData(
         df=df,
-        letter_grades=letter_grades,
+        tier_labels=tier_labels,
         criteria=criteria,
         tools=tools,
     )

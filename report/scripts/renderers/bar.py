@@ -23,7 +23,7 @@ from chart_types import (
     register_renderer,
 )
 
-GRADE_TICKS: dict[int, str] = {0: "F", 1: "D", 2: "C", 3: "B", 4: "A"}
+TIER_TICKS: dict[int, str] = {0: "Failing", 1: "Weak", 2: "Adequate", 3: "Strong"}
 BAR_HEIGHT_PX: int = 350
 
 
@@ -35,7 +35,7 @@ def build_criterion_bar(
     tools = list(reversed(grades_data.tools))  # top tool at top of chart
     values = [float(grades_data.df.loc[criterion, t]) for t in tools]
     colors = [TOOL_COLORS.get(t, "#333333") for t in tools]
-    letters = [grades_data.letter_grades[t][criterion] for t in tools]
+    letters = [grades_data.tier_labels[t][criterion] for t in tools]
 
     fig = go.Figure()
     fig.add_trace(
@@ -53,12 +53,12 @@ def build_criterion_bar(
 
     pretty_name = criterion.replace("_", " ").title()
     fig.update_layout(
-        title=f"{pretty_name} — Grade Comparison",
+        title=f"{pretty_name} - Tier Comparison",
         xaxis={
             "title": "Grade",
-            "range": [0, 4.5],
-            "tickvals": list(GRADE_TICKS.keys()),
-            "ticktext": list(GRADE_TICKS.values()),
+            "range": [0, 3.5],
+            "tickvals": list(TIER_TICKS.keys()),
+            "ticktext": list(TIER_TICKS.values()),
         },
         yaxis={"title": None},
         width=FULL_WIDTH_PX,
@@ -88,7 +88,7 @@ def render_bar_charts(
                 subject=f"{criterion}_grades",
                 figure=fig,
                 data_source="grades.json",
-                title=f"{pretty_name} — Grade Comparison",
+                title=f"{pretty_name} - Tier Comparison",
             )
         )
     return outputs
