@@ -9,6 +9,7 @@ audit trail for all protocol/rubric changes.
 - **Source version:** `{{source_version}}`
 - **Target version:** `{{target_version}}`
 - **Aggregation directory:** `{{aggregation_dir}}`
+- **Grading directory:** `{{grading_dir}}`
 - **Per-tool findings directory:** `{{per_tool_dir}}`
 - **Probes directory:** `{{probes_dir}}`
 - **Output path:** `{{output_path}}`
@@ -28,6 +29,11 @@ audit trail for all protocol/rubric changes.
   - `{{aggregation_dir}}/comparison-matrices.md`
   - `{{aggregation_dir}}/proposed-changes.yaml`
   - `{{aggregation_dir}}/deferred-issues.yaml` (if exists)
+- Read grading outputs:
+  - `{{grading_dir}}/grade-table.yaml` — the authoritative calibrated grade table
+  - `{{grading_dir}}/grade-table.md` — human-readable version with rationale
+  - `{{grading_dir}}/shared-failures.yaml` — tests excluded from grading differentiation
+  - `{{grading_dir}}/equivalence-flags.yaml` — tests with equivalence concerns
 - Read `{{github_issues_path}}` (if exists) for the full issue triage list
 - Read per-tool findings for evidence and context:
   - `{{per_tool_dir}}/*/findings.yaml` (all tools)
@@ -46,6 +52,16 @@ Synthesize the sweep's findings into a high-level narrative. Include:
 - Key themes identified (2-3 most impactful)
 - Number and nature of proposed changes
 - Probe results summary (if applicable)
+
+#### Calibrated Grade Table
+Include the tier summary table from `{{grading_dir}}/grade-table.md`. This is the
+authoritative grade table produced by the grading agent with full cross-tool
+visibility. Use the 4-tier scale (Strong / Adequate / Weak / Failing) — not letter
+grades. Include:
+- The summary matrix (tool × criterion)
+- Shared failures excluded from grading (from `shared-failures.yaml`)
+- Equivalence flags (from `equivalence-flags.yaml`)
+- Per-tool tier rationale (can be condensed from grade-table.md)
 
 #### Cross-Tool Comparison Matrices
 Pull directly from `{{aggregation_dir}}/comparison-matrices.md`. These should be
@@ -98,6 +114,7 @@ issue numbers) so they aren't lost between sweep cycles.
 
 Before writing the final file, verify:
 
+- [ ] Calibrated grade table is present with all tool × criterion tiers
 - [ ] Every {{source_version}} test appears in the mapping table
 - [ ] Every proposed change has a rationale with tool count >= 3
 - [ ] Cross-tool matrices include all tools and all tests

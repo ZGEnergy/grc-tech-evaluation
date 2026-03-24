@@ -38,13 +38,33 @@ Legend: pass = pass, qp = qualified_pass, fail = fail, info = informational, —
 | A-8 | 1 pass, 5 fail | Low (infrastructure) | Redesign: test measures .m parsing, not stochastic |
 | ... | | | |
 
-### Grade Comparison
+## Calibrated Grade Table
+
+The grade table below is the authoritative output of the GRADE state, produced with
+full cross-tool visibility. Tiers use the 4-level scale: Strong, Adequate, Weak, Failing.
+
+### Tier Summary
 
 | Criterion | PyPSA | pandapower | GridCal | PowerModels | PowerSim | MATPOWER |
 |-----------|-------|------------|---------|-------------|----------|----------|
-| Expressiveness | B+ | B | B- | A- | B | A |
+| Expressiveness | Strong | Adequate | Weak | Strong | Adequate | Strong |
 | Extensibility | ... | | | | | |
 | ... | | | | | | |
+
+### Shared Failures Excluded from Grading
+
+<Table of tests excluded from grading differentiation, with root cause and
+which tools are affected. From grading/shared-failures.yaml.>
+
+### Test Equivalence Flags
+
+<Table of tests with equivalence concerns that were not used to drive tier
+differences. From grading/equivalence-flags.yaml.>
+
+### Per-Tool Tier Rationale
+
+<Condensed rationale for each tool's tiers, referencing specific test IDs and
+findings. From grading/grade-table.md.>
 
 ## Low-Signal Tests
 
