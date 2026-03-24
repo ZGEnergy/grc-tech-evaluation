@@ -7,8 +7,8 @@ description: >
   extraordinary claims), runs spot-check probes to verify suspicious findings, and produces
   four outputs: a calibrated grade table, a versioned findings report, updated
   protocol/rubric documents, and updated evaluate-tool skill files. This is the ONLY skill
-  that assigns letter grades -- evaluate-tool reports test results without grades, and
-  report-builder consumes the grade table produced here. Use when the user wants to sweep,
+  that assigns tier grades (Strong/Adequate/Weak/Failing) -- evaluate-tool reports test
+  results without grades, and report-builder consumes the grade table produced here. Use when the user wants to sweep,
   compare, or audit evaluation results across all tools, assign grades, or when upgrading
   the protocol/rubric version.
 argument-hint: "<source_version> (e.g., v4)"
@@ -30,6 +30,7 @@ allowed-tools:
   - WebSearch
   - WebFetch
   - EnterWorktree
+  - ExitWorktree
 ---
 
 # /sweep-evaluations — Orchestrator
@@ -124,6 +125,7 @@ Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last complet
      per-tool/        # Per-tool sweep agent outputs
      probes/          # Spot-check probe results
      aggregation/     # Cross-tool aggregation output
+     grading/         # Calibrated grade table and supporting artifacts
    sweep-reports/     # Findings reports (versioned)
    ```
 
@@ -339,13 +341,21 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
 
 ### State: GRADE
 
-**Purpose:** Assign calibrated letter grades with full cross-tool visibility.
+**Purpose:** Assign calibrated tier grades with full cross-tool visibility.
 
-This is the core grading step. Per-tool synthesis files from evaluate-tool contain
-test results and observations but no grades. Only this state has the cross-tool
-context needed to assign consistent, calibrated grades.
+**This state is mandatory — do not skip it.** It produces `grade-table.yaml`, the
+authoritative artifact consumed by report-builder. Without it, the report has no
+calibrated grades. If AGGREGATE completed successfully, GRADE must run before
+GENERATE. Check `{{PROGRESS_PATH}}` — if `completed_states` includes AGGREGATE
+but not GRADE, you are here.
 
-1. **Dispatch grading agent.** Read `{{SKILL_DIR}}/prompts/grading-prompt.md` and
+Per-tool synthesis files from evaluate-tool contain test results and observations
+but no grades. Only this state has the cross-tool context needed to assign
+consistent, calibrated grades.
+
+1. **Create grading output directory:** `mkdir -p {{SWEEP_DATA_DIR}}/grading`
+
+2. **Dispatch grading agent.** Read `{{SKILL_DIR}}/prompts/grading-prompt.md` and
    replace variables:
    - `{{per_tool_dir}}` -> `{{SWEEP_DATA_DIR}}/per-tool`
    - `{{aggregation_dir}}` -> `{{SWEEP_DATA_DIR}}/aggregation`
@@ -356,13 +366,13 @@ context needed to assign consistent, calibrated grades.
 
    Launch via Agent tool with `subagent_type: "general-purpose"`.
 
-2. **Verify grading output.** The agent should produce:
+3. **Verify grading output.** The agent should produce:
    - `grading/grade-table.yaml` — The authoritative grade table
    - `grading/grade-table.md` — Human-readable version with rationale
    - `grading/shared-failures.yaml` — Tests excluded from grading differentiation
    - `grading/equivalence-flags.yaml` — Test equivalence issues flagged
 
-3. **Present grade table to user.** Display the full grade table and ask via
+4. **Present grade table to user.** Display the full grade table and ask via
    AskUserQuestion:
    > "Review the calibrated grade table. Shared failures excluded from grading
    > are listed below the table."
@@ -372,13 +382,16 @@ context needed to assign consistent, calibrated grades.
    On "Edit": apply corrections and re-confirm.
    On "Re-grade": return to beginning of GRADE state.
 
-4. **Update progress:** Add GRADE to `completed_states`, set `current_state: GENERATE`.
+5. **Update progress:** Add GRADE to `completed_states`, set `current_state: GENERATE`.
 
 ---
 
 ### State: GENERATE
 
 **Purpose:** Produce the four output artifacts (grade table + three existing outputs).
+
+**Pre-flight check:** Before dispatching agents, verify that `{{SWEEP_DATA_DIR}}/grading/grade-table.yaml`
+exists. If it does not, GRADE was skipped — go back and execute GRADE before proceeding.
 
 1. **Dispatch 3 output agents in parallel:**
 
@@ -387,6 +400,7 @@ context needed to assign consistent, calibrated grades.
       - `{{source_version}}` → `{{SOURCE_VERSION}}`
       - `{{target_version}}` → `{{TARGET_VERSION}}`
       - `{{aggregation_dir}}` → `{{SWEEP_DATA_DIR}}/aggregation`
+      - `{{grading_dir}}` → `{{SWEEP_DATA_DIR}}/grading`
       - `{{per_tool_dir}}` → `{{SWEEP_DATA_DIR}}/per-tool`
       - `{{probes_dir}}` → `{{SWEEP_DATA_DIR}}/probes`
       - `{{output_path}}` → `{{FINDINGS_REPORT}}`
@@ -424,7 +438,15 @@ context needed to assign consistent, calibrated grades.
 
 **Purpose:** Verify completeness and internal consistency of all outputs.
 
-1. **Check findings report.** Verify `{{FINDINGS_REPORT}}` exists and contains:
+1. **Check grade table.** Verify `{{SWEEP_DATA_DIR}}/grading/grade-table.yaml` exists and contains:
+   - An entry for every tool × criterion combination
+   - Tier values are one of: Strong, Adequate, Weak, Failing
+   - Every entry has `key_evidence` and `rationale` fields
+   - `grading/grade-table.md` exists with the human-readable summary table
+   - `grading/shared-failures.yaml` exists
+   - `grading/equivalence-flags.yaml` exists
+
+2. **Check findings report.** Verify `{{FINDINGS_REPORT}}` exists and contains:
    - Executive summary
    - Cross-tool comparison matrices
    - Low-signal test identification with evidence
@@ -432,37 +454,38 @@ context needed to assign consistent, calibrated grades.
    - Test-ID mapping table (vN → vN+1)
    - Change rationale for every proposed protocol/rubric change
 
-2. **Check protocol/rubric.** Verify updated files exist and:
+3. **Check protocol/rubric.** Verify updated files exist and:
    - Protocol contains the target version number
    - All test IDs from the mapping table are present in the new protocol
    - No orphan test IDs (in mapping but not in new protocol, or vice versa)
    - Rubric scoring criteria are consistent with protocol changes
 
-3. **Check skill updates.** Verify evaluate-tool skill files were updated:
+4. **Check skill updates.** Verify evaluate-tool skill files were updated:
    - Config generator can handle new test IDs
    - Cross-tool watchpoints updated if applicable
    - Reference files consistent with new protocol
 
-4. **Cross-reference consistency.** Verify:
+5. **Cross-reference consistency.** Verify:
    - Every change in protocol/rubric has a rationale in the findings report
    - Every proposed change in `aggregation/proposed-changes.yaml` is reflected
      in either the protocol, rubric, or findings report (with an explanation
      if a proposed change was not adopted)
+   - Grade table tiers are consistent with findings report narrative
    - Test-ID mapping table is complete (every vN test accounted for)
    - Every in-scope GitHub issue from `{{ISSUES_PATH}}` is either reflected in a
      proposed change or listed as deferred with rationale in the findings report
 
-5. **Produce validation report.** Write `{{SWEEP_DATA_DIR}}/validation-report.md` with:
+6. **Produce validation report.** Write `{{SWEEP_DATA_DIR}}/validation-report.md` with:
    - Checks passed / failed
    - Missing items
    - Consistency issues
 
-6. **Present results to user.** Show validation report summary. If any checks failed,
+7. **Present results to user.** Show validation report summary. If any checks failed,
    ask via AskUserQuestion:
    - "Validation found N issues. Choose an option:"
    - Options: "Fix issues", "Accept with issues noted", "Abort"
 
-7. **Final progress update:**
+8. **Final progress update:**
 
    ```yaml
    completed_states: [INIT, SWEEP, PROBE, AGGREGATE, GRADE, GENERATE, VALIDATE]
@@ -470,7 +493,7 @@ context needed to assign consistent, calibrated grades.
    timestamp: <ISO 8601>
    ```
 
-8. **Inform user:** Sweep complete. Outputs:
+9. **Inform user:** Sweep complete. Outputs:
    - **Calibrated grade table:** `{{SWEEP_DATA_DIR}}/grading/grade-table.yaml` (consumed by report-builder)
    - Findings report: `{{FINDINGS_REPORT}}`
    - Updated protocol: `{{PROTOCOL_PATH}}`
@@ -503,9 +526,11 @@ Per-tool worktrees (read-only)     GitHub issues (gh issue list)
   │    (+ github issues)        comparison-matrices,proposed-changes}
   │                                    │
   ├─ GRADE: 1 agent          → grading/{grade-table.yaml,grade-table.md,
-  │    (cross-tool grading)     shared-failures.yaml,equivalence-flags.yaml}
-  │                                    │
+  │    (cross-tool grading,     shared-failures.yaml,equivalence-flags.yaml}
+  │     MANDATORY — do not     [consumed by report-builder]
+  │     skip this state)               │
   ├─ GENERATE: 3 parallel    → findings report + protocol/rubric + skill updates
+  │    (reads grading/ dir)
   │                                    │
   └─ VALIDATE: consistency   → validation-report.md (+ issue coverage check)
 ```
@@ -534,7 +559,7 @@ and `sweep-reports/` in the sweep's own worktree.
 
 ## Context Monitoring
 
-Follow the procedures in `shared/context-monitoring-reference.md`:
+Follow the procedures in `.claude/skills/shared/context-monitoring-reference.md`:
 
 - **CAUTION:** Reduce to max 3 concurrent sub-agents.
 - **WARNING:** Fully sequential (1 agent at a time), compress intermediate data summaries.
