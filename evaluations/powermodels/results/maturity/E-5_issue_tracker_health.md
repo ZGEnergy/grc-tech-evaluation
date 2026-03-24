@@ -3,67 +3,97 @@ test_id: E-5
 tool: powermodels
 dimension: maturity
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: d2f277d5
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-13T00:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: "74333712"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
-# E-5: issue_tracker_health
+# E-5: Issue Tracker Health
+
+## Result: QUALIFIED PASS
 
 ## Finding
 
-Of the sampled closed issues, the median time-to-close is approximately 31 days, with high variance (0–193 days). Maintainers respond to nearly all issues with substantive technical content; however, 10 open issues show long dwell times with no resolution, and a recurring pattern of "acknowledged but not fixed" appears for parser edge cases and formulation gaps.
+The issue tracker shows substantive maintainer engagement with high response quality, but a significant backlog of unresolved issues. Of 20 sampled closed issues, median time-to-close is 28 days with 80% receiving a maintainer response. Of 10 sampled open issues, 6 have maintainer acknowledgment, but several are 500-900+ days old with no resolution path.
 
 ## Evidence
 
-### Closed issues sample (10 most recent non-PR closed issues via REST API):
+### Closed Issues Sample (20 most recently closed)
 
-| Issue | Days to Close | Comments | Topic |
-|-------|---------------|----------|-------|
-| #991 | 60 | 1 | Wrong branch type in case118.m |
-| #988 | 82 | 2 | Bus type change behavior |
-| #987 | 88 | 4 | Power flow qmax/qmin violation |
-| #984 | 2 | 5 | solve_mn_opf_strg error |
-| #978 | 3 | 2 | Shunt sign behavior |
-| #977 | 193 | 7 | Support for calc_branch_flow_nfa |
-| #974 | 61 | 4 | Chordal SDP bounds on large cases |
-| #953 | 199 | 0 | European network format support |
-| #935 | 431 | 9 | AC PF breaks with switches |
-| #971 | 0 | 3 | Load/production discrepancy (IEEE 300) |
+Data via `gh api repos/lanl-ansi/PowerModels.jl/issues?state=closed&per_page=20` (accessed 2026-03-24):
 
-**Median time-to-close (10 issues):** ~71.5 days
+| Issue | Days to Close | Maintainer Response | Topic |
+|-------|---------------|---------------------|-------|
+| #971 | 0 | No (community only) | Load/production discrepancy IEEE 300 |
+| #984 | 1 | Yes | solve_mn_opf_strg error |
+| #925 | 1 | Yes | LPAC infeasibility PEGASE 89 |
+| #924 | 1 | Yes | Switch issue |
+| #978 | 3 | Yes | Shunt sign behavior |
+| #926 | 3 | Yes | Storage variables in build_opf |
+| #927 | 5 | Yes | Unconstrained reference bus in OPF |
+| #929 | 10 | Yes | Gen count mismatch in result |
+| #954 | 27 | No | resolve_switches connectivity |
+| #913 | 27 | Yes | make_basic_network performance |
+| #930 | 29 | Yes | Test PowerModel failed |
+| #991 | 60 | Yes (@ccoffrin) | Wrong branch type in case118.m |
+| #974 | 61 | Yes | Chordal SDP bounds on large cases |
+| #988 | 81 | Yes (@ccoffrin) | Bus type change PQ->PV |
+| #987 | 88 | Yes | PF qmax/qmin not respected |
+| #938 | 89 | Yes | Integer values InexactError |
+| #936 | 138 | No | Spelling fix (no discussion needed) |
+| #977 | 193 | Yes | calc_branch_flow_nfa support |
+| #953 | 199 | No | European network format offer |
+| #935 | 429 | Yes | AC PF breaks with switches |
 
-Note: The REST API returned 10 true issues (excluding PRs) in the recent closed batch. Several low-complexity issues were closed same-day by maintainers (0-2 days). Longer issues (88-431 days) represent substantive feature/behavior questions or parser issues that accumulate before batch-closing.
+**Median time-to-close:** 28 days
+**Min/Max:** 0 / 429 days
+**Maintainer acknowledged (closed):** 16 of 20 (80%)
+**Same-day or next-day closures:** 4 of 20 (quick triage for clear-cut issues)
 
-#### Open issues sample (10 most recent):
+### Open Issues Sample (10 most recent)
 
-| Issue | Age (days from 2026-03-13) | Comments | Status |
-|-------|---------------------------|----------|--------|
-| #989 | 120 | 4 | Generators on PQ buses — acknowledged, no fix |
-| #975 | 280 | 11 | DCPPowerModel in DirectMode — active discussion, no resolution |
-| #932 | 502 | 0 | PSSE active gens at load buses — unacknowledged |
-| #923 | 612 | 2 | Basic LODF utility request — acknowledged with workaround pointer |
-| #921 | 619 | 2 | PSSE RAW v34 support — acknowledged, no ETA |
-| #918 | 631 | 2 | PSS/E transformer angle offset >6 — acknowledged, confirmed open |
-| #897 | 826 | 4 | PSSE impedance 0.0 logic — fix in PowerSystems but not PowerModels |
-| #894 | 860 | 2 | Move parser to separate package — acknowledged, no action |
-| #893 | 878 | 0 | PSSE voltage source converter — unacknowledged |
-| #891 | 889 | 3 | LPAC PF not supported — acknowledged with workaround |
+| Issue | Age (days) | Maintainer Response | Status |
+|-------|-----------|---------------------|--------|
+| #989 | 133 | No (community contributors only) | Generators on PQ buses -- active community discussion |
+| #975 | 293 | Yes (@odow, @ccoffrin) | DCPPowerModel DirectMode -- 12 comments, nuanced technical debate |
+| #932 | 515 | No | PSSE active gens at load buses -- 0 comments |
+| #923 | 625 | Yes (@ccoffrin) | LODF utility request -- acknowledged, pointed to PowerNetworkMatrices.jl |
+| #921 | 632 | No (community only) | PSSE RAW v34 support -- community discussion |
+| #918 | 647 | Yes (@ccoffrin) | PSS/E transformer angle >60 -- confirmed open |
+| #897 | 826 | Yes (@odow) | PSSE impedance 0.0 logic -- fix in PowerSystems.jl not in PowerModels |
+| #894 | 874 | Yes (@ccoffrin) | Move parser to separate package -- acknowledged, no action |
+| #893 | 890 | No | PSSE VSC data reading -- 0 comments |
+| #891 | 901 | Yes (@ccoffrin) | LPAC PF not supported -- workaround provided |
 
-**Acknowledged ratio (open issues):** 8 of 10 (80%) have at least one maintainer response
-**Unacknowledged (open):** 2 of 10 (#932, #893)
+**Acknowledged by maintainer (open):** 6 of 10 (60%)
+**Unacknowledged (open):** 4 of 10 (#989, #932, #921, #893)
+**Issues open >1 year:** 7 of 10
 
-#### Response quality notes:
-- Maintainer responses are technically substantive: they explain the design rationale, link to related issues, and offer workarounds
-- The issue tracker is not a rubber stamp — developers engage genuinely with edge cases
-- There is a recurring pattern of parser issues (#921, #893, #897) that are acknowledged but have no concrete fix plan, reflecting the known technical debt of the PSSE parser design
-- Issue #975 (DCPPowerModel DirectMode) shows the JuMP maintainer (@odow) and PowerModels users in productive but unresolved technical dialogue
+### Response Quality Assessment
 
-**Data source:** `gh api repos/lanl-ansi/PowerModels.jl/issues?state=closed&per_page=20` and `gh issue list --repo lanl-ansi/PowerModels.jl --state open --limit 10`
+Maintainer responses are technically substantive:
+- @ccoffrin provides power-systems domain explanations (e.g., #991 explains branch/transformer classification by BaseKV; #891 offers OPF-as-PF workaround)
+- @odow engages on JuMP/solver integration issues with deep technical nuance (e.g., #975 discusses MOI interval constraint bridging for Gurobi DirectMode)
+- Workarounds are offered where fixes are not planned (#891, #923)
+- Design rationale is explained when feature requests are declined
+
+**Recurring patterns:**
+- PSS/E parser issues (#921, #918, #897, #893) form a cluster of acknowledged-but-unfixed technical debt
+- Community contributors (@jbarberia, @LKuhrmann) actively participate in discussions, partially compensating for limited maintainer bandwidth
+- @ccoffrin re-engaged in Feb 2026 to close several long-standing issues (#991, #988) -- a positive signal after extended inactivity
 
 ## Implications
 
-Response quality is high and the project is not ignoring users. However, the open issue queue contains several items 500–900 days old with no ETA, indicating that the project is responsive but under-resourced for non-critical issues. The median time-to-close (~60 days) is acceptable for a research-grade library but slower than industrial tools. Classified as qualified_pass: the tracker is healthy in engagement quality but accumulates a backlog of parser/edge-case issues.
+Response quality is high when maintainers engage -- issues receive substantive technical answers, not perfunctory acknowledgments. However, the open issue queue contains 7 items older than 1 year, including unacknowledged issues, indicating the project is responsive but under-resourced for non-critical maintenance. The 28-day median time-to-close is acceptable for a research-grade library. The qualification is the growing backlog of parser-related issues and the 4/10 unacknowledged open issues. Classified as qualified_pass: the tracker is healthy in engagement quality but accumulates backlog.

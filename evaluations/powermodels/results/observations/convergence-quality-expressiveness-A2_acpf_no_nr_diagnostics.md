@@ -3,8 +3,8 @@ tag: convergence-quality
 source_dimension: expressiveness
 source_test: A-2
 tool: powermodels
-severity: moderate
-timestamp: 2026-03-12T03:24:30Z
+severity: medium
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # Convergence Quality: compute_ac_pf does not expose NR iteration count or residual
@@ -27,8 +27,11 @@ This is a diagnostic quality gap. The solver runs correctly (voltages are non-fl
 
 ### Convergence was verified indirectly:
 1. Bool `termination_status == true`
-2. 100% of PQ buses (29/29) have Vm ≠ 1.0 pu (flat start was va=0, vm=1.0)
-3. 100% of non-slack buses (38/38) have Va ≠ 0.0 rad
+2. 100% of PQ buses (29/29) have Vm different from 1.0 pu (flat start was va=0, vm=1.0)
+3. 100% of non-slack buses (38/38) have Va different from 0.0 rad
+4. Post-hoc computed max bus power mismatch = 2.488409e-11 p.u. (well below 1e-4 threshold)
+
+Julia `@info` log capture (per cross-tool-watchpoints.md) was attempted but yielded no convergence messages from `compute_ac_pf`. The convergence evidence quality tier achieved is `binary_convergence_api` (tier 3).
 
 ## Workaround
 

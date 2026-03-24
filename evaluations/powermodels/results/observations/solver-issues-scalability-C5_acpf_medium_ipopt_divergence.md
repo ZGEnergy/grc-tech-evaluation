@@ -4,14 +4,14 @@ source_dimension: scalability
 source_test: C-5
 tool: powermodels
 severity: high
-timestamp: 2026-03-13T23:00:00Z
+timestamp: 2026-03-24T16:45:00Z
 ---
 
 # Observation: Progressive Relaxation Ineffective for solve_ac_pf (0 Inequality Constraints)
 
 ## Finding
 
-PowerModels' `solve_ac_pf` formulation contains 0 inequality constraints, making progressive thermal limit relaxation entirely ineffective. Relaxing branch rate_a limits by 10% or 20% does not change the NLP formulation because `solve_ac_pf` does not include thermal limits as constraints. The divergence on the 10k-bus network is driven by the power balance equality constraints, not thermal limits.
+PowerModels' `solve_ac_pf` formulation contains 0 inequality constraints, making progressive thermal limit relaxation entirely ineffective. Relaxing branch rate_a limits by 10% or 20% does not change the NLP formulation because `solve_ac_pf` does not include thermal limits as constraints. The divergence on the 10k-bus network is driven by the power balance equality constraints (23,392 equalities), not thermal limits. Ipopt diverges with inf_du reaching 6.94e+22 by iteration 18, while MUMPS exhausts memory (icntl[13] increased from 1000 to 32000). [solver-specific: Ipopt/MUMPS divergence at 10k-bus scale]
 
 ## Context
 

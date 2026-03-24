@@ -3,20 +3,21 @@ test_id: A-9
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: 52e215ee
+protocol_version: v11
+skill_version: v2
+test_hash: 269e7d33
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 3.882
+wall_clock_seconds: 3.821
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: 1
+convergence_evidence_quality: null
 loc: 420
 solver: HiGHS
-timestamp: 2026-03-13T18:00:00Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # A-9: SCOPF (Security-Constrained OPF)
@@ -77,13 +78,15 @@ This is a **physical property of the network configuration and load profile**, n
 | Network | 39 buses, 46 branches, 10 gens |
 | Branch derating | None (100% of original ratings) |
 | Cost model | Linear (c2=0 to avoid HiGHS QP numerical errors) |
-| Base OPF cost (unconstrained) | $98,091/h |
+| Base OPF cost (unconstrained) | $9.809088e+04/h |
 | Full SCOPF status | INFEASIBLE (all 46 N-1 simultaneously) |
 | N-1 constraints in full LP | 4,140 |
 | Individual contingency feasibility | 46/46 OPTIMAL |
 | Iterative iterations | 1 (hits infeasibility at iteration 2) |
+| SCOPF cost at iteration 2 | $1.446630e+05/h |
+| Cost increment vs base | 47.48% |
 | SCOPF mechanism demonstrated | YES -- API works, constraints correctly formulated |
-| Wall clock | 3.882s (includes all solve phases + JIT) |
+| Wall clock | 3.821s (includes all solve phases + JIT) |
 | LOC | 420 |
 
 ## Mechanism Verification
@@ -97,11 +100,11 @@ The two-level PowerModels API correctly supports SCOPF construction:
 
 This pattern is documented in the PowerModels two-level API specification and is stable public API.
 
-**Dispatch and cost differ from unconstrained DC OPF:** The iterative SCOPF (before infeasibility) yields a higher objective ($144,663/h at iteration 2) than the unconstrained base OPF ($98,091/h), confirming that security constraints force more expensive redispatch. The 47.5% cost increase demonstrates that the SCOPF constraints have real economic effect on the dispatch.
+**Dispatch and cost differ from unconstrained DC OPF:** The iterative SCOPF (before infeasibility) yields a higher objective ($1.446630e+05/h at iteration 2) than the unconstrained base OPF ($9.809088e+04/h), confirming that security constraints force more expensive redispatch. The 47.5% cost increase demonstrates that the SCOPF constraints have real economic effect on the dispatch.
 
 ## API Friction
 
-- **Linear costs required:** Quadratic costs (c2 > 0) cause HiGHS QP solver to report `OTHER_ERROR` with primal infeasibility residuals when security constraints are added. Pure LP (c2=0, linear costs only) is numerically stable and sufficient for demonstrating the SCOPF mechanism.
+- **Linear costs required:** Quadratic costs (c2 > 0) cause HiGHS QP solver to report `OTHER_ERROR` with primal infeasibility residuals when security constraints are added. Pure LP (c2=0, linear costs only) is numerically stable and sufficient for demonstrating the SCOPF mechanism. [solver-specific: HiGHS QP numerical sensitivity with security constraints]
 
 - **PTDF/LODF computation requires `make_basic_network`:** `calc_basic_ptdf_matrix` requires a "basic" (renumbered) network, not the raw parsed data. Bus index correspondence between PTDF columns and OPF bus variables requires careful mapping through the basic network's bus renumbering.
 
@@ -116,7 +119,7 @@ This pattern is documented in the PowerModels two-level API specification and is
 
 ## Timing
 
-- **Wall-clock:** 3.882s total (includes: data loading + unconstrained OPF + full SCOPF LP + 46 individual contingency SCOPFs + iterative attempt + JIT)
+- **Wall-clock:** 3.821s total (includes: data loading + unconstrained OPF + full SCOPF LP + 46 individual contingency SCOPFs + iterative attempt + JIT)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1

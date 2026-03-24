@@ -35,6 +35,7 @@ using PowerModels: DCPPowerModel, DCPLLPowerModel
 using HiGHS
 using Ipopt
 using Statistics: mean
+using Printf: @sprintf
 
 PowerModels.silence()
 

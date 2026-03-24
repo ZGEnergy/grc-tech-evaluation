@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:00:00Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "9f2d46ba"
+test_hash: "5314ea15"
 ---
 
 # F-8: Open-source solver sufficiency assessment

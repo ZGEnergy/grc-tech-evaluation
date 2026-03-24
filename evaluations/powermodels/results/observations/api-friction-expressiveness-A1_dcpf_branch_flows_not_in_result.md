@@ -3,7 +3,7 @@ tag: api-friction
 source_dimension: expressiveness
 source_test: A-1
 tool: powermodels
-severity: moderate
+severity: low
 timestamp: 2026-03-12T03:24:30Z
 ---
 
