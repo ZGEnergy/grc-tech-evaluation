@@ -22,7 +22,7 @@ from chart_types import (
     register_renderer,
 )
 
-GRADE_TICKS: dict[int, str] = {0: "F", 1: "D", 2: "C", 3: "B", 4: "A"}
+TIER_TICKS: dict[int, str] = {0: "Failing", 1: "Weak", 2: "Adequate", 3: "Strong"}
 
 
 def render_radar_charts(
@@ -148,11 +148,11 @@ def configure_polar_layout(
     fig: go.Figure,
     criteria: list[str],
     *,
-    radial_range: tuple[float, float] = (0, 4.5),
+    radial_range: tuple[float, float] = (0, 3.5),
 ) -> None:
-    """Set radial ticks at 0–4 with F/D/C/B/A labels; angular labels = criteria."""
-    tick_vals = list(GRADE_TICKS.keys())
-    tick_text = list(GRADE_TICKS.values())
+    """Set radial ticks at 0-3 with tier labels; angular labels = criteria."""
+    tick_vals = list(TIER_TICKS.keys())
+    tick_text = list(TIER_TICKS.values())
 
     fig.update_layout(
         polar={
