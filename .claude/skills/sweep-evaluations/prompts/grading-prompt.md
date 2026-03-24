@@ -25,6 +25,14 @@ all tools' results at once, which enables you to:
 
 ### Step 1: Read All Inputs
 
+Read the rubric at `{{rubric_path}}`. Pay special attention to:
+- The **per-criterion grading standards** (A/B/C tables under each criterion). These
+  define what A, B, and C mean for each specific criterion, not just the generic scale.
+  The per-criterion standards are the primary reference for grade assignment.
+- The **workaround durability** definitions (stable/fragile/blocking) and their impact
+  on grade range.
+- The **gate criterion** boundary (Supply Chain: C+ or below is disqualifying).
+
 Read every tool's findings and the aggregation data. Build a mental model of:
 - Each tool's test pass/fail profile per criterion
 - Which failures are tagged `[solver-specific]` vs `[tool-specific]`
