@@ -10,10 +10,11 @@ Run these checks in order. For each check, report PASS or FAIL with details.
 
 ### Check 1: Forbidden Grid Operator Names
 
-Run the checker script against all report files:
+Run the checker script against all report files. This must run in the devcontainer
+via `.devcontainer/dc-exec`:
 
 ```bash
-python -c "
+.devcontainer/dc-exec python -c "
 from scripts.check_no_real_grid_names import scan_file
 from pathlib import Path
 violations = []
@@ -52,7 +53,9 @@ have the build output, check for any link warnings.
 
 Check that the content validation script (`report/scripts/validate_content.py`)
 will pass:
-- Every page should contain the protocol version string ("v10")
+- Every page should use the current grading system (4-tier: Strong/Adequate/Weak/
+  Failing). Flag any remaining letter grades (A through F, with optional +/-) as
+  stale artifacts from pre-v11 protocol versions.
 - Every committed page should have a "Last updated" timestamp (new uncommitted
   pages will fail this check — that's expected and resolves after first commit)
 - No rendered `<Placeholder />` components in strict mode (OK in permissive mode)

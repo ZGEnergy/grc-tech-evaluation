@@ -12,14 +12,20 @@ are the source of truth. Every claim in the MDX narrative pages must agree with 
 ## What to Check
 
 ### Tier Consistency
-For each tool and criterion, check that the tier (Strong/Adequate/Weak/Failing)
-stated in narrative text matches the `tier` field in `grades.json`. Common error:
-tiers carried forward from an older protocol version (e.g., letter grades from a
-pre-v11 protocol still present in v11+ content).
+As of Protocol v11, grades use a 4-tier system: **Strong / Adequate / Weak / Failing**.
+The `grades.json` file contains `tier` and `numeric` fields — these are authoritative.
+
+For each tool and criterion, check that the tier stated in narrative text matches
+the `tier` field in `grades.json`. Common errors:
+- **Letter grades** (A, B+, C-, etc.) from pre-v11 protocol versions still present
+  in narrative text — these are stale and must be flagged
+- Tier names that don't match (e.g., "Moderate" instead of "Adequate")
+- Numeric scores that don't match the tier mapping (Strong=3, Adequate=2, Weak=1, Failing=0)
 
 Files to cross-reference:
-- `report/data/grades.json` (the `tier` field is authoritative) vs every MDX page that mentions a tier
+- `report/data/grades.json` (the `tier` field is authoritative) vs every MDX page that mentions a tier or grade
 - Pay special attention to `index.mdx` (landing page) and `results/index.mdx`
+- Flag ANY remaining letter grades (A through F, with optional +/-) as stale v10 artifacts
 
 ### Risk Register Consistency
 - Count of risks in `risk-register.json` vs "N risks" claims in text
@@ -55,17 +61,16 @@ Files to cross-reference:
 ### Phase 2 Scope Consistency
 - Scope tables in `index.mdx` should match `selection-report-v10.md` lines 109-137
 
-### Internal Artifact Absence
-The customer-facing report must not contain internal process artifacts:
-- `report/data/sweep-themes.json` should NOT exist (internal artifact)
-- `report/data/probe-results.json` should NOT exist (internal artifact)
-- `report/docs/results/sweep-findings.mdx` should NOT exist (internal artifact)
-- `report/docs/results/probe-results.mdx` should NOT exist (internal artifact)
-- No MDX page should reference "sweep findings", "probe results", or "protocol version"
-  (except external format versions like "PSS/E v31")
+### Content Quality Checks
+- No MDX page should reference internal "protocol version" numbers (e.g., "v10", "v11")
+  except external format versions like "PSS/E v31". Historical version references in
+  context (e.g., "v4-to-v5 protocol revision") are acceptable in sweep-findings.mdx.
 - No MDX page should contain em-dashes (U+2014)
 - The MATPOWER exclusion rationale must say the customer requires inspectable source
   code, not that MATLAB "cannot receive authorization"
+- `sweep-themes.json`, `probe-results.json`, `sweep-findings.mdx`, and
+  `probe-results.mdx` are legitimate report pages (included in sidebar). Verify their
+  content is consistent with other report data, not that they should be absent.
 
 ### Counts and Totals
 - Tool count (should be 6)
@@ -84,11 +89,12 @@ For each inconsistency found:
 ```
 
 End with a summary checklist:
-- Tier consistency: PASS/FAIL (N issues)
+- Tier consistency: PASS/FAIL (N issues — also note any stale letter grades found)
 - Risk register: PASS/FAIL (N issues)
 - Sensitivity scenarios: PASS/FAIL (N issues)
 - Head-to-head: PASS/FAIL (N issues)
 - Phase 2 scope: PASS/FAIL (N issues)
+- Content quality: PASS/FAIL (N issues)
 - Counts/totals: PASS/FAIL (N issues)
 
 ## Rules

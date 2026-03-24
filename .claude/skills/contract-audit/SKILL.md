@@ -50,10 +50,20 @@ REPORT_DATA      = report/data/
 SELECTION_REPORT = report/selection-report-v10.md
 TRACEABILITY     = report/docs/contract-traceability.mdx
 SIDEBARS         = report/sidebars.js
-GRADES_JSON      = report/data/grades.json
+GRADES_JSON      = report/data/grades.json      # 4-tier system (Strong/Adequate/Weak/Failing)
 RISK_JSON        = report/data/risk-register.json
 SENSITIVITY_JSON = report/data/sensitivity.json
+H2H_JSON         = report/data/head-to-head.json
+TEST_RESULTS     = report/data/test-results.json
+TOOL_PROFILES    = report/data/tool-profiles.json
+SWEEP_THEMES     = report/data/sweep-themes.json
+PROBE_RESULTS    = report/data/probe-results.json
 ```
+
+**Note on grading system:** As of Protocol v11, grades use a 4-tier system
+(Strong / Adequate / Weak / Failing) instead of letter grades. The `grades.json`
+file contains `tier` and `numeric` fields. Some older narrative text may still
+reference letter grades from v10 — these are data consistency errors to flag.
 
 ## Phase 1: Gather Context
 
@@ -98,8 +108,10 @@ These are the requirements that have historically been flagged. Check all of the
 
 These are the specific cross-page consistency checks that catch real errors:
 
-1. **Grade consistency**: Compare every grade claim in MDX narrative text against
-   `grades.json`. Common errors: grades carried from older protocol versions.
+1. **Tier consistency**: Compare every tier claim in MDX narrative text against
+   `grades.json`. The current system uses 4 tiers (Strong/Adequate/Weak/Failing).
+   Common errors: letter grades (A, B+, C-) carried from older protocol versions
+   that predate the tier system.
 2. **Risk register**: Compare risk count, severity levels, and descriptions between
    `index.mdx` and `risk-register.json`.
 3. **Sensitivity scenarios**: Compare scenario names, rankings, and "PyPSA holds #1

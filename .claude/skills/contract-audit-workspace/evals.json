@@ -1,0 +1,133 @@
+{
+  "skill_name": "contract-audit",
+  "evals": [
+    {
+      "id": 0,
+      "name": "full-audit",
+      "prompt": "Audit the report against the SOW. Check if everything looks good before we send this to the PM.",
+      "expected_output": "Should run all 6 phases: gather context, cross-reference requirements, launch 3 reviewer subagents, triage findings, report that traceability page exists and is current, and produce a final audit report. Should flag any stale letter grades (pre-v11 tier system). Should confirm all tiers match grades.json.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "reads-sow",
+          "text": "Reads the SOW document (data/whitepaper_proposal.md)",
+          "type": "behavior"
+        },
+        {
+          "id": "reads-json-data",
+          "text": "Reads at least grades.json, risk-register.json, and sensitivity.json from report/data/",
+          "type": "behavior"
+        },
+        {
+          "id": "launches-reviewers",
+          "text": "Launches at least 2 of the 3 reviewer subagents (Contract Officer Adversary, Data Consistency Auditor, Validation Gatekeeper)",
+          "type": "behavior",
+          "note": "Requires Agent tool — untestable in worktree subagents. Run in main checkout."
+        },
+        {
+          "id": "detects-tier-system",
+          "text": "Identifies that grades.json uses the 4-tier system (Strong/Adequate/Weak/Failing) and flags any stale letter grades in narrative pages",
+          "type": "output_quality"
+        },
+        {
+          "id": "confirms-traceability",
+          "text": "Notes that contract-traceability.mdx exists and addresses SOW gaps",
+          "type": "output_quality"
+        },
+        {
+          "id": "produces-structured-report",
+          "text": "Produces a final audit report with findings categorized by reviewer and blocking/non-blocking status",
+          "type": "output_quality"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "reviewers-only",
+      "prompt": "Run a contract compliance review on the report, just the reviewers — skip creating or updating the traceability page.",
+      "expected_output": "Should interpret this as --reviewers-only mode. Should launch the 3 reviewer subagents, collect findings, triage them, and report. Should NOT create or modify contract-traceability.mdx. Should NOT run make build.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "skips-traceability-creation",
+          "text": "Does not create or modify contract-traceability.mdx",
+          "type": "behavior"
+        },
+        {
+          "id": "launches-reviewers",
+          "text": "Launches reviewer subagents (at least 2 of 3)",
+          "type": "behavior",
+          "note": "Requires Agent tool — untestable in worktree subagents. Run in main checkout."
+        },
+        {
+          "id": "reports-findings",
+          "text": "Produces a findings report from the reviewers",
+          "type": "output_quality"
+        },
+        {
+          "id": "skips-build",
+          "text": "Does not run make build or make validate-dev",
+          "type": "behavior"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "fix-mode",
+      "prompt": "/contract-audit --fix",
+      "expected_output": "Should run the full audit pipeline AND fix blocking issues found. Should edit MDX narrative pages to match JSON source of truth. Should NOT modify JSON data files or selection-report-v10.md. Should run make build and make validate-dev in the devcontainer after fixes. Should produce a report listing what was fixed.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "fixes-narrative-not-json",
+          "text": "Edits MDX pages to fix inconsistencies but does NOT modify any JSON data files or selection-report-v10.md",
+          "type": "behavior"
+        },
+        {
+          "id": "runs-build",
+          "text": "Runs make build and/or make validate-dev in the devcontainer via dc-exec",
+          "type": "behavior"
+        },
+        {
+          "id": "runs-precommit",
+          "text": "Runs pre-commit run --all-files in the devcontainer",
+          "type": "behavior"
+        },
+        {
+          "id": "reports-fixes",
+          "text": "Produces a report listing which files were edited and what was changed",
+          "type": "output_quality"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "traceability-only",
+      "prompt": "/contract-audit --traceability-only",
+      "expected_output": "Should only create/update the contract-traceability.mdx page. Should NOT launch reviewer subagents. Should verify sidebar inclusion and frontmatter. Should add sidebar entry if missing.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "creates-or-updates-traceability",
+          "text": "Creates or updates contract-traceability.mdx with SOW requirement mapping",
+          "type": "behavior"
+        },
+        {
+          "id": "skips-reviewers",
+          "text": "Does not launch reviewer subagents or perform full cross-reference analysis",
+          "type": "behavior"
+        },
+        {
+          "id": "checks-sidebar",
+          "text": "Verifies contract-traceability is included in sidebars.js",
+          "type": "behavior"
+        },
+        {
+          "id": "correct-sidebar-position",
+          "text": "Sets sidebar_position: 5 in the frontmatter",
+          "type": "output_quality"
+        }
+      ]
+    }
+  ]
+}
