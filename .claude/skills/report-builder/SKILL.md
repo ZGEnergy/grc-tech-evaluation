@@ -129,7 +129,7 @@ workarounds, test evidence, and caveats.
 1. **Read the rubric.** Load `{{RUBRIC_PATH}}` for canonical criterion names.
 
 2. **Read the sweep grade table.** Parse the calibrated grades produced by
-   sweep-evaluations. This is the authoritative source for all letter grades.
+   sweep-evaluations. This is the authoritative source for all tier assignments.
 
 3. **Build extraction input.** For each available tool, read its synthesis.md from the
    branch HEAD. Concatenate with clear delimiters:
@@ -198,10 +198,10 @@ This state is identical to the retired synthesize-selection RANK state.
       the kickoff call for source code they can inspect, which precludes a compiled
       binary like the MATLAB/Octave runtime.
 
-   b. **Supply Chain gate.** Any remaining tool with Supply Chain grade <= C+ is
-      **disqualified**:
-      - B- and above: passes gate
-      - C+ and below: disqualified
+   b. **Supply Chain gate.** Any remaining tool with Supply Chain tier of Weak or
+      Failing is **disqualified**:
+      - Strong or Adequate: passes gate
+      - Weak or Failing: disqualified
 
    If ALL tools are excluded or disqualified, inform user and stop.
 
@@ -212,11 +212,11 @@ This state is identical to the retired synthesize-selection RANK state.
    4. Accessibility (Workforce Accessibility)
    5. Maturity (Maturity & Sustainability)
 
-   Grade ordering (best to worst): A > A- > B+ > B > B- > C+ > C > C- > F
+   Tier ordering (best to worst): Strong > Adequate > Weak > Failing
 
    Compare on criterion 1 first. If tied, move to criterion 2, and so on.
 
-3. **Tiebreaker 1: count of top grades.** If tied across all 5, count A and A- grades
+3. **Tiebreaker 1: count of top tiers.** If tied across all 5, count Strong tiers
    across ALL criteria (including Supply Chain).
 
 4. **Tiebreaker 2: user escalation.** If still tied, use AskUserQuestion:
@@ -369,9 +369,9 @@ Dispatch a verifier subagent that checks:
 7. **MATPOWER exclusion rationale.** Verify the report says the customer asked for
    inspectable source code, not that MATLAB "cannot receive authorization."
 
-8. **Grade-to-finding consistency.** For each tool/criterion, verify the grade's
+8. **Tier-to-finding consistency.** For each tool/criterion, verify the tier's
    severity matches the findings. Blocking architectural limitations should produce
-   failing grades, not C+.
+   a Failing tier, not Weak or above.
 
 9. **JSON-to-MDX consistency.** Every JSON data file value that appears in MDX prose
    must match exactly.
@@ -468,7 +468,7 @@ These are enforced during GENERATE and checked during VERIFY. Full details in
 5. **Bus counts from data.** Derive from actual .m files, never hardcode.
 6. **Sensitivity narrative.** Emphasize ranking stability across scenarios, not
    individual scenario wins by tools that can't meet Phase 2 requirements.
-7. **Grade-finding alignment.** Blocking architectural limitations = failing grades.
+7. **Grade-finding alignment.** Blocking architectural limitations = Failing tier.
 8. **Traceability.** Every claim references a test ID or synthesis finding.
 9. **No stale data.** Always rebuild from latest evaluation results.
 

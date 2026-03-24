@@ -106,18 +106,23 @@ cannot meet Phase 2 requirements, so this individual win is not meaningful.)
 Rule: If a tool tops a single scenario but has blocking limitations for Phase 2,
 explicitly note that the scenario win does not reflect real-world applicability.
 
-## Grade-to-Finding Consistency
+## Tier-to-Finding Consistency
 
-Grades must match the severity of underlying findings. The sweep-evaluations skill
-calibrates grades with cross-tool visibility, so the grades provided should already
+Tiers must match the severity of underlying findings. The sweep-evaluations skill
+calibrates tiers with cross-tool visibility, so the tiers provided should already
 be consistent. But verify during writing:
 
-- Blocking architectural limitation (makes Phase 2 infeasible) -> C or below
-- Passes fewer than half of tests in a suite -> should not be B-level
-- "Cannot express" core market-operations problems -> fail territory
-- Multiple fragile workarounds -> B- at best
+- Blocking architectural limitation (makes Phase 2 infeasible) -> Failing
+- Passes fewer than half of tests in a suite -> should not be Adequate or Strong
+- "Cannot express" core market-operations problems -> Failing
+- Multiple fragile workarounds -> Weak at best
 - Tool fails the same test as all others (shared solver limitation) -> should not
-  differentiate tools in grading
+  differentiate tools in tier assignment
+
+Workaround durability mapping to tiers:
+- `stable` workaround = Adequate
+- `fragile` workaround = Weak
+- `blocking` limitation = Failing
 
 ## Traceability
 

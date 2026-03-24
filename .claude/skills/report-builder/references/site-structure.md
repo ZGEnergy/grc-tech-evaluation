@@ -112,11 +112,11 @@ Also remove their entries from `sidebars.js`.
 ```json
 {
     "_provenance": { "source": "...", "extracted": "YYYY-MM-DD" },
-    "scale": { "A+": 4.3, "A": 4.0, ... "F": 0.0 },
+    "scale": { "Strong": 3, "Adequate": 2, "Weak": 1, "Failing": 0 },
     "tools": ["pypsa", "pandapower", ...],
     "criteria": ["expressiveness", "extensibility", ...],
     "grades": [
-        { "tool": "pypsa", "criterion": "expressiveness", "letter": "B+", "numeric": 3.3 },
+        { "tool": "pypsa", "criterion": "expressiveness", "tier": "Strong", "numeric": 3 },
         ...
     ]
 }

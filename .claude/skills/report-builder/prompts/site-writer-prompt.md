@@ -54,9 +54,9 @@ Read `{{content_rules_path}}` for the full list. Key rules:
 4. **Bus counts from data.** Use the bus counts provided in inputs, not hardcoded values.
 5. **MATPOWER footnote:** "excluded because the customer requires inspectable source
    code, which precludes MATLAB's compiled runtime" -- not "cannot receive authorization."
-6. **Grade-finding alignment.** If findings describe fundamental failures, the grade
-   must reflect that severity. Do not describe blocking limitations and then report a
-   passing grade.
+6. **Tier-finding alignment.** If findings describe fundamental failures, the tier
+   must reflect that severity. Do not describe blocking limitations and then report an
+   Adequate or Strong tier.
 
 ### MDX Format
 - Use proper Docusaurus frontmatter (title, sidebar_position)

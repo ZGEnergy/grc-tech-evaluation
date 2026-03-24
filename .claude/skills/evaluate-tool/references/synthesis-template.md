@@ -1,8 +1,8 @@
 # Synthesis Report Template
 
 The synthesis report compiles all evaluation results into per-criterion test result
-summaries with traceability to evidence. It does NOT assign grades — grading happens
-downstream in sweep-evaluations where cross-tool visibility enables calibrated grading.
+summaries with traceability to evidence. It does NOT assign tiers — tier assignment
+happens downstream in sweep-evaluations where cross-tool visibility enables calibrated tiering.
 
 ## File Location
 
@@ -20,7 +20,7 @@ evaluations/<tool>/results/synthesis.md
 - Most notable strengths and weaknesses
 - Scale cap applied (if any)
 
-Do NOT include letter grades. Describe capabilities and limitations factually.
+Do NOT include tier assignments. Describe capabilities and limitations factually.
 
 ### 2. Test Results Summary
 
@@ -74,8 +74,8 @@ When tabulating fails, distinguish independent failures from cascaded ones using
 2-3 sentences summarizing what the evidence shows for this criterion. Identify blocking
 limitations vs minor gaps. Tag key findings as solver-specific or tool-specific.
 
-Do NOT recommend a letter grade. The purpose of this section is to present evidence
-clearly so the downstream grading process can assign calibrated grades with cross-tool
+Do NOT recommend a tier. The purpose of this section is to present evidence
+clearly so the downstream tiering process can assign calibrated tiers with cross-tool
 context.
 
 ### 3b. FNM Ingestion Findings (Suite G)

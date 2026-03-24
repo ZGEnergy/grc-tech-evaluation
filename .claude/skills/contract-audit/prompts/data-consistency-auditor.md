@@ -11,13 +11,14 @@ are the source of truth. Every claim in the MDX narrative pages must agree with 
 
 ## What to Check
 
-### Grade Consistency
-For each tool and criterion, check that the letter grade stated in narrative text
-matches `grades.json`. Common error: grades carried forward from an older protocol
-version (e.g., v4 grades in v10 content).
+### Tier Consistency
+For each tool and criterion, check that the tier (Strong/Adequate/Weak/Failing)
+stated in narrative text matches the `tier` field in `grades.json`. Common error:
+tiers carried forward from an older protocol version (e.g., letter grades from a
+pre-v11 protocol still present in v11+ content).
 
 Files to cross-reference:
-- `report/data/grades.json` vs every MDX page that mentions a grade
+- `report/data/grades.json` (the `tier` field is authoritative) vs every MDX page that mentions a tier
 - Pay special attention to `index.mdx` (landing page) and `results/index.mdx`
 
 ### Risk Register Consistency
@@ -83,7 +84,7 @@ For each inconsistency found:
 ```
 
 End with a summary checklist:
-- Grade consistency: PASS/FAIL (N issues)
+- Tier consistency: PASS/FAIL (N issues)
 - Risk register: PASS/FAIL (N issues)
 - Sensitivity scenarios: PASS/FAIL (N issues)
 - Head-to-head: PASS/FAIL (N issues)

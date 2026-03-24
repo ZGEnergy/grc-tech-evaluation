@@ -19,10 +19,10 @@ Run ALL of the following checks. Report every issue found, no matter how minor.
 ### 1. Grade Consistency
 
 Read `{{data_dir}}/grades.json`. For every MDX page in `{{docs_dir}}/` and the
-selection report, verify that every mention of a letter grade for a specific
-tool/criterion matches the JSON data exactly.
+selection report, verify that every mention of a tier for a specific tool/criterion
+matches the JSON data exactly.
 
-Flag: "Page X says tool Y has grade Z for criterion W, but grades.json says Q."
+Flag: "Page X says tool Y has tier Z for criterion W, but grades.json says Q."
 
 ### 2. Bus Count Accuracy
 
@@ -97,18 +97,18 @@ Find every mention of MATPOWER's exclusion rationale. Verify it says the custome
 requires inspectable source code (from the kickoff call), NOT that MATLAB "cannot
 receive authorization" or is "disqualified for classified deployment."
 
-### 9. Grade-to-Finding Consistency
+### 9. Tier-to-Finding Consistency
 
 For each tool and criterion, read the criterion page's findings. Check whether the
-grade severity matches the described limitations:
+tier severity matches the described limitations:
 
 - If findings describe "blocking architectural limitation" or "makes Phase 2
-  infeasible" -> grade should be C or below, not C+ or above
-- If findings describe "passes N of M tests" where N < M/2 -> grade should reflect
-  majority failure
-- If findings describe the tool "cannot express" core problems -> failing grade, not C+
+  infeasible" -> tier should be Failing, not Weak or above
+- If findings describe "passes N of M tests" where N < M/2 -> tier should reflect
+  majority failure (Weak or Failing)
+- If findings describe the tool "cannot express" core problems -> Failing tier, not Weak
 
-Flag specific instances where the grade seems too generous for the findings.
+Flag specific instances where the tier seems too generous for the findings.
 
 ### 10. JSON-to-MDX Alignment
 

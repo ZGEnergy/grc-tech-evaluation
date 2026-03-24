@@ -20,8 +20,8 @@ so precision matters -- a misread grade changes the final recommendation.
 
 ### 1. Grade Table
 
-The sweep grade table is the single source of truth for letter grades. Do not extract
-grades from per-tool synthesis files -- those files no longer contain grades.
+The sweep grade table is the single source of truth for tier assignments. Do not extract
+tiers from per-tool synthesis files -- those files no longer contain tiers.
 
 Transcribe the sweep grade table into the normalized output format. The canonical
 criterion names are:
@@ -36,10 +36,10 @@ criterion names are:
 | Supply Chain (Gate) | Supply Chain |
 
 Rules:
-- Strip markdown bold (`**B+**` -> `B+`)
-- Normalize case (`b+` -> `B+`)
-- Valid grades: A, A-, B+, B, B-, C+, C, C-, F
-- If a criterion has a non-standard grade (e.g., "Pass", "N/A"), flag it
+- Strip markdown bold (`**Strong**` -> `Strong`)
+- Normalize case (`strong` -> `Strong`)
+- Valid tiers: Strong, Adequate, Weak, Failing
+- If a criterion has a non-standard tier (e.g., "Pass", "N/A"), flag it
 - If a criterion is missing, mark as `MISSING` and flag
 
 ### 2. P2 Readiness Findings
@@ -122,7 +122,7 @@ List any issues encountered during extraction:
 
 ## Critical Rules
 
-- **Grades come from the sweep table only.** Do not extract or infer grades from
+- **Tiers come from the sweep table only.** Do not extract or infer tiers from
   synthesis files. If the sweep table and a synthesis file disagree, use the sweep
   table and flag the discrepancy.
 - **Extract only.** Do not infer, improve, or adjust any data. Report what you find.

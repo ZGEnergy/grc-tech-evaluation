@@ -5,15 +5,15 @@
 
 ## Overview
 
-This rubric defines the evaluation criteria and grading standards used to assess open-source power modeling tools for the Phase 1 technology evaluation. Each tool is graded against six criteria organized into two tiers.
+This rubric defines the evaluation criteria and assessment standards used to assess open-source power modeling tools for the Phase 1 technology evaluation. Each tool is assessed against six criteria organized into two tiers.
 
 ### Gate Criterion
 
-**Supply Chain, Inspectability & Licensing Risk (Criterion 6)** is a gate criterion. A grade of C+ or below is disqualifying regardless of performance on all other criteria. This reflects the program's primary motivation: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
+**Supply Chain, Inspectability & Licensing Risk (Criterion 6)** is a gate criterion. A tier of **Weak** or **Failing** is disqualifying regardless of performance on all other criteria. This reflects the program's primary motivation: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
 
 ### Weighted Criteria
 
-The remaining criteria are evaluated in priority order. When two tools have comparable gate scores, the higher-priority criteria break ties:
+The remaining criteria are evaluated in priority order. When two tools have comparable gate tiers, the higher-priority criteria break ties:
 
 1. **Problem Expressiveness** — Can it solve the problems we need?
 2. **Extensibility** — Can analysts build beyond the built-in problems?
@@ -23,33 +23,28 @@ The remaining criteria are evaluated in priority order. When two tools have comp
 
 ### Grading Scale
 
-Each criterion is graded on a 9-point scale:
+Each criterion is assessed on a 4-tier scale:
 
-| Grade | Meaning |
-|-------|---------|
-| **A** | Strong native support, well-tested at scale, no significant caveats |
-| **A-** | Strong overall but with one minor caveat that doesn't affect core workflows |
-| **B+** | Mostly strong, one meaningful gap that has a stable workaround |
-| **B** | Supported with caveats — requires extensions or workarounds, moderate friction |
-| **B-** | Functional but multiple workarounds needed, some fragile |
-| **C+** | Significant gaps but not disqualifying — tool is usable with substantial effort |
-| **C** | Weak, significant gaps, outside tool's design scope |
-| **C-** | Barely functional for the use case, major remediation required |
-| **F** | Not achievable or disqualifying |
+| Tier | Meaning |
+|------|---------|
+| **Strong** | Meets or exceeds requirements. Ready for Phase 2 as-is or with minor configuration. |
+| **Adequate** | Meets core requirements with caveats. Usable for Phase 2 with known workarounds or moderate effort. |
+| **Weak** | Significant gaps. Major remediation or custom development required for Phase 2 viability. |
+| **Failing** | Does not meet requirements. Blocking architectural limitations with no feasible path to Phase 2. |
 
-A, B, and C are defined explicitly in each criterion's grading standards. The +/- modifiers are assigned by evaluator judgment based on proximity to the boundary, justified by test evidence. For the gate criterion, the disqualifying boundary sits between B- and C+.
+Each tier is defined explicitly in each criterion's assessment standards. For the gate criterion (Supply Chain), the disqualifying boundary is Weak or Failing.
 
 ### Evaluation Scope
 
 Tools are evaluated as their **shipped package plus official companion packages** maintained by the same team or organization. For example, PowerModels.jl is evaluated together with PowerModelsAnnex.jl and other LANL-ANSI infrastructure packages. PowerSimulations.jl is evaluated together with PowerSystems.jl, InfrastructureSystems.jl, and other NREL Sienna packages. PyPSA is evaluated together with linopy, atlite, powerplantmatching, and other official PyPSA ecosystem packages.
 
-Third-party packages that happen to integrate with a tool but are maintained independently are noted but do not contribute to the tool's grade. When an official companion package is used to achieve a test result, this is explicitly documented.
+Third-party packages that happen to integrate with a tool but are maintained independently are noted but do not contribute to the tool's tier. When an official companion package is used to achieve a test result, this is explicitly documented.
 
 Multi-tool stacks are only evaluated when the integration path is officially supported and documented by the tools themselves (e.g., pandapower with a PowerModels.jl backend, if that is a supported configuration). Hybrid stacks assembled by the evaluator from independently maintained tools are not evaluated — that is heroics, not a product.
 
 ### Hardware Baseline
 
-All scalability testing is conducted on a reference workstation: **128 GB RAM, 16 cores, no GPU**. Results on other hardware may be noted for context but grades are assigned against this baseline.
+All scalability testing is conducted on a reference workstation: **128 GB RAM, 16 cores, no GPU**. Results on other hardware may be noted for context but tiers are assigned against this baseline.
 
 ### Solver Stack
 
@@ -60,7 +55,7 @@ All tests use open-source solvers exclusively. Commercial solvers (Gurobi, CPLEX
 | Label | Network | Buses | Purpose |
 |-------|---------|-------|---------|
 | SMALL | ACTIVSg 2k | ~2,000 | Smoke test, fast iteration |
-| MEDIUM | ACTIVSg 10k | ~10,000 | Primary benchmark — all grades assessed here |
+| MEDIUM | ACTIVSg 10k | ~10,000 | Primary benchmark; all tiers assessed here |
 | LARGE | FNM Annual S01 | ~30,000 | Data model fidelity — production-network evidence for Expressiveness and Extensibility (FNM_PATH-gated) |
 
 Reference networks are preprocessed per the test protocol's Data Preparation section before evaluation begins. Key preprocessing steps include fixing zero-impedance branches, setting unconstrained thermal ratings, and tightening select branch limits to induce congestion for tests that depend on binding constraints and non-uniform LMPs.
@@ -69,15 +64,15 @@ Reference networks are preprocessed per the test protocol's Data Preparation sec
 
 The Full Network Model (FNM) Annual S01 variant is included in Phase 1 testing as a LARGE reference network. The FNM is ingested via a shared intermediate format (not direct PSS/E parsing) and tests data model fidelity: whether each tool can faithfully represent a production-scale ISO network's full parameter space, including record types absent from synthetic MATPOWER cases (3-winding transformers, switched shunt discrete steps, multi-section lines, area interchange data, and market-specific supplemental CSVs).
 
-FNM test results inform Expressiveness and Extensibility grades via grading notes (see Criterion 1 and Criterion 2) but do not override the primary sub-questions or alter A/B/C grade boundaries. This follows the precedent of the v2 amendment, which added SCOPF/LMP sub-questions as Phase 2 readiness indicators that inform grades without automatic override.
+FNM test results inform Expressiveness and Extensibility tiers via assessment notes (see Criterion 1 and Criterion 2) but do not override the primary sub-questions or alter tier boundaries. This follows the precedent of the v2 amendment, which added SCOPF/LMP sub-questions as Phase 2 readiness indicators that inform tiers without automatic override.
 
-All FNM-dependent tests are gated by the `FNM_PATH` environment variable. When `FNM_PATH` is not set, FNM tests skip gracefully and tools receive complete grades based on synthetic-network results alone. FNM results are additive evidence, not gating criteria.
+All FNM-dependent tests are gated by the `FNM_PATH` environment variable. When `FNM_PATH` is not set, FNM tests skip gracefully and tools receive complete tier assessments based on synthetic-network results alone. FNM results are additive evidence, not gating criteria.
 
 For the full rationale, see `data/fnm/docs/rubric-v4-justification.md`.
 
 ### Companion Test Protocol
 
-This rubric is accompanied by a separate **Phase 1 Test Protocol** document that defines the exact test cases, pass conditions, and recording requirements used to produce grades. Every grade in the evaluation report must trace to a specific test result or audit finding in the protocol. The rubric says *what* we evaluate; the protocol says *how*.
+This rubric is accompanied by a separate **Phase 1 Test Protocol** document that defines the exact test cases, pass conditions, and recording requirements used to produce tier assessments. Every tier in the evaluation report must trace to a specific test result or audit finding in the protocol. The rubric says *what* we evaluate; the protocol says *how*.
 
 ### Phase 2 Context — ISO Congestion Readiness
 
@@ -91,7 +86,7 @@ The v2 amendments to this rubric add sub-questions and findings that assess each
 
 **Phase 2 network data:** The Full Network Model (FNM) is NDA-restricted and distributed in PSS/E RAW format. Phase 2 will require either native PSS/E parsing or a custom converter, plus network imputation and calibration to reproduce published congestion patterns. DAM congestion is the recommended Phase 2 starting point due to data availability (public LMP and binding constraint data from OASIS).
 
-**Impact on Phase 1 grading:** The new sub-questions (Expressiveness 9–11, Extensibility 8–9) are supplementary Phase 2 readiness indicators. They inform the grade narrative but do not automatically override the original sub-questions. See the grading note after Expressiveness sub-question 11.
+**Impact on Phase 1 grading:** The new sub-questions (Expressiveness 9–11, Extensibility 8–9) are supplementary Phase 2 readiness indicators. They inform the assessment narrative but do not automatically override the original sub-questions. See the assessment note after Expressiveness sub-question 11.
 
 ---
 
@@ -106,7 +101,7 @@ Evaluators should notice engineering quality as a signal that runs through multi
 - **Maturity** is signaled by release engineering practices — versioning discipline, changelog quality, dependency pinning, and test coverage
 - **Supply Chain risk** is amplified by poor release practices — unsigned artifacts, unversioned distributions, or unauditable dependency trees
 
-When something feels off — documentation that doesn't match behavior, examples that don't run, interfaces that change without warning — that is engineering quality data and should inform the grades.
+When something feels off — documentation that doesn't match behavior, examples that don't run, interfaces that change without warning — that is engineering quality data and should inform the tier assessment.
 
 ---
 
@@ -156,24 +151,25 @@ This is distinct from sub-question 7: sub-question 7 tests post-hoc contingency 
 
 **11. Distributed Slack OPF** — Can the tool solve DC OPF with a distributed slack bus (load-proportional or generation-proportional) rather than a single slack bus? All ISOs use distributed slack in their market clearing engines — the reference bus is a weighted aggregate across participating loads or generators, not a single bus. This directly affects LMP computation: the System Marginal Energy Cost is defined at the distributed reference, and congestion/loss components are relative to it. A tool that only supports single-slack OPF will produce LMP decompositions that don't match ISO-published values.
 
-**Note on A-12 (multi-period DCOPF with storage):** A-12 provides additional evidence for sub-question 3 (DC OPF) by testing temporal coupling and storage modeling. A tool that passes A-3 but fails A-12 has basic OPF capability but cannot express inter-temporal constraints natively. This is a meaningful expressiveness gap documented in the grade narrative. A-12 results do not independently determine the grade but strengthen or weaken the evidence base for the B+/A- boundary on sub-question 3.
+**Note on A-12 (multi-period DCOPF with storage):** A-12 provides additional evidence for sub-question 3 (DC OPF) by testing temporal coupling and storage modeling. A tool that passes A-3 but fails A-12 has basic OPF capability but cannot express inter-temporal constraints natively. This is a meaningful expressiveness gap documented in the assessment narrative. A-12 results do not independently determine the tier but strengthen or weaken the evidence base for the Strong/Adequate boundary on sub-question 3.
 
-**Note on Phase 2 readiness sub-questions (9, 10, 11):** These sub-questions are supplementary Phase 2 readiness indicators. The original sub-questions (1–8) remain the primary drivers of the Expressiveness grade. Sub-questions 9–11 inform whether the tool is ready for ISO congestion pattern reproduction. A tool that scores well on 1–8 but poorly on 9–11 receives a grade note, not an automatic downgrade. However, a tool that cannot express SCOPF at all (not even through its extension API) or cannot support distributed slack faces a meaningful limitation for Phase 2 that should be reflected in the grade narrative.
+**Note on Phase 2 readiness sub-questions (9, 10, 11):** These sub-questions are supplementary Phase 2 readiness indicators. The original sub-questions (1–8) remain the primary drivers of the Expressiveness grade. Sub-questions 9–11 inform whether the tool is ready for ISO congestion pattern reproduction. A tool that scores well on 1-8 but poorly on 9-11 receives an assessment note, not an automatic tier reduction. However, a tool that cannot express SCOPF at all (not even through its extension API) or cannot support distributed slack faces a meaningful limitation for Phase 2 that should be reflected in the assessment narrative.
 
-**Note on FNM data model fidelity (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to ingest and faithfully represent the FNM intermediate format is additional evidence for the Expressiveness grade. Specifically:
+**Note on FNM data model fidelity (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to ingest and faithfully represent the FNM intermediate format is additional evidence for the Expressiveness tier. Specifically:
 
 - **Record type coverage** — The FNM contains PSS/E record types absent from synthetic MATPOWER cases: 3-winding transformers, switched shunt discrete steps, multi-section lines, HVDC records, and area interchange data. A tool that ingests all record types from the intermediate format without data loss demonstrates broader data model expressiveness than one tested only against synthetic cases. Record type coverage informs sub-questions 1 and 2 (DCPF/ACPF) because correct power flow results depend on faithful topology and parameter representation.
 - **Power flow verification** — DCPF and ACPF results on the FNM are compared against reference solutions using pass conditions defined in `data/fnm/reference/pass_conditions.json`. A tool that passes FNM power flow verification demonstrates that its data model fidelity is sufficient for production-scale computation, not just ingestion. This directly informs sub-questions 1 and 2.
-- **Grade impact** — FNM results strengthen or weaken the evidence base for the grade assigned by sub-questions 1–11, but do not independently determine the grade. A tool that passes all synthetic-network tests but fails FNM ingestion entirely receives a grade note documenting the gap. A tool that passes both synthetic and FNM tests has stronger evidence for its grade. The A/B/C grade boundaries are unchanged.
+- **Tier impact** -- FNM results strengthen or weaken the evidence base for the tier assigned by sub-questions 1-11, but do not independently determine the tier. A tool that passes all synthetic-network tests but fails FNM ingestion entirely receives an assessment note documenting the gap. A tool that passes both synthetic and FNM tests has stronger evidence for its tier. The tier boundaries are unchanged.
 - **Scale vs. expressiveness** — If FNM ingestion fails due to scale alone (the tool cannot handle ~30K buses regardless of data model completeness), the finding is attributed to Scalability (Criterion 4), not Expressiveness. If failure is due to missing record type support (e.g., the tool has no representation for 3-winding transformers), the finding is attributed to Expressiveness.
 
-### Grading Standards
+### Assessment Standards
 
-| Grade | Description |
-|-------|-------------|
-| **A** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. ACPF convergence verifiable via residuals and iteration counts. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. SCUC produces demonstrable generator cycling on appropriately parameterized test cases. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. Multi-period DCOPF with storage (inter-temporal SoC constraints, BESS arbitrage) expressible natively. SCOPF expressible natively or through documented extension API. Loss-inclusive OPF supported with LMP decomposition into energy, congestion, and loss components, validated via internal consistency checks. Distributed slack OPF supported natively. |
-| **B** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. ACPF convergence may lack full diagnostics (iteration count or residual not directly exposed). Stochastic support may require wrapping in an external loop (tested separately under Extensibility). SCOPF achievable through extension API with moderate effort. Loss approximation possible but may require manual implementation. Distributed slack achievable through configuration or workaround. |
-| **C** | A target problem type is outside the tool's design scope entirely, or requires rebuilding core functionality from primitives in a general-purpose modeling language. |
+| Tier | Description |
+|------|-------------|
+| **Strong** | All target problem types (DCPF, ACPF, DC OPF, AC feasibility check, SCUC, SCED, contingency sweep, stochastic optimization) expressible natively within the tool's API or official companion packages. Core constraints are built-in primitives, not user-assembled. ACPF convergence verifiable via residuals and iteration counts. Outputs (LMPs, flows, angles, commitment schedules) accessible as structured objects. SCUC produces demonstrable generator cycling on appropriately parameterized test cases. Contingency re-solve does not require full model reconstruction. Stochastic scenarios are first-class objects in the formulation. Multi-period DCOPF with storage (inter-temporal SoC constraints, BESS arbitrage) expressible natively. SCOPF expressible natively or through documented extension API. Loss-inclusive OPF supported with LMP decomposition into energy, congestion, and loss components, validated via internal consistency checks. Distributed slack OPF supported natively. |
+| **Adequate** | Most problem types supported, but one or two require a companion package, a manual modeling layer, or a non-obvious workaround. The tool gets you there but with friction. ACPF convergence may lack full diagnostics (iteration count or residual not directly exposed). Stochastic support may require wrapping in an external loop (tested separately under Extensibility). SCOPF achievable through extension API with moderate effort. Loss approximation possible but may require manual implementation. Distributed slack achievable through configuration or workaround. |
+| **Weak** | Multiple target problem types require significant manual effort or are partially outside the tool's design scope. Core market-operations problems (SCUC, SCED, SCOPF) may be achievable only through extensive custom code. |
+| **Failing** | A target problem type is outside the tool's design scope entirely, or requires rebuilding core functionality from primitives in a general-purpose modeling language. The tool cannot express most core market-operations problems. |
 
 ---
 
@@ -203,7 +199,7 @@ This is distinct from Expressiveness. Expressiveness asks "can the tool solve th
 
 **9. PTDF matrix extraction** — Can the tool expose or compute Power Transfer Distribution Factors as a programmatically accessible matrix or per-element query? This is the fundamental analytical primitive for congestion analysis. PTDFs may be exposed natively (e.g., MATPOWER's `makePTDF()`), extractable from the solved model's internal matrices, or computable via unit injection experiments. On networks with phase-shifting transformers, does the tool correctly account for Pbusinj/Pfinj correction terms in PTDF-based flow predictions? Document the method and effort level.
 
-**Note on FNM supplemental CSV representability (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to represent data from the 7 FNM supplemental CSVs is additional evidence for the Extensibility grade. The supplemental CSVs carry market-specific data — trading hub definitions, generator distribution factors, contingency definitions, interface limits, transmission ratings beyond the base 3-tier, and outage scheduling data — that no tool natively ingests.
+**Note on FNM supplemental CSV representability (v4):** When FNM test results are available (FNM_PATH set), the tool's ability to represent data from the 7 FNM supplemental CSVs is additional evidence for the Extensibility tier. The supplemental CSVs carry market-specific data — trading hub definitions, generator distribution factors, contingency definitions, interface limits, transmission ratings beyond the base 3-tier, and outage scheduling data — that no tool natively ingests.
 
 For each supplemental CSV field, a representability classification is assigned using the 3-tier system documented in `data/fnm/docs/supplemental-csvs.md`:
 
@@ -213,7 +209,7 @@ For each supplemental CSV field, a representability classification is assigned u
 
 The proportion of supplemental CSV fields in each tier directly indicates how much post-ingestion extension work an analyst faces to use the FNM for production analysis. This maps to Extensibility sub-questions 1 (custom constraints — supplemental data like interface limits and contingency definitions are inputs to custom constraints), 5 (interoperability — tool-external fields require external data structures that must stay synchronized with the tool's network model), and 6 (code architecture quality — a tool whose data model is easily extended to carry supplemental data demonstrates better architectural extensibility than one that forces tool-external workarounds).
 
-**Grade impact:** A tool with predominantly natively-representable or extension-representable supplemental CSV fields has stronger evidence for an A or B Extensibility grade. A tool where most supplemental data is tool-external demonstrates a meaningful limitation that should be noted in the grade narrative. The A/B/C grade boundaries are unchanged. The representability summary in `data/fnm/docs/supplemental-csv-representability.md` provides the cross-tool comparison matrix.
+**Tier impact:** A tool with predominantly natively-representable or extension-representable supplemental CSV fields has stronger evidence for a Strong or Adequate Extensibility tier. A tool where most supplemental data is tool-external demonstrates a meaningful limitation that should be noted in the assessment narrative. The tier boundaries are unchanged. The representability summary in `data/fnm/docs/supplemental-csv-representability.md` provides the cross-tool comparison matrix.
 
 ### Workaround Durability
 
@@ -225,15 +221,16 @@ When a sub-question is answered with a workaround, the workaround is classified:
 | **Fragile** | Depends on undocumented internals, private attributes, or behavior not guaranteed by the API. Could break on any minor version bump. |
 | **Blocking** | Requires forking the source, patching compiled code, or is simply not achievable. |
 
-A test requiring any workaround (stable, fragile, or blocking) must be classified as `qualified_pass`, not `pass`. The workaround class determines the grade range: stable workarounds support a B-range grade, fragile workarounds pull toward B- or C+, and blocking workarounds result in C or below.
+A test requiring any workaround (stable, fragile, or blocking) must be classified as `qualified_pass`, not `pass`. The workaround class determines the tier: stable workarounds support an Adequate tier, fragile workarounds pull toward Weak, and blocking workarounds result in Failing.
 
-### Grading Standards
+### Assessment Standards
 
-| Grade | Description |
-|-------|-------------|
-| **A** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection and calibrated perturbations (≤20% infeasibility). Results export to standard formats is trivial. Clean architecture with separation of concerns — a competent analyst can extend the tool in days, not weeks. Reference bus configurable via API. PTDF matrix accessible as a structured output with correct handling of phase-shifting transformer correction terms. |
-| **B** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. Reference bus control possible with workaround. PTDF extraction requires manual computation from network data; phase-shifter corrections may require user implementation. |
-| **C** | Extension requires forking or patching the core. Network topology not accessible as a graph. Contingency analysis requires full model rebuilds. Stochastic wrapping not feasible without major effort. Monolithic or thesis-project architecture with no meaningful separation of concerns. |
+| Tier | Description |
+|------|-------------|
+| **Strong** | Documented extension API for custom constraints. Network exposed as a traversable graph. Contingency loops buildable without model reconstruction. Stochastic scenario wrapping straightforward with API-level timeseries injection and calibrated perturbations (≤20% infeasibility). Results export to standard formats is trivial. Clean architecture with separation of concerns; a competent analyst can extend the tool in days, not weeks. Reference bus configurable via API. PTDF matrix accessible as a structured output with correct handling of phase-shifting transformer correction terms. |
+| **Adequate** | Extension is possible but requires understanding internals. Graph access works via a workaround or external library bridge. Contingency looping requires some model reconstruction overhead. Stochastic wrapping achievable but requires config file manipulation or per-scenario overhead. Architecture is partially structured but shows signs of organic growth. Reference bus control possible with workaround. PTDF extraction requires manual computation from network data; phase-shifter corrections may require user implementation. |
+| **Weak** | Extension requires deep reverse-engineering of internals. Key extension paths (custom constraints, graph access) depend on undocumented private APIs that could break on upgrade. Architecture limits extensibility to narrow use cases. |
+| **Failing** | Extension requires forking or patching the core. Network topology not accessible as a graph. Contingency analysis requires full model rebuilds. Stochastic wrapping not feasible without major effort. Monolithic or thesis-project architecture with no meaningful separation of concerns. |
 
 ---
 
@@ -253,13 +250,14 @@ This criterion is purely about usability — the learning curve, API quality, do
 
 **4. Error transparency** — When something goes wrong (infeasibility, convergence failure, data error), does the tool surface meaningful diagnostic information, or does it fail silently or with cryptic solver output?
 
-### Grading Standards
+### Assessment Standards
 
-| Grade | Description |
-|-------|-------------|
-| **A** | Clean, well-documented API with realistic worked examples. A power systems engineer is productive within days. Errors surface meaningfully with actionable diagnostics. |
-| **B** | API is learnable but has rough edges. Documentation covers the basics but gaps exist for advanced use cases. Learning curve measured in weeks, not days. Error messages require solver familiarity to interpret. |
-| **C** | Steep learning curve requiring deep software expertise beyond power systems. Documentation is sparse, outdated, or aspirationally ahead of implementation. Errors fail silently or surface only cryptic solver output. |
+| Tier | Description |
+|------|-------------|
+| **Strong** | Clean, well-documented API with realistic worked examples. A power systems engineer is productive within days. Errors surface meaningfully with actionable diagnostics. |
+| **Adequate** | API is learnable but has rough edges. Documentation covers the basics but gaps exist for advanced use cases. Learning curve measured in weeks, not days. Error messages require solver familiarity to interpret. |
+| **Weak** | Significant documentation gaps; examples are stale or incomplete. Learning curve extends beyond weeks. Error messages are unhelpful and require source-code reading to diagnose. |
+| **Failing** | Steep learning curve requiring deep software expertise beyond power systems. Documentation is sparse, outdated, or aspirationally ahead of implementation. Errors fail silently or surface only cryptic solver output. |
 
 ---
 
@@ -285,13 +283,14 @@ All scalability measurements are taken on the reference workstation (128 GB RAM,
 
 **6. Memory and hardware requirements** — What are realistic RAM requirements for 10k+ bus problems on the reference workstation? Can the tool run within the 128 GB baseline, or does it require more? Is there a clear path to HPC deployment if needed?
 
-### Grading Standards
+### Assessment Standards
 
-| Grade | Description |
-|-------|-------------|
-| **A** | Demonstrated performance on 10k+ bus networks on the reference workstation. Solver interface cleanly abstracted — open-source solvers swappable without reformulation. Contingency re-solves support warm-starting. Clear HPC scaling path. Memory requirements workstation-tractable for DC problems. |
-| **B** | Performs adequately at 10k buses but with caveats — contingency sweeps require careful batching, or specific solver needed for MILP problems. HPC path exists but is not well-documented. |
-| **C** | Performance degrades significantly at 10k+ buses for core workflows. No warm-start support for contingency re-solves. Solver interface tightly coupled — swapping requires reformulation. No clear HPC path. |
+| Tier | Description |
+|------|-------------|
+| **Strong** | Demonstrated performance on 10k+ bus networks on the reference workstation. Solver interface cleanly abstracted; open-source solvers swappable without reformulation. Contingency re-solves support warm-starting. Clear HPC scaling path. Memory requirements workstation-tractable for DC problems. |
+| **Adequate** | Performs adequately at 10k buses but with caveats; contingency sweeps require careful batching, or specific solver needed for MILP problems. HPC path exists but is not well-documented. |
+| **Weak** | Core workflows run at 10k buses but with significant performance degradation or tool-specific overhead. Solver interface partially abstracted. Limited HPC path. |
+| **Failing** | Performance degrades significantly at 10k+ buses for core workflows. No warm-start support for contingency re-solves. Solver interface tightly coupled; swapping requires reformulation. No clear HPC path. |
 
 ---
 
@@ -313,13 +312,14 @@ Sub-questions under 5a evaluate backward-looking evidence of engineering discipl
 
 **5a E-4. Operational adoption** — Has the tool been used in production or near-production settings by utilities, ISOs, public-sector operators, or other real-world operators — not just academic research? Operational adoption is a strong signal of maturity that academic citation counts don't capture.
 
-#### 5a Grading Standards
+#### 5a Assessment Standards
 
-| Grade Band | Standards |
-|:---:|---|
-| A | Strong release discipline (semantic versioning, changelogs), robust CI with >80% test coverage, responsive issue triage (<7 days median), demonstrated operational adoption |
-| B | Regular releases but inconsistent discipline, CI present with moderate coverage (50-80%), reasonable issue responsiveness (<30 days), some evidence of operational use |
-| C | Irregular or absent releases, minimal CI/testing, slow or no issue response (>30 days), no evidence of operational adoption beyond the development team |
+| Tier | Standards |
+|------|-----------|
+| Strong | Strong release discipline (semantic versioning, changelogs), robust CI with >80% test coverage, responsive issue triage (<7 days median), demonstrated operational adoption |
+| Adequate | Regular releases but inconsistent discipline, CI present with moderate coverage (50-80%), reasonable issue responsiveness (<30 days), some evidence of operational use |
+| Weak | Irregular releases, minimal CI/testing, slow issue response (>30 days), limited evidence of operational adoption |
+| Failing | Absent releases, no CI/testing, no issue response, no evidence of operational adoption beyond the development team |
 
 ### 5b — Sustainability Risk
 
@@ -333,31 +333,33 @@ Sub-questions under 5b evaluate forward-looking risk factors that could threaten
 
 **5b E-3. Governance model** — Is there a formal governance structure (foundation, steering committee, published roadmap) or is direction set informally by a single maintainer? This is a secondary signal — good governance without engineering discipline is theater; engineering discipline without governance is a risk to be noted, not a disqualifier.
 
-#### 5b Grading Standards
+#### 5b Assessment Standards
 
-| Grade Band | Standards |
-|:---:|---|
-| A | Multiple active contributors (bus factor ≥3), low reviewer concentration (<50% by top reviewer), diversified funding or institutional backing, formal governance model |
-| B | Small but stable contributor base (bus factor 2), moderate reviewer concentration (50-80%), identifiable funding source, informal but functional governance |
-| C | Single dominant contributor (bus factor 1), high reviewer concentration (>80%), no visible funding sustainability, no governance model |
+| Tier | Standards |
+|------|-----------|
+| Strong | Multiple active contributors (bus factor ≥3), low reviewer concentration (<50% by top reviewer), diversified funding or institutional backing, formal governance model |
+| Adequate | Small but stable contributor base (bus factor 2), moderate reviewer concentration (50-80%), identifiable funding source, informal but functional governance |
+| Weak | Bus factor 1-2 with high reviewer concentration (>80%), uncertain funding, no governance model |
+| Failing | Single dominant contributor (bus factor 1), no other active contributors, no visible funding sustainability, no governance model |
 
-### Criterion 5 Composite Grading
+### Criterion 5 Composite Assessment
 
-The final Criterion 5 grade is determined by combining the 5a and 5b sub-criterion grades using the following matrix:
+The final Criterion 5 tier is determined by combining the 5a and 5b sub-criterion tiers using the following matrix:
 
-| 5a ↓ \ 5b → | **A range** | **B range** | **C range** |
-|:---:|:---:|:---:|:---:|
-| **A range** | A / A- | B+ / B | B / B- |
-| **B range** | B+ / B | B / B- | C+ / C |
-| **C range** | B- / C+ | C+ / C | C / C- |
+| 5a ↓ \ 5b → | **Strong** | **Adequate** | **Weak** | **Failing** |
+|:---:|:---:|:---:|:---:|:---:|
+| **Strong** | Strong | Adequate | Adequate | Weak |
+| **Adequate** | Adequate | Adequate | Weak | Weak |
+| **Weak** | Adequate | Weak | Weak | Failing |
+| **Failing** | Weak | Weak | Failing | Failing |
 
-Within each two-grade cell, select the higher grade when the sub-criterion score is near the boundary of its band (e.g., a low-A 5a score with a solid-B 5b score yields B, not B+).
+When both sub-criteria are at the same tier, the composite stays at that tier. When they differ, the composite is pulled toward the weaker sub-criterion.
 
 ---
 
 ## Criterion 6 — Supply Chain, Inspectability & Licensing Risk
 
-**GATE CRITERION — A grade of C+ or below is disqualifying.**
+**GATE CRITERION -- Weak or Failing is disqualifying.**
 
 **Core question:** Is every component in the execution stack open-source, inspectable, and legally unencumbered for restricted-environment use? Can every line of code that executes during a solve be read, audited, and authorized?
 
@@ -383,20 +385,20 @@ This is the criterion that motivated the entire evaluation. A tool can score wel
 
 **9. Supply chain attack surface** — Is the package distributed through a trustworthy channel with verifiable maintainer identity? Has the package had any known security incidents?
 
-### Grading Standards
+### Assessment Standards
 
-| Grade | Description |
-|-------|-------------|
-| **A** | Permissive license (MIT or BSD-3). Full dependency tree is open-source, auditable, and version-pinned in release artifacts. Full execution path is readable source with no opaque binaries. Any compiled extensions have publicly available, buildable source. Functional on open-source solvers alone for all target use cases. Releases versioned, signed, and distributed through standard trustworthy channels. Getting-started examples pinned to a specific release. Dependency tree shallow enough for tractable audit. All components installable offline. |
-| **B** | Copyleft license (LGPL, MPL) requiring legal review but not inherently disqualifying. Dependency tree mostly clean with one or two items needing scrutiny. Most execution path is inspectable but one or two compiled extensions exist with readable source available. Security authorization achievable but requires effort. Some unpinned dependencies but behavior is predictable in practice. |
-| **C+** | **Disqualifying.** Significant inspectability gaps that may be remediable with substantial effort — e.g., a compiled extension with source available but no build system, or a dependency with an ambiguous license that could potentially be replaced. |
-| **C or below** | **Disqualifying.** Proprietary runtime or binary component anywhere in the execution path with no available source. License terms incompatible with restricted-environment deployment. Dependency tree not fully enumerable or contains opaque dependencies. Full execution path not auditable. Requires commercial solver to be functional for target use cases. |
+| Tier | Description |
+|------|-------------|
+| **Strong** | Permissive license (MIT or BSD-3). Full dependency tree is open-source, auditable, and version-pinned in release artifacts. Full execution path is readable source with no opaque binaries. Any compiled extensions have publicly available, buildable source. Functional on open-source solvers alone for all target use cases. Releases versioned, signed, and distributed through standard trustworthy channels. Getting-started examples pinned to a specific release. Dependency tree shallow enough for tractable audit. All components installable offline. |
+| **Adequate** | Copyleft license (LGPL, MPL) requiring legal review but not inherently disqualifying. Dependency tree mostly clean with one or two items needing scrutiny. Most execution path is inspectable but one or two compiled extensions exist with readable source available. Security authorization achievable but requires effort. Some unpinned dependencies but behavior is predictable in practice. |
+| **Weak** | **Disqualifying.** Significant inspectability gaps that may be remediable with substantial effort, e.g., a compiled extension with source available but no build system, or a dependency with an ambiguous license that could potentially be replaced. |
+| **Failing** | **Disqualifying.** Proprietary runtime or binary component anywhere in the execution path with no available source. License terms incompatible with restricted-environment deployment. Dependency tree not fully enumerable or contains opaque dependencies. Full execution path not auditable. Requires commercial solver to be functional for target use cases. |
 
 ---
 
 ## Phase 2 Readiness Findings
 
-These are informational findings documented during Phase 1 evaluation. They do not affect Phase 1 grades but directly inform Phase 2 planning effort estimates.
+These are informational findings documented during Phase 1 evaluation. They do not affect Phase 1 tier assessments but directly inform Phase 2 planning effort estimates.
 
 **1. PSS/E RAW Format Parsing** — Does the tool have any PSS/E RAW format parsing capability? If so, which RAW versions (v26, v29, v30, v33, v35)? If not, what is the expected effort to build or integrate a parser? The Full Network Model is distributed in PSS/E format; Phase 2 requires either native parsing or a custom converter.
 

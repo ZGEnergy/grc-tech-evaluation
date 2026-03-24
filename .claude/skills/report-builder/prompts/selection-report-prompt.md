@@ -109,20 +109,20 @@ Leave with placeholder markers -- the orchestrator fills in git SHAs and timesta
 - **Synthesis files:** {{synthesis_files_placeholder}}
 - **Generated:** {{timestamp_placeholder}}
 - **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability,
-  Accessibility, Maturity] with Supply Chain gate (<=C+ disqualifies)
+  Accessibility, Maturity] with Supply Chain gate (Weak or Failing disqualifies)
 ```
 
 ## Critical Rules
 
 - **Follow the template structure.** Do not add, remove, or reorder sections.
 - **Stay within ~1500 words.**
-- **Every grade reference must match the confirmed grade table.**
+- **Every tier reference must match the confirmed grade table.**
 - **Do not editorialize.** Evidence-based claims only.
 - **Reference-only tools** (e.g., MATPOWER) are included in the grade table for
   comparison but excluded from primary ranking and head-to-head. Footnote: the
   customer requires inspectable source code, which precludes MATLAB's compiled runtime.
-- **Disqualified tools** (Supply Chain gate failures) appear in grade table with
-  footnote but are excluded from the Recommendation section.
+- **Disqualified tools** (Supply Chain gate: Weak or Failing) appear in grade table
+  with footnote but are excluded from the Recommendation section.
 - **No real markets or grids.** Never name specific ISOs, RTOs, utilities, or regions.
   Use "the target ISO", "the customer's network", "the full network model (FNM)."
 - **No em-dashes.** Use commas, semicolons, hyphens, or parentheses instead.

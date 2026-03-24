@@ -82,7 +82,7 @@
 
 - **Synthesis files:** <list with git SHAs>
 - **Generated:** {{timestamp}}
-- **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability, Accessibility, Maturity] with Supply Chain gate (<=C+ disqualifies)
+- **Ranking algorithm:** Lexicographic on [Expressiveness, Extensibility, Scalability, Accessibility, Maturity] with Supply Chain gate (Weak or Failing disqualifies)
 
 <!-- CONTENT RULE: Never name specific ISOs, RTOs, utilities, or real grid regions.
      Use generic terms: "the target ISO", "the customer's network", "the full network
