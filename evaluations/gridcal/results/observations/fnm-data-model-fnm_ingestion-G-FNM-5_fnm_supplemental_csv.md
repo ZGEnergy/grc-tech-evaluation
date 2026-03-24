@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-5
 tool: gridcal
 severity: medium
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: GridCal has native contingency model but no interface/flowgate model

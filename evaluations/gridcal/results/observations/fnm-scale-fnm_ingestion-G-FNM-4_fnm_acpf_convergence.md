@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-4
 tool: gridcal
 severity: medium
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: GridCal ACPF infeasible on 27,862-bus FNM -- scalability signal
@@ -21,7 +21,7 @@ DCPF solved in 2.39 seconds with perfect angle match to MATPOWER reference. ACPF
 with Levenberg-Marquardt (best-performing solver) ran 200 iterations in 28 seconds
 but plateaued at a residual of 15.83 MVA. Newton-Raphson oscillated wildly (VM up
 to 12.8 pu). The total evaluation across all 12 solver/relaxation combinations
-took 214.8 seconds and consumed 2,042 MB of memory.
+took 211.0 seconds and consumed 2,042 MB of memory.
 
 For comparison, the MATPOWER reference ACPF solution exists (buses_acpf.csv with
 27,862 entries), confirming the network is solvable. The convergence failure is

@@ -3,25 +3,28 @@ test_id: C-7
 tool: gridcal
 dimension: scalability
 network: MEDIUM
-status: pass
+protocol_version: "v11"
+skill_version: v2
+test_hash: "1d6a794d"
+status: qualified_pass
 workaround_class: stable
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "1d6a794d"
-wall_clock_seconds: 12.629
+wall_clock_seconds: 8.911
 timing_source: measured
 peak_memory_mb: 127.15
 convergence_residual: null
 convergence_iterations: null
-loc: 244
+convergence_evidence_quality: null
+loc: 251
 solver: HiGHS, SCIP
-timestamp: "2026-03-13T22:40:00Z"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: 2026-03-24T18:00:00Z
 ---
 
 # C-7: Repeat C-3 with each available open-source solver on MEDIUM
 
-## Result: PASS
+## Result: QUALIFIED PASS
 
 ## Approach
 
@@ -45,6 +48,7 @@ network. Solver swap is a single parameter change (`mip_solver=MIPSolvers.<SOLVE
 **Key finding:** Solver swap requires **no reformulation** -- it is a trivial parameter
 change. The PTDF-based LP formulation is constructed once and passed to PuLP, which
 dispatches to the backend solver. All working solvers receive the identical formulation.
+[tool-specific: solver swap is parameter-only, but GLPK excluded from enum]
 
 ## Output
 
@@ -53,7 +57,7 @@ dispatches to the backend solver. All working solvers receive the identical form
 | Metric | HiGHS | SCIP |
 |--------|-------|------|
 | Converged | Yes | Yes |
-| Solve time (s) | 12.63 | 10.98 |
+| Solve time (s) | 8.91 | 8.53 |
 | Peak memory (MB) | 127.15 | 114.53 |
 | Total gen (MW) | 150,916.88 | 150,916.88 |
 | LMP min ($/MWh) | 20.064 | 20.064 |
@@ -68,8 +72,8 @@ dispatches to the backend solver. All working solvers receive the identical form
 |--------|-------|
 | Total gen difference | 0.0 MW |
 | Dispatch identical | Yes |
-| SCIP/HiGHS speed ratio | 0.87x (SCIP 15% faster) |
-| LMPs identical | Yes (within 1.9e-08) |
+| SCIP/HiGHS speed ratio | 0.96x (SCIP 4% faster) |
+| LMPs identical | Yes (within 1.94e-08) |
 
 Both solvers produce identical dispatch and LMPs. The ACTIVSg10k network is uncongested
 (max loading 84.72%, no binding branches), so LMPs are uniform.
@@ -94,13 +98,16 @@ CBC and PDLP are valid enum values but not mapped in the PuLP solver interface
   HiGHS/SCIP but not GLPK. The swap mechanism is excellent (parameter-only, no
   reformulation). The broken CBC/PDLP enum values are a quality concern but do not
   affect the two working open-source solvers.
+- **Version tested:** VeraGridEngine 5.6.28
 
 ## Timing
 
-- **Wall-clock:** 12.63 s (HiGHS), 10.98 s (SCIP) -- solve only
+- **Wall-clock:** 8.91 s (HiGHS), 8.53 s (SCIP) -- solve only
 - **Timing source:** measured
 - **Peak memory:** 127.15 MB (HiGHS), 114.53 MB (SCIP)
-- **Total script time:** 66.68 s (includes 4 solver attempts + 2 network loads)
+- **CPU threads used:** 1
+- **CPU threads available:** 32
+- **Total script time:** 62.77 s (includes 4 solver attempts + 2 network loads)
 
 ## Test Script
 

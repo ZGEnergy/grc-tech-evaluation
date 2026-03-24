@@ -4,45 +4,46 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-1
 tool: gridcal
 severity: high
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
-# Observation: No CSV network import and PSS/e v31 RAW parsing failure
+# Observation: No CSV network import and silent .mat failure
 
 ## Finding
 
-GridCal/VeraGrid v5.6.28 cannot ingest the intermediate CSV tables (PSS/e v31
-record data in CSV form) because it has no CSV-to-network import path. Additionally,
-GridCal's PSS/e RAW parser fails on v31 format files, expecting v35 format instead.
+GridCal/VeraGrid v5.6.28 cannot ingest the intermediate CSV tables (PSS/E v31
+record data in CSV form) because it has no CSV-to-network import path.
+Additionally, `open_file()` silently returns `None` for MATLAB `.mat` binary
+files rather than raising an informative error, creating a silent failure mode.
 
 ## Context
 
 During G-FNM-1 (intermediate format ingestion gate), GridCal was tested for its
-ability to parse 17 intermediate CSV tables derived from a PSS/e v31 RAW file.
+ability to parse 17 intermediate CSV tables derived from a PSS/E v31 RAW file.
 GridCal has no native CSV import for network topology data -- its `open_file()` API
 accepts `.raw`, `.rawx`, `.m`, `.veragrid`, `.xlsx`, `.json`, and various XML-based
 formats, but not CSV tables representing network elements.
 
-When the source PSS/e RAW file (v31) was tested directly, GridCal's parser failed
-with: `PSSe 35 load data came with 1 elements and 18 or 17 were expected`. This
-indicates the parser is hardcoded for PSS/e v35 format and cannot handle v31
-differences in record structure (e.g., different column counts in the load section).
+When the MATPOWER fallback was tested, the `.mat` binary format (MATLAB native)
+returned `None` from `open_file()` without raising an exception. Subsequent
+attribute access on the result (`grid.buses`) raises `AttributeError`. Only the
+`.m` text format works correctly, loading the 27,862-bus main-island case.
 
-The MATPOWER `.m` fallback path works successfully, loading the cleaned main-island
-case (27,862 buses). This path is available for downstream G-FNM-3/4/5 tests.
+The MATPOWER `.m` fallback path works successfully for downstream G-FNM-3/4/5
+tests but cannot support G-FNM-1 (CSV ingestion) or G-FNM-2 (field coverage
+audit) because the `.m` format loses PSS/E-specific fields.
 
 ## Implications
 
-- **Accessibility (D dimension):** The absence of CSV import for network data and
-  the inability to parse PSS/e v31 (only v35) are significant API friction points
-  for users working with legacy or standards-based data formats. ISO/RTO data
-  (including large-scale FNM data) is commonly distributed in PSS/e v31 format.
+- **Accessibility (D dimension):** The absence of CSV import for network data is
+  a significant API friction point. Users working with standardized PSS/E data
+  in CSV form have no import path. The silent `None` return for `.mat` files
+  (rather than an informative error) compounds the friction.
 
 - **Extensibility (B dimension):** Building a custom CSV-to-GridCal adapter would
-  require mapping all 17 PSS/e record types to GridCal's object model (Bus, Line,
-  Transformer2W, Generator, Load, Shunt, etc.) with correct attribute mapping. This
-  is feasible but represents significant development effort.
+  require mapping all 17 PSS/E record types to GridCal's object model (Bus, Line,
+  Transformer2W, Generator, Load, Shunt, etc.) with correct attribute mapping.
 
-- **Maturity (E dimension):** PSS/e v31 is the most widely used version in North
-  American utility practice. A power system tool that only supports v35 has a
-  compatibility gap with the installed base of network models.
+- **Maturity (E dimension):** Silent failure modes (returning `None` instead of
+  raising an exception for unsupported formats) indicate incomplete error handling
+  in the file I/O layer.

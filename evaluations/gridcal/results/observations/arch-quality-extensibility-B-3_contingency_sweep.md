@@ -4,14 +4,14 @@ source_dimension: extensibility
 source_test: B-3
 tool: gridcal
 severity: low
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: Clean branch toggling API for contingency analysis
 
 ## Finding
 
-GridCal provides a simple `branch.active` boolean property that removes branches from the power flow solve without requiring model reconstruction. Combined with `build_graph()` for NetworkX export, this enables efficient N-M contingency sweeps (377 DCPF solves at ~5.7 ms each).
+GridCal provides a simple `branch.active` boolean property that removes branches from the power flow solve without requiring model reconstruction. Combined with `build_graph()` for NetworkX export, this enables efficient N-M contingency sweeps (377 DCPF solves at ~4.9 ms each).
 
 ## Context
 

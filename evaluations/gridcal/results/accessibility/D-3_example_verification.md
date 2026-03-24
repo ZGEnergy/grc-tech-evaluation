@@ -3,90 +3,108 @@ test_id: D-3
 tool: gridcal
 dimension: accessibility
 network: N/A
+protocol_version: "v11"
+skill_version: v2
+test_hash: "2b77857a"
 status: informational
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "2b77857a"
-timestamp: "2026-03-13T18:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # D-3: Example Verification
 
-## Sources Examined
+## Result: INFORMATIONAL
 
-1. **GridCalTutorials repo** (github.com/SanPen/GridCalTutorials/src/) — 5 files:
-   - `defining_a_grid_from_scratch.ipynb` (Jupyter notebook)
-   - `defining_a_grid_from_scratch_with_profiles.py` (Python script)
-   - `ml_example.py`
-   - `rt_example_client.py`
-   - `rt_example_server.py`
+## Finding
 
-2. **VeraGrid README** — Installation instructions only; no runnable code examples beyond
-   `pip install` and `veragrid` CLI launch.
+GridCal has two sources of official examples: the deprecated GridCalTutorials repo
+(all broken) and the main VeraGrid repo's `examples/` directory (49 scripts, current
+imports). The main repo examples work when adapted to use available test cases, but
+the tutorials repo is completely non-functional.
 
-3. **veragrid.readthedocs.io** — Theory and analysis descriptions. No runnable code
-   snippets found in the available sections.
+## Evidence
 
-## Example-by-Example Results
+### Source 1: GridCalTutorials Repo (github.com/SanPen/GridCalTutorials)
 
-### 1. `defining_a_grid_from_scratch.ipynb` — BROKEN
+Accessed 2026-03-24. Contains 5 files with 6 total commits, last updated October 2021.
 
-- **Imports:** `from GridCal.Engine import *` — uses deprecated `GridCal.Engine` namespace
-- **Status:** Will not run with `veragridengine` package. `GridCal.Engine` does not exist
-  in the current package.
-- **Fix required:** Replace all `GridCal.Engine` imports with `VeraGridEngine` equivalents.
-  Additionally, class names may have changed (e.g., `Branch` no longer exists as a
-  unified class; lines and transformers are separate types).
-- **Assessment:** Broken, requires non-trivial import and class name migration.
+| Example | Status | Issue |
+|---------|--------|-------|
+| `defining_a_grid_from_scratch.ipynb` | BROKEN | Uses `from GridCal.Engine import *` (deprecated namespace) |
+| `defining_a_grid_from_scratch_with_profiles.py` | BROKEN | Uses `GridCal.Engine` imports + deprecated `Branch` class |
+| `ml_example.py` | NOT TESTED | Domain-specific; likely uses deprecated imports |
+| `rt_example_client.py` | NOT TESTED | Infrastructure example; likely deprecated imports |
+| `rt_example_server.py` | NOT TESTED | Infrastructure example; likely deprecated imports |
 
-### 2. `defining_a_grid_from_scratch_with_profiles.py` — BROKEN
+- **Run unmodified:** 0 of 2 tested
+- **Broken (will not import):** 2 of 2 tested
 
-- **Imports:** `from GridCal.Engine import *`, plus explicit imports of `Branch`,
-  `BranchTemplate`, `Bus`, `Generator`, `Load`, `BranchType`, `PowerFlowOptions`,
-  `PowerFlowDriver`, `MultiCircuit`, `TimeSeries` from `GridCal.Engine` submodules.
-- **Status:** Will not run. Same namespace issue as the notebook. Additionally uses
-  `Branch` (deprecated unified class), `BranchTemplate`, and `TimeSeries` driver class
-  by old name.
-- **Fix required:** Complete import rewrite. Replace `Branch` with `Line`, update driver
-  class names, update profile assignment API (`P_prof`, `Q_prof` assignment syntax may
-  differ).
-- **Assessment:** Broken, requires significant rewrite.
+Root cause: The GridCal-to-VeraGrid rebrand at v5.4.0 changed the import namespace
+from `GridCal.Engine` to `VeraGridEngine`, but the tutorials repo was never updated.
 
-### 3. `ml_example.py` — NOT TESTED (domain-specific)
+### Source 2: VeraGrid Main Repo Examples (github.com/SanPen/VeraGrid/examples/)
 
-- Machine learning example, not a getting-started power flow tutorial.
-- Likely uses deprecated imports as well.
+Accessed 2026-03-24. Contains 49 Python scripts using current `VeraGridEngine.api`
+imports. Key examples include:
 
-### 4. `rt_example_client.py` / `rt_example_server.py` — NOT TESTED (infrastructure)
+| Example | Category | Import Style |
+|---------|----------|-------------|
+| `power_flow_example.py` | Power flow | `VeraGridEngine.api as gce` |
+| `dc_linear_opf.py` | DC OPF | `VeraGridEngine.api as gce` |
+| `dc_linear_opf_ts_example.py` | Time-series OPF | `VeraGridEngine.api as gce` |
+| `contingency_analysis_run.py` | Contingency | `VeraGridEngine.api as gce` |
+| `helm_run.py` | HELM solver | `VeraGridEngine.api as gce` |
+| `short_circuit_run.py` | Short circuit | `VeraGridEngine.api as gce` |
+| `state_estimation_run.py` | State estimation | `VeraGridEngine.api as gce` |
+| `hydro_opf.py` | Hydro OPF | `VeraGridEngine.api as gce` |
+| ... (41 more) | Various | Current imports |
 
-- Real-time server/client examples, not getting-started tutorials.
-- Likely use deprecated imports.
+### Verification of Main Repo Examples (in devcontainer)
+
+Three representative examples were adapted and tested using IEEE 39-bus case
+(the repo examples reference `.gridcal` format files not available in our test data):
+
+| Example Pattern | Status | Notes |
+|----------------|--------|-------|
+| Power flow (`power_flow()`) | PASS | Converged, residual 3.32e-11 |
+| DC Linear OPF (`linear_opf()`) | PASS | Converged, gen_power sum = 6254.23 MW |
+| Linear analysis (PTDF) | PASS | PTDF shape (46, 39) correct |
+
+The core API patterns demonstrated in the main repo examples work correctly when
+adapted to use MATPOWER `.m` files. The examples themselves reference `.gridcal`
+format files bundled with the VeraGrid GUI application, which are not available
+in an engine-only installation.
+
+### Discoverability Issue
+
+The main repo examples (49 scripts, current imports) are not prominently linked from
+the ReadTheDocs documentation or the README. A user following the "getting started"
+path would likely find the GridCalTutorials repo first (linked from the old
+GridCal README), which is completely broken. The functional examples are buried in the
+main repo's `examples/` directory.
 
 ## Summary
 
-| Example | Status | Fix Effort |
-|---------|--------|------------|
-| Grid from scratch (notebook) | Broken | Moderate — import rewrite + class renames |
-| Grid from scratch with profiles (script) | Broken | Moderate — import rewrite + class renames + driver renames |
-| ML example | Not tested | Unknown |
-| RT client/server | Not tested | Unknown |
+| Source | Total | Pass | Broken | Not Tested |
+|--------|-------|------|--------|------------|
+| GridCalTutorials repo | 5 | 0 | 2 | 3 |
+| VeraGrid main repo | 49 | 3 tested/pass | 0 tested broken | 46 not tested |
 
-- **Run unmodified:** 0 of 2 tested
-- **Need fixes:** 2 of 2 tested
-- **Completely broken (will not import):** 2 of 2 tested
+## Implications
 
-## Root Cause
-
-The GridCal-to-VeraGrid rebrand at v5.4.0 changed the package name and import namespace
-from `GridCalEngine`/`GridCal.Engine` to `VeraGridEngine`, but the official tutorials
-repository was never updated. The tutorials are frozen at pre-rebrand API conventions.
-The repository has only 6 commits total and appears unmaintained.
-
-## Positive Note
-
-While the official tutorials are broken, the `verify_install.py` script in this
-evaluation (26 lines) demonstrates that a working first-solve example is achievable
-with minimal code using the current API. The core API pattern
-(`vge.open_file()` / `vge.power_flow()`) is clean and intuitive once the correct
-import namespace is known.
+The example situation is bifurcated: the discoverable tutorials are broken (stale repo),
+while the functional examples (main repo) are less discoverable. The core API patterns
+are clean and work correctly, but the data file dependency on `.gridcal` format means
+the examples cannot run out-of-box without either the GUI application or adaptation to
+use MATPOWER `.m` files. For accessibility grading, the 49 functional examples in the
+main repo mitigate the broken tutorials, but the discoverability gap and data file
+dependency reduce their practical value for new users.

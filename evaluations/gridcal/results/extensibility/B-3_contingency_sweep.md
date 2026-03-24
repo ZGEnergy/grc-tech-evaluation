@@ -3,20 +3,20 @@ test_id: B-3
 tool: gridcal
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "49124456"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 3.49
+wall_clock_seconds: 3.13
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 202
+loc: 204
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-3: N-M contingency sweep from a chosen bus, graph distance x=3, up to m=3 outages
@@ -49,8 +49,8 @@ The key finding is that `branch.active` is a simple boolean toggle on each branc
 | N-2 contingencies | 78 |
 | N-3 contingencies | 286 |
 | **Total contingencies** | **377** |
-| Solve time | 2.16 s |
-| Time per contingency | 5.72 ms |
+| Solve time | 1.85 s |
+| Time per contingency | 4.92 ms |
 | Contingencies with load loss | 38 |
 | Max load loss | 680.0 MW |
 | Mean load loss (where >0) | 423.8 MW |
@@ -75,11 +75,11 @@ None required. Branch toggling via `branch.active`, graph construction via `buil
 
 ## Timing
 
-- **Wall-clock:** 3.49 seconds (including network loading and graph construction)
-- **Solve time only:** 2.16 seconds for 377 DCPF solves
+- **Wall-clock:** 3.13 seconds (including network loading and graph construction)
+- **Solve time only:** 1.85 seconds for 377 DCPF solves
 - **Timing source:** measured
 - **Peak memory:** not measured
-- **Time per contingency:** 5.72 ms
+- **Time per contingency:** 4.92 ms
 
 ## Test Script
 

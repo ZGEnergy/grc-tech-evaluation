@@ -16,6 +16,7 @@ ACTIVSg10k has 5 phase-shifting transformers -- applies phase-shifter correction
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -46,6 +47,12 @@ def run(
     try:
         import VeraGridEngine as vge
         from VeraGridEngine.enumerations import SolverType
+
+        # Record CPU thread info
+        cpu_threads_available = os.cpu_count() or 1
+        cpu_threads_used = 1  # LinearAnalysis is single-threaded
+        results["details"]["cpu_threads_used"] = cpu_threads_used
+        results["details"]["cpu_threads_available"] = cpu_threads_available
 
         # 1. Load network
         grid = load_gridcal(network_file)

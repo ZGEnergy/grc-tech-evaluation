@@ -3,8 +3,8 @@ tag: solver-issues
 source_dimension: expressiveness
 source_test: A-10
 tool: gridcal
-severity: medium
-timestamp: "2026-03-13T00:00:00Z"
+severity: high
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: Lossy DCOPF loss approximation produces negligible losses

@@ -3,20 +3,20 @@ test_id: B-8
 tool: gridcal
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: v1
-test_hash: "8c18d155"
+protocol_version: "v11"
+skill_version: v2
+test_hash: "dad5cf97"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.36
+wall_clock_seconds: 1.24
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 225
+loc: 221
 solver: HiGHS
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-8: Reference bus configuration — DC OPF with three slack configurations
@@ -61,7 +61,7 @@ None required. The `bus.is_slack` property is a documented, public attribute tha
 
 ## Timing
 
-- **Wall-clock:** 1.36 seconds (three DC OPF solves plus network loading)
+- **Wall-clock:** 1.24 seconds (three DC OPF solves plus network loading)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver:** HiGHS via PuLP

@@ -11,6 +11,7 @@ Solver: Linear (direct, no optimizer)
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -53,6 +54,8 @@ def run(
         results["details"]["branch_count"] = n_branches
         results["details"]["gen_count"] = n_gens
         results["details"]["load_count"] = n_loads
+        results["details"]["cpu_threads_available"] = os.cpu_count()
+        results["details"]["cpu_threads_used"] = 1  # DCPF is single-threaded direct solve
 
         # 2. Configure DC power flow
         pf_opts = vge.PowerFlowOptions(solver_type=SolverType.Linear)

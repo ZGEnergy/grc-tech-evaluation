@@ -3,12 +3,21 @@ test_id: P2-1
 tool: gridcal
 dimension: p2_readiness
 network: N/A
+protocol_version: "v11"
+skill_version: v2
+test_hash: "11e6e5b8"
 status: informational
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "11e6e5b8"
-timestamp: "2026-03-13T00:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: estimated
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # P2-1: PSS/E RAW parsing capability

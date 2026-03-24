@@ -3,20 +3,21 @@ test_id: A-1
 tool: gridcal
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "05bc255c"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "05bc255c"
-wall_clock_seconds: 1.33
+wall_clock_seconds: 1.37
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 137
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-1: Solve DC power flow on TINY
@@ -74,7 +75,7 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 1.33 s
+- **Wall-clock:** 1.37 s
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** N/A (direct linear solve)

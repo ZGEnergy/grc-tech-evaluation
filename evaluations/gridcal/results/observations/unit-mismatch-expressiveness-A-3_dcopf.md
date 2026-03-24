@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-3
 tool: gridcal
 severity: low
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: Generator dispatch names empty in OPF results
