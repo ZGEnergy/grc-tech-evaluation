@@ -50,10 +50,10 @@ DEFAULT_HEIGHT_PX: int = 500
 
 @dataclass(frozen=True)
 class GradesData:
-    """Processed grades data with numeric DataFrame and letter grades."""
+    """Processed grades data with numeric DataFrame and tier labels."""
 
     df: pd.DataFrame
-    letter_grades: dict[str, dict[str, str]]
+    tier_labels: dict[str, dict[str, str]]
     criteria: list[str]
     tools: list[str]
 

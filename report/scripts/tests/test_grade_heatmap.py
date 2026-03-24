@@ -52,23 +52,30 @@ def sample_grades_data() -> GradesData:
         "maturity",
     ]
 
-    # Numeric grades: mix of values across the 0-4 range
+    # Numeric tiers: mix of values across the 0-3 range
     numeric_values = {
-        "pypsa": [4.0, 3.7, 3.0, 3.3, 4.0, 3.0],
-        "pandapower": [4.0, 3.0, 2.7, 2.0, 3.7, 3.3],
-        "gridcal": [3.0, 2.0, 2.3, 1.0, 2.7, 1.7],
-        "powermodels": [4.0, 3.3, 3.7, 4.0, 2.0, 2.3],
-        "powersimulations": [3.0, 2.7, 3.0, 3.0, 1.7, 2.0],
-        "matpower": [4.0, 3.0, 0.0, 1.0, 4.0, 4.0],
+        "pypsa": [3.0, 3.0, 2.0, 2.0, 3.0, 2.0],
+        "pandapower": [3.0, 2.0, 2.0, 1.0, 3.0, 2.0],
+        "gridcal": [2.0, 1.0, 1.0, 0.0, 2.0, 1.0],
+        "powermodels": [3.0, 2.0, 3.0, 3.0, 1.0, 1.0],
+        "powersimulations": [2.0, 2.0, 2.0, 2.0, 1.0, 1.0],
+        "matpower": [3.0, 2.0, 0.0, 0.0, 3.0, 3.0],
     }
 
-    letter_values = {
-        "pypsa": ["A", "A-", "B", "B+", "A", "B"],
-        "pandapower": ["A", "B", "B-", "C", "A-", "B+"],
-        "gridcal": ["B", "C", "C+", "D", "B-", "C-"],
-        "powermodels": ["A", "B+", "A-", "A", "C", "C+"],
-        "powersimulations": ["B", "B-", "B", "B", "C-", "C"],
-        "matpower": ["A", "B", "F", "D", "A", "A"],
+    tier_values = {
+        "pypsa": ["Strong", "Strong", "Adequate", "Adequate", "Strong", "Adequate"],
+        "pandapower": ["Strong", "Adequate", "Adequate", "Weak", "Strong", "Adequate"],
+        "gridcal": ["Adequate", "Weak", "Weak", "Failing", "Adequate", "Weak"],
+        "powermodels": ["Strong", "Adequate", "Strong", "Strong", "Weak", "Weak"],
+        "powersimulations": [
+            "Adequate",
+            "Adequate",
+            "Adequate",
+            "Adequate",
+            "Weak",
+            "Weak",
+        ],
+        "matpower": ["Strong", "Adequate", "Failing", "Failing", "Strong", "Strong"],
     }
 
     # Build DataFrame: rows=criteria, columns=tools
@@ -77,23 +84,21 @@ def sample_grades_data() -> GradesData:
         data[tool] = numeric_values[tool]
     df = pd.DataFrame(data, index=criteria)
 
-    # Build letter_grades dict: tool -> criterion -> letter
-    letter_grades = {}
+    # Build tier_labels dict: tool -> criterion -> tier
+    tier_labels = {}
     for tool in tools:
-        letter_grades[tool] = dict(zip(criteria, letter_values[tool]))
+        tier_labels[tool] = dict(zip(criteria, tier_values[tool]))
 
-    return GradesData(
-        df=df, letter_grades=letter_grades, criteria=criteria, tools=tools
-    )
+    return GradesData(df=df, tier_labels=tier_labels, criteria=criteria, tools=tools)
 
 
 # Import the module under test (triggers register_renderer)
 from renderers.heatmap import (  # noqa: E402
     annotation_font_color,
-    build_grade_annotations,
+    build_tier_annotations,
     build_heatmap_figure,
-    grade_colorscale_to_plotly,
-    GRADE_COLOR_SCALE,
+    tier_colorscale_to_plotly,
+    TIER_COLOR_SCALE,
     render_grade_heatmap,
 )
 
@@ -170,34 +175,31 @@ def test_heatmap_has_annotations(sample_grades_data: GradesData) -> None:
     assert len(annotations) == 36
 
 
-def test_heatmap_annotations_show_letter_grades(sample_grades_data: GradesData) -> None:
-    """10. Each annotation text is a valid letter grade from the data."""
-    annotations = build_grade_annotations(sample_grades_data)
-    # Collect all letter grades from the fixture
-    all_letters = set()
-    for tool_grades in sample_grades_data.letter_grades.values():
-        all_letters.update(tool_grades.values())
+def test_heatmap_annotations_show_tiers(sample_grades_data: GradesData) -> None:
+    """10. Each annotation text is a valid tier label from the data."""
+    annotations = build_tier_annotations(sample_grades_data)
+    # Collect all tier labels from the fixture
+    all_tiers = set()
+    for tool_tiers in sample_grades_data.tier_labels.values():
+        all_tiers.update(tool_tiers.values())
 
     for ann in annotations:
-        assert ann["text"] in all_letters, f"Unexpected annotation text: {ann['text']}"
+        assert ann["text"] in all_tiers, f"Unexpected annotation text: {ann['text']}"
 
 
 def test_annotation_font_color_dark_cells() -> None:
-    """11. A (>=3.5) and F (<=0.5) grades get white font color."""
-    assert annotation_font_color(4.0) == "#ffffff"  # A
-    assert annotation_font_color(3.7) == "#ffffff"  # A-
-    assert annotation_font_color(3.5) == "#ffffff"  # boundary
-    assert annotation_font_color(0.0) == "#ffffff"  # F
+    """11. Strong (>=2.5) and Failing (<=0.5) tiers get white font color."""
+    assert annotation_font_color(3.0) == "#ffffff"  # Strong
+    assert annotation_font_color(2.5) == "#ffffff"  # boundary
+    assert annotation_font_color(0.0) == "#ffffff"  # Failing
     assert annotation_font_color(0.5) == "#ffffff"  # boundary
 
 
 def test_annotation_font_color_light_cells() -> None:
-    """12. B, C, D grades (0.5 < value < 3.5) get dark font color."""
-    assert annotation_font_color(3.0) == "#1a1a1a"  # B
-    assert annotation_font_color(2.0) == "#1a1a1a"  # C
-    assert annotation_font_color(1.0) == "#1a1a1a"  # D
-    assert annotation_font_color(0.7) == "#1a1a1a"  # D-
-    assert annotation_font_color(2.7) == "#1a1a1a"  # B-
+    """12. Adequate and Weak tiers (0.5 < value < 2.5) get dark font color."""
+    assert annotation_font_color(2.0) == "#1a1a1a"  # Adequate
+    assert annotation_font_color(1.0) == "#1a1a1a"  # Weak
+    assert annotation_font_color(1.5) == "#1a1a1a"  # mid-range
 
 
 def test_heatmap_dimensions(sample_grades_data: GradesData) -> None:
@@ -207,10 +209,10 @@ def test_heatmap_dimensions(sample_grades_data: GradesData) -> None:
     assert fig.layout.height == DEFAULT_HEIGHT_PX
 
 
-def test_grade_colorscale_to_plotly_format() -> None:
-    """14. grade_colorscale_to_plotly returns valid Plotly colorscale format."""
-    result = grade_colorscale_to_plotly(GRADE_COLOR_SCALE)
-    assert len(result) == 5
+def test_tier_colorscale_to_plotly_format() -> None:
+    """14. tier_colorscale_to_plotly returns valid Plotly colorscale format."""
+    result = tier_colorscale_to_plotly(TIER_COLOR_SCALE)
+    assert len(result) == 4
     for entry in result:
         assert len(entry) == 2
         assert isinstance(entry[0], float)
@@ -221,8 +223,8 @@ def test_grade_colorscale_to_plotly_format() -> None:
 
 
 def test_heatmap_colorscale_bounds(sample_grades_data: GradesData) -> None:
-    """15. Heatmap trace has zmin=0 and zmax=4 for consistent color mapping."""
+    """15. Heatmap trace has zmin=0 and zmax=3 for consistent color mapping."""
     fig = build_heatmap_figure(sample_grades_data)
     trace = fig.data[0]
     assert trace.zmin == 0
-    assert trace.zmax == 4
+    assert trace.zmax == 3
