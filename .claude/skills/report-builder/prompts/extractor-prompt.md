@@ -129,6 +129,9 @@ List any issues encountered during extraction:
 - **Map to canonical names.** Use the rubric's criterion names.
 - **Flag anomalies.** Missing sections, unusual formatting, conflicting information.
 - **Read the rubric** to understand what each criterion measures.
+- **Partial tool sets are intentional.** You will only receive synthesis files for
+  tools listed in `{{tool_names}}`. Other tools were intentionally excluded by the
+  user in the DISCOVER state. Do not flag their absence as an anomaly.
 
 ## Synthesis File Contents
 
