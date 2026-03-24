@@ -3,6 +3,32 @@
 Standard procedure for handling convergence in AC power flow and AC OPF problems.
 Ensures consistent treatment across all tools under evaluation.
 
+## Convergence Evidence Hierarchy
+
+When verifying AC power flow convergence, attempt the following tiers in order (highest
+to lowest quality). Record which tier was achieved as `convergence_evidence_quality` in
+the result file frontmatter.
+
+1. **`residual_reported`** — The solver API exposes the final Newton-Raphson mismatch
+   value. Record as `convergence_residual`. Required threshold: < 1e-4 p.u. (max bus
+   power mismatch). This is the preferred evidence tier.
+
+2. **`iteration_count_reported`** — The iteration count is available via any API path,
+   including Julia `@info` log capture (see `cross-tool-watchpoints.md` for logging
+   setup). A nonzero count with a convergence indicator is strong evidence.
+
+3. **`binary_convergence_api`** — The return type or exception structure structurally
+   guarantees convergence. Examples: `solve_powerflow` returning `missing` on failure vs
+   `Dict` on success; a boolean `converged` flag. This is weaker but acceptable.
+
+4. **`proxy_voltage`** — Convergence inferred from voltage profile: magnitudes differ
+   from 1.0 pu on >95% of buses. Use only as a last resort when no API diagnostic
+   is available. Document this as a diagnostic quality limitation.
+
+**Max bus mismatch threshold:** A converged solution must satisfy max per-unit bus power
+mismatch < 1e-4 p.u. If only a residual tolerance setting is available (e.g.,
+`tolerance_mva`), convert to per-unit using the system baseMVA.
+
 ## Flat Start Protocol
 
 **Default for all AC problems (any test with `converges_ac: true` in the eval-config):**
@@ -13,14 +39,18 @@ Ensures consistent treatment across all tools under evaluation.
 2. **Record convergence:** Document whether the flat start converges, including:
    - Number of iterations (must be nonzero for valid convergence)
    - Final mismatch / convergence residual (must be below solver tolerance)
+   - Max bus mismatch in p.u. (must be < 1e-4 p.u.)
    - Wall-clock time
+   - Convergence evidence tier achieved (see hierarchy above)
 
 3. **Verify convergence quality:** Even if the solver reports "converged", check:
    - Iteration count > 0 (zero iterations means the solver did not run)
    - Voltage magnitudes differ from 1.0 pu on >95% of buses (flat-start values
      persisting indicate no actual solution was computed)
-   - If the tool cannot report iteration count or residual, document this as a
-     diagnostic quality finding (not a convergence failure, but a limitation)
+   - If the tool cannot report iteration count or residual, attempt Julia `@info` log
+     capture before falling back to proxy_voltage tier
+   - If the tool cannot report any diagnostic, document this as a diagnostic quality
+     finding (not a convergence failure, but a limitation)
 
 4. **If flat start fails:** Proceed to the DC warm start fallback.
 

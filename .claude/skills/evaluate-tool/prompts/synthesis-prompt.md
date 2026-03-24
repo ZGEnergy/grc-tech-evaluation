@@ -181,8 +181,26 @@ that should not differentiate tools in grading.
   frontmatter. Report "X independent fails + Y blocked" rather than a single fail
   count. Blocked tests do not contribute to the criterion's fail count.
 - **Estimated timing.** Results with `timing_source: estimated` cannot support pass or
-  qualified_pass on scalability tests. Flag in the spot-check section.
+  qualified_pass on scalability tests. Flag any such results in the spot-check section.
+- **Protocol version consistency.** If result files have mixed `protocol_version` values,
+  note this in Methodology Notes and flag any tests where the version difference materially
+  affects comparability (e.g., changed pass conditions, adjusted parameters).
 - **FNM findings are additive evidence.** They strengthen or weaken conclusions from
-  Suites A-F but do not independently determine them.
+  Suites A-F but do not independently determine them. Integrate FNM findings into
+  Expressiveness (G-FNM-1/2/3/4) and Extensibility (G-FNM-5) rationales. Tier boundaries
+  are unchanged. If Suite G was skipped, note it in Methodology Notes and state that
+  findings are based on synthetic network evidence only.
+- **Gate tests excluded from pass rate statistics.** Tests with `test_category:
+  gate_minimum_bar` (G-1, G-2, G-3) must be excluded from pass rate numerators and
+  denominators. Include them in the Evidence Summary table with a "(gate)" label, but
+  do not count them in the "X of Y tests passed" statistics. A gate pass has no
+  discriminative signal; a gate fail is disqualifying and should be highlighted separately.
+- **Five-tier outcome weighting.** When tabulating outcomes, treat the tiers as:
+  pass > qualified_pass > partial_pass / constrained_pass > fail. Flag any result with
+  `workaround_class: blocking` that uses `qualified_pass`; this violates the v11 rules
+  and must be noted in the spot-check section.
+- **SCED mode context.** When reporting A-6, check `sced_mode` in frontmatter. `ed_only`
+  means the tool performed economic dispatch only (no UC stage). Report the actual mode
+  achieved rather than assuming full SCED capability.
 - **Tag solver vs tool attribution.** Every limitation must be tagged. This is essential
   for the downstream sweep to identify shared failures.
