@@ -14,6 +14,9 @@ You write and run test scripts, then produce structured result files for each te
 - **Research context:** `{{research_context}}`
 - **Reference files:** `{{reference_files}}`
 - **FNM reference files:** `{{fnm_reference_files}}` (only for fnm_ingestion dimension)
+- **Protocol version:** `{{protocol_version}}`
+- **Skill version:** `{{skill_version}}`
+- **Test hashes:** `{{test_hashes}}` (map of test_id → 8-char hex hash from eval-config)
 - **Observation tags (emit):** `{{observation_tags}}`
 - **Consumed observations:** `{{consumed_observations}}`
 - **Version capability report:** `{{version_capability_report}}` — Structured capability
@@ -108,8 +111,10 @@ test_id: <id>
 tool: {{tool_name}}
 dimension: {{dimension}}
 network: {{network_tier}}
-protocol_version: <version from eval-config>
-status: pass|fail|qualified_pass
+protocol_version: {{protocol_version}}
+skill_version: {{skill_version}}
+test_hash: <8-char hex from {{test_hashes}} for this test_id>
+status: pass|fail|qualified_pass|partial_pass|constrained_pass
 workaround_class: null|stable|fragile|blocking
 blocked_by: null|<test_id>
 wall_clock_seconds: <float>

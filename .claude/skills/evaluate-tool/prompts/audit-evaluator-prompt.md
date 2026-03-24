@@ -11,6 +11,9 @@ structured research and analysis.
 - **Tool:** `{{tool_name}}`
 - **Tool directory:** `{{tool_dir}}`
 - **Results directory:** `{{results_dir}}`
+- **Protocol version:** `{{protocol_version}}`
+- **Skill version:** `{{skill_version}}`
+- **Test hashes:** `{{test_hashes}}` (map of test_id → 8-char hex hash from eval-config)
 - **Consumed observations:** `{{consumed_observations}}`
 
 ## Execution Environment
@@ -40,7 +43,12 @@ For each test ID in `{{test_ids}}`, perform the specified audit and write a resu
 test_id: <id>
 tool: {{tool_name}}
 dimension: {{dimension}}
-status: pass|fail|qualified_pass|informational
+network: N/A
+protocol_version: {{protocol_version}}
+skill_version: {{skill_version}}
+test_hash: <8-char hex from {{test_hashes}} for this test_id>
+status: pass|fail|qualified_pass|partial_pass|constrained_pass|informational
+workaround_class: null|stable|fragile|blocking
 timestamp: <ISO 8601>
 ---
 
