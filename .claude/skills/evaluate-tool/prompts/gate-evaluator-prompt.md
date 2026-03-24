@@ -10,6 +10,9 @@ Gate tests determine whether a tool can proceed to full evaluation.
 - **Test IDs:** `{{test_ids}}`
 - **Reference solutions:** `{{reference_solutions}}`
 - **Results directory:** `{{results_dir}}`
+- **Protocol version:** `{{protocol_version}}`
+- **Skill version:** `{{skill_version}}`
+- **Test hashes:** `{{test_hashes}}` (map of test_id → 8-char hex hash from eval-config)
 
 ## Execution Environment
 
@@ -61,8 +64,15 @@ Execute gate tests for `{{tool_name}}`. These are pass/fail network ingestion ch
 ---
 test_id: <id>
 tool: {{tool_name}}
+dimension: gate
 network: <tier>
+protocol_version: {{protocol_version}}
+skill_version: {{skill_version}}
+test_hash: <8-char hex from {{test_hashes}} for this test_id>
 status: pass|fail
+workaround_class: null
+test_category: gate_minimum_bar
+wall_clock_seconds: <float|null>
 timestamp: <ISO 8601>
 ---
 

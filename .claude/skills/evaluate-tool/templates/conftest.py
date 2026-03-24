@@ -5,11 +5,12 @@ Copy this file into evaluations/<tool>/tests/ to enable pytest discovery
 and shared fixtures across test dimensions.
 """
 
-import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+import yaml
 
 # Repository root (3 levels up from evaluations/<tool>/tests/)
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -78,12 +79,31 @@ def results_dir(request):
 
 @pytest.fixture
 def write_result(results_dir):
-    """Fixture that returns a function to write a test result file."""
+    """Fixture that returns a function to write a test result markdown file.
+
+    Produces markdown files with YAML frontmatter matching result-template.md.
+    The ``result`` dict must contain at minimum ``test_id``, ``tool``,
+    ``dimension``, ``status``, and a ``body`` key with the markdown content.
+    All other keys are written as YAML frontmatter fields.
+    """
 
     def _write(test_id: str, result: dict, tier: str | None = None):
         suffix = f"_{tier}" if tier else ""
-        path = results_dir / f"{test_id}{suffix}.json"
-        path.write_text(json.dumps(result, indent=2, default=str))
+        slug = result.get("slug", "")
+        slug_part = f"_{slug}" if slug else ""
+        path = results_dir / f"{test_id}{slug_part}{suffix}.md"
+
+        body = result.pop("body", "")
+        frontmatter = {k: v for k, v in result.items() if k != "slug"}
+        frontmatter.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+
+        content = (
+            "---\n"
+            + yaml.dump(frontmatter, default_flow_style=False)
+            + "---\n\n"
+            + body
+        )
+        path.write_text(content)
         return path
 
     return _write
