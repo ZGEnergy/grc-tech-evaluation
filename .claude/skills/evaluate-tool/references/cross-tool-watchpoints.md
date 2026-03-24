@@ -3,6 +3,55 @@
 Generic cross-tool guidance for evaluators. No test-specific details — those come from
 the protocol and eval-config.
 
+## Solver-vs-Tool Attribution
+
+Every limitation or failure discovered during evaluation must be tagged as either
+**solver-specific** or **tool-specific**. This tagging is critical: the downstream
+sweep-evaluations process uses it to identify shared failures that should not
+differentiate tools in grading.
+
+### Definitions
+
+- **Solver-specific:** The limitation comes from the solver (HiGHS, Ipopt, SCIP, GLPK)
+  rather than the tool itself. If swapping to a different solver would likely resolve the
+  issue, it is solver-specific.
+
+  Examples:
+  - "SCUC times out at SMALL scale due to HiGHS single-threaded MILP performance"
+  - "ACPF fails to converge at 10k-bus due to NLsolve non-convergence with flat start"
+  - "Contingency sweep is infeasible at MEDIUM due to combinatorial explosion"
+
+- **Tool-specific:** The limitation is inherent to the tool's architecture, API, or
+  implementation. Changing the solver would not resolve this.
+
+  Examples:
+  - "No API for custom constraint injection"
+  - "Linopy shadow-price post-processing creates a 10+ minute overhead at 10k-bus"
+  - "PuLP optimization model is not exposed, making custom constraint injection impossible"
+  - "Battery energy balance sign error produces incorrect storage dispatch"
+
+- **Mixed attribution:** Some failures have both solver and tool components. For example,
+  a tool's solver binding might not expose multi-threading that the solver supports.
+  Tag as `[mixed: tool binding does not expose solver's multi-threading]`.
+
+### Tagging Format
+
+In result files and synthesis reports, use inline tags:
+- `[solver-specific]` or `[solver-specific: HiGHS single-threaded MILP]`
+- `[tool-specific]` or `[tool-specific: no custom constraint API]`
+- `[mixed: <explanation>]`
+
+### Why This Matters
+
+If every tool fails the same test for the same reason (e.g., HiGHS single-threaded
+MILP), that test should not differentiate tools in grading. Only tool-specific
+differences should drive grade differences. The sweep-evaluations process identifies
+these shared solver-bound failures and excludes them from grading differentiation.
+
+However, tool-specific overhead ON TOP of solver performance (e.g., "Linopy
+shadow-price post-processing adds 10 minutes beyond solve time") SHOULD impact grades
+because it is unique to that tool's architecture.
+
 ## Solver Compatibility Matrix
 
 | Solver | LP | MILP | QP | NLP | Notes |
