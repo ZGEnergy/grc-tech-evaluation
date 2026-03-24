@@ -1,0 +1,384 @@
+tool: gridcal
+source_version: v10
+timestamp: "2026-03-14T00:00:00Z"
+evaluation_summary:
+  total_tests: 37
+  # Gate (G-1/2/3): 3 pass
+  # Expressiveness (A-1..A-12, minus A-7/A-8 which are not in eval-config): 10 tests
+  # Extensibility (B-1..B-9, minus B-7): 8 tests
+  # Scalability (C-1..C-10): 11 tests (including 2x C-5, 2x C-8)
+  # Accessibility (D-1..D-5): 5 informational
+  # Maturity (E-1..E-7): 7 informational
+  # Supply chain (F-1..F-9): 9 tests
+  # FNM (G-FNM-1..G-FNM-5): 5 tests
+  # P2 readiness (P2-1..P2-3): 3 informational
+  pass: 20
+  fail: 3
+  qualified_pass: 5
+  informational: 19
+
+findings:
+  - id: gridcal-F01
+    category: network_insufficiency
+    severity: medium
+    test_ids: [A-5, C-4]
+    title: SCUC pass on TINY masks complete absence of inter-temporal commitment cycling at SMALL
+    description: >
+      A-5 passes SCUC on the 10-generator IEEE 39-bus network, where differentiated costs
+      drive 6 of 10 generators to cycle. At SMALL scale (C-4, 544 generators), no cycling
+      is observed across 24 hours under both solvers — all 430 dispatchable generators
+      remain committed. The SMALL result is scored qualified_pass via a sequential snapshot
+      workaround that structurally cannot enforce min-up/down or ramp constraints. The
+      transition from A-5 (native UC, cycling demonstrated) to C-4 (snapshot workaround,
+      zero cycling) represents a capability cliff that is not reflected in the grading. The
+      qualified_pass at C-4 implies scaled SCUC is feasible, but inter-temporal coupling
+      is entirely absent.
+    evidence:
+      - file: evaluations/gridcal/results/scalability/C-4_scuc_scale_SMALL.md
+        excerpt: "Committed gens: 430 (constant). Cycling generators: 0. No generator cycling observed. The SMALL network's base-case generator costs are not sufficiently differentiated to drive decommitment."
+      - file: evaluations/gridcal/results/expressiveness/A-5_scuc.md
+        excerpt: "Cycling generators: 6 (of 10). UC formulation correctly decommits expensive generators during low-load hours."
+      - file: evaluations/gridcal/results/scalability/C-4_scuc_scale_SMALL.md
+        excerpt: "Workaround loses inter-temporal UC coupling (min up/down times, ramp rates are not enforced across hours). This means the test demonstrates that 24 independent hourly OPF solves complete successfully on the SMALL network, but not that true multi-period SCUC works at scale."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: gridcal-F02
+    category: network_insufficiency
+    severity: high
+    test_ids: [C-8]
+    title: SCOPF on MEDIUM is vacuous — zero binding constraints, zero redispatch
+    description: >
+      C-8 (SCOPF on 10,000-bus ACTIVSg network) is scored pass, but the SCOPF and base-case
+      DCOPF produce results that are numerically identical to 1.49e-08 $/MWh precision. The
+      MEDIUM network is uncongested (max branch loading 84.72%), so no N-1 contingency creates
+      post-contingency violations requiring redispatch. The test verifies that the SCOPF
+      formulation runs to completion on a large network — not that it produces security-driven
+      redispatch. A congested test network is needed to measure SCOPF expressiveness under
+      stress. The SMALL SCOPF (C-8 SMALL) does produce meaningful redispatch (up to 164 MW),
+      but the MEDIUM result is a near-zero-signal measurement of solve time only.
+    evidence:
+      - file: evaluations/gridcal/results/scalability/C-8_scopf_scale_MEDIUM.md
+        excerpt: "LMP and dispatch comparison: The SCOPF produces results nearly identical to the base-case DCOPF. The maximum dispatch difference is 2.67e-07 MW and the maximum LMP difference is 1.49e-08 $/MWh — effectively zero. No generators show dispatch changes above 1 MW, and no branches become binding."
+      - file: evaluations/gridcal/results/scalability/C-8_scopf_scale_MEDIUM.md
+        excerpt: "This is consistent with the ACTIVSg10k network being uncongested (max loading 84.72%). Since no branches are near their limits in the base case, N-1 contingencies do not create post-contingency violations that would require redispatch."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: gridcal-F03
+    category: misleading_result
+    severity: medium
+    test_ids: [A-10]
+    title: Lossy DCOPF qualified_pass obscures a near-nonfunctional loss approximation
+    description: >
+      A-10 is scored qualified_pass because the loss approximation feature exists and
+      produces non-zero losses. However, the computed losses (0.055 MW, 0.0009% of load)
+      are orders of magnitude below the expected 0.5–3% range and far below the ACPF
+      reference of 43.6 MW (0.7% of load). The root cause — the loss formula uses branch
+      thermal ratings rather than actual power flows — means the approximation is
+      structurally broken for networks where branch resistances are small relative to ratings.
+      The qualified_pass framing implies a feature that works with caveats; the actual
+      situation is a feature that produces results indistinguishable from zero losses in
+      standard IEEE test cases. LMP decomposition is also entirely absent.
+    evidence:
+      - file: evaluations/gridcal/results/expressiveness/A-10_lossy_dcopf_lmp.md
+        excerpt: "Sum branch losses (MW): 0.055. Losses as % of load: 0.0009%. Loss magnitude: far below expected range."
+      - file: evaluations/gridcal/results/expressiveness/A-10_lossy_dcopf_lmp.md
+        excerpt: "The loss factor formula uses R * rate / V^2 where rate is the branch thermal rating rather than the actual power flow. This produces negligible loss factors."
+      - file: evaluations/gridcal/results/expressiveness/A-10_lossy_dcopf_lmp.md
+        excerpt: "(b) Losses 0.5--3% of load: FAIL — 0.0009% -- far below expected range."
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: gridcal-F04
+    category: missing_verification
+    severity: medium
+    test_ids: [A-5]
+    title: SCUC commitment schedule inferred from dispatch power rather than binary commitment variable
+    description: >
+      The A-5 SCUC pass is based on a commitment schedule derived by thresholding generator
+      power output (gen_power > 0.1 MW) rather than reading a binary commitment variable
+      from the solver. The protocol requires verifying that the MILP formulation produces
+      binary on/off decisions. The MIP gap is explicitly noted as "not directly extractable"
+      from the results object. If the solver is running as an LP relaxation rather than MILP,
+      the commitment indicators would still appear binary-like for most generators due to
+      box constraints, but with no guarantee of true integrality. The test cannot distinguish
+      between a genuine MILP solution and an LP relaxation that happens to produce near-binary
+      dispatch values.
+    evidence:
+      - file: evaluations/gridcal/results/expressiveness/A-5_scuc.md
+        excerpt: "MIP gap note: The MIP gap is not directly extractable from the OptimalPowerFlowTimeSeriesResults object. HiGHS uses a default MIP gap tolerance of 1%, which satisfies the pass condition."
+      - file: evaluations/gridcal/results/expressiveness/A-5_scuc.md
+        excerpt: "commitment = (gen_power > 0.1).astype(int)  # Commitment derived from generator_power (shape: 24 x 10)"
+    cross_tool_relevance: likely
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: add_verification
+
+  - id: gridcal-F05
+    category: misleading_result
+    severity: medium
+    test_ids: [G-FNM-3]
+    title: FNM DCPF qualified_pass contains 326 branches with deviations up to 562,955% attributed as formulation difference without independent validation
+    description: >
+      G-FNM-3 triggers the hard fail condition (max branch deviation > 50%) but is classified
+      qualified_pass via a "formulation_difference" classification that attributes the 326
+      failing branches (up to 562,955% deviation) to GridCal's simplified B-matrix construction
+      for transformer tap ratios. While the transformer-adjacency concentration (88.7%) is
+      consistent with this hypothesis, the classification rests on an inference from result
+      patterns rather than direct verification of the B-matrix formulation against a known
+      reference. The deviations include branches labeled "Line" (not "Xfmr") in the top-5
+      list (4 of 5 are lines), which undermines the pure transformer-tap explanation. The
+      qualified_pass may understate a genuine data ingestion or formulation error.
+    evidence:
+      - file: evaluations/gridcal/results/fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md
+        excerpt: "Top 5 deviating branches: 1668→88630 (Line, 562,955%), 21476→84022 (Line, 541,075%), 72100→73053 (Line, 413,787%), 180421→36990 (Xfmr, 325,193%), 1635→92191 (Line, 322,365%)."
+      - file: evaluations/gridcal/results/fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md
+        excerpt: "Transformer-adjacent: 289 (88.7%). Classification: formulation_difference. The 326 failing branches exhibit extreme flow deviations... consistent with GridCal using a simplified B-matrix construction."
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: add_verification
+
+  - id: gridcal-F06
+    category: extraordinary_claim
+    severity: high
+    test_ids: [A-3]
+    title: DCOPF shows 112% branch overload on a test claiming converged=True — soft constraint not disclosed in pass determination
+    description: >
+      A-3 is scored pass despite branch 2_3_1 showing 112% loading — a physical violation of
+      the derated thermal limit. The result notes this "may indicate the PTDF-based formulation
+      uses soft constraints or penalty functions rather than hard limits on some branches." If
+      the formulation uses soft constraints, then the DCOPF is not enforcing thermal limits as
+      hard constraints, which is a fundamental formulation characteristic relevant to market
+      applications. The pass scoring accepts an overloaded result without confirming whether
+      this is a soft-constraint formulation (acceptable approximation) or a solver infeasibility
+      being masked (comparable to the D-4 finding where infeasible OPF reports converged=True).
+    evidence:
+      - file: evaluations/gridcal/results/expressiveness/A-3_dcopf.md
+        excerpt: "Branch 2_3_1: 112% (overloaded). This may indicate the PTDF-based formulation uses soft constraints or penalty functions rather than hard limits on some branches. The overloads result attribute captures this with a value of -42.85 MW."
+      - file: evaluations/gridcal/results/accessibility/D-4_error_quality.md
+        excerpt: "The solver does not detect or report the infeasibility. Instead it treats zero-rated branches as soft constraints via the overload slack variables and produces a feasible dispatch that violates all branch limits."
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: formulation_audit
+    proposed_action: add_verification
+
+  - id: gridcal-F07
+    category: test_design_gap
+    severity: medium
+    test_ids: [D-4]
+    title: Error quality test omits OPF infeasibility with structural infeasibility (zero-rate branches), conflating soft-constraint design with error reporting
+    description: >
+      D-4 test (a) sets all branch ratings to zero and expects infeasibility detection.
+      However, GridCal's DCOPF uses soft constraints (overload slack variables) by design,
+      so the formulation is not structurally infeasible — it has a feasible solution that
+      violates branch limits with nonzero slacks. The test mixes two distinct questions:
+      (1) does the formulation use hard or soft branch constraints, and (2) does the tool
+      report infeasibility when the LP is genuinely infeasible. A true infeasibility test
+      would require a case where no dispatch can satisfy power balance (e.g., load > total
+      generation capacity), not one where soft-constraint violations are the expected behavior.
+      The "poor" error quality rating from this test may be partially unfair to GridCal's
+      design choice.
+    evidence:
+      - file: evaluations/gridcal/results/accessibility/D-4_error_quality.md
+        excerpt: "treats zero-rated branches as soft constraints via the overload slack variables and produces a feasible dispatch that violates all branch limits. The converged=True status is misleading."
+      - file: evaluations/gridcal/results/accessibility/D-4_error_quality.md
+        excerpt: "Error quality grade: Poor. No exception, no warning, no infeasibility status."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: gridcal-F08
+    category: infrastructure_friction
+    severity: medium
+    test_ids: [G-FNM-1, G-FNM-3, G-FNM-4]
+    title: FNM ingestion gate failure stems from PSS/e v31 format mismatch, not tool architecture — MATPOWER fallback masks the gap
+    description: >
+      G-FNM-1 fails because GridCal's PSS/e parser is hardcoded to v35 field counts and
+      cannot parse v31 RAW files. The intermediate CSV format (17 tables) is also
+      unsupported. Both gaps are format-specific limitations, not architectural barriers —
+      the parser already threads a version parameter to device parsers and supports related
+      versions. The evaluation then proceeds via a MATPOWER fallback that loses area/zone
+      metadata and loads aggregates at per-bus level (8,624 loads vs 15,062 in RAW).
+      G-FNM-3 and G-FNM-4 results are therefore evaluated on an impoverished network
+      representation. The FNM test suite conflates format-version support (a fixable
+      engineering gap) with fundamental data model capability.
+    evidence:
+      - file: evaluations/gridcal/results/fnm_ingestion/G-FNM-1_fnm_ingestion_gate.md
+        excerpt: "Exception: PSSe 35 load data came with 1 elements and 18 or 17 were expected. Version 31 is notably absent from the supported versions list."
+      - file: evaluations/gridcal/results/p2_readiness/P2-1_psse_raw_parsing.md
+        excerpt: "Estimated effort to fix: Medium. The parser architecture already threads a version parameter to device-level parsers. The fix requires auditing each device parser to accept the correct field counts for v29-v34 formats."
+      - file: evaluations/gridcal/results/fnm_ingestion/G-FNM-1_fnm_ingestion_gate.md
+        excerpt: "MATPOWER format lost area data: 0 of 49 areas retained. Loads: 8,624 ingested vs 15,062 in RAW."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+
+  - id: gridcal-F09
+    category: missing_verification
+    severity: low
+    test_ids: [G-FNM-4]
+    title: ACPF false convergence pathway identified but not quantified across solver configurations
+    description: >
+      G-FNM-4 identifies that setting retry_with_other_methods=True causes false convergence
+      reporting (converged=True with residual 582). This false convergence mode was excluded
+      from results. The finding implies a second D-4-class error quality problem: the tool's
+      built-in retry mechanism can report success when the solver has not converged. This
+      pattern was not tested in D-4 (which used only single-solver, no-retry configurations)
+      and represents an untested failure mode in the accessibility dimension.
+    evidence:
+      - file: evaluations/gridcal/results/fnm_ingestion/G-FNM-4_fnm_acpf_convergence.md
+        excerpt: "False convergence with retry: When retry_with_other_methods=True, the solver reports converged=True after 1 iteration with a residual of 582. This was diagnosed as false convergence."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+
+  - id: gridcal-F10
+    category: scoring_inconsistency
+    severity: low
+    test_ids: [B-4, C-4]
+    title: TapPhaseControl enum bug triggers qualified_pass in both B-4 and C-4 with identical snapshot workaround — counted as separate test signal
+    description: >
+      B-4 (stochastic scenario DCOPF) and C-4 (SCUC at SMALL) both trigger the same
+      TapPhaseControl enum bug and both apply the same sequential snapshot workaround.
+      The bug is counted as a distinct limitation in both tests, but it is a single
+      underlying defect producing two qualified_pass scores. If the bug were fixed, both
+      tests might pass or fail independently. The current scoring treats a single bug's
+      impact as two separate capability demonstrations, which inflates the qualified_pass
+      count and potentially the overall capability impression.
+    evidence:
+      - file: evaluations/gridcal/results/extensibility/B-4_stochastic_scenario.md
+        excerpt: "VeraGridEngine 5.6.28 bug: TapPhaseControl enum sparse profile default value (0) is not a valid enum member. The compile_numerical_circuit_at function fails when compiling at a non-None time index for networks with transformers."
+      - file: evaluations/gridcal/results/scalability/C-4_scuc_scale_SMALL.md
+        excerpt: "TapPhaseControl enum bug (v5.6.28): The time-series OPF driver crashes with ValueError: 0 is not a valid TapPhaseControl on networks with transformers. This is the same bug documented in B-4."
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: gridcal-F11
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [E-7]
+    title: Operational adoption claims (Redeia, Schneider Electric, GE Vernova) are unverified from public sources
+    description: >
+      E-7 reports that GridCal claims adoption by Redeia (Spanish TSO), Schneider Electric,
+      and GE Vernova. These are significant credibility claims for a tool with bus factor 1
+      and no CI test execution. The only independently verifiable external adoption signal is
+      52 commits from two Navitasoft developers. The eRoots website does not list clients
+      publicly, and claims appear to originate from the project's own research-context.md
+      documentation. If these claims are accurate, they would substantially offset the
+      maturity concerns; if unverifiable, the maturity grade narrative may be too lenient.
+    evidence:
+      - file: evaluations/gridcal/results/maturity/E-7_operational_adoption.md
+        excerpt: "Claimed operational users: Redeia, Schneider Electric, GE Vernova. Verifiable adoption signals: Navitasoft integration (52 commits). eRoots website does not list clients publicly."
+      - file: evaluations/gridcal/results/maturity/E-7_operational_adoption.md
+        excerpt: "direct verification of these claims from public sources is limited — the evidence comes primarily from the project's own research context documentation and presentations."
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: claim_verification
+    proposed_action: add_verification
+
+  - id: gridcal-F12
+    category: low_signal
+    severity: low
+    test_ids: [G-1, G-2, G-3]
+    title: Gate ingestion tests (TINY/SMALL/MEDIUM) are unanimous pass across all tools evaluated — minimal discriminative value
+    description: >
+      The three gate tests (G-1, G-2, G-3) verify that MATPOWER .m files can be loaded at
+      increasing scale. All tools evaluated passed these tests. The tests measure a basic
+      capability (MATPOWER file parsing) that is a prerequisite for all subsequent tests
+      and does not differentiate tools. Including them in the total test count and pass rate
+      inflates the apparent pass rate for all tools equally.
+    evidence:
+      - file: evaluations/gridcal/results/gate/G-1_ingest_tiny.md
+        excerpt: "Status: pass"
+      - file: evaluations/gridcal/results/gate/G-2_ingest_small.md
+        excerpt: "Status: pass"
+      - file: evaluations/gridcal/results/gate/G-3_ingest_medium.md
+        excerpt: "Status: pass"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: remove_test
+
+  - id: gridcal-F13
+    category: missing_verification
+    severity: medium
+    test_ids: [A-9, C-8]
+    title: SCOPF convergence not verified by residual — only converged flag and binding branch count reported
+    description: >
+      A-9 (SCOPF on TINY) and C-8 (SCOPF on MEDIUM) both report pass based on the tool's
+      convergence flag and qualitative dispatch comparison. No residual or optimality gap
+      is reported for either test. The protocol specifies convergence verification for OPF
+      results, but no MIP gap or LP duality gap is extracted. For SCOPF on MEDIUM specifically,
+      the near-zero differences from base-case DCOPF (to 1e-8 precision) are consistent with
+      a correctly solved LP — but also consistent with the solver terminating early on a
+      numerically ill-conditioned problem with a trivial incumbent. The lack of a reported
+      optimality gap prevents distinguishing these cases.
+    evidence:
+      - file: evaluations/gridcal/results/scalability/C-8_scopf_scale_MEDIUM.md
+        excerpt: "convergence_residual: null. convergence_iterations: null. The SCOPF produces results nearly identical to the base-case DCOPF. The maximum dispatch difference is 2.67e-07 MW."
+      - file: evaluations/gridcal/results/expressiveness/A-9_scopf.md
+        excerpt: "convergence_residual: null. convergence_iterations: null. SCOPF solve time: 0.067 s."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+extraordinary_claims:
+  - test_id: A-3
+    claim: >
+      DCOPF passes with 7 binding branches and valid LMPs despite one branch showing 112%
+      loading — attributed to soft-constraint formulation without explicit verification.
+    concern: >
+      If GridCal's DCOPF uses soft constraints (overload slacks) as a design choice, all
+      branch thermal limits in the evaluation are unenforced hard constraints. This would
+      mean every DCOPF/SCOPF/SCUC pass result may reflect soft-constrained optimization
+      rather than physically feasible dispatch. The D-4 error quality test confirms that
+      zero-rated branches are handled via soft constraints. The extent to which the base
+      DCOPF formulation enforces hard limits vs soft limits is not documented and was not
+      independently verified.
+    evidence_quality: moderate
+    probe_recommended: true
+    probe_type: formulation_audit
+
+  - test_id: G-FNM-3
+    claim: >
+      326 branches with deviations up to 562,955% classified as "formulation_difference"
+      (B-matrix simplification for transformer taps) rather than data ingestion error,
+      earning a qualified_pass.
+    concern: >
+      The four top-5 deviating branches labeled "Line" (not transformer) cast doubt on
+      the purely transformer-tap explanation. Extreme flow values (e.g., 111,582 MW vs
+      reference -19.82 MW, a factor of ~5,630x) on line-type elements suggest possible
+      data ingestion corruption or incorrect unit conversion rather than a formulation
+      sophistication difference. The classification was made by inference from result
+      patterns, not by comparing B-matrix entries or inspecting the numerical circuit
+      compilation for those specific branches.
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: formulation_audit
+
+  - test_id: E-7
+    claim: >
+      GridCal is claimed to be in operational use at Redeia (Spanish TSO), Schneider
+      Electric, and GE Vernova.
+    concern: >
+      These claims originate from the project's own documentation (research-context.md)
+      and are not independently verifiable from public sources. If accurate, they
+      substantially offset the bus-factor-1 and no-CI-testing maturity concerns. If
+      inaccurate, the maturity grade narrative may be too lenient.
+    evidence_quality: weak
+    probe_recommended: true
+    probe_type: claim_verification

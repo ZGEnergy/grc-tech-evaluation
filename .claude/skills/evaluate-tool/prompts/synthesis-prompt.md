@@ -180,3 +180,15 @@ Use the 9-point scale from the rubric:
   FNM findings into Expressiveness (G-FNM-1/2/3/4) and Extensibility (G-FNM-5) grade
   rationales. A/B/C grade boundaries are unchanged. If Suite G was skipped, note it in
   Methodology Notes and state that grades are based on synthetic network evidence only.
+- **Gate tests excluded from pass rate statistics.** Tests with `test_category:
+  gate_minimum_bar` (G-1, G-2, G-3) must be excluded from pass rate numerators and
+  denominators. Include them in the Evidence Summary table with a "(gate)" label, but
+  do not count them in the "X of Y tests passed" statistics. A gate pass has no
+  discriminative signal; a gate fail is disqualifying and should be highlighted separately.
+- **Five-tier outcome weighting.** When tabulating outcomes, treat the tiers as:
+  pass > qualified_pass > partial_pass / constrained_pass > fail. Flag any result with
+  `workaround_class: blocking` that uses `qualified_pass` — this violates the v11 rules
+  and must be noted in the spot-check section.
+- **SCED mode context.** When grading A-6, check `sced_mode` in frontmatter. `ed_only`
+  means the tool performed economic dispatch only (no UC stage). Report the actual mode
+  achieved rather than assuming full SCED capability.

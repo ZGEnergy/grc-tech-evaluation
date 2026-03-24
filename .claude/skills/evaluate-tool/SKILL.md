@@ -309,12 +309,14 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
    - **Suite C tier gate.** If the completed step is marked `c_scale_gate: true` in
      `{{CONFIG_PATH}}` (set on the Suite C SMALL step by the config-generator):
      - Read all result files for that step.
-     - If any Suite C SMALL test has `status: fail`, log "Suite C SMALL gate failed —
-       skipping MEDIUM tier" and skip all subsequent DAG steps marked `tier: MEDIUM`
-       for the `scalability` dimension.
-     - For each skipped MEDIUM test, write a stub result file in
+     - If C-4 (SCUC SMALL) has `status: fail`, log "C-4 failed — skipping MILP MEDIUM tests"
+       and skip only the MILP MEDIUM tests (C-4 MEDIUM and any future MILP tests).
+       **LP and power-flow MEDIUM tests (C-1, C-2, C-3, C-9, C-10) must NOT be skipped
+       regardless of C-4 outcome — they run unconditionally in v11.**
+       C-8 (SCOPF MEDIUM) is gated only by C-3, not by C-4.
+     - For each skipped MILP MEDIUM test, write a stub result file in
        `{{RESULTS_DIR}}/scalability/` with `status: skip` and
-       `blocked_by: C-SMALL-gate` in frontmatter, so VALIDATE does not report gaps.
+       `blocked_by: C-4` in frontmatter, so VALIDATE does not report gaps.
 
 4. **Checkpoint.** After each DAG step, update `{{PROGRESS_PATH}}`:
 
@@ -340,8 +342,14 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
      - `data/fnm/docs/supplemental-csv-representability.md`
      - `data/fnm/reference/pass_conditions.json` (if it exists)
      - `data/fnm/reference/excluded_buses.json` (if it exists)
-   - G-FNM-1 is the Suite G gate. If G-FNM-1 fails, skip G-FNM-2 through G-FNM-5
-     (write skip results with `blocked_by: G-FNM-1`).
+   - G-FNM-1 is the Suite G gate with **partial cascade** semantics:
+     - If G-FNM-1 fails due to PSS/E parse error, skip only G-FNM-2 (field coverage
+       audit requires the full CSV tables). G-FNM-3, G-FNM-4, and G-FNM-5 proceed
+       using the MATPOWER fallback path — write their `ingestion_path` as `matpower_ppc`
+       or `matpower_raw` accordingly.
+     - If G-FNM-1 fails due to record count mismatch (sub-check b), skip G-FNM-2
+       through G-FNM-5 (write skip results with `blocked_by: G-FNM-1`).
+     - A complete G-FNM-1 pass (both sub-checks) proceeds to all G-FNM-2 through G-FNM-5.
    - Suite G results go in `{{RESULTS_DIR}}/fnm_ingestion/`.
    - Suite G emits `fnm-data-model` and `fnm-scale` observations for consumption by
      synthesis.
@@ -370,10 +378,12 @@ tier-to-scale-cap mapping come from `{{CONFIG_PATH}}` — do not hardcode them.
 2. **Validate frontmatter.** For each result file:
    - Required fields present: `test_id`, `tool`, `dimension`, `network`, `status`,
      `workaround_class`, `timestamp`, `protocol_version`, `skill_version`, `test_hash`
-   - `status` value is one of: `pass`, `fail`, `qualified_pass`, `informational`
+   - `status` value is one of: `pass`, `fail`, `qualified_pass`, `partial_pass`,
+     `constrained_pass`, `informational`
    - `workaround_class` value is one of: `null`, `stable`, `fragile`, `blocking`
    - `test_hash` matches the `test_hash` for that test ID in `{{CONFIG_PATH}}`
-   - If `status` is `qualified_pass`, the Workarounds section must be non-empty
+   - If `status` is `qualified_pass` or `partial_pass`, the Workarounds section must be non-empty
+   - If `workaround_class` is `blocking`, `status` must not be `qualified_pass`
 
 3. **Validate naming.** Each result file must follow either:
    - `<test_id>_<slug>.md` (for single-tier tests or grade-network results)
