@@ -1,0 +1,427 @@
+---
+# Cross-Tool Themes — v10-to-v11 Sweep
+# Synthesized from per-tool findings.yaml, probe results, and protocol/rubric review.
+# Evidence threshold: 3+ tools for protocol/rubric changes; 2+ for skill-only changes.
+
+themes:
+
+  - id: T-01
+    title: "C-SMALL gate cascades block LP/PF MEDIUM tests when only MILP fails"
+    description: >-
+      The C-SMALL gate requires C-4 (SCUC on 2000-bus SMALL) to pass before any
+      MEDIUM-tier scalability tests execute. When a tool fails C-4 — whether because
+      it lacks SCUC entirely (pandapower, powermodels), because the MILP solver cannot
+      solve at that scale (pypsa), or because the SCUC is genuinely infeasible for the
+      solver (matpower/GLPK) — all MEDIUM tests are skipped. This includes tests that
+      measure LP and power-flow scalability (C-1 DCPF, C-2 ACPF, C-3 DC OPF, C-9
+      PTDF, C-10 distributed slack), which are entirely independent of MILP capability.
+      The effect is that tools with strong LP/PF performance but weak MILP receive the
+      same "unknown" MEDIUM-tier verdict as tools with genuine large-scale gaps. In
+      several cases (pypsa, pandapower, matpower) there is strong FNM-suite or SMALL-tier
+      evidence of MEDIUM-scale LP/PF capability that the gate prevents from being formally
+      counted.
+    affected_tools:
+      - pypsa       # F09: HiGHS single-threaded MILP timeout; 7 MEDIUM tests skipped
+      - pandapower  # F01: SCUC absent (scope); 8 MEDIUM tests skipped
+      - matpower    # F01: GLPK cannot solve SCUC (infeasible); 8 MEDIUM tests skipped
+      - powermodels # F13: UC absent; C-SMALL gate blocks MEDIUM
+    probe_evidence:
+      - probe-016: claim_debunked — matpower GLPK failure is genuine SCUC infeasibility,
+                   not an exit-flag bug; confirms the gate loss is real for matpower
+    signal_level: High
+    dominant_factor: test_design
+    proposed_action: PC-01
+    notes: >-
+      powersimulations also faces MEDIUM-test gaps (C-8 MEDIUM solver crash) but via a
+      different mechanism (solver error, not gate design). gridcal passes C-4 at SMALL
+      via workaround so does not trigger the gate.
+
+  - id: T-02
+    title: "SCUC test network insufficient to verify min up/down binding"
+    description: >-
+      The 10-generator IEEE 39-bus TINY network has a capacity-to-peak ratio of ~1.18x,
+      which provides enough headroom that the optimizer typically shuts down only the most
+      expensive generators near load valleys. The minimum 2-cycling-generator threshold
+      is met in all tools that attempt the test, but no tool's A-5 result verifies that
+      min up/down constraints are actually binding (i.e., that removing them would change
+      the commitment schedule). Without binding evidence, A-5 confirms MILP formulation
+      completeness but not MILP behavioral correctness under tight temporal constraints.
+      A network with tighter capacity margins and diverse min up/down times is needed.
+    affected_tools:
+      - pypsa         # F02: cycling observed but binding not verified
+      - powermodels   # F09: 3 shutdowns, 0 startups, all end-of-horizon
+      - powersimulations # F12: cycling matches load amplitude, not cost structure
+      - matpower      # F05: validated on 3-bus ex_case3b, not case39
+      - gridcal       # F04: MIP gap not extractable; commitment inferred from power, not binary
+    signal_level: High
+    dominant_factor: network
+    proposed_action: PC-02
+    notes: >-
+      pandapower lacks SCUC so does not encounter this issue. The pattern is consistent
+      across all five SCUC-capable or SCUC-attempted tools.
+
+  - id: T-03
+    title: "SCOPF MEDIUM result is vacuous — ACTIVSg10k is uncongested"
+    description: >-
+      The 10,000-bus ACTIVSg10k MEDIUM network has a base-case maximum branch loading
+      of ~84.72%. No N-1 contingency creates post-contingency violations requiring
+      redispatch. As a result, any correctly functioning SCOPF produces results
+      numerically identical to the base-case DCOPF. The C-8 SCOPF MEDIUM test provides
+      a measurement of solve time and solver robustness but no signal about SCOPF
+      expressiveness or the quality of security-constrained redispatch. Tools that pass
+      C-8 MEDIUM did so on a trivially uncongested problem; tools that fail (timeout,
+      crash) failed on a problem with no physical security constraint.
+    affected_tools:
+      - gridcal       # F02: C-8 MEDIUM objective delta 1.49e-8 $/MWh — effectively zero
+      - powermodels   # F02: C-8 1 Benders iteration, time budget; awarded 'pass'
+      - powersimulations # F09: C-8 MEDIUM HiGHS OTHER_ERROR crash
+    signal_level: High
+    dominant_factor: network
+    proposed_action: PC-03
+    notes: >-
+      pypsa, pandapower, and matpower all have MEDIUM tests skipped (T-01 cascade), so
+      this pattern cannot be observed for them. The vacuousness is confirmed for all three
+      tools that ran C-8 MEDIUM.
+
+  - id: T-04
+    title: "Convergence accepted without residual across ACPF implementations"
+    description: >-
+      Multiple tools have no public API path to extract the Newton-Raphson convergence
+      residual after ACPF. The evaluation protocol requires reporting the convergence
+      residual, but the result files for at least four tools record convergence_residual:
+      null and accept convergence via indirect proxy (voltage profile differs from flat
+      start, boolean termination flag, or boolean return value). This creates a cross-tool
+      consistency gap: convergence 'quality' is not comparable because different tools
+      use different indirect proxies. probe-013 (powersimulations) debunked the strongest
+      form of this claim — PowerFlows.jl does emit the iteration count at @info level and
+      the return type structurally guarantees convergence — but the residual value remains
+      inaccessible for all Julia tools, and the pandapower/powermodels residual gaps are
+      tool-level API limitations. The pattern identifies a protocol insufficiency: the
+      protocol requires residual reporting but has no specified fallback for tools where
+      this is architecturally unavailable.
+    affected_tools:
+      - pandapower     # F02: convergence_residual null; tolerance_mva bug unfixed
+      - powermodels    # F05: compute_ac_pf returns only Bool; no NR count or residual
+      - powersimulations # F02: residual not in return value; iteration count at @info only
+    probe_evidence:
+      - probe-013: claim_debunked — PowerFlows.jl iteration count IS available at @info;
+                   return type (missing vs Dict) is a binary convergence guarantee.
+                   The qualified_pass on A-2 overstates the limitation but the underlying
+                   convergence is genuine.
+    signal_level: Medium
+    dominant_factor: capability
+    proposed_action: PC-04
+    notes: >-
+      pypsa exposes convergence residual via n.convergence (post-solve attribute) so does
+      not fall into this pattern. gridcal also reports convergence boolean. The issue is
+      most material for the Julia ecosystem tools and pandapower.
+
+  - id: T-05
+    title: "Ramp constraints not binding in A-6/SCED due to over-generous ramp parameters"
+    description: >-
+      A-6 SCED requires that ramp rate constraints be demonstrably enforced between
+      consecutive dispatch intervals. In all tools that attempt A-6, the RTS-GMLC
+      technology-median ramp rates are orders of magnitude larger than the dispatch
+      changes required by the 39-bus load profile (which varies by ~33% over 24 hours).
+      The most constrained generator observed uses less than 1% of its ramp capacity.
+      The tests confirm that ramp constraints are formulated without error, but cannot
+      verify they bind correctly when tight. Any tool that implements multi-period OPF
+      passes this condition trivially, which eliminates its discriminative value.
+    affected_tools:
+      - matpower       # F04: G1 uses 48.5 MW/hr of 62,400 MW/hr limit; 0 binding
+      - pypsa          # F12 context: A-6 qualified_pass (stable workaround) but no binding reported
+      - powermodels    # F13: ED-only because UC absent; 1 binding constraint of 460 added
+      - powersimulations # F08: constraint count only; LMP extraction failed
+    signal_level: Medium
+    dominant_factor: network
+    proposed_action: PC-05
+    notes: >-
+      gridcal and pandapower have different A-6 failure modes so are not included in the
+      binding-evidence count, but the underlying network issue would affect them too.
+
+  - id: T-06
+    title: "SCED degrades to ED-only when SCUC is absent"
+    description: >-
+      When a tool cannot perform unit commitment (A-5), A-6 SCED loses the
+      security-constraint component: all generators are assumed committed, reducing
+      the test to a pure multi-period economic dispatch. This means A-6 results for
+      tools without SCUC measure a strictly weaker capability than the rubric intends.
+      The qualified_pass applied to these results implies SCED capability that does
+      not include the UC stage, and the 'security-constrained' component of SCED
+      (binding N-1 contingency constraints on dispatch) is also typically absent for
+      the same tools.
+    affected_tools:
+      - powermodels    # F13: explicit scope reduction to ED; documented as stable workaround
+      - pandapower     # SCUC absent; A-6 not runnable as full SCED
+      - powersimulations # A-6: UC bypassed; 1 binding ramp constraint of 460
+    signal_level: Medium
+    dominant_factor: test_design
+    proposed_action: PC-06
+    notes: >-
+      This is structurally related to T-01 (SCUC absence cascades) but specifically about
+      the A-6 test design, not the scalability gate.
+
+  - id: T-07
+    title: "qualified_pass applied at inconsistent severity levels"
+    description: >-
+      The qualified_pass status is used across all tools to label results ranging from
+      'stable workaround, low friction' to 'blocking architectural impossibility' to
+      'solver crash on the grade network'. The workaround_class field (stable / fragile /
+      blocking) provides finer-grained information, but the aggregated qualified_pass
+      status in cross-tool matrices collapses this into one outcome. Specific examples:
+      PyPSA A-11 (blocking: distributed slack DC OPF architecturally impossible) and
+      PyPSA A-6 (stable: working undocumented API) both receive qualified_pass. PowerModels
+      C-8 receives pass despite non-convergence within the time budget. PowerSimulations
+      C-8 receives qualified_pass despite a HiGHS OTHER_ERROR crash on the grade network.
+      PowerModels A-12 receives pass despite three simultaneous non-trivial workarounds.
+      The protocol does not provide a severity tier within qualified_pass.
+    affected_tools:
+      - pypsa          # F12: A-6 (stable) and A-11 (blocking) both qualified_pass
+      - powermodels    # F02: C-8 pass with non-converged result; F06: A-12 pass with 3 workarounds
+      - powersimulations # F09: C-8 qualified_pass despite MEDIUM solver crash
+      - pandapower     # F10: B-9 clean pass vs B-1 fragile qualified_pass — same internal path
+      - matpower       # F09: B-5 qualified_pass debatable given <5 LOC criterion met (3 lines)
+    signal_level: High
+    dominant_factor: test_design
+    proposed_action: PC-07
+    notes: >-
+      This is a scoring rubric issue rather than a protocol design issue. The fix is to
+      add severity tiers to qualified_pass or to add explicit fail categories for
+      blocking workarounds and solver crashes.
+
+  - id: T-08
+    title: "G-FNM result precision: 6-decimal rounding obscures floating-point accuracy"
+    description: >-
+      The standard result reporting format stores deviation values with round(..., 6)
+      (6 decimal places). probe-001 confirmed that PyPSA's G-FNM-3 reports 0.0 degree
+      max bus angle deviation, but the actual float64 maximum is 1.07e-8 degrees — it
+      rounds to 0.000000 at 6 decimal places. The same rounding artifact affects branch
+      flow deviations. While the actual deviations are sub-physical (numerical noise),
+      the reported 0.0 values are misleading for downstream comparison: they cannot
+      be distinguished from true machine-zero agreement (which would indicate identical
+      code paths) from approximated machine-noise agreement (which indicates correctly
+      equivalent but independently coded formulations). The issue is likely present
+      wherever deviation magnitudes fall below 5e-7 in the G-FNM suite.
+    affected_tools:
+      - pypsa    # F06: G-FNM-3 reports 0.0 (actual 1.07e-8); probe-001 confirmed
+      - matpower # F02: G-FNM-3 reports 0.0 (self-referential test; mathematically exact)
+    probe_evidence:
+      - probe-001: claim_debunked (weak) — deviations are 1.07e-8 deg max (numeric noise),
+                   not true zeros. PASS grade is correct; rounding is a display artifact.
+    signal_level: Low
+    dominant_factor: test_design
+    proposed_action: PC-08
+    notes: >-
+      The fix is simple: require full float64 reporting (:.6e scientific notation) for
+      all deviation values in G-FNM-3 and related tests. The PASS grade for PyPSA is
+      confirmed correct by probe-001.
+
+  - id: T-09
+    title: "PSS/E v31 parser failures force MATPOWER fallback across the FNM suite"
+    description: >-
+      The FNM test network is provided as a PSS/E v31 RAW file with an intermediate CSV
+      export. No tool successfully ingested the FNM via the PSS/E native path: pypsa has
+      no PSS/E importer, gridcal's parser is hardcoded to v35 field counts, powermodels
+      crashes on the Case Identification header, and pandapower has no CSV import path.
+      All FNM tests therefore run on the MATPOWER .m fallback (fnm_main_island.m), which
+      is a pre-cleaned main-island subset with documented record deficits. The FNM suite
+      results therefore measure each tool's performance on a MATPOWER-preprocessed
+      network representation, not on the original FNM. This confounds format support
+      (supply chain / interoperability criterion) with power-system modeling capability
+      (expressiveness criterion) and makes cross-tool FNM comparison partially invalid
+      since all tools see the same preprocessed input.
+    affected_tools:
+      - pypsa       # F05: no PSS/E import path
+      - pandapower  # F13: no CSV import path; MATPOWER fallback only
+      - gridcal     # F08: PSS/E v31 field count mismatch (v35 hardcoded)
+      - powermodels # F07: PSS/E v31 parser crashes on Case ID header
+    signal_level: High
+    dominant_factor: infrastructure
+    proposed_action: PC-09
+    notes: >-
+      powersimulations and matpower also use the MATPOWER fallback but do not have explicit
+      findings logged about it as a cross-tool pattern. matpower's G-FNM-3 is self-
+      referential (it generated the reference) so the fallback is the native path. The
+      core issue is that the FNM data provision format (PSS/E v31) is not supported by any
+      evaluated tool in its native parser.
+
+  - id: T-10
+    title: "GridCal DCOPF uses soft branch flow constraints (confirmed by probe)"
+    description: >-
+      GridCal's linear_opf formulation uses explicit slack variables (flow_slacks_pos /
+      flow_slacks_neg) for branch thermal limits. probe-005 confirmed this via source
+      code inspection and runtime evidence: branch 2_3_1 reaches 103.5% loading in the
+      optimal solution, which is only possible with soft constraints. The A-3 pass verdict
+      is therefore misleading — a standard DCOPF enforces hard thermal limits. The D-4
+      error quality test further confirmed this behavior: setting all branch ratings to
+      zero produces a 'feasible' (converged=True) solution that maximally violates all
+      limits via slack absorption rather than detecting infeasibility. This is a
+      GridCal-specific issue (no other evaluated tool uses soft constraints by default
+      in DCOPF), but it has protocol implications: the A-3 pass condition does not
+      verify that thermal limits are enforced as hard constraints, so the issue was not
+      caught by the standard evaluation.
+    affected_tools:
+      - gridcal  # F06: 112% branch loading in DCOPF pass; D-4 confirms soft constraints
+    probe_evidence:
+      - probe-005: confirmed_issue — flow_slacks_pos/flow_slacks_neg LP variables in
+                   source code; 103.5% loading confirmed in optimal solution. A-3 pass
+                   is misleading. This is a formulation deficiency, not a workaround.
+    signal_level: High
+    dominant_factor: capability
+    proposed_action: PC-10
+    notes: >-
+      The D-4 error quality test that uses zero-rated branches conflates two distinct
+      questions: (1) does the tool use hard or soft constraints? and (2) does the tool
+      detect genuine LP infeasibility? The current D-4 design confounds these and produced
+      a 'poor' error quality grade that is partly unfair to GridCal's design choice (soft
+      constraints are a legitimate design option), but the A-3 pass criterion gap (not
+      verifying hard constraint enforcement) is the primary protocol issue to fix.
+
+  - id: T-11
+    title: "B-8 LMP variation from slack reconfiguration is mathematically vacuous for DC OPF"
+    description: >-
+      B-8 tests reference bus reconfigurability by requiring that 'LMP values change
+      consistently across configurations' when the slack bus is moved. In standard DC OPF,
+      the LMP vector is invariant to slack bus choice (dual variables of KCL constraints
+      are independent of the reference angle). All tools implementing correct DC OPF
+      produce zero LMP spread across slack configurations, satisfying the pass condition
+      trivially (if the condition is interpreted as 'change consistently from one another'
+      = they are all equal). The test verifies API configurability (the ability to set
+      a different reference bus) but cannot measure meaningful LMP sensitivity via DC OPF
+      for any well-functioning tool. LMP sensitivity to slack bus is only observable in
+      AC OPF or lossy DC OPF formulations.
+    affected_tools:
+      - pypsa    # F01: zero LMP spread across all 3 slack configs; pass condition is vacuous
+      - matpower # F06: uniform LMP shift confirmed for distributed slack (same structural issue)
+      - pandapower # F04: B-8 shows 8.58 $/MWh maximum LMP change — but this is across configs,
+                   # not zero; possibly due to AC configuration or different test setup
+    signal_level: Medium
+    dominant_factor: test_design
+    proposed_action: PC-11
+    notes: >-
+      The pandapower B-8 result shows non-zero LMP change (8.58 $/MWh max), which may
+      indicate the test uses a different formulation for that tool. Cross-tool consistency
+      in the B-8 test design needs review. The zero-variation result was reported by pypsa
+      and is the structural expectation for any correct DC OPF.
+
+  - id: T-12
+    title: "G-FNM-3 reference is self-generated for the reference tool"
+    description: >-
+      The MATPOWER reference solution for G-FNM-3 (DCPF on FNM) is generated by MATPOWER
+      itself from the same .m file. This means MATPOWER's G-FNM-3 result (zero deviation)
+      is mathematically guaranteed regardless of MATPOWER's DCPF accuracy — it is a
+      round-trip consistency check, not a cross-tool accuracy verification. Other tools are
+      tested against this reference, but the reference itself has no independent validation.
+      If the MATPOWER DCPF reference were incorrect for certain branch types (e.g., transformer
+      tap representation), all tools would be scored against a wrong reference and tools with
+      the same limitation as MATPOWER could receive passing scores.
+    affected_tools:
+      - matpower # F02: self-referential G-FNM-3; documented in result file
+    probe_evidence:
+      - probe-001 (pypsa): confirms MATPOWER reference is effectively exact for lines;
+                           PyPSA deviations are float64 noise, confirming the reference
+                           is independently validated to machine precision for that tool.
+    signal_level: Medium
+    dominant_factor: test_design
+    proposed_action: PC-12
+    notes: >-
+      The self-referential issue is documented in the matpower result file. An independent
+      cross-check (e.g., comparing MATPOWER with PowerWorld or PSS/E reference on a
+      subset of buses) would validate the reference. For the current evaluation, the
+      PyPSA probe provides indirect validation that the MATPOWER reference is correct for
+      line-dominated segments.
+
+  - id: T-13
+    title: "SCIP license conflict: ZIB Academic at pinned version, not Apache 2.0"
+    description: >-
+      PowerModels evaluation contains a material conflict between F-3 and F-8 regarding
+      the SCIP license. probe-010 resolved this: SCIP_jll v0.2.1 wraps SCIP 8.0.0, which
+      is ZIB Academic License. The Apache 2.0 switch happened at SCIP 8.0.3 (December 2022),
+      not at 8.0.0. F-8's upgrade of the supply chain grade based on an incorrect Apache 2.0
+      determination is not warranted. For any commercial deployment using the pinned manifest,
+      SCIP requires a commercial license or must be excluded from the solver stack.
+    affected_tools:
+      - powermodels # F08: F-3 correct (ZIB Academic); F-8 incorrect (claims Apache 2.0)
+    probe_evidence:
+      - probe-010: claim_supported (F-3) — SCIP_jll v0.2.1+0 wraps SCIP 8.0.0 (ZIB Academic).
+                   Apache 2.0 switch was at SCIP 8.0.3 (December 2022). F-8 supply chain
+                   upgrade is unwarranted.
+    signal_level: High
+    dominant_factor: infrastructure
+    proposed_action: PC-13
+    notes: >-
+      This is a single-tool finding (powermodels) but the license classification methodology
+      has broader implications: JLL wrapper package license (MIT) vs bundled binary license
+      (ZIB Academic) is a common source of confusion in the Julia ecosystem. The protocol
+      should clarify that binary artifact licenses govern, not wrapper package licenses.
+
+  - id: T-14
+    title: "Gate tests (G-1/2/3) are low-signal universal passes"
+    description: >-
+      All evaluated tools pass the three gate ingestion tests (G-1 TINY, G-2 SMALL,
+      G-3 MEDIUM). The tests verify element counts (buses, branches, generators) after
+      loading a standard MATPOWER .m file. Any tool that has reached maturity sufficient
+      for evaluation will pass these tests. They serve a valid minimum-bar purpose (a tool
+      that cannot load a MATPOWER file should not proceed) but contribute no comparative
+      signal and inflate reported pass rates uniformly across tools. Multiple per-tool
+      findings explicitly note this.
+    affected_tools:
+      - pypsa         # F11: gate tests low discriminative value
+      - pandapower    # F09: gate tests are universal passes
+      - gridcal       # F12: gate tests unanimous pass; inflate pass rate
+      - powermodels   # (implicit from universal pass)
+      - powersimulations # F15: gate tests pass/fail with no tool differentiation
+      - matpower      # F07: gate tests trivially satisfied for native-format tool
+    signal_level: Low
+    dominant_factor: test_design
+    proposed_action: PC-14
+    notes: >-
+      The gate tests should be retained as minimum-bar gates (a fail would be meaningful)
+      but their pass outcomes should be excluded from cross-tool pass rate comparisons.
+      An enhancement: add a data quality sub-check (does cost data import correctly?)
+      that would provide discriminative signal.
+
+  - id: T-15
+    title: "C-4 timing comparability compromised by solver thread count variation"
+    description: >-
+      powersimulations C-4 records 404s wall-clock for 2K-bus SCUC with CPU threads = 1
+      on a 32-core machine. Modern MILP solvers (HiGHS, SCIP, Gurobi) scale significantly
+      with thread count for branch-and-bound problems. Other tools did not reach C-4
+      (gate skip) or use different solvers, so thread-count normalization cannot be applied
+      retroactively. The 404s figure is reproducible and technically correct, but it is
+      not representative of practical deployment capability on the same hardware. This
+      is noted as an extraordinary claim in the powersimulations findings.
+    affected_tools:
+      - powersimulations # F16: 404s at 1 thread; 32 cores available
+    signal_level: Low
+    dominant_factor: infrastructure
+    proposed_action: PC-15
+    notes: >-
+      This is a single-tool finding but points to a protocol gap: solver thread count
+      should be normalized across tools, or results should be reported both at 1-thread
+      (reproducible) and max-thread (practical) configurations.
+
+  - id: T-16
+    title: "SCOPF TINY network is too radially connected for meaningful contingency coverage"
+    description: >-
+      The 39-bus TINY network used for A-9 SCOPF has limited meshing: powersimulations
+      reports 27 of 34 line contingencies filtered as near-radial (|LODF| >= 0.95).
+      Only 7 contingencies are non-trivial. pypsa reduced to 19 of 35 lines at <50% base
+      utilization. powermodels found the joint N-1 set infeasible (probe-009 confirmed).
+      All A-9 results are therefore based on a reduced contingency set that may not
+      adequately stress SCOPF formulations. The SMALL network would provide more meshing
+      and more non-trivial contingencies.
+    affected_tools:
+      - pypsa           # F04: 19-line reduced contingency set due to base-case infeasibility
+      - powermodels     # F03: N-1 infeasible; 1-iteration Benders; probe-009 inconclusive
+      - powersimulations # F04: 27 of 34 contingencies filtered as near-radial
+    probe_evidence:
+      - probe-009: inconclusive — Benders mechanism is verified but convergence on a feasible
+                   SCOPF instance was never demonstrated; test design gap, not tool failure.
+    signal_level: Medium
+    dominant_factor: network
+    proposed_action: PC-16
+    notes: >-
+      gridcal and matpower have different A-9 failure modes (soft constraints, solver
+      unavailability) so do not add to the network-insufficiency count for SCOPF, but
+      would benefit from a more meshed test network regardless.

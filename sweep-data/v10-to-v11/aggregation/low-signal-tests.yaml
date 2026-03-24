@@ -1,0 +1,133 @@
+---
+# Low-Signal Tests — v10-to-v11 Sweep
+# Tests identified as providing insufficient discriminative information
+# for cross-tool comparison, despite being technically valid.
+# Categorized by signal_level: Low and the pattern observed.
+
+low_signal_tests:
+
+  - test_id: G-1
+    test_name: "Network ingestion — TINY (case39)"
+    signal_level: low
+    reason: universal_pass
+    description: >-
+      All six evaluated tools pass G-1. The test verifies element counts (39 buses,
+      46 branches, 10 generators) after loading case39.m. Any tool with a working MATPOWER
+      importer passes trivially. For tools where MATPOWER is the native format (MATPOWER
+      itself), the test is definitionally passed. The only informative outcome would be a
+      FAIL, which would indicate a broken importer — not a capability distinction.
+    affected_tools: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+    finding_refs: [pypsa-F11, pandapower-F09, gridcal-F12, powersimulations-F15, matpower-F07]
+    proposed_change: PC-14
+    recommendation: >-
+      Retain as minimum-bar gate. Exclude pass outcomes from cross-tool pass rate
+      statistics. Add optional data quality sub-check (cost function import completeness).
+
+  - test_id: G-2
+    test_name: "Network ingestion — SMALL (ACTIVSg2000)"
+    signal_level: low
+    reason: universal_pass
+    description: >-
+      All evaluated tools pass G-2. The SMALL 2000-bus network adds scale but the
+      ingestion test remains a minimum-bar check. The only discriminative finding
+      would be a meaningful load time difference, but load times are dominated by
+      JIT compilation (Julia tools) or import overhead rather than parser performance,
+      making cross-tool timing comparison misleading.
+    affected_tools: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+    finding_refs: [pypsa-F11, pandapower-F09, gridcal-F12, powersimulations-F15, matpower-F07]
+    proposed_change: PC-14
+    recommendation: >-
+      Same as G-1. Retain as gate. Exclude from pass rate numerator/denominator.
+
+  - test_id: G-3
+    test_name: "Network ingestion — MEDIUM (ACTIVSg10k)"
+    signal_level: low
+    reason: universal_pass
+    description: >-
+      All evaluated tools pass G-3. The 10,000-bus MEDIUM network ingestion is again
+      a minimum-bar check. Timing information (e.g., pypsa 27s vs pandapower 3s) is
+      more meaningful at this scale but is not part of the pass criterion.
+    affected_tools: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
+    finding_refs: [pypsa-F11, pandapower-F09, gridcal-F12, powersimulations-F15, matpower-F07]
+    proposed_change: PC-14
+    recommendation: >-
+      Same as G-1/G-2. Consider making load time at MEDIUM a recorded metric (not graded)
+      for cross-tool informational comparison.
+
+  - test_id: C-5
+    test_name: "AC feasibility progressive relaxation"
+    signal_level: low
+    reason: no_binding_constraints
+    description: >-
+      The C-5 progressive relaxation test (0%, 10%, 20% thermal limit relaxation) produces
+      identical ACPF solutions at all relaxation levels because the SMALL network
+      (ACTIVSg2000) and MEDIUM network (ACTIVSg10k) have no binding thermal constraints
+      at base loading. For matpower: 0 of 3,206 branches are binding at SMALL. For
+      powersimulations: thermal limit relaxation does not affect NR-based ACPF at all.
+      The test measures ACPF convergence capability (which passes) but provides no
+      diagnostic signal about the tool's ability to handle progressively relaxed constraints
+      because no constraints bind to begin with.
+    affected_tools: [matpower, powersimulations]
+    finding_refs: [matpower-F08, powersimulations-F14]
+    proposed_change: null
+    recommendation: >-
+      Run C-5 on a network with pre-confirmed binding constraints, or increase loading
+      until at least one thermal constraint is active. Alternatively, use voltage
+      constraints (Q-limits) which are more likely to bind at base loading.
+
+  - test_id: B-6
+    test_name: "Code architecture audit"
+    signal_level: low
+    reason: no_runtime_execution
+    description: >-
+      B-6 is a static documentation and source code review with no runtime execution.
+      The test produces accurate architectural findings (e.g., PowerModels' four-layer
+      structure) but these findings are reproducible by any source code inspection.
+      The pass/fail status does not differentiate tool capability in any runtime-measurable
+      way. The test contributes to the extensibility grade but the 'pass' outcome is
+      effectively guaranteed for any tool with documented layered architecture.
+    affected_tools: [powermodels]
+    finding_refs: [pm-F11]
+    proposed_change: null
+    recommendation: >-
+      Retain B-6 as a documentation quality assessment. Its findings (layering,
+      composability, customization surface area) remain useful qualitative signal.
+      Do not weight B-6 equally with runtime extensibility tests (B-1, B-2, B-3)
+      in the extensibility grade.
+
+  - test_id: B-8
+    test_name: "Reference bus configurability"
+    signal_level: low
+    reason: vacuous_pass_condition
+    description: >-
+      B-8 requires LMP variation across slack configurations, but in standard DC OPF,
+      LMPs are invariant to slack bus choice — any correctly implemented DC OPF will
+      show zero LMP variation (or uniform shift for distributed slack), which trivially
+      satisfies 'changes consistently.' The test verifies API configurability (can you
+      set a different reference bus without error?) but the LMP variation component of
+      the pass condition is vacuous for all correct implementations. Only AC OPF or
+      lossy DC OPF formulations would show meaningful LMP sensitivity to slack bus.
+    affected_tools: [pypsa, matpower]
+    finding_refs: [pypsa-F01, matpower-F06]
+    proposed_change: PC-11
+    recommendation: >-
+      Redesign pass condition to test API configurability explicitly. Remove LMP
+      variation requirement for DC OPF. Add AC OPF variation test as optional if
+      the tool supports AC OPF.
+
+  - test_id: D-1
+    test_name: "Install-to-first-solve timing"
+    signal_level: low
+    reason: measurement_not_executable
+    description: >-
+      D-1 requires measuring wall-clock time from clean environment to first DCPF solve.
+      For matpower, the result records timing_source: estimated with wall_clock_seconds:
+      null. An estimated timing is not comparable to measured timings from other tools.
+      The qualitative friction findings (interactive installer, PATH dependencies) are
+      useful, but the timing claim itself provides no valid cross-tool comparison data.
+    affected_tools: [matpower]
+    finding_refs: [matpower-F10]
+    proposed_change: PC-15
+    recommendation: >-
+      Require actual stopwatch timing from a clean devcontainer state. Results with
+      timing_source: estimated should be flagged as incomplete for cross-tool comparison.
