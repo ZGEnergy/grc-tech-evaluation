@@ -28,7 +28,7 @@ from generate_charts import (
     chart_file_name,
     export_chart,
     get_registered_renderers,
-    grade_to_numeric,
+    tier_to_numeric,
     load_all_data_files,
     load_json_file,
     register_renderer,
@@ -41,14 +41,14 @@ from generate_charts import (
 # ---------------------------------------------------------------------------
 
 SAMPLE_GRADES_RAW: dict = {
-    "scale": {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0, "F": 0.0},
+    "tiers": {"Strong": 3, "Adequate": 2, "Weak": 1, "Failing": 0},
     "tools": ["toolA", "toolB"],
     "criteria": ["crit1", "crit2"],
     "grades": [
-        {"tool": "toolA", "criterion": "crit1", "letter": "A", "numeric": 4.0},
-        {"tool": "toolA", "criterion": "crit2", "letter": "B", "numeric": 3.0},
-        {"tool": "toolB", "criterion": "crit1", "letter": "C", "numeric": 2.0},
-        {"tool": "toolB", "criterion": "crit2", "letter": "D", "numeric": 1.0},
+        {"tool": "toolA", "criterion": "crit1", "tier": "Strong", "numeric": 3.0},
+        {"tool": "toolA", "criterion": "crit2", "tier": "Adequate", "numeric": 2.0},
+        {"tool": "toolB", "criterion": "crit1", "tier": "Weak", "numeric": 1.0},
+        {"tool": "toolB", "criterion": "crit2", "tier": "Failing", "numeric": 0.0},
     ],
 }
 
@@ -153,33 +153,24 @@ def test_load_all_data_files_empty_dir_raises(tmp_path: Path) -> None:
         load_all_data_files(tmp_path)
 
 
-def test_grade_to_numeric_all_grades() -> None:
-    """6. grade_to_numeric returns correct values for the full scale."""
+def test_tier_to_numeric_all_tiers() -> None:
+    """6. tier_to_numeric returns correct values for the full scale."""
     expected = {
-        "A+": 4.3,
-        "A": 4.0,
-        "A-": 3.7,
-        "B+": 3.3,
-        "B": 3.0,
-        "B-": 2.7,
-        "C+": 2.3,
-        "C": 2.0,
-        "C-": 1.7,
-        "D+": 1.3,
-        "D": 1.0,
-        "D-": 0.7,
-        "F": 0.0,
+        "Strong": 3.0,
+        "Adequate": 2.0,
+        "Weak": 1.0,
+        "Failing": 0.0,
     }
-    for letter, expected_val in expected.items():
-        assert grade_to_numeric(letter) == pytest.approx(expected_val), (
-            f"Failed for {letter}"
+    for tier, expected_val in expected.items():
+        assert tier_to_numeric(tier) == pytest.approx(expected_val), (
+            f"Failed for {tier}"
         )
 
 
-def test_grade_to_numeric_invalid_raises() -> None:
-    """7. grade_to_numeric raises ValueError for unrecognized grades."""
-    with pytest.raises(ValueError, match="Unrecognized grade"):
-        grade_to_numeric("Z")
+def test_tier_to_numeric_invalid_raises() -> None:
+    """7. tier_to_numeric raises ValueError for unrecognized tiers."""
+    with pytest.raises(ValueError, match="Unrecognized tier"):
+        tier_to_numeric("Z")
 
 
 def test_build_grades_data_structure() -> None:
@@ -188,10 +179,10 @@ def test_build_grades_data_structure() -> None:
     assert isinstance(gd, GradesData)
     assert gd.tools == ["toolA", "toolB"]
     assert gd.criteria == ["crit1", "crit2"]
-    assert gd.df.loc["crit1", "toolA"] == 4.0
-    assert gd.df.loc["crit2", "toolB"] == 1.0
-    assert gd.letter_grades["toolA"]["crit1"] == "A"
-    assert gd.letter_grades["toolB"]["crit2"] == "D"
+    assert gd.df.loc["crit1", "toolA"] == 3.0
+    assert gd.df.loc["crit2", "toolB"] == 0.0
+    assert gd.tier_labels["toolA"]["crit1"] == "Strong"
+    assert gd.tier_labels["toolB"]["crit2"] == "Failing"
 
 
 def test_build_test_results_data_structure() -> None:

@@ -1,12 +1,16 @@
 ---
 name: sweep-evaluations
 description: >
-  Cross-tool meta-evaluation sweep. Reads all completed evaluations for a given protocol
-  version, identifies cross-cutting themes (low-signal tests, misleading results,
+  Cross-tool meta-evaluation sweep and grading authority. Reads all completed evaluations
+  for a given protocol version, assigns calibrated letter grades with full cross-tool
+  visibility, identifies cross-cutting themes (low-signal tests, misleading results,
   extraordinary claims), runs spot-check probes to verify suspicious findings, and produces
-  three outputs: a versioned findings report, updated protocol/rubric documents, and updated
-  evaluate-tool skill files. Use when the user wants to sweep, compare, or audit evaluation
-  results across all tools, or when upgrading the protocol/rubric version.
+  four outputs: a calibrated grade table, a versioned findings report, updated
+  protocol/rubric documents, and updated evaluate-tool skill files. This is the ONLY skill
+  that assigns letter grades -- evaluate-tool reports test results without grades, and
+  report-builder consumes the grade table produced here. Use when the user wants to sweep,
+  compare, or audit evaluation results across all tools, assign grades, or when upgrading
+  the protocol/rubric version.
 argument-hint: "<source_version> (e.g., v4)"
 allowed-tools:
   - Read
@@ -31,9 +35,19 @@ allowed-tools:
 # /sweep-evaluations — Orchestrator
 
 You are the orchestrator for a cross-tool evaluation sweep (contract FA714626C0006). You
-read completed evaluation results from all tool worktree branches, identify cross-cutting
-issues, verify extraordinary claims via spot-check probes, and produce updated protocol
-artifacts.
+are the **grading authority** for the evaluation pipeline. You read completed evaluation
+results from all tool worktree branches, assign calibrated letter grades with full
+cross-tool visibility, identify cross-cutting issues, verify extraordinary claims via
+spot-check probes, and produce updated protocol artifacts plus a calibrated grade table
+consumed by report-builder.
+
+Per-tool synthesis files from evaluate-tool contain test results and observations but
+**no letter grades**. Grading happens here because only this skill has the cross-tool
+context needed to:
+- Exclude shared solver-bound failures from grading differentiation
+- Enforce that the same failure profile produces the same grade across tools
+- Calibrate the grade scale so blocking limitations produce failing grades
+- Flag test equivalence issues before they corrupt the grade table
 
 ## Argument Parsing
 
@@ -92,7 +106,7 @@ skip this step — the user is already in the worktree.
 ## State Machine
 
 ```
-INIT → SWEEP → PROBE → AGGREGATE → GENERATE → VALIDATE
+INIT → SWEEP → PROBE → AGGREGATE → GRADE → GENERATE → VALIDATE
 ```
 
 Check `{{PROGRESS_PATH}}` on startup. If it exists, resume from the last completed state.
@@ -319,13 +333,52 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
      scoring change, rubric change, skill change)
    Ask for approval via AskUserQuestion before generating outputs.
 
-4. **Update progress:** Add AGGREGATE to `completed_states`, set `current_state: GENERATE`.
+4. **Update progress:** Add AGGREGATE to `completed_states`, set `current_state: GRADE`.
+
+---
+
+### State: GRADE
+
+**Purpose:** Assign calibrated letter grades with full cross-tool visibility.
+
+This is the core grading step. Per-tool synthesis files from evaluate-tool contain
+test results and observations but no grades. Only this state has the cross-tool
+context needed to assign consistent, calibrated grades.
+
+1. **Dispatch grading agent.** Read `{{SKILL_DIR}}/prompts/grading-prompt.md` and
+   replace variables:
+   - `{{per_tool_dir}}` -> `{{SWEEP_DATA_DIR}}/per-tool`
+   - `{{aggregation_dir}}` -> `{{SWEEP_DATA_DIR}}/aggregation`
+   - `{{probes_dir}}` -> `{{SWEEP_DATA_DIR}}/probes`
+   - `{{rubric_path}}` -> `{{RUBRIC_PATH}}`
+   - `{{tools}}` -> comma-separated list of available tools
+   - `{{output_dir}}` -> `{{SWEEP_DATA_DIR}}/grading`
+
+   Launch via Agent tool with `subagent_type: "general-purpose"`.
+
+2. **Verify grading output.** The agent should produce:
+   - `grading/grade-table.yaml` — The authoritative grade table
+   - `grading/grade-table.md` — Human-readable version with rationale
+   - `grading/shared-failures.yaml` — Tests excluded from grading differentiation
+   - `grading/equivalence-flags.yaml` — Test equivalence issues flagged
+
+3. **Present grade table to user.** Display the full grade table and ask via
+   AskUserQuestion:
+   > "Review the calibrated grade table. Shared failures excluded from grading
+   > are listed below the table."
+   >
+   > Options: "Approve", "Edit (specify corrections)", "Re-grade"
+
+   On "Edit": apply corrections and re-confirm.
+   On "Re-grade": return to beginning of GRADE state.
+
+4. **Update progress:** Add GRADE to `completed_states`, set `current_state: GENERATE`.
 
 ---
 
 ### State: GENERATE
 
-**Purpose:** Produce the three output artifacts.
+**Purpose:** Produce the four output artifacts (grade table + three existing outputs).
 
 1. **Dispatch 3 output agents in parallel:**
 
@@ -412,12 +465,13 @@ If the user chose "Skip probes" in SWEEP, skip directly to AGGREGATE.
 7. **Final progress update:**
 
    ```yaml
-   completed_states: [INIT, SWEEP, PROBE, AGGREGATE, GENERATE, VALIDATE]
+   completed_states: [INIT, SWEEP, PROBE, AGGREGATE, GRADE, GENERATE, VALIDATE]
    current_state: DONE
    timestamp: <ISO 8601>
    ```
 
 8. **Inform user:** Sweep complete. Outputs:
+   - **Calibrated grade table:** `{{SWEEP_DATA_DIR}}/grading/grade-table.yaml` (consumed by report-builder)
    - Findings report: `{{FINDINGS_REPORT}}`
    - Updated protocol: `{{PROTOCOL_PATH}}`
    - Updated rubric: `{{RUBRIC_PATH}}`
@@ -447,6 +501,9 @@ Per-tool worktrees (read-only)     GitHub issues (gh issue list)
   │                                    │
   ├─ AGGREGATE: 1 agent      → aggregation/{themes,low-signal-tests,
   │    (+ github issues)        comparison-matrices,proposed-changes}
+  │                                    │
+  ├─ GRADE: 1 agent          → grading/{grade-table.yaml,grade-table.md,
+  │    (cross-tool grading)     shared-failures.yaml,equivalence-flags.yaml}
   │                                    │
   ├─ GENERATE: 3 parallel    → findings report + protocol/rubric + skill updates
   │                                    │

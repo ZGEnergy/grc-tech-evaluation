@@ -39,6 +39,27 @@ For each requirement, report:
 End with a summary table of all gaps and a "defensible positions" section listing
 arguments GRC can make if challenged.
 
+## MATPOWER Exclusion Rationale
+
+Pay special attention to how the report explains MATPOWER's exclusion from the primary
+ranking. The correct rationale: the customer specifically asked in the kickoff call for
+source code they can inspect, which precludes a compiled binary like the MATLAB/Octave
+runtime.
+
+**Flag as a gap** if the report says:
+- "The MATLAB runtime is a proprietary commercial binary that cannot receive
+  authorization for use in restricted environments" (we don't know this)
+- "disqualified for classified deployment" (overstates what we know)
+- Any language implying GRC determined the customer would not authorize MATLAB
+
+**Acceptable language:**
+- "The customer requires inspectable source code, which precludes MATLAB's compiled
+  runtime"
+- "excluded because the customer requires source code they can inspect"
+
+Also verify that customer requirements from the kickoff call (inspectable source code)
+are accurately reflected in the contract-traceability page.
+
 ## Rules
 
 - DO NOT edit any files. Research only.

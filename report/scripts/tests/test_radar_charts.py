@@ -20,7 +20,7 @@ from chart_types import (
     TOOL_COLORS,
 )
 from renderers.radar import (
-    GRADE_TICKS,
+    TIER_TICKS,
     configure_polar_layout,
     render_radar_charts,
 )
@@ -46,49 +46,42 @@ CRITERIA = [
     "maturity",
 ]
 
-# Deterministic numeric grades (6 tools x 6 criteria)
-_GRADE_VALUES = [
-    [4.0, 3.7, 3.3, 3.0, 2.7, 2.3],
-    [3.7, 3.3, 3.0, 2.7, 2.3, 2.0],
-    [3.3, 3.0, 2.7, 2.3, 2.0, 1.7],
-    [3.0, 2.7, 2.3, 2.0, 1.7, 1.3],
-    [2.7, 2.3, 2.0, 1.7, 1.3, 1.0],
-    [2.3, 2.0, 1.7, 1.3, 1.0, 0.7],
+# Deterministic numeric tiers (6 tools x 6 criteria), values 0-3
+_TIER_VALUES = [
+    [3.0, 3.0, 2.0, 2.0, 1.0, 1.0],
+    [3.0, 2.0, 2.0, 1.0, 1.0, 0.0],
+    [2.0, 2.0, 1.0, 1.0, 0.0, 0.0],
+    [2.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+    [1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
 ]
 
-_LETTER_MAP = {
-    4.0: "A",
-    3.7: "A-",
-    3.3: "B+",
-    3.0: "B",
-    2.7: "B-",
-    2.3: "C+",
-    2.0: "C",
-    1.7: "C-",
-    1.3: "D+",
-    1.0: "D",
-    0.7: "D-",
+_TIER_MAP = {
+    3.0: "Strong",
+    2.0: "Adequate",
+    1.0: "Weak",
+    0.0: "Failing",
 }
 
 
 @pytest.fixture()
 def grades_data() -> GradesData:
-    """Build a GradesData fixture with deterministic grades."""
+    """Build a GradesData fixture with deterministic tiers."""
     data: dict[str, dict[str, float]] = {}
-    letter_grades: dict[str, dict[str, str]] = {}
+    tier_labels: dict[str, dict[str, str]] = {}
 
     for ti, tool in enumerate(TOOLS):
-        letter_grades[tool] = {}
+        tier_labels[tool] = {}
         for ci, criterion in enumerate(CRITERIA):
-            val = _GRADE_VALUES[ti][ci]
+            val = _TIER_VALUES[ti][ci]
             data.setdefault(criterion, {})[tool] = val
-            letter_grades[tool][criterion] = _LETTER_MAP[val]
+            tier_labels[tool][criterion] = _TIER_MAP[val]
 
     df = pd.DataFrame(data).T.reindex(index=CRITERIA, columns=TOOLS)
 
     return GradesData(
         df=df,
-        letter_grades=letter_grades,
+        tier_labels=tier_labels,
         criteria=CRITERIA,
         tools=TOOLS,
     )
@@ -166,8 +159,8 @@ def test_polar_layout_has_grade_ticks() -> None:
     fig = go.Figure()
     configure_polar_layout(fig, CRITERIA)
     radial = fig.layout.polar.radialaxis
-    assert list(radial.tickvals) == list(GRADE_TICKS.keys())
-    assert list(radial.ticktext) == list(GRADE_TICKS.values())
+    assert list(radial.tickvals) == list(TIER_TICKS.keys())
+    assert list(radial.ticktext) == list(TIER_TICKS.values())
 
 
 def test_polar_layout_angular_labels() -> None:

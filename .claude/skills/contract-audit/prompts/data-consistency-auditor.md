@@ -11,13 +11,14 @@ are the source of truth. Every claim in the MDX narrative pages must agree with 
 
 ## What to Check
 
-### Grade Consistency
-For each tool and criterion, check that the letter grade stated in narrative text
-matches `grades.json`. Common error: grades carried forward from an older protocol
-version (e.g., v4 grades in v10 content).
+### Tier Consistency
+For each tool and criterion, check that the tier (Strong/Adequate/Weak/Failing)
+stated in narrative text matches the `tier` field in `grades.json`. Common error:
+tiers carried forward from an older protocol version (e.g., letter grades from a
+pre-v11 protocol still present in v11+ content).
 
 Files to cross-reference:
-- `report/data/grades.json` vs every MDX page that mentions a grade
+- `report/data/grades.json` (the `tier` field is authoritative) vs every MDX page that mentions a tier
 - Pay special attention to `index.mdx` (landing page) and `results/index.mdx`
 
 ### Risk Register Consistency
@@ -54,9 +55,19 @@ Files to cross-reference:
 ### Phase 2 Scope Consistency
 - Scope tables in `index.mdx` should match `selection-report-v10.md` lines 109-137
 
+### Internal Artifact Absence
+The customer-facing report must not contain internal process artifacts:
+- `report/data/sweep-themes.json` should NOT exist (internal artifact)
+- `report/data/probe-results.json` should NOT exist (internal artifact)
+- `report/docs/results/sweep-findings.mdx` should NOT exist (internal artifact)
+- `report/docs/results/probe-results.mdx` should NOT exist (internal artifact)
+- No MDX page should reference "sweep findings", "probe results", or "protocol version"
+  (except external format versions like "PSS/E v31")
+- No MDX page should contain em-dashes (U+2014)
+- The MATPOWER exclusion rationale must say the customer requires inspectable source
+  code, not that MATLAB "cannot receive authorization"
+
 ### Counts and Totals
-- Probe count (should be 18)
-- Sweep theme count (should be 13)
 - Tool count (should be 6)
 - Criterion count (should be 6)
 
@@ -73,7 +84,7 @@ For each inconsistency found:
 ```
 
 End with a summary checklist:
-- Grade consistency: PASS/FAIL (N issues)
+- Tier consistency: PASS/FAIL (N issues)
 - Risk register: PASS/FAIL (N issues)
 - Sensitivity scenarios: PASS/FAIL (N issues)
 - Head-to-head: PASS/FAIL (N issues)
