@@ -123,8 +123,5 @@ Leave with placeholder markers -- the orchestrator fills in git SHAs and timesta
   customer requires inspectable source code, which precludes MATLAB's compiled runtime.
 - **Disqualified tools** (Supply Chain gate: Weak or Failing) appear in grade table
   with footnote but are excluded from the Recommendation section.
-- **No real markets or grids.** Never name specific ISOs, RTOs, utilities, or regions.
-  Use "the target ISO", "the customer's network", "the full network model (FNM)."
-- **No em-dashes.** Use commas, semicolons, hyphens, or parentheses instead.
-- **No internal artifacts.** No protocol version numbers, no sweep/probe references,
-  no internal process notes.
+- **Read `{{content_rules_path}}`** for formatting, naming, and artifact rules. Every
+  rule in that file applies to your output.

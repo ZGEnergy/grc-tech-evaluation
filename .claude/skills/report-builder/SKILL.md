@@ -10,6 +10,8 @@ description: >
   to produce the customer-deliverable report from evaluation results. Also trigger when
   the user says "selection report", "tool ranking", "final recommendation", or "compare
   all tools" -- this skill replaces the retired synthesize-selection skill.
+  Do NOT trigger for individual tool evaluations (/evaluate-tool), sweep grading
+  (/sweep-evaluations), or questions about evaluation methodology.
 argument-hint: "[protocol_version] (default: v10)"
 allowed-tools:
   - Read
@@ -62,6 +64,13 @@ every shell operation. Never run locally.
 ```
 DISCOVER -> EXTRACT -> CONFIRM -> RANK -> SENSITIVITY -> GENERATE -> VERIFY -> BUILD -> REVIEW -> COMMIT
 ```
+
+### Progress Tracking
+
+At the start of execution, create a task for each state using TaskCreate. Mark each
+task in_progress as you enter the state and completed as you leave it. This gives the
+user visibility into where the pipeline stands, especially during the long GENERATE
+state.
 
 ---
 
@@ -471,18 +480,6 @@ These are enforced during GENERATE and checked during VERIFY. Full details in
 7. **Grade-finding alignment.** Blocking architectural limitations = Failing tier.
 8. **Traceability.** Every claim references a test ID or synthesis finding.
 9. **No stale data.** Always rebuild from latest evaluation results.
-
-## Context Monitoring
-
-Follow procedures in `shared/context-monitoring-reference.md`:
-
-- **CAUTION:** Finish current subagent dispatch, then assess.
-- **WARNING:** Let running subagents finish. Do not start new dispatches.
-- **CRITICAL:** Finish current atomic operation, write handoff to
-  `{{REPORT_DIR}}/.session-handoff.md`, end response.
-
-The handoff file includes: current state, grade table, ranking results, sensitivity
-results, paths to all generated artifacts, next action on resume.
 
 ## Error Handling
 

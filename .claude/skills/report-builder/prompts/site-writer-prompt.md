@@ -42,21 +42,8 @@ be free of internal process artifacts.
 - Concise paragraphs; use tables for comparisons
 
 ### Content Rules (Non-Negotiable)
-Read `{{content_rules_path}}` for the full list. Key rules:
-
-1. **No em-dashes (U+2014 or --).** Use commas, semicolons, hyphens, or parentheses.
-2. **No internal artifacts:**
-   - No protocol version numbers (v4, v7, v10, etc.)
-   - No "sweep findings" or "probe results" references
-   - No internal process notes ("The TapPhaseControl bug cascade...")
-   - No notes that only make sense with internal context
-3. **No real grid names.** Use "target ISO", "customer's network", etc.
-4. **Bus counts from data.** Use the bus counts provided in inputs, not hardcoded values.
-5. **MATPOWER footnote:** "excluded because the customer requires inspectable source
-   code, which precludes MATLAB's compiled runtime" -- not "cannot receive authorization."
-6. **Tier-finding alignment.** If findings describe fundamental failures, the tier
-   must reflect that severity. Do not describe blocking limitations and then report an
-   Adequate or Strong tier.
+Read `{{content_rules_path}}` before writing any content. Every rule in that file
+applies to your output. Do not proceed without reading it.
 
 ### MDX Format
 - Use proper Docusaurus frontmatter (title, sidebar_position)
@@ -88,6 +75,16 @@ For each tool:
 2. Ranking explanation
 3. Sensitivity analysis with narrative emphasizing ranking stability
 4. Link to per-criterion detail pages
+
+### Selection Report Homepage (index.mdx)
+This is the most important page -- it's what the reader sees first.
+1. Executive summary (2-3 sentences: what we evaluated, who won, why)
+2. Recommendation with the 2-3 criteria that drove the ranking
+3. Runner-up acknowledgment (strengths and under what conditions to reconsider)
+4. Risk register (collapsible `<details>` block, 3-5 risks from risk-register.json)
+5. Phase 2 development scope (collapsible, three layers: tool-intrinsic gaps,
+   tool-adjacent engineering, operational workflow)
+6. Link to results overview for full details
 
 ## Critical Rules
 
