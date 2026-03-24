@@ -1,0 +1,12 @@
+---
+# Deferred Issues — v10-to-v11 Sweep
+# GitHub issues that were open during the sweep period and required integration.
+# Source: sweep-data/v10-to-v11/github-issues.yaml
+
+deferred_issues: []
+
+note: >-
+  The github-issues.yaml query (2026-03-14) returned zero issues with the
+  'protocol' label. No GitHub issue integration was required for this sweep.
+  All protocol improvement proposals are generated purely from per-tool findings
+  and probe results.

@@ -1,0 +1,423 @@
+tool: powersimulations
+source_version: v10
+timestamp: "2026-03-14T00:00:00Z"
+evaluation_summary:
+  total_tests: 46
+  pass: 17
+  fail: 5
+  qualified_pass: 13
+  informational: 11
+
+findings:
+  - id: powersimulations-F01
+    category: misleading_result
+    severity: high
+    test_ids: [C-3]
+    title: "DCOPF qualified_pass on MEDIUM masks a fundamentally relaxed problem"
+    description: >-
+      C-3 receives a qualified_pass for DCOPF on the 10K-bus MEDIUM network, but one of the
+      five stacked workarounds removes all branch flow limit constraints (StaticBranchUnbounded
+      replaces StaticBranch). The result is an uncongested economic dispatch, not a network-
+      constrained DCOPF. The qualification notation does not convey that the flow limit
+      removal invalidates the primary measure the test is meant to assess — whether the tool
+      can enforce thermal ratings at scale. The objective ($3.66M) and solver agreement are
+      real, but they reflect an unconstrained problem.
+    evidence:
+      - file: "evaluations/powersimulations/results/scalability/C-3_dcopf_scale.md"
+        excerpt: "StaticBranchUnbounded: Replaced StaticBranch with StaticBranchUnbounded for all branch types. Branch flow limit constraints cause numerical infeasibility at 10K scale (basis matrix condition number > 10^15). This removes branch flow limits but preserves DC network topology."
+      - file: "evaluations/powersimulations/results/scalability/C-3_dcopf_scale.md"
+        excerpt: "LMP extraction from duals was not successful with StaticBranchUnbounded — the dual structure differs from StaticBranch. Per the cross-tool watchpoint, LMPs should be uniform on ACTIVSg10k (no binding branch constraints at ~84% max loading), so this is not a material gap."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: powersimulations-F02
+    category: missing_verification
+    severity: high
+    test_ids: [A-2, C-2]
+    title: "ACPF convergence accepted without residual or iteration count"
+    description: >-
+      PowerFlows.jl does not expose Newton-Raphson iteration count or convergence residual
+      in its public API. Both A-2 (TINY) and C-2 (MEDIUM) infer convergence solely from
+      non-flat voltage profiles, which is a necessary but not sufficient condition for true
+      NR convergence. At 10K scale (C-2), the first ACPF call logged a convergence warning
+      ("NewtonRaphsonACPowerFlow solver failed to converge") but still returned results —
+      this silent partial-convergence behavior is particularly concerning and is not
+      flagged in the result status.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-2_acpf.md"
+        excerpt: "PowerFlows.jl v0.9.0 does not expose Newton-Raphson iteration count or convergence residual in its public return value. Convergence quality is verified indirectly through non-trivial voltage profiles."
+      - file: "evaluations/powersimulations/results/scalability/C-2_acpf_scale.md"
+        excerpt: "The warm-start NR solver on the first call logged a convergence warning (NewtonRaphsonACPowerFlow solver failed to converge) but still returned results. On the timed second call, convergence was clean."
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: convergence_check
+    proposed_action: add_verification
+
+  - id: powersimulations-F03
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [A-9]
+    title: "SCOPF 17.7% cost increase claim based on only 7 of 34 contingencies"
+    description: >-
+      The A-9 SCOPF result reports a 17.7% cost increase from N-1 security constraints,
+      but only 7 of 34 line contingencies were applied. Twenty-seven contingencies were
+      skipped because they produced |LODF| >= 0.95 on at least one monitored line
+      (near-radial topology). On the 39-bus case39 network, which has limited meshing,
+      a 7-contingency SCOPF is not a rigorous test of the full N-1 security margin.
+      The cost increase is real and directionally correct, but the magnitude depends
+      heavily on which 7 contingencies the feasibility filter admits.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-9_scopf.md"
+        excerpt: "Contingencies with flow variables: 34 (lines only). Contingencies skipped (radial/near-radial): 27. Contingencies applied: 7. Constraints added: 288."
+      - file: "evaluations/powersimulations/results/expressiveness/A-9_scopf.md"
+        excerpt: "Cost comparison: DCOPF (unconstrained) $155,569.55 vs SCOPF (N-1) $183,119.36, Cost increase +17.7%"
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: powersimulations-F04
+    category: network_insufficiency
+    severity: medium
+    test_ids: [A-9]
+    title: "39-bus network is too radially connected for meaningful SCOPF evaluation"
+    description: >-
+      The IEEE 39-bus network has sufficient meshing for basic power flow tests but is
+      poorly suited for SCOPF evaluation. With 27 of 34 line contingencies immediately
+      filtered as near-radial (|LODF| >= 0.95), the SCOPF test effectively exercises
+      only 7 contingency-monitor pairs. A more meshed network (such as the 2K-bus SMALL
+      tier) would provide more contingencies where the security constraint meaningfully
+      binds, producing a more credible cost-increase signal. The 39-bus result cannot
+      distinguish between "good SCOPF capability" and "the network is too small to create
+      binding security constraints."
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-9_scopf.md"
+        excerpt: "Contingencies skipped (radial/near-radial): 27. 27 of 34 contingencies produce |LODF| >= 0.95 on at least one monitored line, indicating near-radial topology."
+      - file: "evaluations/powersimulations/results/expressiveness/A-9_scopf.md"
+        excerpt: "convergence-quality: 27 of 34 line contingencies produce near-radial redistribution (|LODF| >= 0.95). On the case39 network, only 7 contingencies are non-trivial. This is expected for a small radial-ish network and does not indicate a tool limitation."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: powersimulations-F05
+    category: misleading_result
+    severity: medium
+    test_ids: [A-12]
+    title: "A-12 qualified_pass masks BESS arbitrage condition failure with test design gap"
+    description: >-
+      A-12 is scored as qualified_pass despite the BESS arbitrage behavioral pass condition
+      explicitly failing (discharge LMP $35.68 < charge LMP $36.61). The failure is attributed
+      to linear costs producing degenerate LP LMPs (non-unique at the margin), which is itself
+      caused by a separate workaround: HiGHS cannot solve multi-period QP (a tool limitation).
+      The qualified_pass status obscures a fundamental behavioral failure that is tightly
+      linked to a compounded solver-formulation mismatch. A reader viewing only the status
+      sees "pass" where the core economic behavior being tested did not demonstrate correctly.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-12_multiperiod_dcopf_storage.md"
+        excerpt: "Condition 2: BESS Arbitrage (FAIL). Average charge LMP: $36.61/MWh. Average discharge LMP: $35.68/MWh. Discharge LMP is NOT greater than charge LMP."
+      - file: "evaluations/powersimulations/results/expressiveness/A-12_multiperiod_dcopf_storage.md"
+        excerpt: "The LP with linear costs produces non-unique LMPs at the margin, which causes the BESS to behave as a net load rather than an arbitrageur. Quadratic costs would resolve this but require a different solver."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: powersimulations-F06
+    category: infrastructure_friction
+    severity: medium
+    test_ids: [A-10]
+    title: "A-10 fail is solver-ecosystem mismatch, not a tool formulation gap"
+    description: >-
+      The A-10 fail for lossy DCOPF is correctly recorded as a blocking failure, but the
+      root cause is a mismatch between the protocol's solver constraint (HiGHS) and the
+      DCPLLPowerModel formulation's requirement for quadratic constraint support (SOCP/QCP).
+      DCPLLPowerModel exists in PowerModels.jl and is accessible through PSI. The failure
+      would not occur if the protocol permitted Ipopt (an NLP solver that handles these
+      constraints) or a commercial solver. This distinguishes PSI from tools that have no
+      lossy DC formulation whatsoever — but the current fail status does not capture this
+      nuance. The finding is cross-tool relevant because other JuMP-based tools face the
+      same solver-formulation compatibility constraint.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-10_lossy_dcopf_lmp.md"
+        excerpt: "DCPLLPowerModel discovered: PowerModels.jl does provide a DCPLLPowerModel formulation that includes linearized losses. However, this formulation uses quadratic constraints (ScalarQuadraticFunction-in-GreaterThan) in the Ohm's law constraint."
+      - file: "evaluations/powersimulations/results/expressiveness/A-10_lossy_dcopf_lmp.md"
+        excerpt: "This requires a solver supporting SOCP or general quadratic constraints (e.g., Gurobi, CPLEX, or potentially SCIP). The evaluation protocol specifies HiGHS as the solver."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+
+  - id: powersimulations-F07
+    category: missing_verification
+    severity: medium
+    test_ids: [A-3, B-1]
+    title: "LMP values produced with undocumented unit conversion not independently verified"
+    description: >-
+      Both A-3 (DCOPF LMPs) and B-1 (custom constraint dual) require an undocumented
+      unit conversion: dividing raw dual values by base_power (100 MVA) and negating. The
+      D-2 documentation audit confirms this conversion is not documented anywhere in the
+      official PSI documentation. The LMP values reported ($7.76-$290.11/MWh) are not
+      independently verified against a reference solution or an alternative extraction
+      path. A 100x error in either direction (missing base_power division) would produce
+      plausible-looking but wrong LMPs, and the result files do not show the raw dual
+      values alongside the converted values to allow independent checking.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-3_dcopf.md"
+        excerpt: "The raw dual values are in internal units (per-unit basis); conversion to $/MWh requires dividing by base_power (100 MVA) and negating per shadow price sign convention. unit-mismatch: read_variable returns MW but read_dual returns per-unit-based values requiring manual division by base_power and negation — undocumented."
+      - file: "evaluations/powersimulations/results/accessibility/D-2_documentation_audit.md"
+        excerpt: "Dual unit conversion (divide by base_power, negate): No — Discovered empirically. A user following only official docs would not produce correct LMP values."
+    cross_tool_relevance: none
+    probe_recommended: true
+    probe_type: claim_verification
+    proposed_action: add_verification
+
+  - id: powersimulations-F08
+    category: test_design_gap
+    severity: medium
+    test_ids: [A-6]
+    title: "A-6 SCED ramp enforcement verified by constraint count, not by binding evidence"
+    description: >-
+      The A-6 SCED test claims ramp constraints are "demonstrably enforced" and reports
+      "1 binding ramp constraint observed." However, verification consists only of counting
+      the added constraints (460 added) and asserting 1 is binding, without showing the
+      actual ramp-limited generator, the before/after dispatch values, and the constraint
+      dual value. The protocol requires ramp constraints to be "demonstrably enforced between
+      consecutive dispatch intervals" — a single binding constraint (out of 460 added) with
+      no contextual output is weak evidence. Additionally, the LMP extraction for the ED stage
+      failed ("returned null values"), further limiting the quality of evidence.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-6_sced.md"
+        excerpt: "Ramp constraints: 460 added (2 per generator per inter-hour transition). 1 binding ramp constraint observed, confirming ramp limits are enforced in ED independently of UC."
+      - file: "evaluations/powersimulations/results/expressiveness/A-6_sced.md"
+        excerpt: "LMP extraction: LMPs from ED stage returned null values. The initialize_model=false + JuMP.optimize!() bypass prevents PSI's dual tracking from populating."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_verification
+
+  - id: powersimulations-F09
+    category: scoring_inconsistency
+    severity: medium
+    test_ids: [C-8, A-9]
+    title: "C-8 SCOPF qualified_pass despite solver crash on MEDIUM"
+    description: >-
+      C-8 receives a qualified_pass despite HiGHS crashing with OTHER_ERROR on the MEDIUM
+      (10K-bus) network — meaning the test literally did not complete on the grade_network.
+      The SMALL result timed out (TIME_LIMIT, with incumbent but no optimality proof). By
+      comparison, A-9 (SCOPF on TINY) receives a qualified_pass for a tool that has no
+      built-in SCOPF and produces results only via manual LODF constraint injection. The
+      scoring pattern suggests qualified_pass is applied too broadly — a solver crash on
+      the grade_network (MEDIUM, as specified in eval-config.yaml) should arguably be
+      classified as a fail or at least clearly distinguished from a timeout with incumbent.
+    evidence:
+      - file: "evaluations/powersimulations/results/scalability/C-8_scopf_scale.md"
+        excerpt: "MEDIUM finding: HiGHS encountered an internal error (OTHER_ERROR) after 438 seconds on the MEDIUM problem. The LP has 24,113 variables and 539,661 constraints."
+      - file: "evaluations/powersimulations/results/scalability/C-8_scopf_scale.md"
+        excerpt: "Solver outcome: SMALL: TIME_LIMIT (incumbent), MEDIUM: OTHER_ERROR"
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: adjust_scoring
+
+  - id: powersimulations-F10
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [B-9]
+    title: "Machine-precision PTDF claim (1.15e-14 error) may not generalize to networks with phase shifters"
+    description: >-
+      B-9 reports machine-precision PTDF verification with max error 1.15e-14 p.u. on the
+      39-bus network. The result notes "IEEE 39-bus has no phase-shifting transformers
+      (all SHIFT=0)" and explicitly states no phase-shifter correction is needed. However,
+      C-9 (PTDF at MEDIUM scale) finds PTDF values outside [-1,1] on the 10K-bus network
+      (due to 776 non-unity tap transformers) and documents that the protocol requires
+      Pbusinj/Pfinj corrections for networks with phase shifters. The B-9 result provides
+      strong validation on a simple network but cannot establish that the claimed precision
+      holds on real-world networks with off-nominal taps — which is where PTDF accuracy
+      matters most for SCOPF applications.
+    evidence:
+      - file: "evaluations/powersimulations/results/extensibility/B-9_ptdf_extraction.md"
+        excerpt: "Max error: 1.15e-14 p.u. (1.15e-12 MW). All 46 branches match to machine precision. IEEE 39-bus has no phase-shifting transformers (all SHIFT=0 in MATPOWER branch data)."
+      - file: "evaluations/powersimulations/results/scalability/C-9_ptdf_scale.md"
+        excerpt: "Values outside [-1, 1] indicate the presence of phase-shifting or tap-changing transformers (PTDF entries can exceed unity when phase shifters are present). The ACTIVSg10k network contains 970 TapTransformers, of which 776 have non-unity tap ratios."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: add_test
+
+  - id: powersimulations-F11
+    category: misleading_result
+    severity: low
+    test_ids: [G-FNM-3]
+    title: "G-FNM-3 formulation-difference classification understates the practical impact"
+    description: >-
+      The G-FNM-3 DCPF failure (86.8% of bus angles outside 1 degree tolerance) is
+      classified as a formulation-difference, which is technically accurate: PowerFlows.jl
+      uses a simplified B-matrix that ignores transformer tap ratios. However, calling this
+      a formulation difference implies it is a methodological choice rather than a limitation.
+      In practice, the 2,340 off-nominal tap transformers in the FNM are essential to realistic
+      power flow computation — and there is no configuration option in PowerFlows.jl to use
+      the full B-matrix. The classification correctly avoids calling it a bug, but framing
+      it as a "formulation difference" in the synthesis may understate the practical consequence
+      for any workflow that needs DCPF accuracy on real-world transmission networks.
+    evidence:
+      - file: "evaluations/powersimulations/results/fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md"
+        excerpt: "PowerFlows.jl uses a simplified B-matrix that ignores transformer tap ratios, while the MATPOWER reference uses the full B-matrix. With 2,340 off-nominal tap transformers in the network, this produces systematic angle deviations (mean 2.66 deg)."
+      - file: "evaluations/powersimulations/results/fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md"
+        excerpt: "There is no configuration option in PowerFlows.jl to switch to a full B-matrix for DCPF."
+    cross_tool_relevance: none
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: powersimulations-F12
+    category: missing_verification
+    severity: low
+    test_ids: [A-5]
+    title: "SCUC cycling claim verified by schedule inspection, not economic logic"
+    description: >-
+      A-5 reports 3 cycling generators (gen-5, gen-7, gen-10) and MIP gap 0.57%. The cycling
+      is verified by inspecting the commitment schedule array. However, the protocol also
+      specifies that the network "must have enough generators with different cost curves to
+      force unit commitment cycling." The cycling here is primarily driven by the load valley
+      (4,237 MW) vs peak (6,254 MW) amplitude. It is not verified whether cycling would
+      still occur if the load profile had less amplitude variation, or whether the 10 generators
+      and their cost structure genuinely force the commitment cycling through cost optimization
+      rather than capacity constraints alone.
+    evidence:
+      - file: "evaluations/powersimulations/results/expressiveness/A-5_scuc.md"
+        excerpt: "Cycling generators (3): gen-5 (Coal), gen-7 (Gas CC), gen-10 (Gas CC). The two gas CC units (most expensive) cycle on for peak hours and off during low-load hours, consistent with economic dispatch logic."
+      - file: "evaluations/powersimulations/results/expressiveness/A-5_scuc.md"
+        excerpt: "System load profile: 4,237 MW (valley, HR 4) to 6,254 MW (peak, HR 18)."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: powersimulations-F13
+    category: infrastructure_friction
+    severity: low
+    test_ids: [D-3]
+    title: "0/10 example pass rate inflated by dependency on external PowerSystemCaseBuilder package"
+    description: >-
+      D-3 reports that 0 of 10 official examples run unmodified. However, all PSI tutorials
+      fail at the data-loading step because they require PowerSystemCaseBuilder.jl — a
+      separate package not included in a standard PSI installation. This is an ecosystem
+      design choice (separating test data from the core package) rather than a tutorial
+      quality failure. One tutorial (PowerFlows.jl DCPF) runs correctly with a one-line
+      data source substitution. The 0/10 figure accurately reflects the out-of-box
+      experience but conflates an infrastructure packaging decision with tutorial quality.
+      Cross-tool comparison using this metric will disadvantage Julia-ecosystem tools
+      systematically.
+    evidence:
+      - file: "evaluations/powersimulations/results/accessibility/D-3_example_verification.md"
+        excerpt: "Both tutorials begin with: using PowerSystemCaseBuilder; sys = build_system(PSITestSystems, ...). PowerSystemCaseBuilder is a separate package that downloads pre-built test systems from NREL's data repository. It is not a dependency of PowerSimulations.jl."
+      - file: "evaluations/powersimulations/results/accessibility/D-3_example_verification.md"
+        excerpt: "Summary: PSI tutorials: 0/2 run unmodified. PowerFlows tutorial: 0/1 unmodified but 1/1 with fixes."
+    cross_tool_relevance: likely
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: powersimulations-F14
+    category: test_design_gap
+    severity: low
+    test_ids: [C-5]
+    title: "C-5 progressive relaxation test has no discriminative value for ACPF convergence"
+    description: >-
+      The C-5 protocol applies progressive thermal limit relaxation (0%, 10%, 20%) as a
+      diagnostic for ACPF convergence. For PowerSimulations.jl (using PowerFlows.jl NR),
+      all three relaxation levels converge to identical voltage profiles because thermal
+      limit relaxation only affects OPF branch constraints, not the NR power flow equations.
+      The result correctly documents this: "thermal limit relaxation only affects OPF branch
+      constraints, not the NR power flow equations." The protocol design assumes that thermal
+      limit relaxation helps convergence (appropriate for OPF-based ACPF using Ipopt), but
+      is meaningless for direct NR solvers that do not enforce thermal limits during the
+      power flow solve. The test measures convergence capability but cannot be used to
+      compare across tools that use fundamentally different ACPF approaches.
+    evidence:
+      - file: "evaluations/powersimulations/results/scalability/C-5_ac_feasibility_progressive_MEDIUM.md"
+        excerpt: "Key finding: ACPF converges at 0% relaxation (nominal thermal limits) on MEDIUM. No progressive relaxation was needed. All three relaxation levels converge to the same voltage profile, consistent with SMALL behavior — thermal limit relaxation only affects OPF branch constraints, not the NR power flow equations."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: redesign_test
+
+  - id: powersimulations-F15
+    category: low_signal
+    severity: low
+    test_ids: [G-1, G-2, G-3]
+    title: "Gate ingest tests are pass/fail with no differentiation between tools"
+    description: >-
+      G-1, G-2, and G-3 test MATPOWER file ingestion at TINY, SMALL, and MEDIUM scale.
+      All tools that survived this phase of evaluation pass these tests — they establish
+      a floor (can the tool ingest a MATPOWER file?) rather than differentiating tool
+      capability. The tests are necessary as gates but contribute no comparative signal.
+      The PowerSimulations.jl result correctly reports the 6.44s load time for case39,
+      but this is dominated by Julia JIT compilation rather than parser performance, which
+      is not tool-comparable without JIT normalization.
+    evidence:
+      - file: "evaluations/powersimulations/results/gate/G-1_ingest_tiny.md"
+        excerpt: "Result: PASS. Actual counts: 39/46/10. Load time: 6.44s."
+    cross_tool_relevance: confirmed
+    probe_recommended: false
+    probe_type: null
+    proposed_action: null
+
+  - id: powersimulations-F16
+    category: extraordinary_claim
+    severity: medium
+    test_ids: [C-4]
+    title: "SCUC 404s wall-clock measured at single-threaded; actual production capability is potentially 20-30x better"
+    description: >-
+      C-4 reports HiGHS solving the 2K-bus 24h SCUC (22,608 binary variables) in 404 seconds.
+      The result notes CPU threads = 1 explicitly: "CPU cores used: 1 (32 available)." Modern
+      MILP solvers including HiGHS scale near-linearly with thread count on branch-and-bound
+      problems. A 32-thread run would likely reduce solve time to 15-30 seconds, potentially
+      changing the grade interpretation for SCUC scalability. The single-threaded measurement
+      is reproducible but unrepresentative of practical deployment. The result file does not
+      discuss whether multi-threaded HiGHS was attempted or why it was restricted to 1 thread.
+    evidence:
+      - file: "evaluations/powersimulations/results/scalability/C-4_scuc_scale.md"
+        excerpt: "Termination status: OPTIMAL. Wall-clock: 404.2 s. MIP gap: 0.93%. Threads: 1. CPU cores used: 1 (32 available)."
+      - file: "evaluations/powersimulations/results/scalability/C-4_scuc_scale.md"
+        excerpt: "HiGHS solved to 0.93% optimality in 404 seconds... the 22,608 binary variables represent a substantial MILP problem."
+    cross_tool_relevance: confirmed
+    probe_recommended: true
+    probe_type: timing_verification
+    proposed_action: add_verification
+
+extraordinary_claims:
+  - test_id: A-9
+    claim: "SCOPF produces 17.7% cost increase from N-1 contingency constraints on 39-bus network"
+    concern: >-
+      Only 7 of 34 contingencies are applied after filtering. The 17.7% cost increase
+      is real but measured against a minimal contingency set on a small, radially-connected
+      network. The claim implies robust N-1 security enforcement but the test exercises
+      only 20% of available contingencies.
+    evidence_quality: moderate
+    probe_recommended: false
+    probe_type: formulation_audit
+
+  - test_id: B-9
+    claim: "PTDF matrix achieves machine precision (max error 1.15e-14 p.u.) verified against DCPF"
+    concern: >-
+      Machine-precision verification is on the 39-bus case with no phase-shifting
+      transformers. The C-9 PTDF at 10K scale shows PTDF values outside [-1, 1] due
+      to tap transformers, with no flow accuracy check performed. The precision claim
+      may not hold at practical scale.
+    evidence_quality: moderate
+    probe_recommended: false
+    probe_type: claim_verification
+
+  - test_id: C-4
+    claim: "SCUC on 2K-bus network solves in 404 seconds at 0.93% MIP gap"
+    concern: >-
+      Single-threaded measurement on a 32-core machine. Multi-threaded HiGHS would
+      likely achieve this in 15-30 seconds. The 404s figure could mislead cross-tool
+      comparisons if other tools use multi-threading by default.
+    evidence_quality: strong
+    probe_recommended: true
+    probe_type: timing_verification
