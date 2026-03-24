@@ -1,6 +1,6 @@
 ---
 name: evaluate-tool
-skill_version: v1
+skill_version: v2
 description: >
   Evaluate a power-system modeling tool across all Phase 1 rubric criteria.
   Orchestrates config generation, research, gate tests, functional/audit evaluation,
@@ -54,7 +54,7 @@ RESEARCH_PATH = {{RESULTS_DIR}}/research-context.md
 FNM_DIR       = data/fnm
 ```
 
-Read `SKILL_VERSION` from this file's frontmatter (`skill_version: v1`). This value is
+Read `SKILL_VERSION` from this file's frontmatter (`skill_version: v2`). This value is
 stamped into every result file and used during incremental re-runs to detect stale results.
 
 ### FNM_PATH Detection
