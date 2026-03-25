@@ -3,20 +3,21 @@ test_id: B-3
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: f4d4e1ba
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 196.3
+wall_clock_seconds: 212.95
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 251
+convergence_evidence_quality: null
+loc: 256
 solver: null
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-3: N-M contingency sweep from a chosen bus on TINY (x=3, m=3, all 46 branches)
@@ -34,9 +35,9 @@ N-M contingency sweep with graph-distance scoping and combinatorial enumeration:
 5. **Load loss collection**: Compared total generation dispatch to total load for each contingency case.
 
 Key API calls:
-- `n.graph()` — NetworkX bridge for graph-distance scoping
-- `n.copy()` — in-memory copy avoids full reconstruction
-- `n.lpf()` — DCPF solve per contingency
+- `n.graph()` -- NetworkX bridge for graph-distance scoping
+- `n.copy()` -- in-memory copy avoids full reconstruction
+- `n.lpf()` -- DCPF solve per contingency
 
 ## Output
 
@@ -52,11 +53,11 @@ Key API calls:
 | File re-reads in loop | 0 |
 | Model reconstructions | 0 |
 
-All 3,276 contingency cases solved successfully. Load loss is 0.0 MW across all cases because DCPF does not model generator capacity constraints or load shedding — in a connected network, the slack generator absorbs all imbalance. This is a correct DCPF behavior, not a limitation. Some cases produced MatrixRankWarning (singular B-matrix) when branch outages created network topology changes.
+All 3,276 contingency cases solved successfully. Load loss is 0.0 MW across all cases because DCPF does not model generator capacity constraints or load shedding -- in a connected network, the slack generator absorbs all imbalance. This is correct DCPF behavior, not a limitation.
 
 **Pass condition verification:**
 - Completes without full model reconstruction: YES (`n.copy()` used, 0 file re-reads)
-- Load loss per contingency collected: YES (0.0 MW for all — expected for unconstrained DCPF)
+- Load loss per contingency collected: YES (0.0 MW for all -- expected for unconstrained DCPF)
 - Pruning logic expressible without fighting the tool: YES (`n.graph()` + NetworkX distance)
 - Combinatorial enumeration achievable: YES (`itertools.combinations`)
 - Graph-distance scoping achievable: YES (`nx.single_source_shortest_path_length`)
@@ -70,9 +71,9 @@ None required. All functionality uses documented public APIs:
 
 ## Timing
 
-- **Wall-clock:** 196.3s (total including all 3,276 contingency cases)
+- **Wall-clock:** 212.95s (total including all 3,276 contingency cases)
 - **Timing source:** measured
-- **Contingency loop time:** 195.1s (59.6ms per case average)
+- **Contingency loop time:** 211.67s (64.6ms per case average)
 - **Peak memory:** not measured
 - **Method:** n.copy() + in-place branch disable + n.lpf()
 

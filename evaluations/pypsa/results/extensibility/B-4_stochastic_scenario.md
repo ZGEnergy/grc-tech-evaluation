@@ -3,20 +3,21 @@ test_id: B-4
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: b8e072ef
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 7.14
+wall_clock_seconds: 7.46
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 265
+convergence_evidence_quality: null
+loc: 279
 solver: HiGHS
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-4: Generate 20 scenarios, solve 12hr multi-period DCOPF for each on TINY
@@ -42,8 +43,8 @@ Solver settings: HiGHS, time_limit=300, presolve=on, threads=1.
 | Hours per scenario | 12 |
 | Succeeded | 20 / 20 |
 | Failed | 0 |
-| Mean solve time | 0.298s per scenario |
-| Total scenario time | 5.96s |
+| Mean solve time | 0.315s per scenario |
+| Total scenario time | 6.29s |
 
 **Cost statistics across 20 scenarios:**
 
@@ -65,7 +66,7 @@ Results show meaningful cost and LMP variation across scenarios, confirming that
 
 **Pass condition verification:**
 - Timeseries inputs accepted programmatically: YES (`n.loads_t.p_set` DataFrame assignment)
-- Scenario loop without excessive overhead: YES (`n.copy()` + attribute assignment, ~0.30s per scenario)
+- Scenario loop without excessive overhead: YES (`n.copy()` + attribute assignment, ~0.31s per scenario)
 - Results collectable in structured format: YES (LMPs, dispatch, costs all extracted as DataFrames/scalars)
 
 ## Workarounds
@@ -79,9 +80,9 @@ None required. All functionality uses documented public APIs:
 
 ## Timing
 
-- **Wall-clock:** 7.14s (total including network loading + 20 scenarios)
+- **Wall-clock:** 7.46s (total including network loading + 20 scenarios)
 - **Timing source:** measured
-- **Per-scenario solve:** 0.298s mean
+- **Per-scenario solve:** 0.315s mean
 - **Peak memory:** not measured
 
 ## Test Script

@@ -3,20 +3,21 @@ test_id: B-9
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: d8e7210b
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.17
+wall_clock_seconds: 1.32
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 218
+convergence_evidence_quality: null
+loc: 221
 solver: null
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-9: Compute the PTDF matrix for TINY (39-bus) and verify against DCPF
@@ -31,7 +32,7 @@ PTDF extraction and validation via PyPSA's native SubNetwork API:
 2. **Run DCPF**: `n.lpf()` to get baseline flows
 3. **Build topology**: `n.determine_network_topology()`
 4. **Compute PTDF**: `sn_obj.calculate_PTDF()` (native PyPSA method)
-5. **Extract matrix**: `sn_obj.PTDF` — dense numpy array (46 branches x 39 buses)
+5. **Extract matrix**: `sn_obj.PTDF` -- dense numpy array (46 branches x 39 buses)
 6. **Build injection vector**: Assembled `P_inj` in `sn.buses_o` order (slack-first, critical for correct results)
 7. **Validate**: Compared `PTDF @ P_inj_pu` against actual DCPF flows
 
@@ -46,8 +47,8 @@ PTDF extraction and validation via PyPSA's native SubNetwork API:
 | PTDF shape | (46, 39) |
 | Slack bus | 31 |
 | Phase shifters | 0 |
-| Max |predicted - actual| | 1.91e-14 pu |
-| Mean |predicted - actual| | 4.14e-15 pu |
+| Max |predicted - actual| | 1.909584e-14 pu |
+| Mean |predicted - actual| | 4.139352e-15 pu |
 | Branches within 1e-6 tolerance | 46 / 46 |
 | PTDF sparsity | 39.2% (entries < 1e-10) |
 
@@ -55,13 +56,13 @@ PTDF extraction and validation via PyPSA's native SubNetwork API:
 
 | Branch | Actual | Predicted | Diff |
 |--------|--------|-----------|------|
-| Line:L0 | -1.78353726 | -1.78353726 | 2.22e-15 |
-| Line:L1 | 0.80753726 | 0.80753726 | 4.77e-15 |
-| Line:L2 | 3.33430081 | 3.33430081 | 4.88e-15 |
-| Line:L3 | -2.61783807 | -2.61783807 | 6.22e-15 |
-| Line:L4 | 0.54115372 | 0.54115372 | 3.11e-15 |
+| Line:L0 | -1.78353726 | -1.78353726 | 2.220446e-15 |
+| Line:L1 | 0.80753726 | 0.80753726 | 4.773959e-15 |
+| Line:L2 | 3.33430081 | 3.33430081 | 4.884981e-15 |
+| Line:L3 | -2.61783807 | -2.61783807 | 6.217249e-15 |
+| Line:L4 | 0.54115372 | 0.54115372 | 3.108624e-15 |
 
-Worst branch: Line:L15 with diff = 1.91e-14 pu (still 8 orders of magnitude below tolerance).
+Worst branch: Line:L15 with diff = 1.909584e-14 pu (8 orders of magnitude below tolerance).
 
 Flow predictions match DCPF results to machine precision (1.91e-14 pu max error vs 1e-6 tolerance).
 
@@ -76,7 +77,7 @@ The only non-obvious detail is the bus ordering (`sn.buses_o` rather than `n.bus
 
 ## Timing
 
-- **Wall-clock:** 1.17s
+- **Wall-clock:** 1.32s
 - **Timing source:** measured
 - **Peak memory:** not measured
 

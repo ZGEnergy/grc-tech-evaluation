@@ -3,12 +3,12 @@ test_id: P2-2
 tool: pypsa
 dimension: p2_readiness
 network: TINY
+protocol_version: v11
+skill_version: v2
+test_hash: e6aab840
 status: informational
 workaround_class: null
-timestamp: 2026-03-13T18:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: e6aab840
+timestamp: 2026-03-24T16:00:00Z
 ---
 
 # P2-2: Piecewise-Linear Cost Curve Support

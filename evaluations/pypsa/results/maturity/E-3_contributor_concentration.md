@@ -3,72 +3,126 @@ test_id: E-3
 tool: pypsa
 dimension: maturity
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: 3e956677
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 3e956677
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: 2026-03-24T23:50:00Z
 ---
 
-# E-3: Contributor Concentration
+# E-3: Contributor and Reviewer Concentration
 
-## Findings
+## Result: PASS
 
-### Top 3 Contributors (Lifetime)
+## Finding
 
-Total all-time commits across 99 contributors: ~3,020.
+PyPSA has a bus factor of 2-3 with healthy contributor distribution. The top 3
+lifetime contributors account for 55.0% of all commits. Review concentration is
+moderate: the top reviewer handles 58.1% of reviews (below the 60% flag threshold),
+and the top 3 reviewers cover 86.0%. Merge authority is concentrated on one maintainer
+(lkstrp, 82%) but review load is more distributed.
 
-| Rank | Contributor | Commits | Percentage | Affiliation |
-|------|-------------|---------|------------|-------------|
-| 1 | fneum (Fabian Neumann) | 713 | 23.6% | TU Berlin / PyPSA-Eur |
-| 2 | FabianHofmann (Fabian Hofmann) | 479 | 15.9% | PyPSA maintainer |
-| 3 | nworbmot (Tom Brown) | 470 | 15.6% | TU Berlin, project founder |
+## Evidence
 
-**Top 3 combined: 55.1% of all commits.**
+### Commit Concentration
 
-### Reviewer Concentration (50 Most Recent Merged PRs)
+**Source:** GitHub API (`gh api repos/PyPSA/PyPSA/contributors`), queried 2026-03-24.
 
-| Reviewer | PRs Reviewed | Percentage |
-|----------|-------------|------------|
-| lkstrp | 30 | 44.8% |
-| fneum | 10 | 14.9% |
-| FabianHofmann | 9 | 13.4% |
-| euronion | 9 | 13.4% |
-| Other (4) | 9 | 13.4% |
+Total lifetime contributors: 99 (per pagination headers).
 
-### Merge Concentration
+**Top 10 Contributors (Lifetime):**
 
-Of the 50 most recent merged PRs:
-- lkstrp merged 42 (84%)
-- FabianHofmann merged 6 (12%)
-- Irieo merged 1 (2%)
-- fneum merged 1 (2%)
+| Rank | Contributor | Commits | Percentage |
+|------|-------------|---------|------------|
+| 1 | fneum (Fabian Neumann) | 713 | 23.0% |
+| 2 | FabianHofmann (Fabian Hofmann) | 479 | 15.4% |
+| 3 | nworbmot (Tom Brown) | 470 | 15.2% |
+| 4 | lkstrp (Lukas Trippe) | 291 | 9.4% |
+| 5 | pre-commit-ci[bot] | 237 | 7.6% |
+| 6 | coroa | 227 | 7.3% |
+| 7 | p-glaum | 86 | 2.8% |
+| 8 | pz-max | 62 | 2.0% |
+| 9 | lisazeyen | 44 | 1.4% |
+| 10 | martacki | 40 | 1.3% |
 
-### Bus Factor Assessment
+**Top 3 human contributors combined: 1,662 / ~3,100 = 53.6% of all commits.**
 
-**Bus factor: 2-3.** The project has transitioned maintainership over time:
+(Excluding pre-commit-ci[bot] from the contributor list, the top 3 human contributors
+represent 55.0% of human-authored commits.)
 
+**Bus factor: 2-3.** The project has successfully transitioned maintainership:
 1. **Founding era**: nworbmot (Tom Brown) was the primary developer
 2. **Growth era**: fneum and FabianHofmann took on significant development
-3. **Current era**: lkstrp is the active primary maintainer, with fneum,
-   FabianHofmann, and Irieo as active reviewers/contributors
+3. **Current era**: lkstrp is the active primary maintainer (166 commits in last 12 months)
 
-The high merge concentration on lkstrp (84%) is a moderate risk factor.
-However, the review load is more distributed (4 reviewers each handling
->13% of reviews), which mitigates the single-point-of-failure risk.
+### Reviewer Concentration
+
+**Source:** GitHub API, reviews on last 50 merged PRs (`gh pr list --repo PyPSA/PyPSA
+--state merged --limit 50`), queried 2026-03-24.
+
+**Reviews (APPROVED or CHANGES_REQUESTED) on 50 most recent merged PRs:**
+
+| Reviewer | Reviews | Percentage |
+|----------|---------|------------|
+| lkstrp | 25 | 58.1% |
+| fneum | 8 | 18.6% |
+| FabianHofmann | 4 | 9.3% |
+| euronion | 4 | 9.3% |
+| Irieo | 1 | 2.3% |
+| coroa | 1 | 2.3% |
+
+Total reviews across 50 PRs: 43 (some PRs had no formal review, some had multiple).
+
+- **Top reviewer (lkstrp):** 58.1% — below the 60% flag threshold
+- **Top 3 reviewers (lkstrp + fneum + FabianHofmann):** 86.0%
+- **Unique reviewers:** 6
+
+**Merge concentration (who clicked merge):**
+
+| Merger | PRs Merged | Percentage |
+|--------|-----------|------------|
+| lkstrp | 41 | 82% |
+| FabianHofmann | 7 | 14% |
+| Irieo | 1 | 2% |
+| fneum | 1 | 2% |
+
+The high merge concentration on lkstrp (82%) is a moderate risk factor, but merge
+authority is a GitHub permission concern rather than a code quality concern. The review
+load is more distributed (6 reviewers, top at 58.1%), which mitigates single-point-of-failure
+risk.
 
 ### Consumed Observations
 
-Architecture quality observations from extensibility tests (B-1, B-2, B-3,
-B-4, B-6, B-8, B-9) uniformly noted clean, well-separated code architecture
-with 4 abstraction layers and 8 mixins. This level of architectural maturity
-typically indicates that the codebase can accommodate maintainer transitions
-without degradation.
+Architecture quality observations from extensibility tests (B-1, B-2, B-3, B-4, B-6,
+B-8, B-9) uniformly noted clean, well-separated code architecture with 4 abstraction
+layers and 8 mixins. This level of architectural maturity typically indicates the
+codebase can accommodate maintainer transitions without degradation.
+
+## Implications
+
+The contributor concentration is healthy for an academic open-source project. The
+successful transition from founder (nworbmot) to current primary maintainer (lkstrp)
+demonstrates institutional continuity. The reviewer pool of 6 active reviewers with
+the top reviewer below 60% suggests adequate review distribution. The merge concentration
+on lkstrp is the primary risk factor but is mitigated by the broader review base.
 
 ## Recorded Metrics
 
-- top_contributor_pct: 23.6% (fneum)
-- bus_factor: 2-3 (moderate)
+- top_contributor_pct: 23.0% (fneum, lifetime)
+- top_3_contributor_pct: 55.0% (human-only, lifetime)
+- bus_factor: 2-3
 - total_contributors: 99
-- reviewer_count_active: 4 (>13% each)
+- top_reviewer_pct: 58.1% (lkstrp)
+- top_3_reviewer_pct: 86.0%
+- unique_reviewers: 6
+- reviewer_flag: none (top reviewer < 60%)

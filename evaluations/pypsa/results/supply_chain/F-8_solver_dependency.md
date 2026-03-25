@@ -3,47 +3,47 @@ test_id: F-8
 tool: pypsa
 dimension: supply_chain
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: be95fcde
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 10863706
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+loc: null
+solver: null
+timestamp: 2026-03-24T14:00:00Z
 ---
 
-# F-8: Solver Dependency
+# F-8: Solver Dependency Assessment
 
-## Findings
+## Result: PASS
 
-### Solvers Tested
+## Finding
 
-| Solver | Available | LP | MILP | QP | NLP | Open Source |
-|--------|-----------|:--:|:----:|:--:|:---:|:----------:|
-| HiGHS | Yes | Y | Y | Y | N | Yes (MIT) |
-| GLPK | Yes | Y | Y | N | N | Yes (GPL) |
-| SCIP | No* | Y | Y | Y | N | Yes (Apache 2.0) |
-| Ipopt | N/A** | Y | N | Y | Y | Yes (EPL) |
+PyPSA operates fully with open-source solvers. HiGHS (MIT) is a direct dependency and default solver, covering LP/MILP/QP. GLPK (GPL) is available as secondary. Ipopt (EPL) is available via pyomo for NLP. No commercial-only test cases were encountered across Suites A, B, and C. SCIP is not installed in the devcontainer (confirmed C-4 finding) but this is an environment issue, not a PyPSA limitation.
 
-*SCIP was listed in devcontainer configuration but not available via
-linopy's solver detection (`AssertionError: Solver scip not installed`).
-See observation doc-gaps-scalability-C-4. This is an environment
-configuration issue, not a PyPSA limitation.
+## Evidence
 
-**Ipopt is used for AC power flow via PyPSA's internal Newton-Raphson
-solver, not via linopy. PyPSA's NR solver uses scipy's sparse linear
-algebra directly, so Ipopt is not in the OPF path. For AC OPF, PyPSA
-uses an iterative LOPF+PF approach, not a direct NLP formulation.
+### Solver Availability (devcontainer, 2026-03-24)
 
-### Available Solvers in Evaluation Environment
+Tested via `linopy.available_solvers` and direct import checks:
 
-From `linopy.solvers.available_solvers`: `['highs', 'glpk']`
+| Solver | Available | LP | MILP | QP | NLP | License | Detection Method |
+|--------|-----------|:--:|:----:|:--:|:---:|---------|-----------------|
+| HiGHS | Yes (v1.13.1) | Y | Y | Y | N | MIT | `linopy.available_solvers` + `import highspy` |
+| GLPK | Yes (v5.0) | Y | Y | N | N | GPL-3.0 | `linopy.available_solvers` + `glpsol --version` |
+| SCIP | No | Y | Y | Y | N | Apache 2.0 | `pyscipopt` not installed |
+| Ipopt | Yes (via pyomo) | Y | N | Y | Y | EPL-2.0 | `pyo.SolverFactory('ipopt').available() == True` |
 
-### Use Case Coverage with Open-Source Solvers
+### Open-Source Solver Coverage
 
-| Use Case | Solver | Status |
-|----------|--------|--------|
-| DCPF | scipy (direct) | Fully functional |
-| ACPF | scipy NR (direct) | Fully functional |
+| Use Case | Solver Used | Status |
+|----------|------------|--------|
+| DCPF (`n.lpf()`) | scipy spsolve (direct) | Fully functional |
+| ACPF (`n.pf()`) | scipy NR (direct) | Fully functional |
 | DC OPF (LP) | HiGHS | Fully functional |
 | DC OPF (LP) | GLPK | Fully functional |
 | SCUC (MILP) | HiGHS | Fully functional |
@@ -51,28 +51,20 @@ From `linopy.solvers.available_solvers`: `['highs', 'glpk']`
 | Multi-period OPF | HiGHS | Fully functional |
 | SCOPF | HiGHS | Fully functional |
 | Quadratic costs (QP) | HiGHS | Fully functional |
+| AC feasibility | Ipopt (via pyomo) | Functional |
 
-### Failures Without Commercial Solver
+### Commercial-Only Tests
 
-**None.** All evaluation test cases (Suites A, B, C) were completed
-using open-source solvers only (HiGHS for LP/MILP/QP, GLPK as
-secondary LP/MILP, scipy for direct linear solves).
+**None.** All evaluation test cases across Suites A, B, and C were completed using open-source solvers only. No test required Gurobi, CPLEX, or any other commercial solver.
 
-HiGHS is PyPSA's default solver and is declared as a direct dependency
-in `pyproject.toml`, ensuring it is always available when PyPSA is
-installed. This eliminates the common pain point of needing to separately
-install and configure a solver.
+### SCIP Status
 
-### Performance Notes
+SCIP (PySCIPOpt) is not installed in the devcontainer. This was identified in C-4 findings. PyPSA/linopy supports SCIP when PySCIPOpt is installed, but it is not required. HiGHS covers all problem classes that SCIP would handle (LP, MILP, QP) and is the recommended default.
 
-- HiGHS is the recommended solver for all PyPSA use cases and performed
-  well across all test scales (39-bus to 10k-bus)
-- GLPK is functional but slower on larger problems (observed in
-  scalability tests C-3 and C-7)
-- SCIP support exists in linopy but requires separate installation of
-  PySCIPOpt bindings
+### HiGHS as Default Solver
 
-## Recorded Metrics
+HiGHS is declared as a direct dependency in PyPSA's `pyproject.toml` (`highspy`), meaning it is always available when PyPSA is installed. This eliminates the common pain point of needing to separately install and configure a solver. HiGHS performed well across all test scales (39-bus through 10k-bus).
 
-- solvers_tested: HiGHS (available, MIT), GLPK (available, GPL)
-- failures_without_commercial: 0
+## Implications
+
+PyPSA's solver story is a supply chain strength. The bundled HiGHS solver covers LP/MILP/QP with a permissive MIT license. No commercial solver dependency exists for any tested capability. GLPK provides a secondary option for LP/MILP. The only gap is SCIP (not installed), which is an environment configuration issue, not a tool limitation.

@@ -1,359 +1,387 @@
-# PyPSA v1.1.2 — Phase 1 Synthesis Report
+# Synthesis Report: PyPSA v1.1.2
 
 **Contract:** FA714626C0006
-**Tool:** PyPSA v1.1.2
-**Protocol version:** v10
-**Skill version:** v1
-**Evaluation date:** 2026-03-13
+**Tool:** PyPSA (Python for Power System Analysis)
+**Version:** 1.1.2 (released 2026-02-23)
+**Evaluation date:** 2026-03-24
+**Protocol version:** v11
+**Skill version:** v2
 
 ---
 
 ## 1. Executive Summary
 
-PyPSA is a well-architected, Python-native power system optimization library with strong expressiveness across DC/AC power flow, DC OPF, SCUC, SCOPF, lossy OPF, and multi-period storage optimization. Its pandas DataFrame-centric data model and linopy-based optimization layer provide clean extensibility with documented injection points. The supply chain gate passes with qualification: all dependencies are permissively licensed except a single GPL-2.0 convenience dependency (Levenshtein) that is replaceable. The primary weaknesses are a SCUC scalability ceiling at the 2,000-bus MILP scale with open-source solvers (C-4 fail) and no PSS/E ingestion path (G-FNM-1 fail). G-FNM-3 DCPF now passes with 0.0 deviation after applying the shared `matpower_loader.load_pypsa()` which patches a branch status bug in `import_from_pypower_ppc`. Scale cap is MEDIUM (all gate tests passed).
+PyPSA v1.1.2 is a mature, well-architected Python power system analysis tool with strong expressiveness across DCPF, ACPF, DC OPF, SCUC, SCOPF, lossy OPF, and multi-period storage optimization. All three gate tests passed (TINY/SMALL/MEDIUM ingestion), establishing a MEDIUM scale cap. The tool's primary strengths are its pandas DataFrame-native data model enabling zero-friction interoperability, a clean `extra_functionality` callback for custom constraint injection, and a robust open-source supply chain anchored by the bundled HiGHS solver (MIT). Key limitations include the architectural absence of distributed slack in DC OPF [tool-specific], linopy model-building overhead dominating MEDIUM-scale wall-clock times [tool-specific], HiGHS single-threaded MILP performance limiting SCUC at SMALL scale [solver-specific], and no PSS/E format ingestion capability. The supply chain gate passes with one GPL-2.0 dependency (Levenshtein) flagged for review.
 
 ---
 
-## 2. Grade Recommendations Table
+## 2. Test Results Summary
 
-| Criterion | Grade | Confidence | Key Evidence |
-|-----------|-------|------------|--------------|
-| Problem Expressiveness | B+ | High | 8/10 Suite A tests pass; A-11 blocking (no distributed slack OPF); A-6 stable workaround; A-12 fragile workaround for shadow prices |
-| Extensibility | A- | High | All 8 Suite B tests pass with no workarounds; documented extra_functionality API; native NetworkX bridge; PTDF extraction |
-| Scalability | C+ | Medium | C-4 SCUC SMALL fails (HiGHS timeout); C-5 ACPF passes at MEDIUM (10k buses); 7 MEDIUM tests skipped due to C-SMALL-gate; FNM DCPF passes |
-| Workforce Accessibility | A- | High | Frictionless install; 5/10 tests completable from docs; good error messages; cosmetic warning noise |
-| Maturity & Sustainability | A | High | 33 releases in 24 months; 325 commits from 18 contributors; EU institutional backing; 1,898 stars |
-| Supply Chain (Gate) | B+ | High | MIT core; one GPL-2.0 dep (Levenshtein) that is replaceable; pure Python; all compiled deps open-source and buildable |
+| Criterion | Tests Run | Pass | Qualified Pass | Partial/Constrained | Fail | Skip | Informational | Confidence | Key Evidence |
+|-----------|----------|------|----------------|---------------------|------|------|---------------|------------|--------------|
+| Problem Expressiveness | 11 | 8 | 2 (A-6, A-12) | 1 (A-11) | 0 | 0 | 0 | High | Native DCPF/ACPF/DCOPF/SCUC/SCOPF/lossy OPF/storage; distributed slack OPF blocked |
+| Extensibility | 8 | 8 | 0 | 0 | 0 | 0 | 0 | High | extra_functionality callback, NetworkX graph, PTDF, scenario loops |
+| Scalability | 10 | 8 | 0 | 1 (C-4 constrained), 1 (C-10 partial) | 0 | 0 | 0 | High | MEDIUM DCPF/ACPF/DCOPF/SCOPF/PTDF pass; SCUC constrained at SMALL; dist. slack blocked |
+| Workforce Accessibility | 5 | 3 | 0 | 0 | 0 | 0 | 2 (D-2, D-5) | High | Sub-7s install-to-solve, examples work, meaningful errors |
+| Maturity & Sustainability | 7 | 7 | 0 | 0 | 0 | 0 | 0 | High | 32 releases/24mo, 84% coverage, 99 contributors, TSO/regulator adoption |
+| Supply Chain (gate) | 9 | 8 | 1 (F-3) | 0 | 0 | 0 | 1 (F-2) | High | MIT core, 1 GPL dep (Levenshtein), fully air-gap installable |
+| FNM Ingestion | 5 | 1 (G-FNM-3) | 0 | 0 | 1 (G-FNM-1) | 1 (G-FNM-2) | 2 (G-FNM-4, G-FNM-5) | High | No PSS/E parsing; DCPF 100% match via MATPOWER fallback |
+| P2 Readiness | 3 | 0 | 0 | 0 | 0 | 0 | 3 | Medium | No PSS/E RAW parsing; tranche workaround for piecewise costs; commitment injection capable |
+
+**Note:** Gate tests (G-1, G-2, G-3) are excluded from pass rate statistics. All three passed.
+
+**Overall non-gate, non-informational test outcomes:** 38 pass, 3 qualified_pass, 2 partial_pass, 1 constrained_pass, 1 fail, 1 skip. No cascaded failures beyond C-10 (blocked by A-11).
 
 ---
 
 ## 3. Per-Criterion Detail
 
-### 3.1 Problem Expressiveness
+### 3.1 Problem Expressiveness (Suite A)
 
 #### Strengths
 
-- Native DC power flow with structured DataFrame outputs and sub-second solve times ([A-1](expressiveness/A-1_dcpf.md))
-- AC power flow with built-in Newton-Raphson solver, first-class convergence diagnostics (residual, iteration count, converged flag) ([A-2](expressiveness/A-2_acpf.md))
-- DC OPF via `n.optimize()` with automatic LMP population on `n.buses_t.marginal_price` ([A-3](expressiveness/A-3_dcopf.md))
-- AC feasibility check on DC OPF dispatch within same model context, no file export/reimport needed ([A-4](expressiveness/A-4_ac_feasibility.md))
-- SCUC with all standard UC constraints as built-in generator attributes (committable, min_up_time, min_down_time, start_up_cost, ramp_limit_up/down) producing demonstrable generator cycling ([A-5](expressiveness/A-5_scuc.md))
-- Native SCOPF via `optimize_security_constrained()` with BODF-based N-1 constraints embedded in the LP ([A-9](expressiveness/A-9_scopf.md))
-- Native lossy DC OPF via `transmission_losses` parameter with piecewise-linear loss approximation and LMP decomposition ([A-10](expressiveness/A-10_lossy_dcopf_lmp.md))
-- Multi-period DCOPF with native `StorageUnit` component including cyclic SoC, charge/discharge efficiencies, and correct BESS arbitrage behavior ([A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
+- Native DCPF via direct sparse linear solve with no external optimizer needed ([A-1](expressiveness/A-1_dcpf.md))
+- Newton-Raphson ACPF with first-class convergence diagnostics (converged, n_iter, residual) ([A-2](expressiveness/A-2_acpf.md))
+- DC OPF with LMP extraction, hard branch constraint enforcement, and shadow prices via linopy duals ([A-3](expressiveness/A-3_dcopf.md))
+- DC OPF to AC PF feasibility check within the same model context, no file export/reimport ([A-4](expressiveness/A-4_ac_feasibility.md))
+- Built-in SCUC with committable generators, min up/down times, startup costs, ramp limits -- all as native attributes ([A-5](expressiveness/A-5_scuc.md))
+- Built-in SCOPF via BODF-based N-1 contingency constraints in the LP formulation ([A-9](expressiveness/A-9_scopf.md))
+- Native lossy DC OPF with piecewise-linear loss approximation (`transmission_losses` parameter) ([A-10](expressiveness/A-10_lossy_dcopf_lmp.md))
+- Multi-period DCOPF with native StorageUnit (cyclic SoC, charge/discharge efficiencies) ([A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
 
 #### Weaknesses
 
-- No distributed slack OPF capability -- the DC OPF formulation uses flow variables without bus angle variables, making distributed slack architecturally impossible in `n.optimize()` ([A-11](expressiveness/A-11_distributed_slack_opf.md))
-- No PSS/E ingestion path in any form (raw, intermediate CSV, or converted) -- blocks FNM-based expressiveness evidence ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_format_ingestion.md))
-- SCOPF limited to Line contingencies only; transformer contingencies not accepted by `optimize_security_constrained()` ([A-9](expressiveness/A-9_scopf.md))
-- No native piecewise-linear cost curves (tracked as high-priority issue #1020) ([P2-2](p2_readiness/P2-2_piecewise_linear_cost.md))
+- Distributed slack DC OPF is architecturally impossible -- linopy model has no Bus-v_ang variables [tool-specific] ([A-11](expressiveness/A-11_distributed_slack_opf.md))
+- Branch shadow prices (`mu_upper`/`mu_lower`) not populated after `n.optimize()` in v1.1.2 [tool-specific] ([A-3](expressiveness/A-3_dcopf.md), [A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
+- No `fix_commitment()` API for two-stage UC/ED workflow [tool-specific] ([A-6](expressiveness/A-6_sced.md))
+- SCOPF API excludes transformer contingencies (Lines only in `branch_outages`) [tool-specific] ([A-9](expressiveness/A-9_scopf.md))
+- `import_from_pypower_ppc` does not import gencost or honor branch status [tool-specific] (all gate tests, addressed by shared loader)
 
 #### Workarounds Required
 
-- A-3 shadow price extraction via `n.model.constraints` instead of empty `n.lines_t.mu_upper/mu_lower` -- **stable** (linopy public API)
-- A-6 SCED two-stage UC/ED via manual `p_min_pu`/`p_max_pu` bound manipulation -- **stable** (documented public API, ~15 LOC)
-- A-11 distributed slack only in `n.pf()` context (AC PF), not in `n.optimize()` (OPF) -- **blocking** (architectural limitation)
-- A-12 branch shadow prices via internal linopy constraint naming -- **fragile** (undocumented naming convention)
+- A-6 SCED: Manual `p_min_pu`/`p_max_pu` bound construction to fix commitment schedule -- **stable** (documented public API) ([A-6](expressiveness/A-6_sced.md))
+- A-12 shadow prices: Extract from `n.model.constraints['Line-fix-s-upper'].dual` instead of `n.lines_t.mu_upper` -- **fragile** (depends on linopy internal constraint naming) ([A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
+- A-11 distributed slack: Available in AC PF context (`n.pf(distribute_slack=True)`) but blocked in OPF context -- **blocking** ([A-11](expressiveness/A-11_distributed_slack_opf.md))
 
 #### Evidence Summary Table
 
 | Test | Network | Status | Blocked By | Workaround | Time | LOC |
 |------|---------|--------|------------|------------|------|-----|
-| A-1 | TINY | pass | -- | -- | 1.2s | 145 |
-| A-2 | TINY | pass | -- | -- | 1.3s | 256 |
-| A-3 | TINY | pass | -- | stable | 2.1s | 283 |
-| A-4 | TINY | pass | -- | -- | 1.4s | 400 |
-| A-5 | TINY | pass | -- | -- | 4.3s | 362 |
-| A-6 | TINY | qualified_pass | -- | stable | 3.0s | 453 |
-| A-9 | TINY | pass | -- | -- | 4.1s | 404 |
-| A-10 | TINY | pass | -- | -- | 1.9s | 332 |
-| A-11 | TINY | qualified_pass | -- | blocking | 1.9s | 326 |
-| A-12 | TINY | pass | -- | fragile | 6.9s | 432 |
+| A-1 | TINY | pass | -- | -- | 1.94s | 143 |
+| A-2 | TINY | pass | -- | -- | 2.11s | 245 |
+| A-3 | TINY | pass | -- | -- | 3.30s | 271 |
+| A-4 | TINY | pass | -- | -- | 2.11s | 346 |
+| A-5 | TINY | pass | -- | -- | 6.77s | 467 |
+| A-6 | TINY | qualified_pass | -- | stable | 3.88s | 558 |
+| A-9 | TINY | pass | -- | -- | 2.63s | 335 |
+| A-10 | TINY | pass | -- | -- | 2.21s | 332 |
+| A-11 | TINY | partial_pass | -- | blocking | 1.90s | 326 |
+| A-12 | TINY | qualified_pass | -- | fragile | 7.32s | 433 |
 
-0 independent failures. 2 qualified passes. 0 cascaded failures.
+#### Findings Summary
 
-#### Grade Rationale
+PyPSA demonstrates broad expressiveness across standard power system formulations. Nine of eleven tests pass or qualify. The distributed slack OPF limitation (A-11) is the only blocking architectural gap -- PyPSA's flow-based OPF formulation lacks angle variables, making distributed slack fundamentally unachievable [tool-specific]. The shadow price assignment gap and missing `fix_commitment()` method are usability issues, not capability gaps. SCOPF's transformer exclusion is a notable API restriction but does not prevent N-1 analysis on line contingencies.
 
-PyPSA passes 8 of 10 Suite A tests cleanly (including SCOPF, lossy OPF, and multi-period storage) with 2 qualified passes (A-6 stable workaround, A-11 blocking limitation). The tool satisfies the B+ standard: "Mostly strong, one meaningful gap that has a stable workaround." The meaningful gap is A-11 (distributed slack OPF) which is a blocking architectural limitation -- no workaround exists in the OPF context. However, 8 of 10 core problem types are natively expressible with built-in constraints, and SCOPF/lossy OPF/storage add Phase 2 readiness evidence that approaches A-level. The A-12 fragile workaround for shadow prices is a second, minor concern. The A-11 blocking gap prevents an A- grade.
+---
 
-### 3.2 Extensibility
+### 3.2 Extensibility (Suite B)
 
 #### Strengths
 
-- Documented `extra_functionality` callback for custom constraint injection with full access to linopy Model object ([B-1](extensibility/B-1_custom_constraints.md))
-- Native NetworkX graph export via `n.graph()` for topology analysis, BFS/DFS, subgraph extraction ([B-2](extensibility/B-2_graph_access.md))
-- Efficient contingency loop via `n.copy()` without file re-reads or model reconstruction; 3,276 N-3 contingencies solved in 196s ([B-3](extensibility/B-3_contingency_sweep.md))
-- Scenario ensembles via `n.copy()` + DataFrame injection; 20 scenarios at 0.30s each ([B-4](extensibility/B-4_stochastic_scenario.md))
-- Zero-friction interoperability -- all results natively stored as pandas DataFrames, 2 lines to export to CSV ([B-5](extensibility/B-5_interoperability.md))
-- Clean 4-layer architecture with 8 mixins; explicit separation of data model, formulation, solver, and results ([B-6](extensibility/B-6_code_architecture.md))
-- Reference bus reconfiguration via single DataFrame attribute assignment ([B-8](extensibility/B-8_reference_bus_config.md))
-- Native PTDF computation via SubNetwork API with machine-precision validation (max error 1.91e-14) ([B-9](extensibility/B-9_ptdf_extraction.md))
+- Clean `extra_functionality` callback for custom constraint injection with linopy model access ([B-1](extensibility/B-1_custom_constraints.md))
+- Native NetworkX graph export via `n.graph()` -- zero-friction BFS/DFS/shortest-path ([B-2](extensibility/B-2_graph_access.md))
+- N-M contingency sweep via `n.copy()` + `n.lpf()` with no file re-reads (3,276 cases in 213s) ([B-3](extensibility/B-3_contingency_sweep.md))
+- Programmatic timeseries injection via DataFrame assignment for stochastic scenarios ([B-4](extensibility/B-4_stochastic_scenario.md))
+- DataFrame-native results -- zero-friction export to CSV/Parquet/HDF5 ([B-5](extensibility/B-5_interoperability.md))
+- Well-separated 4-layer architecture with 5 documented injection points ([B-6](extensibility/B-6_code_architecture.md))
+- Slack bus reconfigurable via 2-line DataFrame assignment, no model reconstruction ([B-8](extensibility/B-8_reference_bus_config.md))
+- Native PTDF extraction with machine-precision flow predictions (max error 1.9e-14 pu) ([B-9](extensibility/B-9_ptdf_extraction.md))
 
 #### Weaknesses
 
-- DCPF solver (scipy.sparse) hardcoded -- not swappable via parameter ([B-6](extensibility/B-6_code_architecture.md))
-- PF build/solve not separated (no equivalent of create_model/solve_model for power flow) ([B-6](extensibility/B-6_code_architecture.md))
-- SubNetwork/mixin architecture undocumented; PTDF column ordering non-obvious ([B-6](extensibility/B-6_code_architecture.md), [B-9](extensibility/B-9_ptdf_extraction.md))
-- No fast-decoupled or continuation PF methods -- only NR for ACPF ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
+- `n.lpf_contingency()` broken on Python 3.12+ [tool-specific] (observation from B-3)
+- DCPF solver (scipy.sparse) hardcoded -- not swappable via parameter [tool-specific] ([B-6](extensibility/B-6_code_architecture.md))
+- SubNetwork-level methods (calculate_B_H, calculate_PTDF, calculate_Y) undocumented in user guide [tool-specific] ([B-6](extensibility/B-6_code_architecture.md))
 
 #### Workarounds Required
 
-None. All 8 Suite B tests pass without workarounds.
+None across all extensibility tests. All functionality achieved through documented public APIs.
 
 #### Evidence Summary Table
 
 | Test | Network | Status | Blocked By | Workaround | Time | LOC |
 |------|---------|--------|------------|------------|------|-----|
-| B-1 | TINY | pass | -- | -- | 1.9s | 354 |
-| B-2 | TINY | pass | -- | -- | 1.1s | 126 |
-| B-3 | TINY | pass | -- | -- | 196.3s | 251 |
-| B-4 | TINY | pass | -- | -- | 7.1s | 265 |
-| B-5 | TINY | pass | -- | -- | 1.2s | 141 |
-| B-6 | N/A | pass | -- | -- | 1.1s | 377 |
-| B-8 | TINY | pass | -- | -- | 2.2s | 244 |
-| B-9 | TINY | pass | -- | -- | 1.2s | 218 |
+| B-1 | TINY | pass | -- | -- | 3.93s | 309 |
+| B-2 | TINY | pass | -- | -- | 1.84s | 122 |
+| B-3 | TINY | pass | -- | -- | 213.0s | 256 |
+| B-4 | TINY | pass | -- | -- | 7.46s | 279 |
+| B-5 | TINY | pass | -- | -- | 1.36s | 136 |
+| B-6 | N/A | pass | -- | -- | 1.09s | 349 |
+| B-8 | TINY | pass | -- | -- | 2.36s | 247 |
+| B-9 | TINY | pass | -- | -- | 1.32s | 221 |
 
-0 failures. 0 qualified passes. 0 cascaded failures.
+#### Findings Summary
 
-#### Grade Rationale
+PyPSA achieves a clean sweep across all extensibility tests. The `extra_functionality` callback, NetworkX graph bridge, DataFrame-native data model, and PTDF extraction provide a comprehensive extensibility surface. No workarounds were required for any test. The broken `lpf_contingency()` on Python 3.12+ is a maintenance gap but does not block N-M contingency analysis (BODF or copy+lpf patterns work).
 
-PyPSA passes all 8 extensibility tests without any workarounds. The tool satisfies the A standard: "Strong native support, well-tested at scale, no significant caveats." The `extra_functionality` callback, native NetworkX graph export, efficient `n.copy()` cloning, DataFrame-native results, and PTDF extraction collectively demonstrate that PyPSA was designed for extension. The one minor caveat is that the SubNetwork/mixin internal architecture is undocumented, requiring source-reading for advanced use (PTDF column ordering). This minor documentation gap produces an A- rather than a full A.
+---
 
-### 3.3 Scalability
+### 3.3 Scalability (Suite C)
 
 #### Strengths
 
-- AC PF converges robustly on SMALL (2k buses, 4 NR iterations, 4.2s) and MEDIUM (10k buses, 5 NR iterations, 19.1s) without relaxation ([C-5](scalability/C-5_ac_feasibility_progressive_SMALL.md), [C-5 MEDIUM](scalability/C-5_ac_feasibility_progressive_MEDIUM.md))
-- ACPF wall-clock scales approximately linearly with network size (4.6x for 5x buses)
-- FNM DCPF on 27,862 buses completes in 31.3s with 0.0 deviation from MATPOWER reference (100% pass on all thresholds), demonstrating LARGE-scale power flow capability and exact numerical agreement ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
+- DCPF on MEDIUM (10k buses) in 22s with 2.1 GB memory ([C-1](scalability/C-1_dcpf_medium.md))
+- ACPF on MEDIUM converges in 5 NR iterations, residual 1.86e-9 ([C-2](scalability/C-2_acpf_medium.md))
+- DC OPF on MEDIUM: HiGHS solves in 6.2s (solver-only); cross-solver match with GLPK ([C-3](scalability/C-3_dcopf_medium.md))
+- SCOPF with 50 contingencies on MEDIUM: 1.3M-row LP solved in 29.5s (solver-only) ([C-8](scalability/C-8_scopf_medium.md))
+- PTDF computed on MEDIUM (12,706 x 10,000) in 7.9s ([C-9](scalability/C-9_ptdf_medium.md))
+- AC feasibility at SMALL and MEDIUM: converges at 0% relaxation (no relaxation needed) ([C-5](scalability/C-5_ac_feasibility_progressive_SMALL.md), [C-5](scalability/C-5_ac_feasibility_progressive_MEDIUM.md))
+- Solver swap via single parameter change, no reformulation ([C-7](scalability/C-7_solver_swap_medium.md))
 
 #### Weaknesses
 
-- C-4 SCUC SMALL fails: HiGHS cannot solve root LP relaxation of 544-generator 24hr SCUC within 600s on single thread (39,168 binary variables) ([C-4](scalability/C-4_scuc_small.md))
-- SCIP not available in devcontainer despite configuration (environment issue, not PyPSA limitation) ([C-4](scalability/C-4_scuc_small.md))
-- Peak memory scales super-linearly for ACPF: 84 MB (SMALL) to 2,099 MB (MEDIUM) = 25x for 5x buses ([C-5 MEDIUM](scalability/C-5_ac_feasibility_progressive_MEDIUM.md))
-- G-FNM-4 ACPF fails on FNM at all relaxation levels (SuperLU factorization failure) -- consistent with MATPOWER failure on same network ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
+- Linopy model building dominates MEDIUM DC OPF wall-clock: 302s overhead vs 6s solve [tool-specific] ([C-3](scalability/C-3_dcopf_medium.md))
+- HiGHS single-threaded MILP cannot solve root LP of SMALL SCUC within 600s [solver-specific] ([C-4](scalability/C-4_scuc_small.md))
+- HiGHS 32-thread SCUC achieves only 1.63% MIP gap (target: 1%) in 1800s budget [solver-specific] ([C-4](scalability/C-4_scuc_small.md))
+- Distributed slack DC OPF blocked at MEDIUM (cascaded from A-11) [tool-specific] ([C-10](scalability/C-10_distributed_slack_medium.md))
+- HiGHS simplex does not parallelize -- 32-thread SCOPF shows 0.92x speedup [solver-specific] ([C-8](scalability/C-8_scopf_medium.md))
+- SCIP not installed in devcontainer -- dual-solver MILP comparison not possible (environment issue) ([C-4](scalability/C-4_scuc_small.md))
+- Memory scales super-linearly: 84 MB (SMALL) to 2,099 MB (MEDIUM) for ACPF (25x for 5x buses) [tool-specific] ([C-5](scalability/C-5_ac_feasibility_progressive_MEDIUM.md))
 
 #### Workarounds Required
 
-None applicable -- C-4 fails due to solver scalability, not a workaround opportunity.
+- C-3, C-8: Generator marginal costs assigned from gencost via shared loader -- **stable** ([C-3](scalability/C-3_dcopf_medium.md))
+- C-3, C-8: `overwrite_zero_s_nom=99999.0` for MATPOWER zero-rated branches -- **stable** ([C-3](scalability/C-3_dcopf_medium.md))
 
 #### Evidence Summary Table
 
 | Test | Network | Status | Blocked By | Workaround | Time | LOC |
 |------|---------|--------|------------|------------|------|-----|
-| C-4 | SMALL | fail | -- | -- | 665.7s | 289 |
-| C-5 | SMALL | pass | -- | -- | 15.1s | 342 |
-| C-5 | MEDIUM | pass | -- | -- | 86.7s | 342 |
-| C-1 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-2 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-3 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-7 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-8 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-9 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-10 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| G-FNM-3 | LARGE | pass | -- | stable | 31.3s | 446 |
-| G-FNM-4 | LARGE | informational | -- | -- | 131.2s | 276 |
+| C-1 | MEDIUM | pass | -- | -- | 22.2s | 144 |
+| C-2 | MEDIUM | pass | -- | -- | 21.7s | 196 |
+| C-3 | MEDIUM | pass | -- | stable | 604.1s | 224 |
+| C-4 | SMALL | constrained_pass | -- | -- | 1836.5s | 353 |
+| C-5 (SMALL) | SMALL | pass | -- | -- | 14.9s | 337 |
+| C-5 (MEDIUM) | MEDIUM | pass | -- | -- | 193.1s | 243 |
+| C-7 | MEDIUM | pass | -- | -- | 1313.7s | 185 |
+| C-8 | MEDIUM | pass | -- | stable | 315.1s | 376 |
+| C-9 | MEDIUM | pass | -- | -- | 20.1s | 192 |
+| C-10 | MEDIUM | partial_pass | A-11 | blocking | 698.2s | 221 |
 
-1 independent failure (C-4). 7 cascaded skips (C-SMALL-gate). 1 FNM pass (G-FNM-3, via shared matpower_loader). 1 FNM informational (G-FNM-4).
+**Failure breakdown:** 0 independent fails, 1 cascaded partial_pass (C-10 from A-11), 1 constrained_pass (C-4 solver-limited).
 
-#### Grade Rationale
+#### Findings Summary
 
-C-4 SCUC failure on SMALL is a genuine scalability limitation: 544-generator 24hr MILP is intractable for HiGHS within 600s single-threaded. This triggers the C-SMALL-gate, blocking 7 MEDIUM tests. However, C-5 passes at both SMALL and MEDIUM (demonstrating ACPF scalability to 10k buses), and the failure is solver-bound (HiGHS limitation), not a PyPSA architectural ceiling. G-FNM-3 now passes with 0.0 deviation on the 27,862-bus FNM (after applying the shared matpower_loader branch status patch), demonstrating LARGE-scale DCPF fidelity. The tool satisfies the C+ standard: "Significant gaps but not disqualifying -- tool is usable with substantial effort." The gap (MILP scalability) has a known mitigation path (multi-threaded solving, commercial solvers), and the LP/PF paths scale well to LARGE. C+ is assigned rather than B- because the C-SMALL-gate prevents demonstrating MEDIUM-tier OPF capability, and the MILP scalability gap is real.
+PyPSA scales well to MEDIUM for DCPF, ACPF, DC OPF, SCOPF, and PTDF. The dominant scalability bottleneck for optimization is linopy model construction overhead [tool-specific], not solver time -- HiGHS solves the MEDIUM DC OPF LP in 6.2s but the full `n.optimize()` call takes 308s. SCUC at SMALL scale is constrained by HiGHS MILP performance [solver-specific]; a commercial solver would likely close the MIP gap faster. The distributed slack OPF limitation (C-10) is a cascaded architectural finding from A-11, not a scale-dependent failure.
 
-### 3.4 Workforce Accessibility
+---
+
+### 3.4 Workforce Accessibility (Suite D)
 
 #### Strengths
 
-- Frictionless install: `uv sync` resolves all dependencies including bundled HiGHS solver; first solve in 1.2s ([D-1](accessibility/D-1_install_to_first_solve.md))
-- All 11 example networks load and solve without modification ([D-3](accessibility/D-3_example_verification.md))
-- Good error quality: infeasibility reported clearly, invalid bus references caught with actionable ConsistencyError ([D-4](accessibility/D-4_error_quality.md))
-- Moderate code volume: median 259 LOC for Suite A tests; simplest analysis (DCPF) at 111 LOC ([D-5](accessibility/D-5_code_volume.md))
+- Sub-7s install-to-first-solve with `uv sync` + `import pypsa` + `n.lpf()` ([D-1](accessibility/D-1_install_to_first_solve.md))
+- All 6 built-in examples load and 3/3 tested solve unmodified ([D-3](accessibility/D-3_example_verification.md))
+- Meaningful error diagnostics for all 3 deliberate error scenarios -- no silent failures ([D-4](accessibility/D-4_error_quality.md))
+- DataFrame-native results enable immediate use of pandas ecosystem tools ([B-5](extensibility/B-5_interoperability.md))
 
 #### Weaknesses
 
-- 5/10 Suite A tests completable from docs alone; 3 require source-reading, 2 require trial-and-error ([D-2](accessibility/D-2_documentation_audit.md))
-- Shadow price assignment bug: `n.lines_t.mu_upper/mu_lower` silently empty after `optimize()` ([D-2](accessibility/D-2_documentation_audit.md))
-- Transformer `b` field dual semantics (DC vs AC) undocumented, causes silent ACPF divergence with DC-oriented loader ([D-2](accessibility/D-2_documentation_audit.md))
-- No `fix_commitment()` convenience API; UC/ED two-stage workflow undocumented ([D-2](accessibility/D-2_documentation_audit.md))
-- Verbose warning noise on first use (FutureWarning, carrier warnings, shadow price warnings) ([D-1](accessibility/D-1_install_to_first_solve.md))
-- Deferred validation: invalid component references caught at solve time, not at construction time ([D-4](accessibility/D-4_error_quality.md))
+- 5 of 10 Suite A tests implementable from docs alone; 2 require trial-and-error [tool-specific] ([D-2](accessibility/D-2_documentation_audit.md))
+- Transformer `b` field has dual semantics (shunt vs series susceptance) -- undocumented [tool-specific] ([D-2](accessibility/D-2_documentation_audit.md))
+- Shadow price extraction, PTDF bus ordering, mixin architecture undocumented [tool-specific] ([D-2](accessibility/D-2_documentation_audit.md))
+- Deferred validation: invalid bus reference accepted at `n.add()`, caught only at `optimize()` [tool-specific] ([D-4](accessibility/D-4_error_quality.md))
 
 #### Evidence Summary Table
 
 | Test | Status | Key Finding |
 |------|--------|-------------|
-| D-1 | pass | Install-to-first-solve: 1.2s total |
-| D-2 | informational | 5/10 from docs, 3 need source, 2 need trial-and-error |
-| D-3 | pass | 11/11 examples work unmodified |
+| D-1 | pass | 0.4s install, 6.4s first solve (post-bytecode cache) |
+| D-2 | informational | 50% docs-only implementability for Suite A |
+| D-3 | pass | 6/6 examples load, 3/3 solve |
 | D-4 | pass | 3/3 error scenarios produce meaningful diagnostics |
-| D-5 | informational | Median 259 LOC; range 111-415 |
+| D-5 | informational | Mean 275 LOC across TINY test scripts |
 
-#### Grade Rationale
+#### Findings Summary
 
-PyPSA's accessibility profile is strong: frictionless install, reliable examples, good error messages, and moderate code volume. The tool approaches the A standard: "Strong native support, well-tested at scale." The one minor caveat is the documentation gap pattern -- 50% of tests require source code reading or trial-and-error, and the shadow price / transformer `b` field issues are not documented. These documentation gaps produce friction but do not prevent task completion. A- is assigned: "Strong overall but with one minor caveat" -- the documentation gap pattern is the caveat.
+PyPSA has excellent onboarding (sub-7s install, working examples, no compiler needed) and good error quality. Documentation is strong for standard workflows but has gaps for intermediate use cases (shadow prices, DC/AC transformer semantics, PTDF ordering). The DataFrame-native data model is a significant accessibility advantage.
 
-### 3.5 Maturity & Sustainability
+---
+
+### 3.5 Maturity & Sustainability (Suite E)
 
 #### Strengths
 
-- 33 releases in 24 months (1.4/month); last release 18 days before evaluation ([E-1](maturity/E-1_release_cadence.md))
-- 325 commits from 18 human contributors in 12 months ([E-2](maturity/E-2_commit_activity.md))
-- Bus factor 2-3 with successful maintainership transition from founder to current team; 99 total contributors ([E-3](maturity/E-3_contributor_concentration.md))
-- Stable institutional backing: TU Berlin academic positions, EU research grants, Open Energy Transition non-profit ([E-4](maturity/E-4_funding_model.md))
-- Median 4-day issue time-to-close; 80% substantive response rate ([E-5](maturity/E-5_issue_tracker_health.md))
-- CI on 3 OS x multiple Python versions with daily scheduled runs and downstream model testing ([E-6](maturity/E-6_ci_cd_coverage.md))
-- Production-grade operational adoption: PyPSA-Eur (EU-wide), national grid studies, commercial user engagement ([E-7](maturity/E-7_operational_adoption.md))
+- 32 releases in 24 months, averaging 1.3/month; semver compliant since v1.0.0 ([E-1](maturity/E-1_release_cadence.md))
+- 321 commits from 22 human contributors in 12 months; 95% substantive ([E-2](maturity/E-2_commit_activity.md))
+- Bus factor 2-3 with successful founder-to-maintainer transition ([E-3](maturity/E-3_contributor_concentration.md))
+- Multi-channel institutional funding: TU Berlin, OET/Sequoia, EU grants, commercial support ([E-4](maturity/E-4_funding_model.md))
+- Median issue time-to-close: 0.9 days; 75% acknowledged ([E-5](maturity/E-5_issue_tracker_health.md))
+- 84.4% code coverage via Codecov; multi-OS/multi-Python CI matrix with daily runs ([E-6](maturity/E-6_ci_cd_coverage.md))
+- Planning-grade production adoption by 6+ TSOs, IEA, ACER, Shell, Saudi Aramco ([E-7](maturity/E-7_operational_adoption.md))
 
 #### Weaknesses
 
-- High merge concentration: lkstrp merges 84% of PRs ([E-3](maturity/E-3_contributor_concentration.md))
-- Code coverage not reported as a badge; test comprehensiveness inferred from matrix ([E-6](maturity/E-6_ci_cd_coverage.md))
+- Merge concentration on single maintainer (lkstrp, 82% of merges) ([E-3](maturity/E-3_contributor_concentration.md))
+- `n.lpf_contingency()` broken on Python 3.12+ across multiple releases (maintenance gap) (observation from B-3)
+- Branch shadow price assignment bug persists in v1.1.2 [tool-specific] (observation from A-3)
 
 #### Evidence Summary Table
 
 | Test | Status | Key Metric |
 |------|--------|------------|
-| E-1 | pass | 33 releases / 24 months, semver compliant |
-| E-2 | pass | 325 commits, 18 contributors, 95% human-authored |
-| E-3 | pass | Bus factor 2-3; top 3 = 55% of all-time commits |
-| E-4 | pass | TU Berlin + EU grants + OET; high durability |
-| E-5 | pass | Median 4.0-day TTR; 80% ack rate |
-| E-6 | pass | CI exists (4 workflows), tests pass on current release |
-| E-7 | pass | PyPSA-Eur (EU policy), national grid studies, industry users |
+| E-1 | pass | 32 releases / 24 months |
+| E-2 | pass | 321 commits, 22 human contributors |
+| E-3 | pass | Bus factor 2-3; top reviewer 58.1% |
+| E-4 | pass | 5+ independent funding channels |
+| E-5 | pass | 0.9-day median time-to-close |
+| E-6 | pass | 84.4% coverage, daily CI, downstream testing |
+| E-7 | pass | TSOs, regulators, oil majors, 1,905 GitHub stars |
 
-#### Grade Rationale
+#### Findings Summary
 
-PyPSA passes all 7 maturity tests with strong metrics across release cadence, contributor diversity, institutional funding, and operational adoption. The project demonstrates the A standard: "Strong native support, well-tested at scale, no significant caveats." The high merge concentration on lkstrp (84%) is a minor risk factor but is mitigated by distributed review load (4 reviewers at >13% each) and the demonstrated ability to transition maintainership. A is assigned.
+PyPSA has among the strongest maturity signals in the open-source power systems ecosystem. The combination of frequent releases, broad contributor base, institutional funding durability, and production adoption by TSOs and regulators represents a mature project. The merge concentration on a single maintainer is the primary risk factor but is mitigated by a broader review pool.
 
-### 3.6 Supply Chain (Gate)
+---
+
+### 3.6 Supply Chain (Suite F) -- Gate
 
 #### Strengths
 
-- MIT core license -- fully permissive ([F-1](supply_chain/F-1_core_license.md))
-- Pure Python core with all compiled dependencies (numpy, scipy, highspy) open-source and buildable from source ([F-4](supply_chain/F-4_compiled_extension_audit.md))
-- Full execution path inspectable: 0 opaque steps from API call to solver invocation ([F-5](supply_chain/F-5_code_inspectability.md))
-- Standard PyPI distribution with versioned releases and hash digests ([F-6](supply_chain/F-6_distribution_integrity.md))
-- Fully air-gap installable; no runtime network dependencies for core computation ([F-7](supply_chain/F-7_airgap_installability.md))
-- HiGHS bundled as a direct dependency (MIT); no solver license management required ([F-8](supply_chain/F-8_solver_dependency.md))
-- All test cases completed with open-source solvers only ([F-8](supply_chain/F-8_solver_dependency.md))
+- MIT-licensed core package with SPDX headers ([F-1](supply_chain/F-1_core_license.md))
+- Pure Python with zero compiled extensions; all dependency binaries have open source ([F-4](supply_chain/F-4_compiled_extension_audit.md))
+- Full execution path inspectable from API to solver ([F-5](supply_chain/F-5_code_inspectability.md))
+- PyPI distribution with SHA-256 hashes and automated CI/CD release ([F-6](supply_chain/F-6_distribution_integrity.md))
+- Fully air-gap installable; no runtime network dependencies for computation ([F-7](supply_chain/F-7_airgap_installability.md))
+- HiGHS (MIT) bundled as default solver; covers LP/MILP/QP ([F-8](supply_chain/F-8_solver_dependency.md))
+- Self-contained examples with no mutable URLs ([F-9](supply_chain/F-9_getting_started_integrity.md))
 
 #### Weaknesses
 
-- `levenshtein` (GPL-2.0-or-later) is a direct dependency for fuzzy string matching in component validation ([F-3](supply_chain/F-3_dependency_license_audit.md))
-- No PGP or Sigstore release signing (consistent with broader PyPI ecosystem deprecation of PGP) ([F-6](supply_chain/F-6_distribution_integrity.md))
-- Google Cloud Storage dependencies pulled transitively via linopy (~8 packages, unnecessary for local use) ([F-2](supply_chain/F-2_dependency_tree.md))
+- 1 GPL-2.0-or-later direct dependency: `Levenshtein` (fuzzy string matching for UX) [tool-specific] ([F-3](supply_chain/F-3_dependency_license_audit.md))
+- No Sigstore attestations (ecosystem-wide gap) ([F-6](supply_chain/F-6_distribution_integrity.md))
+- Mandatory visualization/cloud dependencies (matplotlib, plotly, google-cloud-storage) inflate install footprint [tool-specific] ([F-2](supply_chain/F-2_dependency_tree.md))
 
 #### Workarounds Required
 
-None. The GPL Levenshtein dependency is replaceable with MIT-licensed `rapidfuzz` (already a transitive dependency).
+- F-3 GPL dependency: replaceable with `rapidfuzz` (MIT, already a transitive dep) -- **stable** ([F-3](supply_chain/F-3_dependency_license_audit.md))
 
 #### Evidence Summary Table
 
 | Test | Status | Key Finding |
 |------|--------|-------------|
-| F-1 | pass | MIT license |
-| F-2 | informational | ~70 transitive deps, max depth 4 |
-| F-3 | qualified_pass | 1 GPL dep (Levenshtein), replaceable |
-| F-4 | pass | Pure Python core; 9 compiled deps all open-source |
-| F-5 | pass | 0 opaque steps in execution path |
-| F-6 | pass | Versioned PyPI releases with hash digests |
-| F-7 | pass | Full air-gap install possible |
-| F-8 | pass | HiGHS bundled (MIT); 0 commercial solver failures |
-| F-9 | pass | Examples version-coupled via docs; no mutable refs |
+| F-1 | pass | MIT license, SPDX headers |
+| F-2 | informational | 17 direct deps, ~70 transitive, max depth 4 |
+| F-3 | qualified_pass | 1 GPL dep (Levenshtein), 85 permissive |
+| F-4 | pass | Pure Python core; 249 .so files in deps, all with source |
+| F-5 | pass | Full path inspectable; zero opaque steps |
+| F-6 | pass | PyPI with hashes; no Sigstore (ecosystem gap) |
+| F-7 | pass | Fully air-gap installable |
+| F-8 | pass | HiGHS (MIT) bundled; GLPK, Ipopt available |
+| F-9 | pass | Self-contained examples, no mutable URLs |
 
-#### Grade Rationale
+#### Findings Summary
 
-PyPSA's supply chain is clean: MIT core, pure Python, all compiled dependencies open-source and buildable, full air-gap capability, bundled open-source solver. The one finding is the GPL-2.0 Levenshtein dependency. This is a direct dependency but is used only for convenience UX (fuzzy attribute name suggestions), not computation. It is immediately replaceable with the MIT-licensed `rapidfuzz` (already installed as a transitive dependency). Under the rubric, this satisfies the B+ standard: "Mostly strong, one meaningful gap that has a stable workaround." The gap (GPL dependency) has a trivial, stable workaround (replace with rapidfuzz or make optional). This is above the C+ disqualifying threshold.
+The supply chain gate passes. The single GPL-2.0 dependency (Levenshtein) is a convenience feature (fuzzy attribute name matching) replaceable with the MIT-licensed `rapidfuzz`. For internal-use deployments, GPL imposes no additional obligations. The bundled HiGHS solver under MIT license eliminates the common commercial-solver dependency concern.
 
 ---
 
-## 3b. FNM Ingestion Findings (Suite G)
-
-Suite G executed (FNM_PATH set). FNM findings are additive evidence and do not independently determine grades.
+## 4. FNM Ingestion Findings (Suite G)
 
 ### Data Model Fidelity
 
-**G-FNM-1: FAIL (psse_parse_error).** PyPSA has no PSS/E ingestion capability in any form. All six import methods expect PyPSA-native formats, PYPOWER PPC dictionaries, or pandapower networks. The intermediate CSV tables with PSS/E field names and semantics have no mapping path into PyPSA. This is a fundamental format gap attributed to Expressiveness (missing record type support, not scale).
+**G-FNM-1 (Intermediate Format Ingestion): FAIL** -- PyPSA v1.1.2 has no import method that accepts PSS/E v31 record types. The six available import methods (`import_from_csv_folder`, `import_from_pypower_ppc`, `import_from_pandapower_net`, `import_from_hdf5`, `import_from_netcdf`, `import_from_excel`) all expect tool-native formats. No PSS/E field translator or import adapter exists. ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_format_ingestion.md))
 
-**G-FNM-2: SKIP (blocked by G-FNM-1).** Field fidelity cannot be assessed without successful parsing.
+**G-FNM-2 (Field Fidelity): SKIP** -- Blocked by G-FNM-1. Field-level fidelity assessment requires successful PSS/E CSV parsing. The MATPOWER fallback path inherently loses PSS/E-specific fields (83-column transformer records, switched shunts, FACTS, multi-terminal DC). ([G-FNM-2](fnm_ingestion/G-FNM-2_field_fidelity.md))
 
 ### Power Flow Verification
 
-**G-FNM-3: PASS.** Via shared `matpower_loader.load_pypsa()` (MATPOWER fallback with branch status, transformer susceptance, and gencost patches), PyPSA solved DCPF on 27,862 buses in 31.3s with **zero deviation** from the MATPOWER reference — 100% of buses and 100% of branches match exactly. The original run (without the shared loader) failed with 91% bus angle failures due to `import_from_pypower_ppc` ignoring MATPOWER's `BR_STATUS` column, which caused 74 inactive branches to participate in the DCPF. The shared loader's branch status patch corrects this, and both tools use identical DCPF formulations (`b = 1/(x*tap)`).
+**G-FNM-3 (DCPF Verification): PASS** -- 100% of buses (27,862) and 100% of branches (32,532) pass all tolerance thresholds via MATPOWER fallback path. Max bus angle deviation: 1.07e-08 degrees. Max branch flow deviation: 5.76e-07%. Bus injection power balance verified on all buses (max mismatch: 1.32e-07 MW). The shared `matpower_loader.load_pypsa()` addresses the `import_from_pypower_ppc` branch status bug that caused the original v10 G-FNM-3 failure. Solve time: 40.1s, peak memory: 16,289 MB. ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
 
-**G-FNM-4: INFORMATIONAL (ACPF infeasible).** PyPSA's Newton-Raphson solver encountered a SuperLU factorization failure at all relaxation levels on the FNM, consistent with MATPOWER 8.1's failure on the same network. The FNM planning model lacks a feasible AC operating point at full load. Neither tool converges.
+**G-FNM-4 (ACPF Convergence): INFORMATIONAL** -- PyPSA's Newton-Raphson ACPF did not converge at any relaxation level (0%, 10%, 20%) on the 27,862-bus FNM. SuperLU factorization failure at all levels. Consistent with MATPOWER 8.1's failure on the same network. The FNM planning model lacks a feasible AC operating point at full load. PyPSA's ACPF solver offers fewer recovery options than MATPOWER (no continuation PF, no fast-decoupled variants). [solver-specific: SuperLU factorization on ill-conditioned admittance matrix] ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
 
 ### Supplemental Data Representability
 
-**G-FNM-5: INFORMATIONAL.** PyPSA achieves 20.5% native, 61.6% extension-representable, and 17.8% tool-external across 73 supplemental CSV fields. The high extension-representability reflects PyPSA's flexible DataFrame architecture -- custom columns persist on component DataFrames. However, extension-classified fields (contingencies, interfaces, trading hubs) require 50-100 lines of custom code each. OUTAGE schedule data and generator distribution factors are universally external across all tools.
+**G-FNM-5: 34% Native / 23% Extension / 43% External** across the standardized 44-field set. PyPSA achieves 57% in-model representability (N+E). Extension mechanism empirically verified: custom columns on component DataFrames persist correctly. The highest extension potential is in CONTINGENCY (50% E via extra_functionality + BODF) and INTERFACE (100% E via PTDF constraints). Market-layer concepts (hub types, outage schedules, participation factors) are external to all power flow tools. ([G-FNM-5](fnm_ingestion/G-FNM-5_supplemental_csv_representability.md))
+
+### FNM Evidence Integration
+
+- **Expressiveness:** The G-FNM-1 failure (no PSS/E parsing) is a format gap, not an expressiveness limitation. G-FNM-3's machine-precision DCPF match confirms PyPSA's formulation correctness on large networks (27,862 buses). G-FNM-4's ACPF non-convergence is consistent with MATPOWER and reflects network characteristics, not a tool deficiency.
+- **Extensibility:** G-FNM-5's 23% extension-representable rate demonstrates that PyPSA's DataFrame-centric architecture enables supplemental data storage, though semantic interpretation requires custom code.
+- **Scalability:** G-FNM-3 demonstrates DCPF scaling to LARGE (27,862 buses) in 40s with 16 GB memory. Memory overhead is notable (16 GB for a sparse linear solve on ~28k buses).
 
 ---
 
-## 4. Cross-Cutting Observations
+## 5. Cross-Cutting Observations
 
 ### API Friction Patterns
 
-- **Shadow price assignment bug:** After `n.optimize()`, branch constraint duals (`n.lines_t.mu_upper/mu_lower`) are empty despite solver computing them. Bus-level LMPs are correctly populated. Workaround via `n.model.constraints[name].dual` is available but fragile (depends on internal naming). Observed in A-3 and A-12. (severity: medium)
-- **No fix_commitment() convenience API:** Two-stage UC/ED requires manual p_min_pu/p_max_pu bound manipulation (~15 LOC). Standard pattern but undocumented. (severity: low)
-- **SCOPF transformer exclusion:** `optimize_security_constrained()` silently rejects transformer names from `branch_outages` without explaining the limitation in docs. (severity: low)
-- **No PSS/E ingestion path:** All six import methods expect tool-native or PYPOWER formats. Users with PSS/E data face a mandatory external conversion step. (severity: high)
-- **No MIP gap extraction API:** When HiGHS hits time limit, the MIP gap is only visible in console output, not queryable via API. (severity: low)
+- **Shadow price assignment gap (medium):** `n.lines_t.mu_upper`/`mu_lower` empty after `optimize()` in v1.1.2. Must extract from linopy constraint duals. Affects A-3, A-12. (observations: api-friction A-3, A-12)
+- **Transformer `b` field dual semantics (medium):** Series susceptance for DCPF vs shunt susceptance for ACPF. Undocumented. Causes silent ACPF divergence when using DC-oriented loader. (observations: api-friction A-2, convergence-quality A-11)
+- **No `fix_commitment()` method (medium):** Two-stage UC/ED requires manual bound manipulation (~20 LOC boilerplate). (observation: api-friction A-6)
+- **SCOPF transformer exclusion (medium):** `branch_outages` accepts Lines only. (observation: api-friction A-9)
+- **Linopy model building overhead (medium):** 98% of MEDIUM DC OPF wall-clock is model construction, not solving. (observation: api-friction C-3)
+- **No MIP gap API access (low):** Termination gap only available in solver console log. (observation: api-friction C-4)
+- **PSS/E format gap (high):** No ingestion path for PSS/E data in any form. (observation: api-friction G-FNM-1)
+- **Positive: Storage API (low friction):** StorageUnit with cyclic SoC is well-designed and intuitive. (observation: api-friction A-12, positive)
+- **Positive: DataFrame export (zero friction):** Results are pandas DataFrames natively. (observation: api-friction B-5, positive)
 
 ### Documentation Gaps
 
-- Transformer `b` field dual semantics (DC series susceptance vs AC shunt susceptance) not documented; causes silent ACPF divergence with DC-oriented loaders
-- PTDF column ordering (`sub_network.buses_o`, not `n.buses.index`) not documented
-- SubNetwork/mixin architecture and advanced methods (`calculate_PTDF`, `calculate_BODF`, `calculate_B_H`) require source-reading
-- SCIP solver installation gap in devcontainer (environment issue)
+- Transformer `b` field semantics (DC vs AC) not documented
+- Branch shadow price extraction via linopy not shown in examples
+- PTDF column ordering (`sn.buses_o` not `n.buses.index`) requires source reading
+- Mixin architecture and SubNetwork-level methods undocumented in user guide
+- SCOPF transformer restriction not mentioned in API docs
+- Two-stage UC/ED workflow not covered in any example
 
 ### Solver Ecosystem
 
-- **HiGHS (MIT):** Primary solver, bundled, handles LP/MILP/QP. Scalability ceiling at 544-generator 24hr SCUC single-threaded. Root LP relaxation alone exhausts 600s budget.
-- **GLPK (GPL):** Available as secondary LP/MILP solver; slower than HiGHS on larger problems.
-- **SCIP:** Listed in devcontainer but not actually installed. PyPSA supports it via linopy.
-- **Ipopt:** Not in the OPF path; PyPSA uses internal NR for ACPF, not Ipopt as an NLP solver. AC OPF uses iterative LOPF+PF, not direct NLP.
-- **Positive finding:** PyPSA's internal NR solver converges robustly on SMALL (2k) and MEDIUM (10k) networks for ACPF with 4-5 iterations.
+- **HiGHS LP performance:** Solves MEDIUM DC OPF in 6.2s. Strong LP performance. [solver-specific]
+- **HiGHS MILP scalability wall:** Root LP of SMALL SCUC takes >600s single-threaded, ~1,230s with 32 threads. 1.63% MIP gap at timeout. [solver-specific]
+- **HiGHS simplex non-parallel:** Dual simplex does not benefit from multi-threading (0.92x on SCOPF). IPM would parallelize but is not the default. [solver-specific]
+- **GLPK 14x slower than HiGHS:** On MEDIUM DC OPF, GLPK LP solve takes 117s vs HiGHS 6.2s. Identical solutions. [solver-specific]
+- **SCIP not installed:** Environment configuration issue, not a PyPSA limitation. [environment issue]
+- **Solver swap is seamless:** Single `solver_name` parameter change, no reformulation needed. [tool-specific, positive]
 
 ### Architecture Quality
 
-- Clean 4-layer architecture: User API -> Mixin Dispatch -> SubNetwork Computation -> Linear Algebra Backend
-- 8 mixin classes compose the Network object with single-concern separation
-- OPF path has explicit model-build/solve separation via linopy (`create_model()` / `solve_model()`)
-- DataFrame-native data model eliminates impedance mismatch between internal state and export format
-- 5 documented injection points for extending behavior
-- DCPF solver (scipy.sparse) hardcoded -- not swappable
+- Clean 4-layer architecture with explicit model-build/solve separation for OPF
+- 8-mixin class composition with 5 documented injection points
+- DataFrame-native data model provides zero-impedance interoperability
+- NetworkX graph bridge enables immediate access to graph algorithm library
+- OPF formulation via linopy provides solver abstraction layer
+- DCPF solver (scipy.sparse) is hardcoded -- no parameter to swap
 
 ### FNM Data Model
 
-- DCPF on 27,862-bus FNM produces zero deviation from MATPOWER reference when using shared `matpower_loader.load_pypsa()` (patches `import_from_pypower_ppc` branch status bug)
-- `import_from_pypower_ppc` ignores MATPOWER BR_STATUS column — 74 inactive branches treated as active without the loader patch
-- Both PyPSA and MATPOWER use identical DCPF formulations (`b = 1/(x*tap)` via `makeBdc.m` / `calculate_B_H`)
-- Extension mechanism (custom DataFrame columns) empirically verified for supplemental data storage
-- 82% in-model representability for supplemental CSVs; only OUTAGE scheduling data and market settlement constructs are universally external
+- `import_from_pypower_ppc` ignores MATPOWER branch status -- shared loader patches this deterministically
+- No formulation difference from MATPOWER for DCPF when branch status is correctly handled
+- PyPSA DCPF matches MATPOWER at float64 machine precision on the 27,862-bus FNM
+- 57% in-model supplemental CSV representability (34% N + 23% E) via DataFrame custom columns
 
 ---
 
-## 5. Items Requiring Human Spot-Check
+## 6. Items Requiring Human Spot-Check
 
-- [ ] **A-6 (SCED) qualified_pass** -- The two-stage UC/ED workflow uses only documented API (`generators_t.p_min_pu/p_max_pu`), but the lack of a `fix_commitment()` method means the pattern is "standard but undocumented." Verify whether this constitutes a workaround or an expected usage pattern.
-- [ ] **A-11 (distributed slack) qualified_pass** -- Classified as "blocking" because DC OPF uses flow variables without bus angle variables. Verify whether PyPSA's flow-based formulation is architecturally incompatible with distributed slack, or whether an `extra_functionality` workaround could approximate it via reference-bus-weighted energy pricing.
-- [ ] **A-12 shadow price workaround classified as "fragile"** -- The workaround accesses `n.model.constraints['Line-fix-s-upper'].dual` using internal linopy constraint naming. Verify whether this naming convention is part of linopy's public contract or an implementation detail.
-- [ ] **F-3 (GPL Levenshtein) qualified_pass** -- The Levenshtein package is a direct dependency but is used only for UX (fuzzy attribute name matching). Verify whether internal-use-only deployment eliminates the GPL concern, and whether the `rapidfuzz` replacement path is tested.
-- [ ] **Scalability grade (C+) vs potential B-** -- The C-4 failure is solver-bound (HiGHS single-threaded), not a PyPSA architectural limitation. Multi-threaded solving or Gurobi/CPLEX would likely resolve it. Determine whether the grade should reflect the tool's architecture (which is sound) or the tested configuration (which failed).
-- [x] **G-FNM-3 DCPF deviation resolved** -- Root cause identified: `import_from_pypower_ppc` ignores MATPOWER BR_STATUS column, including 74 inactive branches in the DCPF. Shared `matpower_loader.load_pypsa()` branch status patch fixes this, producing 0.0 deviation. No spot-check needed.
+- [ ] **A-6 qualified_pass** -- The `fix_commitment()` workaround uses documented public API but involves non-obvious manual bound manipulation. Verify the "stable" classification is appropriate.
+- [ ] **A-12 qualified_pass** -- Shadow price extraction via `n.model.constraints['Line-fix-s-upper'].dual` depends on linopy internal constraint naming. Verify "fragile" classification.
+- [ ] **A-11 distributed slack OPF** -- Partial pass based on PF-context availability but OPF-context impossibility. Verify this correctly reflects the protocol's pass conditions.
+- [ ] **C-4 constrained_pass** -- SCUC achieved 1.63% MIP gap (target: 1%) with 78 cycling generators. Verify that the 1.63% gap and 32-thread requirement justify constrained rather than fail.
+- [ ] **C-10 cascaded from A-11** -- Confirm that the C-10 partial_pass is correctly attributed as cascaded (not independent).
+- [ ] **F-3 GPL dependency** -- Levenshtein (GPL-2.0-or-later) is a direct dependency used for UX fuzzy matching. Verify the "qualified_pass" classification given the internal-use mitigation and `rapidfuzz` (MIT) replacement path.
+- [ ] **G-FNM-3 MATPOWER fallback path** -- DCPF 100% match achieved via shared loader patches (branch status, transformer susceptance). Verify that the loader workaround (stable) is appropriately credited rather than treated as a native capability.
+- [ ] **Solver-vs-tool attribution for linopy overhead** -- The 302s linopy model-building overhead on MEDIUM DC OPF is classified as [tool-specific]. Verify this is correct (linopy is integral to PyPSA, not an external solver).
+- [ ] **HiGHS MILP single-threaded limitation** -- Classified as [solver-specific]. Verify this attribution given that PyPSA bundles HiGHS as its default/only solver and does not offer parallel MILP alternatives.
 
 ---
 
-## 6. Methodology Notes
+## 7. Methodology Notes
 
-- **Scale cap:** MEDIUM (all gate tests G-1, G-2, G-3 passed)
-- **FNM status:** Suite G executed (FNM_PATH set). G-FNM-1 failed (no PSS/E ingestion); G-FNM-3 through G-FNM-5 executed via MATPOWER fallback.
-- **Tests skipped and reason:** G-FNM-2 blocked by G-FNM-1. C-1, C-2, C-3, C-7, C-8, C-9, C-10 blocked by C-SMALL-gate (C-4 failure).
-- **Solver versions:** HiGHS 1.13.1 (via highspy, MIT), GLPK (via system package, GPL), SCIP (not installed)
-- **Tool version:** PyPSA 1.1.2 (released 2026-02-23)
-- **Protocol version:** v10
-- **Skill version:** v1
-- **Devcontainer environment:** Ubuntu 24.04, Python 3.12, uv-managed
-- **Total tests executed:** 33 (10 Suite A + 8 Suite B + 10 Suite C + 5 Suite D + 7 Suite E + 9 Suite F + 5 Suite G + 3 P2 + 3 Gate). Of these: 23 pass, 2 qualified_pass, 2 fail, 8 skip, 5 informational.
+- **Scale cap applied:** MEDIUM -- All three gate tests (G-1, G-2, G-3) passed. TINY (39 buses), SMALL (2,000 buses), and MEDIUM (10,000 buses) networks all ingested successfully.
+- **FNM status:** Suite G partially executed. G-FNM-1 failed (no PSS/E parsing). G-FNM-2 skipped (blocked by G-FNM-1). G-FNM-3 through G-FNM-5 executed via MATPOWER fallback path.
+- **Tests skipped:** G-FNM-2 (blocked by G-FNM-1). SCIP solver comparison in C-4 and C-7 (SCIP not installed in devcontainer).
+- **Solver versions:** HiGHS 1.13.1, GLPK 5.0, Ipopt (via Pyomo, available but not primary). SCIP not installed.
+- **Tool version:** PyPSA 1.1.2 with linopy 0.6.4
+- **Python version:** 3.12
+- **Devcontainer environment:** Ubuntu 24.04 + Python 3.12 + Julia 1.10 + Octave + uv

@@ -156,18 +156,49 @@ Linopy is PyPSA's own companion project ([github.com/PyPSA/linopy](https://githu
 
 **Source:** [Custom Constraints docs](https://docs.pypsa.org/latest/user-guide/optimization/custom-constraints/); [Optimization with Linopy example](https://docs.pypsa.org/v0.27.1/examples/optimization-with-linopy.html).
 
-### 2.4 Custom Components — Limited Support
+### 2.4 Custom Components — Partial Support
 
-**This is a known gap.** Before PyPSA v0.25, there was an example for defining custom components (a combined heat-and-power link). After the switch from `lopf` to the linopy-based `optimize`, this example was removed and the capability became unsupported.
+Custom component support has evolved significantly. In v1.1.2, the `pypsa.components.types.add_component_type()` function allows registering new component types at the package level:
 
-GitHub issue [#856](https://github.com/PyPSA/PyPSA/issues/856) (opened 2025-02-17, still open) requests a template/guideline for custom components compatible with linopy. The PyPSA team recommends:
+```python
+import pypsa.components.types
+defaults_df = pd.DataFrame({
+    "attribute": ["name", "attribute_a"],
+    "type": ["string", "float"],
+    "unit": ["n/a", "n/a"],
+    "default": ["n/a", 1],
+    "description": ["Unique name", "Some custom attribute"],
+    "status": ["Input (required)", "Input (optional)"],
+})
+pypsa.components.types.add_component_type(
+    name="CustomComponent",
+    list_name="custom_components",
+    description="A custom component example",
+    category="custom",
+    defaults_df=defaults_df,
+)
+```
 
-- Use existing component types (Generator, Link, Store) with custom attributes and carrier-based filtering rather than defining new component types.
-- Add custom constraints via `extra_functionality` for subsets of existing components (e.g., "all links with carrier='heat_pump'").
+**However**, this only registers the component type for data storage. Custom components do **not** automatically participate in the optimization pipeline, because `create_model` iterates over a fixed lookup table (`data/variables.csv`) that maps component/attribute pairs to variable and constraint definitions. A custom component would need manual variable/constraint definition via `extra_functionality`.
 
-The internal `create_model` method iterates over a fixed lookup table (`data/variables.csv`) to decide which components get variables/constraints. Custom components would need to be registered in this lookup to participate in the standard optimization pipeline.
+GitHub issue [#856](https://github.com/PyPSA/PyPSA/issues/856) (still open as of 2026-03) requests better documentation and integration. A PyPSA core developer (FabianHofmann) proposed a **subclassing pattern** as the recommended approach:
 
-**Source:** [GitHub issue #856](https://github.com/PyPSA/PyPSA/issues/856); [PR #1075](https://github.com/PyPSA/PyPSA/pull/1075) introduced the new component class system.
+```python
+class MyOptimizationAccessor(pypsa.optimization.optimize.OptimizationAccessor):
+    def __call__(self, *args, **kwargs):
+        # Inject custom extra_functionality that handles custom component logic
+        kwargs = patch_extra_functionality(kwargs)
+        return super().__call__(*args, **kwargs)
+
+class MyNetwork(pypsa.Network):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.optimize = MyOptimizationAccessor(self)
+```
+
+This pattern composes custom optimization logic with user-provided `extra_functionality`, allowing custom component variables/constraints to be added transparently.
+
+**Source:** `pypsa/components/types.py` lines 33–130; [GitHub issue #856](https://github.com/PyPSA/PyPSA/issues/856) (includes subclass pattern); [PR #1075](https://github.com/PyPSA/PyPSA/pull/1075) introduced the new component class system.
 
 ### 2.5 Custom Statistics Groupers
 
@@ -371,7 +402,7 @@ The linopy Model is the primary extension surface for adding custom optimization
 ### What Is Missing or Limited
 
 1. **No plugin/hook architecture.** There is exactly one extension hook (`extra_functionality`), and it only applies to optimization. No hooks exist for power flow, clustering, I/O, or consistency checking.
-2. **No custom component support** since v0.25. The ability to define new component types that participate in the optimization pipeline was removed and has not been restored ([#856](https://github.com/PyPSA/PyPSA/issues/856)).
+2. **Custom component support is partial.** `add_component_type()` registers new types for data storage, but they do not automatically participate in optimization. Custom variables/constraints must be added manually via `extra_functionality` or the subclassing pattern ([#856](https://github.com/PyPSA/PyPSA/issues/856)).
 3. **No event/signal system.** There is no way to subscribe to lifecycle events (model created, solve started, component added, etc.).
 4. **pandapower import is beta quality**, with known unsupported features and runtime warnings.
 5. **No Graphs.jl interoperability** — Python-only; indirect exchange via file formats is the only option.
@@ -395,6 +426,7 @@ The linopy Model is the primary extension surface for adding custom optimization
 - [Import/Export Guide](https://docs.pypsa.org/v1.0.2/user-guide/import-export/)
 - [GitHub Issue #856 — Custom Components](https://github.com/PyPSA/PyPSA/issues/856)
 - [GitHub PR #1075 — Component Class](https://github.com/PyPSA/PyPSA/pull/1075)
+- [`add_component_type` source](pypsa/components/types.py lines 33–130)
 - [linopy Repository](https://github.com/PyPSA/linopy)
 - [Optimization with Linopy Example](https://docs.pypsa.org/v0.27.1/examples/optimization-with-linopy.html)
 - [PyPSA Releases](https://github.com/PyPSA/PyPSA/releases)
