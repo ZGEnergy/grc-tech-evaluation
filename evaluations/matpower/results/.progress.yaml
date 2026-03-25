@@ -3,10 +3,11 @@ tool: matpower
 skill_version: v2
 protocol_version: "v11"
 run_mode: fresh
-completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
-current_state: COMMIT
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE, COMMIT]
+current_state: DONE
 scale_cap: MEDIUM
-timestamp: "2026-03-24T17:15:00Z"
+pr_url: https://github.com/ZGEnergy/grc-tech-evaluation/pull/109
+timestamp: "2026-03-24T20:00:00Z"
 fnm_available: true
 skipped_tests: []
 stale_tests: []
