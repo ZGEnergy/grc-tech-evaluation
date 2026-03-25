@@ -268,7 +268,7 @@ Source: `lib/mpoption.m`
 | Package | Purpose | Key Function |
 |---------|---------|-------------|
 | **MIPS** | MATPOWER Interior Point Solver; pure MATLAB/Octave NLP solver | `mips()`, `qps_mips()` |
-| **MP-Opt-Model** | Optimization modeling framework; solver abstraction layer; `have_feature` detection | `qps_matpower()`, `miqps_matpower()`, solver option translators |
+| **MP-Opt-Model** | Optimization modeling framework; unified solver abstraction layer for LP/MILP/QP/MIQP/NLP/NLE problems; runtime `have_feature` detection | `qps_master()` (LP/QP dispatch), `miqps_master()` (MILP/MIQP dispatch), `nlps_master()` (NLP dispatch), `nleqs_master()` (nonlinear equations dispatch), plus per-solver wrappers: `qps_glpk`, `qps_gurobi`, `qps_highs`, `qps_cplex`, `qps_mosek`, `qps_osqp`, `qps_clp`, `qps_ipopt`, `qps_knitro`, `miqps_glpk`, `miqps_gurobi`, `miqps_highs`, `miqps_cplex`, `miqps_mosek`, `nlps_ipopt`, `nlps_fmincon`, `nlps_knitro` |
 | **MP-Test** | Testing framework | `t_begin()`, `t_ok()`, `t_is()` |
 | **MOST** | Multi-period Optimal Scheduling Tool; SCUC/SCED | `most()` |
 
@@ -289,9 +289,17 @@ The `extras/` directory contains optional packages not loaded by default:
 - **Source code:** `evaluations/matpower/matpower8.1/lib/` -- all function headers read directly
 - **MATPOWER website:** https://matpower.org
 - **GitHub repository:** https://github.com/MATPOWER/matpower
+- **MATPOWER Reference Manual (8.1):** https://matpower.org/documentation/ref-manual/legacy/functions/runpf.html (and sibling pages for `runopf`, `rundcopf`, `runcpf`, `caseformat`, `mpoption`)
+- **MATPOWER Reference Manual index:** https://matpower.org/doc/ref-manual/
+- **Case format spec:** https://matpower.org/documentation/ref-manual/legacy/functions/caseformat.html
+- **MP-Opt-Model GitHub:** https://github.com/MATPOWER/mp-opt-model
+- **MOST GitHub:** https://github.com/MATPOWER/most
 - **Primary citation:** R. D. Zimmerman, C. E. Murillo-Sanchez, R. J. Thomas, "MATPOWER: Steady-State Operations, Planning and Analysis Tools for Power Systems Research and Education," IEEE Trans. Power Syst., vol. 26, no. 1, pp. 12-19, Feb. 2011. DOI: 10.1109/TPWRS.2010.2051168
 - **MATPOWER 8.1 DOI:** 10.5281/zenodo.15871662
-- **Docs directory:** `evaluations/matpower/matpower8.1/docs/` (PDF manual, technical notes, Sphinx source)
+- **Docs directory:** `evaluations/matpower/matpower8.1/docs/` -- MATPOWER-manual.pdf, TN1-TN5, MATPOWER-dev-guide.md
+- **MOST manual:** `evaluations/matpower/matpower8.1/most/docs/MOST-manual.pdf`
+- **MP-Opt-Model manual:** `evaluations/matpower/matpower8.1/mp-opt-model/docs/MP-Opt-Model-manual.pdf`
+- **MIPS manual:** `evaluations/matpower/matpower8.1/mips/docs/MIPS-manual.pdf`
 - **Install findings:** `evaluations/matpower/notes/install-findings.md`
 
 ## Gaps and Open Questions
@@ -300,9 +308,9 @@ The `extras/` directory contains optional packages not loaded by default:
 
 2. **New flexible framework documentation is incomplete.** The Sphinx-based reference manual for the new `run_pf`/`run_opf` framework states "the new web-based version of the User's Manual is not yet available" and refers users to the legacy PDF manual. The MP-Core class hierarchy is documented in the developer manual but not yet in a user-facing guide.
 
-3. **Three-phase / unbalanced power flow.** The GitHub README mentions "single-phase to three-phase conversion capabilities" but this was not found in the 8.1 source. It may be experimental or in-development.
+3. **Three-phase / unbalanced power flow is present but undocumented.** The MP-Core `+mp/` namespace contains extensive three-phase element classes (`dme_bus3p`, `dme_gen3p`, `dme_line3p`, `dme_load3p`, `dme_shunt3p`, `dme_xfmr3p` with corresponding network model, math model, and converter classes -- ~39 files total). There is also an `xt_3p` extension class and a `convert_1p_to_3p_ex1.mlx` example. However, no user-facing documentation, manual section, or function-header examples were found for this feature in 8.1. It appears to be a new capability in the flexible framework without a legacy API equivalent.
 
-4. **MOST documentation.** The MOST sub-package has its own manual (referenced but not found as a standalone file in the distribution). The `mdi` input struct for `most()` is complex and not fully documented in function headers -- the manual is required.
+4. **MOST documentation.** The MOST sub-package has its own PDF manual at `most/docs/MOST-manual.pdf`. The `mdi` input struct for `most()` is complex and not fully documented in function headers -- the manual is required. MOST's network modeling is limited to DC power flow; the general formulation supports AC but the current implementation does not.
 
 5. **No native Python/Julia bindings.** MATPOWER is MATLAB/Octave only. Third-party wrappers exist (e.g., `matpower` PyPI package uses Oct2Py bridge) but are not part of the official distribution.
 

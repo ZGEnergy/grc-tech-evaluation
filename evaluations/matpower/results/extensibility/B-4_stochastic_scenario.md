@@ -3,20 +3,26 @@ test_id: B-4
 tool: matpower
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: "341fbe16"
 status: pass
-workaround_class: stable
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 7.73
+wall_clock_seconds: 36.04
 timing_source: measured
-peak_memory_mb: 1.83
+peak_memory_mb: 1.77
 convergence_residual: null
 convergence_iterations: null
-loc: 280
+convergence_evidence_quality: null
+loc: 281
 solver: GLPK
-timestamp: 2026-03-13T00:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-4: Generate 20 scenarios, solve 12hr multi-period DCOPF for each, collect results
@@ -32,7 +38,7 @@ Implemented a per-period `rundcopf` loop over 20 scenarios x 12 hours (240 total
 3. **Scenario multipliers** from `scenario_multipliers_50x24.csv` applied to wind/solar forecast profiles to compute per-scenario PMAX values
 4. **Differentiated costs** from `gen_temporal_params.csv` (hydro $5, nuclear $10, coal $25, gas $40) as linear cost curves
 
-Solver: GLPK (HiGHS unavailable in Octave devcontainer; GLPK handles LP with user constraints reliably).
+Solver: GLPK [solver-specific: HiGHS unavailable in Octave devcontainer; GLPK handles LP reliably].
 
 The approach uses a simple double-loop (scenarios x hours) calling `rundcopf` per period. MOST supports stochastic scenarios natively via its `mdi` struct with `mdi.tstep`, `mdi.profiles`, and `mdi.cont` fields, but the per-period loop is simpler, demonstrates the API's flexibility for custom scenario workflows, and avoids MOST's complex setup requirements.
 
@@ -44,10 +50,10 @@ All 240 solves converged (100% success rate).
 |--------|-------|
 | Total solves | 240 |
 | Successful | 240 (100%) |
-| Total solve time | 7.63 s |
-| Mean per-scenario time | 0.381 s |
-| Mean per-solve time | 0.032 s |
-| LMP range across scenarios | 14.95 $/MWh |
+| Total solve time | 35.50 s |
+| Mean per-scenario time | 1.775 s |
+| Mean per-solve time | 0.148 s |
+| LMP range across scenarios | 38.90 $/MWh [5.00, 43.90] |
 
 **Hourly statistics across 20 scenarios:**
 
@@ -59,28 +65,27 @@ All 240 solves converged (100% success rate).
 | 4 | 34,180 | 210 | 9.87 |
 | 5 | 34,668 | 295 | 10.47 |
 | 6 | 39,259 | 389 | 21.92 |
-| 7 | 48,652 | 356 | 21.92 |
-| 8 | 55,332 | 382 | 24.82 |
-| 9 | 60,130 | 262 | 24.82 |
-| 10 | 65,210 | 353 | 24.82 |
-| 11 | 68,517 | 204 | 24.82 |
-| 12 | 70,555 | 173 | 24.82 |
+| 7 | 47,819 | 249 | 21.92 |
+| 8 | 52,641 | 217 | 21.92 |
+| 9 | 54,907 | 471 | 24.82 |
+| 10 | 57,337 | 958 | 24.82 |
+| 11 | 58,065 | 1,041 | 24.82 |
+| 12 | 61,506 | 1,217 | 24.82 |
 
-Objective standard deviations of $173-$519 across scenarios demonstrate stochastic differentiation driven by renewable output variation. LMP variation is concentrated in hour 5 (Std LMP = 2.69) where the load-renewable balance is marginal.
+Objective standard deviations of $210-$1,217 across scenarios demonstrate stochastic differentiation driven by renewable output variation. Std increases in hours 9-12 as load rises and renewable uncertainty has greater impact on the dispatch cost.
 
 ## Workarounds
 
-- **What:** Used per-period `rundcopf` loop instead of MOST multi-period framework. Also used GLPK with linear costs instead of HiGHS with quadratic costs.
-- **Why:** MOST requires complex `mdi` struct setup with specific field conventions (profiles, contingencies, storage arrays). The per-period loop is more representative of how an analyst would script a custom scenario study. HiGHS is unavailable in the Octave devcontainer; GLPK cannot handle QP.
-- **Durability:** stable -- `rundcopf` is a core documented function. Modifying `mpc.bus(:, PD)` and `mpc.gen(:, PMAX)` between solves is the standard MATPOWER workflow. No internal APIs used.
-- **Grade impact:** Minimal. The per-period loop demonstrates that MATPOWER accepts timeseries inputs programmatically with no friction. MOST provides native multi-period support as an alternative path.
+None required. The per-period `rundcopf` loop is the standard documented MATPOWER workflow for scenario analysis. Modifying `mpc.bus(:, PD)` and `mpc.gen(:, PMAX)` between solves uses only public API. MOST provides a native multi-period alternative via its `mdi` struct, but the loop approach is the idiomatic pattern for custom scenario studies.
+
+**Solver note:** GLPK was used instead of HiGHS [solver-specific: HiGHS unavailable in Octave devcontainer]. GLPK handles LP (linear costs) reliably. This does not affect the extensibility assessment.
 
 ## Timing
 
-- **Wall-clock:** 7.73 s (total including I/O)
+- **Wall-clock:** 36.04 s (total including I/O and data loading)
 - **Timing source:** measured
-- **Peak memory:** 1.83 MB (Octave process VmHWM)
-- **Solve time:** 7.63 s for 240 solves (0.032 s per solve)
+- **Peak memory:** 1.77 MB (Octave process VmHWM)
+- **Solve time:** 35.50 s for 240 solves (0.148 s per solve)
 
 ## Test Script
 
@@ -91,10 +96,10 @@ Key API pattern for programmatic timeseries input:
 for s = 1:n_scenarios
     for h = 1:n_hours
         mpc_h = mpc_base;
-        mpc_h.bus(bus_idx, PD) = load_profiles(lb, h);      % hourly load
-        mpc_h.gen(ren_idx, PMAX) = scenario_output;          % scenario renewable
-        results_h = rundcopf(mpc_h, mpopt);                  % solve
-        all_objectives(s, h) = results_h.f;                  % collect
+        mpc_h.bus(bus_row, PD) = load_profiles(lb, h);       % hourly load
+        mpc_h.gen(gen_idx, PMAX) = max(0, scenario_output);   % scenario renewable
+        results_h = rundcopf(mpc_h, mpopt);                   % solve
+        all_objectives(s, h) = results_h.f;                   % collect
     end
 end
 ```

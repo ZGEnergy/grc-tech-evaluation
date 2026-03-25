@@ -3,9 +3,9 @@ test_id: A-3
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "423cefe3"
+protocol_version: "v11"
+skill_version: v2
+test_hash: "a17e7652"
 status: pass
 workaround_class: null
 blocked_by: null
