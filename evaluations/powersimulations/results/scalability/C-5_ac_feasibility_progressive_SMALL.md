@@ -3,24 +3,27 @@ test_id: C-5
 tool: powersimulations
 dimension: scalability
 network: SMALL
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "878fdc60"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "bb82f193"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.740
+wall_clock_seconds: 0.156
 timing_source: measured
-peak_memory_mb: 1134.5
+peak_memory_mb: 1162.9
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: binary_convergence_api
 relaxation_level_achieved: "0% (nominal)"
-loc: 257
-solver: PowerFlows.jl (built-in NR)
-timestamp: "2026-03-14T00:00:00Z"
+loc: 271
+solver: "PowerFlows.jl (built-in NR)"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# C-5: AC Feasibility — Progressive Relaxation on SMALL
+# C-5: AC Feasibility -- Progressive Relaxation on SMALL
 
 ## Result: PASS
 
@@ -31,15 +34,18 @@ limit relaxation (0%, 10%, 20%). The protocol calls for DCPF warm-start followed
 attempts at each relaxation level.
 
 **DCPF warm-start:** Solved `DCPowerFlow()` to obtain bus voltage angles. Set all voltage
-magnitudes to 1.0 pu (DCPF doesn't produce magnitudes). Angles ranged from -35.34 to +41.73
+magnitudes to 1.0 pu (DCPF does not produce magnitudes). Angles ranged from -35.34 to +41.73
 degrees.
 
 **Progressive relaxation:** For each relaxation level (0%, 10%, 20%), loaded a fresh system,
-applied DCPF warm-start angles, optionally relaxed branch thermal limits by the specified
-factor, then attempted `ACPowerFlow()`.
+applied DCPF warm-start angles via `set_angle!` on each bus, optionally relaxed branch thermal
+limits by the specified factor via `set_rating!`, then attempted `ACPowerFlow()`.
 
-**Solver:** PowerFlows.jl's built-in Newton-Raphson (no Ipopt needed for ACPF). Ipopt would
-be needed for AC OPF, not for AC power flow.
+**Solver:** PowerFlows.jl v0.9.0 built-in Newton-Raphson solver. Ipopt is not needed for ACPF
+(only for AC OPF). Newton-Raphson is single-threaded.
+
+**JIT handling:** A warm-up ACPF solve was run before the timed attempts to compile all relevant
+Julia methods. Timed attempts exclude JIT compilation overhead.
 
 ## Output
 
@@ -47,21 +53,21 @@ be needed for AC OPF, not for AC power flow.
 
 | Metric | Value |
 |--------|-------|
-| DCPF solve time | 2.13 s |
+| DCPF solve time | 2.09 s |
 | Angle range | -35.34 to +41.73 degrees |
 
 ### Progressive Relaxation Results
 
-| Relaxation | Converged | Wall-clock | Buses | Branches | VM range | Violations |
-|------------|-----------|------------|-------|----------|----------|------------|
-| 0% (nominal) | Yes | 0.74 s | 2000 | 3206 | 0.9362 - 1.0161 pu | 58 under-voltage |
-| 10% | Yes | 0.049 s | 2000 | 3206 | 0.9362 - 1.0161 pu | 58 under-voltage |
-| 20% | Yes | 0.049 s | 2000 | 3206 | 0.9362 - 1.0161 pu | 58 under-voltage |
+| Relaxation | Converged | Wall-clock (s) | Buses | Branches | VM range (pu) | Under-voltage violations |
+|------------|-----------|----------------|-------|----------|---------------|--------------------------|
+| 0% (nominal) | Yes | 0.049 | 2000 | 3206 | 0.9362 - 1.0161 | 58 buses < 0.95 pu |
+| 10% | Yes | 0.057 | 2000 | 3206 | 0.9362 - 1.0161 | 58 buses < 0.95 pu |
+| 20% | Yes | 0.050 | 2000 | 3206 | 0.9362 - 1.0161 | 58 buses < 0.95 pu |
 
-**Key finding:** ACPF converges at **0% relaxation (nominal thermal limits)** on SMALL.
-No progressive relaxation was needed. All three relaxation levels converge to the same
-voltage profile, which is expected since thermal limit relaxation only affects OPF branch
-constraints, not the power flow equations themselves.
+**Key finding:** ACPF converges at **0% relaxation (nominal thermal limits)** on SMALL with
+DCPF warm-start. No progressive relaxation was needed. All three relaxation levels converge
+to the identical voltage profile, which is expected since thermal limit relaxation affects OPF
+branch flow constraints, not the Newton-Raphson power balance equations.
 
 ### Voltage Profile
 
@@ -80,12 +86,17 @@ indicating real reactive power flow computation. The 58 under-voltage buses sugg
 has areas with insufficient reactive support, a realistic characteristic of the ACTIVSg 2k
 test case.
 
-### Timing Notes
+### Convergence Evidence
 
-The first ACPF attempt (0% relaxation) takes 0.74s while subsequent attempts take ~0.05s.
-This is due to Julia JIT compilation on the first call. The test used a fresh system load
-for each attempt to avoid state contamination, but the JIT compilation was already cached
-from the first call.
+Convergence is verified via `binary_convergence_api` tier: `solve_powerflow(ACPowerFlow(), sys)`
+returns `nothing` on failure and a `Dict{String, DataFrame}` on success. The non-nothing
+return confirms convergence. Additionally, 80% of bus voltage magnitudes differ from the
+flat-start value of 1.0 pu, satisfying the proxy_voltage cross-check.
+
+PowerFlows.jl v0.9.0 does not expose the Newton-Raphson residual in its return value (see
+[convergence-quality observation](../observations/convergence-quality-expressiveness-A-2_acpf.md)
+from A-2). Iteration count is available via Julia `@info` log capture but was not captured
+in this run to keep timing clean.
 
 ## Workarounds
 
@@ -93,14 +104,16 @@ None required.
 
 ## Timing
 
-- **Wall-clock (ACPF, 0% relaxation):** 0.74 s (first call, includes JIT)
-- **Wall-clock (ACPF, 10% relaxation):** 0.049 s (JIT cached)
-- **Wall-clock (ACPF, 20% relaxation):** 0.048 s (JIT cached)
-- **Wall-clock (DCPF warm-start):** 2.13 s
-- **Wall-clock (total):** 15.1 s (includes 3x system loading)
+- **Wall-clock (ACPF, 0% relaxation):** 0.049 s (after JIT warm-up)
+- **Wall-clock (ACPF, 10% relaxation):** 0.057 s
+- **Wall-clock (ACPF, 20% relaxation):** 0.050 s
+- **Wall-clock (sum of three ACPF attempts):** 0.156 s
+- **Wall-clock (DCPF warm-start):** 2.094 s
+- **Wall-clock (total including system loads):** 15.9 s
 - **Timing source:** measured
-- **Peak memory:** 1,134.5 MB (Julia process RSS)
-- **CPU cores used:** 1 (32 available)
+- **Peak memory:** 1,162.9 MB (Julia process RSS)
+- **CPU threads used:** 1 (NR is single-threaded)
+- **CPU threads available:** 32
 
 ## Test Script
 
@@ -110,7 +123,6 @@ Key API pattern:
 ```julia
 # DCPF warm-start
 dcpf_result = solve_powerflow(DCPowerFlow(), sys)
-# Note: returns Dict{Union{Char,String}, Dict{String, DataFrame}} with period key "1"
 dcpf_bus_df = dcpf_result["1"]["bus_results"]
 
 # Apply warm-start angles to fresh system
@@ -124,7 +136,7 @@ for row in eachrow(dcpf_bus_df)
     end
 end
 
-# ACPF — returns Dict{String, DataFrame} (flat, not nested like DCPF)
+# ACPF — returns Dict{String, DataFrame} on success, nothing on failure
 pf_result = solve_powerflow(ACPowerFlow(), sys)
 ```
 
@@ -132,7 +144,6 @@ pf_result = solve_powerflow(ACPowerFlow(), sys)
 
 - **api-friction:** `DCPowerFlow()` and `ACPowerFlow()` return different result structures.
   DCPF returns `Dict{Union{Char,String}, Dict{String, DataFrame}}` (nested under period key "1"),
-  while ACPF returns `Dict{String, DataFrame}` (flat). This inconsistency is a minor API
-  friction point that requires careful handling.
+  while ACPF returns `Dict{String, DataFrame}` (flat). This inconsistency requires careful handling.
 - **doc-gaps:** The return type difference between `DCPowerFlow` and `ACPowerFlow` is not
   documented in PowerFlows.jl's API reference. Discovered empirically via `KeyError`.

@@ -3,20 +3,26 @@ test_id: B-2
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: "5068a626"
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.14
+wall_clock_seconds: 0.16
 timing_source: measured
-peak_memory_mb: 746.6
+peak_memory_mb: 695.5
 convergence_residual: null
 convergence_iterations: null
-loc: 200
+convergence_evidence_quality: null
+loc: 205
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-2: Graph Access (BFS to depth 3 from chosen bus)
@@ -78,7 +84,7 @@ No solver required -- this is a pure topology test.
 
 - **What:** Manual BFS implementation over the adjacency matrix. PowerNetworkMatrices.jl
   provides `AdjacencyMatrix` and `IncidenceMatrix` but no graph traversal algorithms
-  (no BFS, DFS, shortest path, connected components).
+  (no BFS, DFS, shortest path, connected components). [tool-specific]
 - **Why:** The PSI ecosystem has no Graphs.jl dependency. The adjacency matrix is a
   numerical structure (KeyedArray-like), not a graph object.
 - **Durability:** stable -- `AdjacencyMatrix` and `IncidenceMatrix` are documented public
@@ -90,9 +96,9 @@ No solver required -- this is a pure topology test.
 
 ## Timing
 
-- **Wall-clock:** 0.14s (second invocation, post-JIT)
+- **Wall-clock:** 0.16s (second invocation, post-JIT)
 - **Timing source:** measured
-- **Peak memory:** 747 MB
+- **Peak memory:** 696 MB
 
 ## Test Script
 
@@ -114,10 +120,3 @@ for bus2 in bus_ids
     end
 end
 ```
-
-<!-- observation:api-friction B-2: AdjacencyMatrix provides topology data but no graph
-traversal. User must implement BFS/DFS manually or add Graphs.jl. The matrix is indexed
-by bus number (Int), not component name. -->
-
-<!-- observation:doc-gaps B-2: PowerNetworkMatrices.jl documentation does not show
-examples of topology traversal or graph construction from adjacency/incidence matrices. -->

@@ -3,12 +3,20 @@ test_id: F-5
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "6108ab51"
 status: informational
 workaround_class: null
-timestamp: "2026-03-14T00:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+loc: null
+solver: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-5: Code Inspectability
@@ -31,7 +39,7 @@ construction, and result extraction code is inspectable Julia source.
 DecisionModel(template, sys; optimizer=HiGHS.Optimizer)
 ```
 
-**Module:** `PowerSimulations` (`/opt/julia-depot/packages/PowerSimulations/89s3Q/src/operation/decision_model.jl`)
+**Module:** `PowerSimulations` (`src/operation/decision_model.jl`)
 
 - Constructs the optimization container
 - Stores the system data reference and problem template
@@ -43,7 +51,7 @@ DecisionModel(template, sys; optimizer=HiGHS.Optimizer)
 build!(model; output_dir=...)
 ```
 
-**Module:** `PowerSimulations` (`src/operation/decision_model.jl:364`)
+**Module:** `PowerSimulations` (`src/operation/decision_model.jl`)
 
 - Iterates over template device formulations
 - Calls device-specific `construct_device!` methods
@@ -66,7 +74,7 @@ All modules are pure Julia. No compiled extensions in the build path.
 solve!(model)
 ```
 
-**Module:** `PowerSimulations` (`src/operation/decision_model.jl:461`)
+**Module:** `PowerSimulations` (`src/operation/decision_model.jl`)
 
 Calls `JuMP.optimize!(model)` internally. The call chain:
 
@@ -82,7 +90,7 @@ PowerSimulations.solve!
 
 | Layer | Module | Source Available | Language |
 |-------|--------|-----------------|----------|
-| Orchestration | PowerSimulations | Yes | Julia |
+| Orchestration | PowerSimulations v0.30.2 | Yes | Julia |
 | Algebraic modeling | JuMP v1.29.4 | Yes | Julia |
 | Solver abstraction | MathOptInterface v1.49.0 | Yes | Julia |
 | Solver wrapper | HiGHS.jl v1.21.1 | Yes | Julia |
@@ -145,3 +153,8 @@ source code is transparent -- users can inspect any method via `@code_lowered`,
 - **Fully inspectable (source-level):** 100% of Julia code in the path (~95% of code volume)
 - **Source available but compiled:** Solver engines (~5% of code volume)
 - **Proprietary/closed:** None (MKL is optional and not in the solve path)
+
+## Data Source
+
+- Execution path traced by reading PowerSimulations.jl source code in devcontainer depot (accessed 2026-03-24)
+- Module versions from Manifest.toml (accessed 2026-03-24)

@@ -349,8 +349,9 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg2000.m")
         highs_results = extract_solver_results(model_highs)
         highs_results["wall_clock_seconds"] = round(elapsed_highs; digits=3)
         highs_results["peak_memory_mb"] = mem_after_highs
+        highs_results["threads"] = 1
 
-        results["details"]["highs"] = highs_results
+        results["details"]["highs_1thread"] = highs_results
         results["details"]["n_thermal_generators"] = n_gens
         results["details"]["base_power_mva"] = base_power
 
@@ -380,30 +381,67 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg2000.m")
         scip_results = extract_solver_results(model_scip)
         scip_results["wall_clock_seconds"] = round(elapsed_scip; digits=3)
         scip_results["peak_memory_mb"] = mem_after_scip
+        scip_results["threads"] = 1
 
-        results["details"]["scip"] = scip_results
+        results["details"]["scip_1thread"] = scip_results
 
         println(
             stderr,
             "SCIP done: $(scip_results["termination_status"]) in $(round(elapsed_scip, digits=1))s",
         )
 
+        # --- HiGHS multi-threaded solve (v11: report both 1-thread and max-thread) ---
+        println(stderr, "Starting timed HiGHS multi-threaded solve ($(cores) threads)...")
+        highs_mt_solver = optimizer_with_attributes(
+            HiGHS.Optimizer,
+            "time_limit" => 600.0,
+            "mip_rel_gap" => 0.01,
+            "presolve" => "on",
+            "threads" => cores,
+            "output_flag" => true,
+        )
+
+        sys_highs_mt, _ = setup_scuc_system(network_file)
+
+        t0_highs_mt = time()
+        model_highs_mt = build_and_solve_scuc(sys_highs_mt, highs_mt_solver)
+        elapsed_highs_mt = time() - t0_highs_mt
+
+        mem_after_highs_mt = peak_rss_mb()
+
+        highs_mt_results = extract_solver_results(model_highs_mt)
+        highs_mt_results["wall_clock_seconds"] = round(elapsed_highs_mt; digits=3)
+        highs_mt_results["peak_memory_mb"] = mem_after_highs_mt
+        highs_mt_results["threads"] = cores
+
+        results["details"]["highs_multithread"] = highs_mt_results
+
+        println(
+            stderr,
+            "HiGHS MT done: $(highs_mt_results["termination_status"]) in $(round(elapsed_highs_mt, digits=1))s",
+        )
+
         # --- Summary ---
         results["details"]["wall_clock_per_solver"] = Dict(
-            "highs_seconds" => round(elapsed_highs; digits=3),
+            "highs_1thread_seconds" => round(elapsed_highs; digits=3),
+            "highs_mt_seconds" => round(elapsed_highs_mt; digits=3),
             "scip_seconds" => round(elapsed_scip; digits=3),
         )
-        results["wall_clock_seconds"] = round(elapsed_highs + elapsed_scip; digits=3)
-        results["details"]["peak_memory_mb"] = mem_after_scip  # peak over whole run
+        results["wall_clock_seconds"] = round(
+            elapsed_highs + elapsed_scip + elapsed_highs_mt; digits=3
+        )
+        results["details"]["peak_memory_mb"] = peak_rss_mb()  # peak over whole run
 
         # Pass condition: at least one solver completes
         highs_solved = highs_results["solved"]
         scip_solved = scip_results["solved"]
+        highs_mt_solved = highs_mt_results["solved"]
 
         results["details"]["pass_checks"] = Dict(
-            "highs_solved" => highs_solved,
+            "highs_1thread_solved" => highs_solved,
+            "highs_mt_solved" => highs_mt_solved,
             "scip_solved" => scip_solved,
-            "either_solved" => highs_solved || scip_solved,
+            "any_solved" => highs_solved || scip_solved || highs_mt_solved,
         )
 
         push!(
@@ -412,7 +450,7 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg2000.m")
             "PSI initialization model fails with both HiGHS and SCIP on SMALL-scale SCUC.",
         )
 
-        if highs_solved || scip_solved
+        if highs_solved || scip_solved || highs_mt_solved
             results["status"] = "qualified_pass"
         else
             push!(
