@@ -5,8 +5,9 @@ protocol_version: v11
 run_mode: fresh
 fnm_available: true
 fnm_path: /data/fnm-source
-completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
-current_state: COMMIT
+completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE, COMMIT]
+current_state: DONE
+pr_url: https://github.com/ZGEnergy/grc-tech-evaluation/pull/111
 scale_cap: MEDIUM
 timestamp: "2026-03-24T00:00:00Z"
 skipped_tests: []
