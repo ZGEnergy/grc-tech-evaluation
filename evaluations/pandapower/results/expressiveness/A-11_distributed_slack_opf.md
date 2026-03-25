@@ -6,17 +6,18 @@ network: TINY
 status: fail
 workaround_class: blocking
 blocked_by: null
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "95a0e3ae"
-wall_clock_seconds: 2.07
+wall_clock_seconds: 6.42
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 338
+convergence_evidence_quality: null
+loc: 331
 solver: "PYPOWER interior-point (bundled)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-11: Solve DC OPF with distributed slack
@@ -80,7 +81,7 @@ LMPs are identical across all 39 buses. The `distributed_slack=True` kwarg is si
 
 ## Timing
 
-- **Wall-clock:** 2.07 s (includes AC PF comparison and multiple OPF solves)
+- **Wall-clock:** 6.42 s (includes AC PF comparison and multiple OPF solves)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** not reported by PYPOWER

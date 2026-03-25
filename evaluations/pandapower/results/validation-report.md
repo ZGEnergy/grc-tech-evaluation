@@ -1,58 +1,63 @@
 # Validation Report — pandapower Phase 1 Evaluation
 
+**Protocol version:** v11
+**Skill version:** v2
+**Validated:** 2026-03-24
+
 ## Summary
 
-- **Files scanned:** 60 result files across 9 dimensions
+- **Total tests in config:** 59
+- **Result files found:** 59/59
 - **Gaps:** 0
-- **Violations:** 0
-- **Warnings:** 0
+- **Frontmatter violations:** 0
+- **Naming warnings:** 0
 
-## Coverage
+## Test Coverage by Dimension
 
-All 59 test IDs from eval-config.yaml have corresponding result files:
+| Dimension | Tests | Pass | Fail | Partial/Qualified | Informational | Skip |
+|-----------|-------|------|------|-------------------|---------------|------|
+| gate | 3 | 3 | 0 | 0 | 0 | 0 |
+| expressiveness | 10 | 4 | 4 | 2 | 0 | 0 |
+| extensibility | 8 | 5 | 0 | 2 | 0 | 0 |
+| scalability | 10 | 4 | 5 | 0 | 0 | 0 |
+| accessibility | 5 | 0 | 0 | 0 | 5 | 0 |
+| maturity | 7 | 0 | 0 | 0 | 7 | 0 |
+| supply_chain | 9 | 0 | 0 | 0 | 9 | 0 |
+| fnm_ingestion | 5 | 0 | 2 | 0 | 2 | 1 |
+| p2_readiness | 3 | 0 | 0 | 0 | 3 | 0 |
 
-| Dimension | Test IDs | Files | Status |
-|-----------|----------|-------|--------|
-| gate | G-1, G-2, G-3 | 3 | Complete |
-| expressiveness | A-1, A-2, A-3, A-4, A-5, A-6, A-9, A-10, A-11, A-12 | 10 | Complete |
-| extensibility | B-1, B-2, B-3, B-4, B-5, B-6, B-8, B-9 | 8 | Complete |
-| scalability | C-1, C-2, C-3, C-4, C-5, C-7, C-8, C-9, C-10 | 10 | Complete (C-5 has SMALL + MEDIUM) |
-| accessibility | D-1, D-2, D-3, D-4, D-5 | 5 | Complete |
-| maturity | E-1, E-2, E-3, E-4, E-5, E-6, E-7 | 7 | Complete |
-| supply_chain | F-1, F-2, F-3, F-4, F-5, F-6, F-7, F-8, F-9 | 9 | Complete |
-| fnm_ingestion | G-FNM-1, G-FNM-2, G-FNM-3, G-FNM-4, G-FNM-5 | 5 | Complete |
-| p2_readiness | P2-1, P2-2, P2-3 | 3 | Complete |
+## Detailed Status by Test
 
-## Frontmatter Validation
+### Gate (3/3 pass)
+- G-1: pass | G-2: pass | G-3: pass
 
-All result files have:
-- Required fields: test_id, tool, dimension, status
-- Valid status values (pass/fail/qualified_pass/informational/skip)
-- Valid workaround_class values (null/stable/fragile/blocking)
-- protocol_version and skill_version present
-- test_hash present
-- qualified_pass files include Workarounds sections
+### Expressiveness (4 pass, 4 fail, 2 partial)
+- A-1 (DCPF): pass | A-2 (ACPF): pass | A-3 (DCOPF): pass | A-4 (AC feasibility): pass
+- A-5 (SCUC): fail [unsupported] | A-10 (lossy DCOPF): fail [unsupported]
+- A-11 (distributed slack OPF): fail [unsupported] | A-12 (multi-period DCOPF): fail [unsupported]
+- A-6 (SCED): partial_pass [ed_only] | A-9 (SCOPF): partial_pass [manual construction]
 
-## Observations
+### Extensibility (5 pass, 2 partial/qualified)
+- B-2: pass | B-3: pass | B-4: pass | B-5: pass | B-9: pass
+- B-1 (custom constraints): partial_pass [fragile workaround]
+- B-6 (architecture): pass | B-8 (reference bus): qualified_pass [stable workaround]
 
-24 observation files in evaluations/pandapower/results/observations/ covering:
-- api-friction (5 files)
-- arch-quality (2 files)
-- cascaded-failure (1 file)
-- convergence-quality (1 file)
-- doc-gaps (1 file)
-- fnm-data-model (3 files)
-- fnm-scale (2 files)
-- formulation-difference (2 files)
-- solver-issues (1 file)
-- workaround-needed (9 files)
+### Scalability (4 pass, 5 fail, 1 informational)
+- C-1 (DCPF MEDIUM): pass | C-2 (ACPF MEDIUM): pass | C-3 (DCOPF MEDIUM): pass
+- C-5 (AC feasibility SMALL): pass | C-5 (AC feasibility MEDIUM): pass
+- C-9 (PTDF MEDIUM): pass
+- C-4 (SCUC SMALL): fail [blocked_by: A-5] | C-7 (solver swap): fail [no swap mechanism]
+- C-8 (SCOPF MEDIUM): fail [OOM] | C-10 (distributed slack MEDIUM): fail [blocked_by: A-11]
 
-## Result Status Distribution
+### FNM Ingestion (2 fail, 2 informational, 1 skip)
+- G-FNM-1: fail [no PSS/E parser] | G-FNM-2: skip [blocked_by: G-FNM-1]
+- G-FNM-3: fail [hard-fail on branch deviation] | G-FNM-4: informational [infeasible]
+- G-FNM-5: informational
 
-| Status | Count |
-|--------|-------|
-| pass | 24 |
-| fail | 12 |
-| qualified_pass | 2 |
-| informational | 14 |
-| skip | 8 |
+## Validation Checks
+
+All 59 result files pass:
+- Required frontmatter fields present
+- test_hash matches eval-config.yaml
+- protocol_version = v11, skill_version = v2
+- Valid status and workaround_class values
