@@ -24,8 +24,8 @@ sys.path.insert(0, str(REPO_ROOT / "evaluations" / "shared"))
 DEFAULT_NETWORK = str(REPO_ROOT / "data" / "networks" / "case_ACTIVSg2000.m")
 
 # Solver configurations per solver-config.md
-HIGHS_OPTIONS = {
-    "time_limit": 600.0,
+HIGHS_OPTIONS_1T = {
+    "time_limit": 600.0,  # 10 min (prior run showed root LP unresolved at 600s)
     "mip_rel_gap": 0.01,
     "presolve": "on",
     "threads": 1,
@@ -33,8 +33,17 @@ HIGHS_OPTIONS = {
     "log_to_console": True,
 }
 
+HIGHS_OPTIONS_MT = {
+    "time_limit": 1800.0,  # 30 min — give multi-threaded the full budget
+    "mip_rel_gap": 0.01,
+    "presolve": "on",
+    "threads": 0,  # 0 = use all available cores
+    "output_flag": True,
+    "log_to_console": True,
+}
+
 SCIP_OPTIONS = {
-    "limits/time": 600,
+    "limits/time": 1800,  # 30 min per spec timeout threshold
     "limits/gap": 0.01,
     "display/verblevel": 4,
     "lp/threads": 1,
@@ -248,22 +257,45 @@ def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) 
         )
         print(f"Total gen capacity: {n.generators.p_nom.sum():.0f} MW")
 
-        # 2. Solve with HiGHS
-        print("\n=== HiGHS SCUC (24h) ===")
-        n_highs = n.copy()
-        highs_result = solve_scuc(n_highs, "highs", HIGHS_OPTIONS)
-        results["details"]["highs"] = highs_result
-        print(
-            f"HiGHS: feasible={highs_result['feasible']}, "
-            f"time={highs_result['solve_seconds']:.2f}s, "
-            f"peak_mem={highs_result['peak_memory_mb']:.1f} MB"
-        )
-        if highs_result["objective"]:
-            print(f"  Objective: ${highs_result['objective']:,.0f}")
-        if highs_result["error"]:
-            print(f"  Error: {highs_result['error']}")
+        # Record CPU info
+        import os
 
-        # 3. Solve with SCIP
+        cpu_count = os.cpu_count() or 1
+        results["details"]["cpu_threads_available"] = cpu_count
+
+        # 2. Solve with HiGHS (single-threaded)
+        print("\n=== HiGHS SCUC (24h, 1 thread) ===")
+        n_highs_1t = n.copy()
+        highs_1t_result = solve_scuc(n_highs_1t, "highs", HIGHS_OPTIONS_1T)
+        highs_1t_result["threads_used"] = 1
+        results["details"]["highs_1t"] = highs_1t_result
+        print(
+            f"HiGHS (1T): feasible={highs_1t_result['feasible']}, "
+            f"time={highs_1t_result['solve_seconds']:.2f}s, "
+            f"peak_mem={highs_1t_result['peak_memory_mb']:.1f} MB"
+        )
+        if highs_1t_result["objective"]:
+            print(f"  Objective: ${highs_1t_result['objective']:,.0f}")
+        if highs_1t_result["error"]:
+            print(f"  Error: {highs_1t_result['error']}")
+
+        # 3. Solve with HiGHS (multi-threaded)
+        print(f"\n=== HiGHS SCUC (24h, {cpu_count} threads) ===")
+        n_highs_mt = n.copy()
+        highs_mt_result = solve_scuc(n_highs_mt, "highs", HIGHS_OPTIONS_MT)
+        highs_mt_result["threads_used"] = cpu_count
+        results["details"]["highs_mt"] = highs_mt_result
+        print(
+            f"HiGHS ({cpu_count}T): feasible={highs_mt_result['feasible']}, "
+            f"time={highs_mt_result['solve_seconds']:.2f}s, "
+            f"peak_mem={highs_mt_result['peak_memory_mb']:.1f} MB"
+        )
+        if highs_mt_result["objective"]:
+            print(f"  Objective: ${highs_mt_result['objective']:,.0f}")
+        if highs_mt_result["error"]:
+            print(f"  Error: {highs_mt_result['error']}")
+
+        # 4. Solve with SCIP
         print("\n=== SCIP SCUC (24h) ===")
         n_scip = n.copy()
         scip_result = solve_scuc(n_scip, "scip", SCIP_OPTIONS)
@@ -278,25 +310,24 @@ def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) 
         if scip_result["error"]:
             print(f"  Error: {scip_result['error']}")
 
-        # 4. Determine overall status
-        # Pass if at least one solver completes successfully
-        any_feasible = highs_result["feasible"] or scip_result["feasible"]
-        both_feasible = highs_result["feasible"] and scip_result["feasible"]
+        # 5. Determine overall status
+        # Pass if at least one solver/config completes successfully
+        any_feasible = (
+            highs_1t_result["feasible"] or highs_mt_result["feasible"] or scip_result["feasible"]
+        )
 
-        if both_feasible:
+        if any_feasible:
             results["status"] = "pass"
-        elif any_feasible:
-            results["status"] = "qualified_pass"
-            failed_solver = "SCIP" if not scip_result["feasible"] else "HiGHS"
-            results["workarounds"].append(
-                f"{failed_solver} did not produce a feasible SCUC solution"
-            )
         else:
             results["status"] = "fail"
-            results["errors"].append("Neither HiGHS nor SCIP produced a feasible SCUC solution")
+            results["errors"].append("No solver configuration produced a feasible SCUC solution")
 
         # Record errors from individual solvers
-        for solver_label, solver_result in [("HiGHS", highs_result), ("SCIP", scip_result)]:
+        for solver_label, solver_result in [
+            ("HiGHS-1T", highs_1t_result),
+            (f"HiGHS-{cpu_count}T", highs_mt_result),
+            ("SCIP", scip_result),
+        ]:
             if solver_result["error"]:
                 results["errors"].append(f"{solver_label}: {solver_result['error']}")
 

@@ -4,7 +4,7 @@ source_dimension: scalability
 source_test: C-4
 tool: pypsa
 severity: medium
-timestamp: 2026-03-14T01:30:00Z
+timestamp: 2026-03-24T22:30:00Z
 ---
 
 # Observation: SCIP solver not available despite devcontainer feature

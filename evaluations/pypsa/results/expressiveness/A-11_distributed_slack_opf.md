@@ -3,10 +3,10 @@ test_id: A-11
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: 95a0e3ae
-status: qualified_pass
+status: partial_pass
 workaround_class: blocking
 blocked_by: null
 wall_clock_seconds: 1.90
@@ -14,20 +14,21 @@ timing_source: measured
 peak_memory_mb: null
 convergence_residual: 1.24e-09
 convergence_iterations: 4
+convergence_evidence_quality: residual_reported
 loc: 326
 solver: HiGHS
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-11: Distributed Slack OPF
 
-## Result: QUALIFIED PASS
+## Result: PARTIAL PASS
 
 ## Approach
 
 Investigated distributed slack support in PyPSA 1.1.2 across two contexts:
 
-1. **DC OPF context (`n.optimize()`):** Inspected the linopy optimization model variables after solving. Found only `Generator-p`, `Line-s`, `Transformer-s` -- no `Bus-v_ang` variable exists. KVL constraints are expressed in terms of line/transformer flow variables, not bus voltage angles. Since there is no angle reference constraint, distributed slack OPF via an angle-sum-to-zero constraint is architecturally impossible.
+1. **DC OPF context (`n.optimize()`):** Inspected the linopy optimization model variables after solving. Found only `Generator-p`, `Line-s`, `Transformer-s` -- no `Bus-v_ang` variable exists. KVL constraints are expressed in terms of line/transformer flow variables, not bus voltage angles. Since there is no angle reference constraint, distributed slack OPF via an angle-sum-to-zero constraint is architecturally impossible. [tool-specific: flow-based OPF formulation lacks angle variables]
 
 2. **AC Power Flow context (`n.pf()`):** Tested `n.pf(distribute_slack=True, slack_weights="p_set")` on the base case39 network. The Newton-Raphson AC PF converged in 4 iterations (residual 1.24e-09). Tested multiple `slack_weights` options:
    - `slack_weights="p_set"`: converged (proportional to generator active power setpoints)
@@ -76,9 +77,9 @@ No `Bus-v_ang` variable. Distributed slack OPF is NOT achievable.
 ## Workarounds
 
 - **What:** Distributed slack is only available in `n.pf()` (AC power flow), not in `n.optimize()` (DC OPF). The OPF formulation has no bus angle variables to distribute.
-- **Why:** PyPSA's DC OPF uses a flow-based formulation (Generator-p, Line-s variables with KVL constraints on flows) rather than an angle-based formulation (Bus-v_ang variables with B*theta constraints). There is no angle reference constraint to modify.
+- **Why:** PyPSA's DC OPF uses a flow-based formulation (Generator-p, Line-s variables with KVL constraints on flows) rather than an angle-based formulation (Bus-v_ang variables with B*theta constraints). There is no angle reference constraint to modify. [tool-specific: architectural limitation of flow-based OPF]
 - **Durability:** blocking -- this is an architectural limitation of PyPSA's optimization formulation, not a missing parameter or undocumented feature. No workaround via `extra_functionality` is possible because the angle variables simply do not exist in the model.
-- **Grade impact:** Significant for the OPF-specific pass condition. However, the PF-context distributed slack with settable weights (`p_set`, `p_nom`, custom) demonstrates that PyPSA understands the concept and implements it where architecturally feasible. Qualified pass because the capability exists in one context (PF) but not the other (OPF).
+- **Grade impact:** Significant for the OPF-specific pass condition. The PF-context distributed slack with settable weights demonstrates that PyPSA understands the concept, but the OPF limitation is blocking. Partial pass because the capability exists in PF context but not OPF context.
 
 ## Timing
 

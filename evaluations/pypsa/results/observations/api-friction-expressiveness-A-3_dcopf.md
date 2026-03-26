@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-3
 tool: pypsa
 severity: low
-timestamp: 2026-03-13T23:09:44Z
+timestamp: 2026-03-24T12:02:00Z
 ---
 
 # Observation: Branch shadow prices not assigned to network after optimize()

@@ -3,12 +3,12 @@ test_id: P2-1
 tool: pypsa
 dimension: p2_readiness
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: 9f8ed88f
 status: informational
 workaround_class: null
-timestamp: 2026-03-13T18:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 9f8ed88f
+timestamp: 2026-03-24T16:00:00Z
 ---
 
 # P2-1: PSS/E RAW Parsing Capability
@@ -20,8 +20,8 @@ test_hash: 9f8ed88f
 **Native PSS/E RAW parsing: No.**
 
 PyPSA v1.1.2 has no native capability to parse PSS/E RAW format files in any
-version (v30, v31, v33, v34). This was confirmed in the G-FNM-1 evaluation,
-which documented a `psse_parse_error` failure. PyPSA's six import methods
+version (v30, v31, v33, v34). This was confirmed by inspection of the six public `import_from_*` methods
+on `pypsa.Network`. PyPSA's six import methods
 (`import_from_csv_folder`, `import_from_pypower_ppc`, `import_from_pandapower_net`,
 `import_from_hdf5`, `import_from_netcdf`, `import_from_excel`) all expect
 PyPSA-native data layouts, PYPOWER PPC dictionaries, or pandapower network
@@ -81,9 +81,8 @@ dropped with warnings.
 
 ## Sources
 
-1. G-FNM-1 evaluation result (this repository) — confirmed no PSS/E ingestion path
-2. PyPSA v1.1.2 API surface inspection — six `import_from_*` methods enumerated
-3. pandapower v3.4.0 converter module inspection — no `from_psse` function
-4. grg-psse: https://github.com/lanl-ansi/grg-psse (BSD-3, LANL)
-5. PyPSA issue #643 (three-winding transformers, wontfix)
-6. PyPSA issue #456 (phase-shifting transformers, open)
+1. PyPSA v1.1.2 API surface inspection — six `import_from_*` methods enumerated (verified in devcontainer 2026-03-24)
+2. pandapower v3.4.0 converter module inspection — no `from_psse` function
+3. grg-psse: https://github.com/lanl-ansi/grg-psse (BSD-3, LANL)
+4. PyPSA issue #643 (three-winding transformers, wontfix)
+5. PyPSA issue #456 (phase-shifting transformers, open)

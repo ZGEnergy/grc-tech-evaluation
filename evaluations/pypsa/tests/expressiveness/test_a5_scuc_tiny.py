@@ -373,6 +373,87 @@ def run(
                 "correctly expressed."
             )
 
+        # ----------------------------------------------------------------
+        # 9. Binding verification (mandatory v11): re-run with
+        #    min_up_time=min_down_time=0, compare schedules.
+        #    At least one generator's commitment must change.
+        # ----------------------------------------------------------------
+        if feasible and results["details"].get("commitment_matrix_shape") is not None:
+            print("\n=== Binding Verification: re-running with min_up_time=min_down_time=0 ===")
+            try:
+                original_status_df = status_df.copy()
+            except NameError:
+                original_status_df = None
+
+            # Save original min_up/down for reporting
+            orig_min_up = n.generators["min_up_time"].to_dict()
+            orig_min_down = n.generators["min_down_time"].to_dict()
+
+            # Reset min_up_time and min_down_time to 0
+            n.generators["min_up_time"] = 0
+            n.generators["min_down_time"] = 0
+
+            # Re-solve
+            bv_start = time.perf_counter()
+            bv_result = n.optimize(
+                snapshots=snapshots,
+                solver_name=SOLVER_NAME,
+                solver_options=SOLVER_OPTIONS,
+            )
+            bv_elapsed = time.perf_counter() - bv_start
+
+            bv_termination = str(bv_result) if bv_result is not None else "unknown"
+            bv_objective = float(n.objective) if n.objective is not None else None
+            results["details"]["binding_verification"] = {
+                "solver_termination": bv_termination,
+                "objective_dollar": bv_objective,
+                "solve_seconds": bv_elapsed,
+                "original_min_up_time": orig_min_up,
+                "original_min_down_time": orig_min_down,
+            }
+
+            # Compare commitment schedules
+            if (
+                hasattr(n, "generators_t")
+                and hasattr(n.generators_t, "status")
+                and len(n.generators_t.status) > 0
+                and original_status_df is not None
+            ):
+                relaxed_status_df = n.generators_t.status
+                changed_gens = []
+                for gen_name in gen_names:
+                    if (
+                        gen_name in original_status_df.columns
+                        and gen_name in relaxed_status_df.columns
+                    ):
+                        orig_vals = original_status_df[gen_name].values.astype(float)
+                        relax_vals = relaxed_status_df[gen_name].values.astype(float)
+                        if not np.allclose(orig_vals, relax_vals, atol=0.1):
+                            changed_gens.append(gen_name)
+
+                results["details"]["binding_verification"]["changed_generators"] = changed_gens
+                results["details"]["binding_verification"]["n_changed"] = len(changed_gens)
+                results["details"]["binding_verification"]["binding_verified"] = (
+                    len(changed_gens) >= 1
+                )
+
+                print(
+                    f"Relaxed objective: ${bv_objective:,.2f}"
+                    if bv_objective
+                    else "Relaxed solve failed"
+                )
+                print(f"Generators with changed commitment: {changed_gens}")
+                print(f"Binding verification: {'PASS' if len(changed_gens) >= 1 else 'FAIL'}")
+
+                # Print relaxed commitment schedule
+                print("\nRelaxed commitment schedule (min_up=min_down=0):")
+                print(relaxed_status_df.to_string())
+            else:
+                results["details"]["binding_verification"]["binding_verified"] = False
+                results["details"]["binding_verification"]["note"] = (
+                    "Could not compare schedules — status not available after re-solve"
+                )
+
         print(f"\n=== RESULT: {results['status'].upper()} ===")
         print(f"Cycling generators: {n_cycling}")
         print(f"Feasible solve: {feasible}")
