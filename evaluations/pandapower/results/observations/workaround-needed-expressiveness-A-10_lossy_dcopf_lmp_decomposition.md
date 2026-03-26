@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-10
 tool: pandapower
 severity: high
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: No lossy DC OPF or LMP decomposition capability

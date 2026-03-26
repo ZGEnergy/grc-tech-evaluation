@@ -3,29 +3,30 @@ test_id: A-4
 tool: pandapower
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "8531c61c"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "8531c61c"
-wall_clock_seconds: 1.88
+wall_clock_seconds: 6.31
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 289
+convergence_evidence_quality: null
+loc: 293
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# A-4: AC feasibility check on DC OPF dispatch
+# A-4: AC feasibility check on DC OPF dispatch from A-3 on TINY (case39)
 
 ## Result: PASS
 
 ## Approach
 
-1. **Solve DC OPF** (same setup as A-3): Load network, apply differentiated costs, derate branches to 70%, solve via `pp.rundcopp(net)`.
+1. **Solve DC OPF** (same setup as A-3): Load network, apply differentiated costs from `gen_temporal_params.csv`, derate branches to 70%, solve via `pp.rundcopp(net)`.
 2. **Fix generator dispatch:** Set each `net.gen.at[idx, "p_mw"]` to the DC OPF dispatch value. The ext_grid (slack bus) absorbs any real power imbalance from AC losses.
 3. **Restore original branch ratings:** Divide `max_i_ka` back by 0.70 to use full thermal limits for the AC feasibility check.
 4. **Run ACPF:** `pp.runpp(net, algorithm='nr', init='dc', calculate_voltage_angles=True, tolerance_mva=1e-8, max_iteration=30)`.
@@ -42,7 +43,7 @@ The entire workflow operates on the same `net` object -- no file export/reimport
 | DC OPF converged | True |
 | DC OPF total generation | 6254.23 MW |
 | ACPF converged | True (DC warm start) |
-| ACPF solve time | 0.97 s |
+| ACPF solve time | 2.80 s |
 | AC total P losses | 50.20 MW |
 
 **Voltage violations (outside [0.95, 1.05] pu):**
@@ -52,9 +53,9 @@ The entire workflow operates on the same `net` object -- no file export/reimport
 | 21 | 1.0515 | High (+0.15%) |
 | 35 | 1.0636 | High (+1.36%) |
 
-**Thermal violations (loading > 100%):** None. Max line loading = 73.5%.
+Total voltage violations: 2 (both high). Vm range: 0.970 -- 1.064 pu.
 
-**Transformer violations:** None. Max trafo loading = 83.8%.
+**Thermal violations (loading > 100%):** None. Max line loading = 73.46%. Max trafo loading = 83.78%.
 
 **Reactive power violations:** 1 generator exceeds Q limits.
 
@@ -68,14 +69,14 @@ None required. pandapower's DataFrame-based data model makes the DC OPF to ACPF 
 3. Write dispatch to `net.gen["p_mw"]`.
 4. Solve ACPF with `runpp()`.
 
-All within the same model context, no serialization needed.
+All within the same model context, no serialization needed. Voltage and thermal violations are directly identifiable from `net.res_bus["vm_pu"]` and `net.res_line["loading_percent"]`.
 
 ## Timing
 
-- **Wall-clock:** 1.88 s (DC OPF + AC PF + setup)
+- **Wall-clock:** 6.31 s (DC OPF + AC PF + setup)
 - **Timing source:** measured
 - **Peak memory:** not measured
-- **ACPF solve time:** 0.97 s
+- **ACPF solve time:** 2.80 s
 - **CPU cores used:** 1
 
 ## Test Script

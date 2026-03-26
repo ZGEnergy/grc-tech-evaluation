@@ -6,17 +6,18 @@ network: TINY
 status: fail
 workaround_class: blocking
 blocked_by: null
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "6fc27521"
-wall_clock_seconds: 0.80
+wall_clock_seconds: 2.34
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 290
+convergence_evidence_quality: null
+loc: 289
 solver: "PYPOWER interior-point (bundled)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-12: Multi-Period DCOPF with Storage and Congestion
@@ -77,7 +78,7 @@ The storage element charges at maximum rate in a single-period solve because the
 
 ## Timing
 
-- **Wall-clock:** 0.80 s (includes capability inspection and single-snapshot baseline OPF)
+- **Wall-clock:** 2.34 s (includes capability inspection and single-snapshot baseline OPF)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** not reported by PYPOWER

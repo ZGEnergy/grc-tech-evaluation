@@ -1,30 +1,32 @@
-# Synthesis Report — pandapower (Contract FA714626C0006)
+# Synthesis Report: pandapower 3.4.0
 
+**Contract:** FA714626C0006
 **Tool version:** pandapower 3.4.0
-**Protocol version:** v10
-**Skill version:** v1
-**Scale cap:** MEDIUM (all gate tests passed)
-**Suite C SMALL gate:** Triggered (C-4 cascaded fail from A-5)
+**Protocol version:** v11
+**Scale cap:** MEDIUM
 **FNM status:** Suite G executed (FNM_PATH set)
+**Date:** 2026-03-24
 
 ---
 
 ## 1. Executive Summary
 
-pandapower is a mature, well-architected steady-state power system analysis tool with excellent AC/DC power flow capabilities, a clean DataFrame-based API, and strong supply chain properties (BSD license, fully inspectable pure-Python execution path, self-contained PYPOWER solver). However, it is fundamentally a network analysis tool, not a market simulation or optimization platform: it lacks SCUC, SCED, SCOPF, lossy OPF, distributed slack OPF, and multi-period OPF natively, resulting in 6 of 10 expressiveness tests failing with blocking workaround classifications. Supply chain passes the gate comfortably. The scale cap is MEDIUM; 8 MEDIUM-tier scalability tests were skipped due to a cascaded C-SMALL-gate failure from the missing SCUC capability (A-5), not from any actual scale limitation. FNM Suite G was completed: ingestion succeeded with stable workarounds, DCPF matched the reference on 99.6% of buses but triggered a hard-fail on localized outliers, and ACPF was infeasible at all relaxation levels.
+pandapower is a mature, well-architected Python power flow tool with a DataFrame-centric data model and an embedded PYPOWER solver. It excels at steady-state network analysis (AC/DC power flow, basic DC OPF, topology operations) with strong accessibility (sub-6-second install-to-first-solve, 39-package dependency tree, all permissive licenses) and operational adoption by European DSOs/TSOs including Netze BW, 50Hertz, and UK Power Networks. Gate status: all three networks ingested successfully (3/3 pass). The tool's primary limitations are architectural: no unit commitment, no multi-period optimization, no lossy DC OPF, no solver swap mechanism, and no public API for custom OPF constraint injection. The OPF solver is a hardcoded PYPOWER interior-point method with no extensibility points, constraining both expressiveness and scalability at the MEDIUM tier (62s DC OPF solve, 2.35 GB memory on 10k-bus network). Scale cap MEDIUM applied.
 
 ---
 
-## 2. Grade Recommendations
+## 2. Test Results Summary
 
-| Criterion | Recommended Grade | Confidence | Key Evidence |
-|-----------|-------------------|------------|--------------|
-| Problem Expressiveness | C+ | High | 4 pass + 6 independent blocking fails (SCUC, SCED, SCOPF, lossy OPF, distributed slack OPF, multi-period OPF); steady-state scope limitation |
-| Extensibility | B | High | 6 pass + 1 qualified_pass (fragile) + 1 qualified_pass (stable); custom constraints require fragile monkey-patching; graph bridge and interop are exemplary |
-| Scalability | C+ | Low | 2 executed (C-4 fail cascaded, C-5 SMALL pass); 8 MEDIUM tests skipped due to C-SMALL-gate; no actual scale failures observed; FNM DCPF solved 28K buses in 0.4s |
-| Workforce Accessibility | B+ | High | Frictionless install (<2s to first solve); strong PF docs but no scope statement for missing features; OPF error diagnostics are poor; 15/16 examples pass |
-| Maturity & Sustainability | A- | High | 19 releases in 24 months; 838 commits from 30 contributors; bus factor 3; Fraunhofer IEE + Uni Kassel backing; 72% test coverage; 952 citations |
-| Supply Chain (Gate) | A | High | BSD license; all 37 deps permissive (1 optional MPL-2.0); no opaque binaries; Sigstore provenance; air-gap installable; self-contained solver |
+| Criterion | Tests Passed | Tests Failed | Partial/Qualified | Confidence | Key Evidence |
+|-----------|-------------|-------------|-------------------|------------|--------------|
+| Problem Expressiveness | 4/10 | 4/10 | 2/10 | High | Native PF/OPF strong; no UC, lossy OPF, distributed slack OPF, or multi-period |
+| Extensibility | 6/8 | 0/8 | 2/8 | High | DataFrame model excellent; OPF extensibility blocked by closed solver |
+| Scalability | 5/10 | 5/10 | 0/10 | High | PF scales to MEDIUM; DCOPF slow (62s); 2 cascaded, 3 independent fails |
+| Workforce Accessibility | 5/5 informational | -- | -- | High | Sub-6s install, strong docs for core PF, weak OPF diagnostics |
+| Maturity & Sustainability | 7/7 informational | -- | -- | High | 19 releases/24mo, 842 commits/12mo, European utility adoption |
+| Supply Chain (Gate) | 9/9 informational | -- | -- | High | BSD license, clean deps, Sigstore provenance, air-gap installable |
+
+**Note:** Gate tests (G-1/G-2/G-3) excluded from pass rate statistics. All informational tests (D/E/F series) are not counted in pass/fail tallies.
 
 ---
 
@@ -33,343 +35,316 @@ pandapower is a mature, well-architected steady-state power system analysis tool
 ### 3.1 Problem Expressiveness (Suite A)
 
 #### Strengths
-
-- Native DC power flow with structured DataFrame output and sub-second solve times ([A-1](expressiveness/A-1_dcpf.md))
-- Native AC power flow with Newton-Raphson, 4-iteration convergence on flat start, full P/Q/V/angle output ([A-2](expressiveness/A-2_acpf.md))
-- Native DC OPF with LMP extraction via public `res_bus.lam_p` column and differentiated quadratic costs ([A-3](expressiveness/A-3_dcopf.md))
-- Seamless DC OPF to AC feasibility check workflow within the same model context, no serialization needed ([A-4](expressiveness/A-4_ac_feasibility_check.md))
+- Native DC power flow with structured DataFrame output ([A-1](expressiveness/A-1_dcpf_TINY.md))
+- Native AC power flow with Newton-Raphson, flat/DC start, convergence in 4 iterations ([A-2](expressiveness/A-2_acpf_TINY.md))
+- Native DC OPF with differentiated costs, LMP extraction via `res_bus.lam_p`, branch shadow prices ([A-3](expressiveness/A-3_dcopf_TINY.md))
+- Clean DC OPF to ACPF feasibility workflow within a single network object ([A-4](expressiveness/A-4_ac_feasibility_check_TINY.md))
 
 #### Weaknesses
-
-- No SCUC capability — no binary variables, startup costs, or temporal coupling ([A-5](expressiveness/A-5_scuc.md))
-- No SCED capability — blocked by A-5 and independently missing multi-period ED with ramp constraints ([A-6](expressiveness/A-6_sced.md))
-- No SCOPF — contingency analysis is post-hoc only; OPF solver does not accept user-injected constraints ([A-9](expressiveness/A-9_scopf.md))
-- No lossy DC OPF or LMP decomposition — PYPOWER DC OPF is hardcoded lossless B-theta ([A-10](expressiveness/A-10_lossy_dcopf_lmp_decomposition.md))
-- No distributed slack OPF — `distributed_slack` parameter silently ignored by `rundcopp()` ([A-11](expressiveness/A-11_distributed_slack_opf.md))
-- No multi-period DCOPF with storage — `run_timeseries()` runs independent solves without SoC linkage ([A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
+- No unit commitment formulation -- no binary variables, startup costs, or temporal coupling [tool-specific] ([A-5](expressiveness/A-5_scuc_TINY.md))
+- No lossy DC OPF and no LMP decomposition into energy/congestion/loss components [tool-specific] ([A-10](expressiveness/A-10_lossy_dcopf_lmp_decomposition.md))
+- Distributed slack not available in OPF -- `rundcopp(distributed_slack=True)` silently ignored via `**kwargs` [tool-specific] ([A-11](expressiveness/A-11_distributed_slack_opf.md))
+- No native multi-period DCOPF with inter-temporal storage coupling [tool-specific] ([A-12](expressiveness/A-12_multiperiod_dcopf_storage.md))
 
 #### Workarounds Required
+- A-6 (SCED): Sequential single-period DCOPF with manual ramp-rate bound manipulation -- **fragile**, ed_only mode, blocked_by A-5 ([A-6](expressiveness/A-6_sced_TINY.md))
+- A-9 (SCOPF): Manual PTDF/LODF construction + scipy.optimize.linprog, bypassing pandapower OPF entirely -- **blocking** ([A-9](expressiveness/A-9_scopf_TINY.md))
 
-- A-5 (SCUC): No workaround — **blocking**
-- A-6 (SCED): No workaround — **blocking** (also blocked by A-5)
-- A-9 (SCOPF): Building a complete external LP from PTDF data — **blocking**
-- A-10 (Lossy OPF): No workaround — **blocking**
-- A-11 (Distributed slack OPF): No workaround — **blocking**
-- A-12 (Multi-period OPF): PandaModels.jl bridge exists but requires Julia runtime — **blocking** for pure Python
+#### Evidence Summary Table
 
-#### Evidence Summary
+| Test | Network | Status | Blocked By | Workaround | Time | LOC |
+|------|---------|--------|------------|------------|------|-----|
+| A-1 | TINY | pass | -- | -- | 5.78s | 134 |
+| A-2 | TINY | pass | -- | -- | 17.23s | 181 |
+| A-3 | TINY | pass | -- | -- | 4.77s | 305 |
+| A-4 | TINY | pass | -- | -- | 6.31s | 293 |
+| A-5 | TINY | fail | -- | blocking | 4.17s | 80 |
+| A-6 | TINY | partial_pass | A-5 | fragile (ed_only) | 3.13s | 339 |
+| A-9 | TINY | partial_pass | -- | blocking | 1.03s | 561 |
+| A-10 | TINY | fail | -- | blocking | 2.24s | 242 |
+| A-11 | TINY | fail | -- | blocking | 6.42s | 331 |
+| A-12 | TINY | fail | -- | blocking | 2.34s | 289 |
 
-| Test | Network | Status | Blocked By | Workaround | Time (s) | LOC |
-|------|---------|--------|------------|------------|----------|-----|
-| A-1 | TINY | pass | -- | -- | 1.45 | 138 |
-| A-2 | TINY | pass | -- | -- | 2.02 | 190 |
-| A-3 | TINY | pass | -- | -- | 0.90 | 309 |
-| A-4 | TINY | pass | -- | -- | 1.88 | 289 |
-| A-5 | TINY | fail | -- | blocking | 0.79 | 80 |
-| A-6 | TINY | fail | A-5 | blocking | 0.75 | 73 |
-| A-9 | TINY | fail | -- | blocking | 0.83 | 257 |
-| A-10 | TINY | fail | -- | blocking | 0.78 | 246 |
-| A-11 | TINY | fail | -- | blocking | 2.07 | 338 |
-| A-12 | TINY | fail | -- | blocking | 0.80 | 290 |
+**Independent failures: 4** (A-5, A-10, A-11, A-12). **Partial passes: 2** (A-6 blocked_by A-5; A-9 independent).
 
-**Failure breakdown:** 5 independent fails (A-5, A-9, A-10, A-11, A-12) + 1 blocked (A-6 blocked by A-5).
+#### Findings Summary
 
-#### Grade Rationale
-
-pandapower passes 4 of 10 expressiveness tests. The 6 failures are all blocking with no available workaround within the tool's API. These failures are not bugs or missing features -- they reflect pandapower's design scope as a steady-state network analysis tool rather than a market simulation platform. The 5 independent blocking failures (SCUC, SCOPF, lossy OPF, distributed slack OPF, multi-period OPF) place pandapower at C+ for expressiveness: "Significant gaps, but NOT disqualifying." The 4 tests that pass (DCPF, ACPF, DCOPF, AC feasibility) are strong and clean, preventing a lower grade. C+ is appropriate because the tool excels at power flow and basic OPF but fundamentally cannot express market-relevant optimization formulations.
+pandapower demonstrates strong native capability for steady-state power flow and basic DC OPF with LMP extraction. The tool's core strength is its single-period PF/OPF pipeline backed by the embedded PYPOWER solver. Blocking limitations cluster around optimization extensibility: no unit commitment, no temporal coupling, no lossy formulation, and no distributed slack in OPF. These are all [tool-specific] architectural boundaries, not solver limitations. The A-6 SCED test achieves ed_only mode through a fragile sequential workaround. The A-9 SCOPF partial_pass required bypassing pandapower's OPF entirely to build a manual LP.
 
 ---
 
 ### 3.2 Extensibility (Suite B)
 
 #### Strengths
-
-- Exemplary NetworkX graph bridge via `topology.create_nxgraph()` -- BFS in 3 lines of code ([B-2](extensibility/B-2_graph_access.md))
-- Efficient N-M contingency sweep using in-service toggling without model reconstruction; 3,276 cases at 4.7 ms/case ([B-3](extensibility/B-3_contingency_sweep.md))
-- DataFrame-native results make CSV/DataFrame export trivial -- 4 lines of code ([B-5](extensibility/B-5_interoperability.md))
+- First-class NetworkX graph bridge via `create_nxgraph()` with impedance-weighted edges ([B-2](extensibility/B-2_graph_access.md))
+- Clean N-M contingency sweep via in-service toggling, 3,276 cases at 6.4 ms each ([B-3](extensibility/B-3_contingency_sweep.md))
+- Stochastic scenario wrapping with 240 sequential OPF solves, 22.3 ms per solve ([B-4](extensibility/B-4_stochastic_scenario_wrapping.md))
+- DataFrame-native results with trivial CSV export (4 LOC) ([B-5](extensibility/B-5_interoperability.md))
 - Clean 6-layer architecture with well-separated concerns ([B-6](extensibility/B-6_code_architecture.md))
-- PTDF matrix accessible via native `makePTDF()` with machine-precision accuracy ([B-9](extensibility/B-9_ptdf_extraction.md))
-- Stochastic scenario wrapping works cleanly with 240 independent solves at 22 ms/solve ([B-4](extensibility/B-4_stochastic_scenario_wrapping.md))
+- PTDF computation via native `makePTDF()` with machine-precision accuracy ([B-9](extensibility/B-9_ptdf_extraction.md))
 
 #### Weaknesses
-
-- Custom OPF constraint injection requires replicating internal `_optimal_powerflow` and monkey-patching ([B-1](extensibility/B-1_custom_constraints.md))
-- OPF constraint duals discarded during result extraction -- must be captured via monkey-patch ([B-1](extensibility/B-1_custom_constraints.md))
-- Slack bus reconfiguration requires 5-6 API calls with element-type juggling ([B-8](extensibility/B-8_reference_bus_config.md))
+- No public API for custom OPF constraint injection -- requires monkey-patching `_optimal_powerflow` [tool-specific] ([B-1](extensibility/B-1_custom_constraints.md))
+- OPF result dict (containing duals/multipliers) discarded during result extraction [tool-specific] ([B-1](extensibility/B-1_custom_constraints.md))
 
 #### Workarounds Required
+- B-1 (Custom constraints): Replicate `_optimal_powerflow`, monkey-patch module reference, capture PYPOWER result dict -- **fragile** ([B-1](extensibility/B-1_custom_constraints.md))
+- B-8 (Reference bus): 5-6 API calls to remove/recreate ext_grid + gen elements with manual cost transfer -- **stable** ([B-8](extensibility/B-8_reference_bus_config.md))
 
-- B-1 (Custom constraints): Replicate `_optimal_powerflow`, monkey-patch, capture PYPOWER result dict -- **fragile**
-- B-8 (Reference bus config): Remove/recreate ext_grid and gen elements with manual cost transfer -- **stable**
+#### Evidence Summary Table
 
-#### Evidence Summary
+| Test | Network | Status | Blocked By | Workaround | Time | LOC |
+|------|---------|--------|------------|------------|------|-----|
+| B-1 | TINY | partial_pass | -- | fragile | 1.11s | 401 |
+| B-2 | TINY | pass | -- | -- | 0.94s | 152 |
+| B-3 | TINY | pass | -- | -- | 22.16s | 258 |
+| B-4 | TINY | pass | -- | -- | 6.01s | 341 |
+| B-5 | TINY | pass | -- | -- | 1.19s | 143 |
+| B-6 | TINY | pass | -- | -- | 0.69s | 251 |
+| B-8 | TINY | qualified_pass | -- | stable | 1.05s | 399 |
+| B-9 | TINY | pass | -- | -- | 1.12s | 255 |
 
-| Test | Network | Status | Blocked By | Workaround | Time (s) | LOC |
-|------|---------|--------|------------|------------|----------|-----|
-| B-1 | TINY | qualified_pass | -- | fragile | 0.95 | 396 |
-| B-2 | TINY | pass | -- | -- | 0.86 | 156 |
-| B-3 | TINY | pass | -- | -- | 16.60 | 262 |
-| B-4 | TINY | pass | -- | -- | 6.01 | 341 |
-| B-5 | TINY | pass | -- | -- | 1.19 | 143 |
-| B-6 | TINY | pass | -- | -- | 0.69 | 251 |
-| B-8 | TINY | qualified_pass | -- | stable | 1.05 | 399 |
-| B-9 | TINY | pass | -- | -- | 1.12 | 255 |
+**Independent failures: 0.** **Partial: 1** (B-1). **Qualified: 1** (B-8).
 
-**Failure breakdown:** 0 independent fails + 0 blocked. 2 qualified passes.
+#### Findings Summary
 
-#### Grade Rationale
-
-pandapower achieves 6 clean passes and 2 qualified passes in extensibility. The B-1 fragile workaround (custom constraint injection via monkey-patching) is a meaningful gap, but the underlying PYPOWER userfcn mechanism is architecturally sound and has been stable for years. B-8's stable workaround for slack bus reconfiguration is verbose but reliable. The DataFrame-native data model, graph bridge, and PTDF extraction are genuine strengths. This meets the B standard: "Supported with caveats, moderate friction." The B-1 fragile workaround prevents B+ ("one meaningful gap with stable workaround" -- this workaround is fragile, not stable).
+pandapower's extensibility is strong for data access, graph operations, and scenario orchestration -- the DataFrame-centric design and NetworkX bridge are among its best architectural features. The critical gap is OPF extensibility: the embedded PYPOWER solver is a closed system with no public hook for custom constraints or dual extraction. This single limitation (B-1 fragile workaround) has cascading consequences for SCOPF (A-9), interface flow limits, and any formulation beyond the built-in constraint set. The B-8 reference bus workaround is verbose but stable [tool-specific: ext_grid/gen architectural distinction].
 
 ---
 
 ### 3.3 Scalability (Suite C)
 
 #### Strengths
-
-- C-5 SMALL (AC feasibility): ACPF converged in 4 NR iterations at 0% relaxation on 2000-bus network, 1.3s solve time ([C-5 SMALL](scalability/C-5_ac_feasibility_progressive_SMALL.md))
-- FNM DCPF (28K buses): Solved in 0.40 seconds -- strong DCPF scale performance (from [G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
+- DCPF on MEDIUM (10k buses) in 1.04s, 31 MB memory ([C-1](scalability/C-1_dcpf_medium.md))
+- ACPF on MEDIUM in 2.53s (standard NR) / 0.13s (lightsim2grid), 5 NR iterations ([C-2](scalability/C-2_acpf_medium.md))
+- AC feasibility converges at 0% relaxation on both SMALL and MEDIUM ([C-5 SMALL](scalability/C-5_ac_feasibility_progressive_SMALL.md), [C-5 MEDIUM](scalability/C-5_ac_feasibility_progressive_MEDIUM.md))
+- PTDF on MEDIUM (12,706 x 10,000 matrix) computed in 10.3s ([C-9](scalability/C-9_ptdf_medium.md))
 
 #### Weaknesses
-
-- C-4 (SCUC SMALL): Blocked by A-5 -- cascaded failure from missing SCUC capability ([C-4](scalability/C-4_scuc_small.md))
-- 8 MEDIUM-tier tests skipped (C-1, C-2, C-3, C-5M, C-7, C-8, C-9, C-10) due to C-SMALL-gate triggered by C-4
+- DCOPF on MEDIUM takes 62s and 2.35 GB memory using PYPOWER PIPS [solver-specific: PYPOWER interior-point at scale] ([C-3](scalability/C-3_dcopf_medium.md))
+- No solver swap mechanism -- PYPOWER PIPS is hardcoded with no parameter to select alternatives [tool-specific] ([C-7](scalability/C-7_solver_swap.md))
+- SCOPF at MEDIUM scale: OOM at ~32 GB due to full N-1 constraint matrix construction [tool-specific: no native SCOPF forces full matrix build] ([C-8](scalability/C-8_scopf_medium.md))
 
 #### Workarounds Required
+- None for passing tests. Failing tests have no viable workarounds at MEDIUM scale.
 
-None tested at scale -- most tests were skipped.
+#### Evidence Summary Table
 
-#### Evidence Summary
+| Test | Network | Status | Blocked By | Workaround | Time | Memory |
+|------|---------|--------|------------|------------|------|--------|
+| C-1 | MEDIUM | pass | -- | -- | 1.04s | 31 MB |
+| C-2 | MEDIUM | pass | -- | -- | 2.53s | 39 MB |
+| C-3 | MEDIUM | pass | -- | -- | 62.4s | 2,351 MB |
+| C-4 | SMALL | fail | A-5 | blocking (cascaded) | -- | -- |
+| C-5 | SMALL | pass | -- | -- | 2.22s | 27 MB |
+| C-5 | MEDIUM | pass | -- | -- | 2.77s | 39 MB |
+| C-7 | MEDIUM | fail | -- | blocking | -- | -- |
+| C-8 | MEDIUM | fail | -- | blocking (OOM) | >15min | ~32 GB |
+| C-9 | MEDIUM | pass | -- | -- | 289s | 5,404 MB |
+| C-10 | MEDIUM | fail | A-11 | blocking (cascaded) | -- | -- |
 
-| Test | Network | Status | Blocked By | Workaround | Time (s) | LOC |
-|------|---------|--------|------------|------------|----------|-----|
-| C-1 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-2 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-3 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-4 | SMALL | fail | A-5 | blocking | -- | -- |
-| C-5 | SMALL | pass | -- | -- | 2.84 | 287 |
-| C-5 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-7 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-8 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-9 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
-| C-10 | MEDIUM | skip | C-SMALL-gate | -- | -- | -- |
+**Independent failures: 3** (C-7, C-8, C-3 passes but notable for slow time). **Cascaded failures: 2** (C-4 from A-5, C-10 from A-11).
 
-**Failure breakdown:** 0 independent fails + 1 blocked (C-4 blocked by A-5). 8 tests skipped due to C-SMALL-gate.
+#### Findings Summary
 
-#### Grade Rationale
-
-Scalability evidence is severely limited: only 2 tests were executed (C-4 fail cascaded, C-5 SMALL pass). The C-4 failure is entirely cascaded from A-5 (no SCUC) and does not reflect a scale limitation. The C-5 SMALL pass shows clean ACPF convergence on a 2000-bus network. FNM Suite G provides additional scale evidence: DCPF solves a 28K-bus network in 0.4s, demonstrating adequate DCPF scalability at the LARGE tier. However, ACPF was infeasible on the FNM. With only 1 passing test and 8 skipped tests, confidence is Low. C+ ("significant gaps but not disqualifying") is the conservative grade given the limited evidence -- the tool demonstrates scale capability for power flow (its core competency) but cannot be assessed for OPF, SCOPF, or SCUC at scale because those features do not exist. When uncertain, the lower grade is recommended.
+pandapower's power flow solvers scale well to MEDIUM -- DCPF and ACPF are fast with reasonable memory. The scalability bottleneck is the OPF: PYPOWER's PIPS interior-point solver takes 62 seconds on 10k-bus DCOPF with 2.35 GB memory [solver-specific], and there is no mechanism to swap to a faster solver like HiGHS [tool-specific]. SCOPF at MEDIUM fails with OOM because the only approach is full constraint matrix construction [tool-specific]. The two cascaded failures (C-4 from A-5, C-10 from A-11) reflect expressiveness gaps that propagate to scalability. The lightsim2grid accelerator provides a 19x speedup for ACPF but shows no benefit for DCOPF (which uses PYPOWER PIPS, not NR).
 
 ---
 
 ### 3.4 Workforce Accessibility (Suite D)
 
 #### Strengths
-
-- Frictionless install: `uv sync` + first solve in under 2 seconds, no system dependencies ([D-1](accessibility/D-1_install_to_first_solve.md))
-- Strong power flow documentation: DCPF, ACPF, basic OPF completable from docs alone ([D-2](accessibility/D-2_documentation_audit.md))
-- 15 of 16 examples pass without modification ([D-3](accessibility/D-3_example_verification.md))
-- Concise API for supported operations: DCPF is 1 call, results are DataFrame columns ([D-5](accessibility/D-5_code_volume_comparison.md))
+- Sub-6-second install-to-first-solve, no system dependencies or compiler toolchain ([D-1](accessibility/D-1_install_to_first_solve.md))
+- 3/10 Suite A tests implementable from documentation alone (A-1, A-2, A-3) ([D-2](accessibility/D-2_documentation_audit.md))
+- 14/16 examples run without modification ([D-3](accessibility/D-3_example_verification.md))
+- Concise API for core operations: 1 call for PF, 1 + N cost calls for OPF ([D-5](accessibility/D-5_code_volume_comparison.md))
 
 #### Weaknesses
+- No explicit scope statement in documentation -- users cannot distinguish "not documented" from "not implemented" without source code ([D-2](accessibility/D-2_documentation_audit.md))
+- OPF diagnostics are poor -- boolean `converged` flag only, no infeasibility or convergence progress information [tool-specific] ([D-4](accessibility/D-4_error_quality.md))
+- `**kwargs` passthrough silently absorbs invalid parameters (`distributed_slack=True` on `rundcopp`) ([D-4](accessibility/D-4_error_quality.md))
+- Convergence residual not extractable; iteration count requires private `net._ppc["iterations"]` ([D-4](accessibility/D-4_error_quality.md))
+- Getting-started example fails (zero-length line divide-by-zero); case9 DC OPF silently fails ([D-3](accessibility/D-3_example_verification.md))
 
-- No explicit scope statement: docs never state what pandapower *cannot* do -- users must infer from absence ([D-2](accessibility/D-2_documentation_audit.md))
-- 7 of 10 Suite A tests needed source code inspection (either to confirm missing features or use internal APIs) ([D-2](accessibility/D-2_documentation_audit.md))
-- OPF error diagnostics are poor: `converged=False` with no infeasibility reason, no constraint violation info ([D-4](accessibility/D-4_error_quality.md))
-- `**kwargs` silently absorbs invalid parameters without warning ([D-4](accessibility/D-4_error_quality.md), observation from A-11)
-- Disconnected buses with loads silently produce NaN -- no warning ([D-4](accessibility/D-4_error_quality.md))
-
-#### Evidence Summary
+#### Evidence Summary Table
 
 | Test | Status | Key Finding |
 |------|--------|-------------|
-| D-1 | informational | Install + first solve in <2s; no friction |
-| D-2 | informational | 3/10 completable from docs; 7 need source code |
-| D-3 | informational | 15/16 examples pass; case9 DC OPF fails silently |
-| D-4 | informational | OPF diagnostics poor; input validation mixed; disconnected bus silent |
-| D-5 | informational | LOC compact for supported features; high for unsupported |
+| D-1 | informational | 5.35s cold install-to-first-solve |
+| D-2 | informational | 3/10 from docs only; 7/10 need source |
+| D-3 | informational | 14/16 examples pass; 2 failures |
+| D-4 | informational | OPF error quality: POOR; element creation: GOOD |
+| D-5 | informational | 2,185 LOC total Suite A; core API concise |
 
-#### Grade Rationale
+#### Findings Summary
 
-pandapower provides an excellent onboarding experience for its core competency (power flow) with frictionless installation, clean API, and strong documentation. The documentation gaps and poor OPF diagnostics are meaningful weaknesses but do not affect the primary use case. The `**kwargs` silent parameter absorption is an API design issue. This meets B+: "Mostly strong, one meaningful gap with stable workaround" -- the meaningful gap being the absence of scope documentation and poor OPF diagnostics, neither of which requires a workaround but both reduce usability for advanced use cases.
+pandapower has excellent first-contact accessibility (fast install, clean Python API, DataFrame results) but degrades for advanced use cases. Core power flow documentation is strong; OPF and advanced optimization documentation has significant gaps, particularly the absence of explicit scope boundaries. The OPF solver's silent failure mode (boolean-only convergence flag with no diagnostics) is the most significant accessibility concern for production use.
 
 ---
 
 ### 3.5 Maturity & Sustainability (Suite E)
 
-#### Sub-criterion 5a: Demonstrated Maturity
-
-- **E-1 (Release cadence):** 19 releases in 24 months, consistent semver, multi-branch maintenance
-- **E-2 (Commit activity):** 838 commits, 30 unique committers in trailing 12 months
-- **E-5 (Issue tracker):** 100% acknowledgment, 29-day median time-to-close, substantive responses
-- **E-7 (Operational adoption):** Government-commissioned DSO planning study (Hessen), RTE France Grid2Op backend, 952 citations, 232K monthly PyPI downloads
-
-**5a sub-grade: A**
-
-#### Sub-criterion 5b: Sustainability Risk
-
-- **E-3 (Contributor concentration):** Bus factor 3; top 3 contributors = 51.2% of lifetime commits; 3 active reviewers
-- **E-4 (Funding model):** Dual-anchored in Fraunhofer IEE + University of Kassel; diversified funding (base + contract + EU grants)
-- **E-6 (CI/test coverage):** 28-job CI pipeline; core tests pass on Python 3.10-3.14; 72% coverage; mypy, linting, docs build
-
-**5b sub-grade: B+** (moderate concentration risk; reviewer pool of only 3)
-
-#### Evidence Summary
-
-| Test | Sub-criterion | Key Metric |
-|------|---------------|------------|
-| E-1 | 5a | 19 releases / 24 months |
-| E-2 | 5a | 838 commits / 30 committers |
-| E-3 | 5b | Bus factor 3; top reviewer 39.6% |
-| E-4 | 5b | Fraunhofer IEE + Uni Kassel dual anchor |
-| E-5 | 5a | 100% acknowledged; 29d median close |
-| E-6 | 5b | 72% coverage; 28 CI jobs; core green |
-| E-7 | 5a | Hessen DSO study; RTE Grid2Op; 952 citations |
-
-#### Grade Rationale
-
-pandapower demonstrates strong maturity with active development, diversified institutional backing, government-commissioned operational use, and comprehensive CI. The reviewer concentration (3 individuals cover 100% of code review) is a moderate sustainability risk but is mitigated by the broadening contributor base (30 active in last year vs. concentrated lifetime top 3). The composite grade of 5a=A and 5b=B+ yields A-: "Strong overall, one minor caveat" -- the caveat being reviewer concentration risk.
-
----
-
-### 3.6 Supply Chain — Gate (Suite F)
-
 #### Strengths
-
-- BSD license with no copyleft obligations ([F-1](supply_chain/F-1_core_license.md))
-- All 37 dependencies permissive (BSD/MIT/Apache); only LightSim2Grid is MPL-2.0 and optional ([F-3](supply_chain/F-3_dependency_license_audit.md))
-- No opaque binaries; entire execution path is pure Python + auditable scipy ([F-4](supply_chain/F-4_compiled_extension_audit.md), [F-5](supply_chain/F-5_code_inspectability.md))
-- Sigstore provenance attestations on PyPI artifacts ([F-6](supply_chain/F-6_distribution_integrity.md))
-- Air-gap installable via wheel download; no runtime network access ([F-7](supply_chain/F-7_airgap_installability.md))
-- Self-contained PYPOWER solver -- no external solver procurement needed ([F-8](supply_chain/F-8_solver_dependency.md))
+- 19 releases in 24 months with consistent semver and multi-branch maintenance ([E-1](maturity/E-1_release_cadence.md))
+- 842 commits by 45 unique committers in trailing 12 months, no dormant months ([E-2](maturity/E-2_commit_activity.md))
+- Bus factor of 3; top reviewer at 43.8% (below 60% threshold) ([E-3](maturity/E-3_contributor_concentration.md))
+- Dual institutional anchoring (University of Kassel + Fraunhofer IEE) with diversified funding ([E-4](maturity/E-4_funding_model.md))
+- 100% issue acknowledgment rate, 14-day median close time (excluding outliers) ([E-5](maturity/E-5_issue_tracker_health.md))
+- Comprehensive CI: 28 jobs, Python 3.10-3.14, mypy, Codecov 72% ([E-6](maturity/E-6_ci_test_coverage.md))
+- Confirmed production deployments at Netze BW, 50Hertz, UK Power Networks; government-commissioned grid studies ([E-7](maturity/E-7_operational_adoption.md))
 
 #### Weaknesses
+- Reviewer pool concentrated in 3 individuals (heckstrahler, vogt31337, KS-HTK) -- all code quality gates depend on this group ([E-3](maturity/E-3_contributor_concentration.md))
+- Persistent CI "failures" from non-core jobs (downstream compat, deprecation warnings) -- CI hygiene concern ([E-6](maturity/E-6_ci_test_coverage.md))
+- 72% test coverage is adequate but below industry best practice ([E-6](maturity/E-6_ci_test_coverage.md))
 
-- Getting-started docs use unversioned `pip install pandapower` without pinning ([F-9](supply_chain/F-9_getting_started_integrity.md))
-- Tutorials not shipped in pip package (must clone GitHub repo) ([F-9](supply_chain/F-9_getting_started_integrity.md))
-
-#### Evidence Summary
+#### Evidence Summary Table
 
 | Test | Status | Key Finding |
 |------|--------|-------------|
-| F-1 | informational | BSD license, no copyleft |
-| F-2 | informational | 37 packages, depth 3, all pinned via uv.lock |
-| F-3 | informational | 29/37 BSD/MIT; 1 optional MPL-2.0 |
-| F-4 | informational | All compiled components source-available |
-| F-5 | informational | Full Python trace from API to spsolve |
-| F-6 | informational | Sigstore provenance, semver, immutable PyPI |
-| F-7 | informational | Fully air-gap installable |
-| F-8 | informational | Self-contained PYPOWER solver; no external solver needed |
-| F-9 | informational | Docs use unversioned install; tutorials not in package |
+| E-1 | informational | 19 releases/24mo, multi-branch maintenance |
+| E-2 | informational | 842 commits/12mo, 45 contributors |
+| E-3 | informational | Bus factor 3; reviewer pool of 3 |
+| E-4 | informational | Uni Kassel + Fraunhofer IEE dual anchor |
+| E-5 | informational | 152 open issues, 14-day median close |
+| E-6 | informational | 72% coverage, 28 CI jobs, Python 3.10-3.14 |
+| E-7 | informational | 3 confirmed DSO/TSO production deployments |
 
-#### Grade Rationale
+#### Findings Summary
 
-pandapower has an exemplary supply chain profile. BSD license, all-permissive dependency tree, fully inspectable execution path, Sigstore provenance, and a self-contained solver with no external binary dependencies. The only minor items are unversioned install commands in docs and tutorials not shipped in the pip package. This meets A: "Strong native support, well-tested at scale."
+pandapower demonstrates strong maturity for an academic-origin tool. The combination of institutional backing (Fraunhofer IEE), operational adoption (European DSOs/TSOs), active development (842 commits/year), and production-grade release practices (semver, multi-branch, Sigstore) indicates a project operating at a level above most academic power system tools. The primary maturity risk is reviewer concentration -- the 3-person review pool is a single point of failure for code quality.
 
 ---
 
-## 4. FNM Ingestion Findings (Suite G)
+### 3.6 Supply Chain (Suite F)
 
-### Data Model Fidelity (G-FNM-1, G-FNM-2)
+#### Strengths
+- BSD license (permissive, no copyleft) ([F-1](supply_chain/F-1_core_license.md))
+- 39-package dependency tree, max depth 3, all versions pinned via uv.lock ([F-2](supply_chain/F-2_dependency_tree.md))
+- All dependencies permissive except optional LightSim2Grid (MPL 2.0, weak copyleft, file-level only) ([F-3](supply_chain/F-3_dependency_license_audit.md))
+- All compiled extensions have publicly available source; no opaque binaries ([F-4](supply_chain/F-4_compiled_extension_audit.md))
+- Entire PF execution path is readable Python; sole compiled step is scipy SuperLU ([F-5](supply_chain/F-5_code_inspectability.md))
+- Sigstore provenance attestations, Trusted Publishing via GitHub Actions ([F-6](supply_chain/F-6_distribution_integrity.md))
+- Air-gap installable via pre-downloaded wheels; no runtime network access ([F-7](supply_chain/F-7_airgap_installability.md))
+- Self-contained solver (embedded PYPOWER) -- no external solver binary required ([F-8](supply_chain/F-8_solver_dependency.md))
 
-**G-FNM-1 (Ingestion):** All primary component counts match the manifest (30,307 buses, 33,840 merged branches, 100.0 baseMVA). Two stable workarounds were required: (1) manual PPC construction via `scipy.io.loadmat` because `from_mpc()` fails on the missing `version` field, and (2) pre-setting 28 zero RATE_A values to 9999 to work around a `from_ppc()` IndexError bug. Load aggregation reduced 15,062 individual loads to 8,576 per-bus entries (PPC format limitation). Branch classification differs from the intermediate format (voltage-level-based vs tap-ratio-based split) but the merged total matches exactly.
+#### Weaknesses
+- Tutorials not shipped inside pip package (must clone repo) ([F-9](supply_chain/F-9_getting_started_integrity.md))
+- Unversioned `pip install pandapower` in official docs ([F-9](supply_chain/F-9_getting_started_integrity.md))
 
-**G-FNM-2 (Field coverage):** 100% DCPF-critical field coverage (19/19). ACPF-critical coverage is 55.8% (29/52) -- gaps include area interchange controls, switched shunt discrete parameters, and remote regulation bus assignments, all inherent to the PPC import path's data flattening. These gaps are consistent with pandapower's ACPF non-convergence on the FNM (G-FNM-4).
+#### Evidence Summary Table
 
-### Power Flow Verification (G-FNM-3, G-FNM-4)
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | informational | BSD license |
+| F-2 | informational | 39 packages, depth 3 |
+| F-3 | informational | 1 MPL 2.0 (optional); rest permissive |
+| F-4 | informational | 216 .so files, all source-available |
+| F-5 | informational | Full PF path in readable Python |
+| F-6 | informational | Sigstore attestations, Trusted Publishing |
+| F-7 | informational | Air-gap installable |
+| F-8 | informational | Embedded PYPOWER, no external solver |
+| F-9 | informational | Versioned ReadTheDocs; tutorials not in pip |
 
-**G-FNM-3 (DCPF verification):** FAIL. Aggregate performance is strong: 99.64% of buses pass the 1.0-degree angle tolerance, 99.67% of branches pass the 10% flow tolerance. The hard-fail is triggered by a localized cluster of ~101 buses with 14-21 degree systematic deviations in the subtransmission/distribution network. The maximum branch flow deviation is 596.6% (exceeding the 50% threshold). These outliers have 0% transformer adjacency, ruling out formulation difference classification -- they are classified as data ingestion errors attributable to the MATPOWER PPC import path's handling of specific impedance details in a weakly-connected radial sub-network. The DCPF solver itself performs well (0.40s solve on 27,862 buses).
+#### Findings Summary
 
-**G-FNM-4 (ACPF convergence):** INFORMATIONAL -- infeasible at all relaxation levels (0%, 10%, 20%). All five available NR algorithms (nr, iwamoto_nr, fdbx, fdxb, gs) failed to converge. Contributing factors: (1) PPC import path loses AC-critical transformer data, (2) localized topology anomalies from G-FNM-3, (3) possible Q-limit misinterpretation, (4) pandapower uses internal NR (not Ipopt) for ACPF. Peak memory: 97.7 MB. DCPF warm-start angles were extreme (max 536.9 degrees), indicating network-level conditioning issues.
-
-### Supplemental Data Representability (G-FNM-5)
-
-**G-FNM-5:** 34% native (N), 23% extension (E), 43% external (X) across 44 supplemental CSV fields. pandapower has no native market-layer concepts: interfaces (100% X), trading hubs (75% X), and outage schedules (50% X) must be maintained externally. The custom DataFrame column mechanism provides a clean extension path for E-classified fields (RATE_B/C/D, CKT, effective dates). This is the lowest native coverage among the six evaluated tools, reflecting pandapower's scope as a power flow tool without market abstractions.
-
-**FNM impact on grades:** The FNM findings are additive evidence that strengthens the expressiveness C+ assessment (strong power flow, no market-layer concepts) and provides scalability data unavailable from Suite C (DCPF scales to 28K buses). The ACPF infeasibility on the FNM is attributable to the MATPOWER import path rather than the solver, consistent with the 55.8% ACPF-critical field coverage gap.
+pandapower has an exemplary supply chain profile. The BSD license, fully inspectable execution path, embedded solver, air-gap installability, and Sigstore provenance make it one of the cleanest supply chain profiles possible for a Python power system tool. The only non-permissive dependency (LightSim2Grid, MPL 2.0) is optional and excludable.
 
 ---
 
-## 5. Cross-Cutting Observations
+### 3b. FNM Ingestion Findings (Suite G)
+
+#### Data Model Fidelity
+
+**G-FNM-1 (Intermediate Ingestion):** FAIL. pandapower has no PSS/E parser of any kind. The tool cannot ingest the 17-table intermediate CSV format. All FNM testing proceeds via MATPOWER fallback path (`fnm_main_island.m` via `matpowercaseframes` + `from_ppc`). The MATPOWER path aggregates per-load records (8,576 vs 15,062 expected) and reclassifies branches by voltage level rather than PSS/E record type. ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_ingestion.md))
+
+**G-FNM-2 (Field Coverage):** SKIP, blocked by G-FNM-1. Prior v10 assessment via MATPOWER path found 100% DCPF-critical coverage (19/19), 55.8% ACPF-critical coverage (29/52), and 27.6% informational coverage (24/87). The 55.8% ACPF-critical gap includes area interchange controls, switched shunt parameters, and transformer control modes. ([G-FNM-2](fnm_ingestion/G-FNM-2_field_coverage_audit.md))
+
+*Expressiveness implication:* The absence of PSS/E parsing is a blocking gap for workflows starting from ISO-provided RAW files, the standard North American interchange format.
+
+#### Power Flow Verification
+
+**G-FNM-3 (DCPF Verification):** FAIL (hard-fail triggered). Aggregate performance is strong: 99.64% of buses pass VA tolerance, 99.67% of branches pass flow tolerance, and bus injection power balance passes at machine precision (max mismatch 8.6e-11 p.u.). However, a localized cluster of ~101 subtransmission buses produces systematic 14-21 degree angle deviations, causing one branch to exceed the 50% flow deviation hard-fail ceiling (596.6%). The outlier cluster has zero transformer adjacency, ruling out formulation difference classification. This is attributed to localized impedance handling differences in the MATPOWER PPC import path [tool-specific]. ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
+
+**G-FNM-4 (ACPF Convergence):** INFORMATIONAL -- infeasible at all relaxation levels (0%, 10%, 20%). pandapower's internal Newton-Raphson solver fails to converge on the 27,862-bus FNM at 100 iterations per attempt. Contributing factors: PPC import flattens transformer AC data (tap control modes, switched shunt steps), the ~101 outlier buses create Jacobian ill-conditioning, and pandapower uses its own NR implementation (not Ipopt) which may have different convergence properties on ill-conditioned large-scale networks. ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
+
+*Scalability implication:* DCPF solves the 27,862-bus FNM in 2.9 seconds, demonstrating adequate LARGE-tier DCPF scalability. ACPF cannot be assessed at LARGE tier due to convergence failure, which is primarily an ingestion fidelity issue.
+
+#### Supplemental Data Representability
+
+**G-FNM-5:** 34% native, 23% extension, 43% external across 44 supplemental CSV fields. pandapower has no native concept of transmission interfaces/flowgates (INTERFACE.csv: 100% external), contingency definitions, trading hubs, or outage schedules. Extension mechanism (custom DataFrame columns) is stable and survives JSON round-trip, but cannot make the solver aware of interface constraints. ([G-FNM-5](fnm_ingestion/G-FNM-5_supplemental_csv_representability.md))
+
+*Extensibility implication:* The 43% external rate means nearly half of FNM supplemental data requires parallel data structures outside pandapower, increasing integration complexity for congestion analysis workflows.
+
+#### P2 Readiness
+
+| Test | Finding |
+|------|---------|
+| P2-1 | No PSS/E parser; medium-high effort (2-4 weeks) for production converter ([P2-1](p2_readiness/P2-1_psse_raw_parsing.md)) |
+| P2-2 | PWL costs work natively via `create_pwl_cost()` -- clean, documented API ([P2-2](p2_readiness/P2-2_piecewise_linear_costs.md)) |
+| P2-3 | Commitment injection works via `in_service` flag -- low friction, idiomatic ([P2-3](p2_readiness/P2-3_commitment_injection.md)) |
+
+---
+
+## 4. Cross-Cutting Observations
 
 ### API Friction Patterns
 
-Five api-friction observations were recorded:
-
-1. **Bus indexing mismatch:** `from_mpc` converts MATPOWER 1-indexed bus numbers to 0-indexed pandas indices without documentation (A-3, severity: low)
-2. **Silent parameter absorption:** `rundcopp()` accepts `distributed_slack=True` via `**kwargs` with zero effect, no warning (A-11, severity: medium)
-3. **Custom constraint injection barrier:** PYPOWER `userfcn` mechanism exists but requires replicating private `_optimal_powerflow` function (B-1, severity: high)
-4. **Slack bus reconfiguration verbosity:** 5-6 API calls required due to ext_grid/gen element-type coupling (B-8, severity: medium)
-5. **Convergence diagnostics via private attributes:** NR iteration count only accessible through `net._ppc["iterations"]` (C-5, severity: low)
-
-The dominant pattern is that pandapower's public API covers basic use cases well but exposes internals through underscore-prefixed attributes and discards solver metadata during result extraction. The `**kwargs` passthrough in OPF functions is a notable design issue.
+- **Silent parameter absorption:** `rundcopp()` and `runopp()` accept arbitrary `**kwargs` without validation. `distributed_slack=True` is silently ignored on OPF functions, potentially misleading users. (Source: [A-11 observation](observations/api-friction-expressiveness-A-11_distributed_slack_opf.md))
+- **Bus index mismatch:** `from_mpc` remaps MATPOWER 1-indexed bus numbers to 0-indexed pandas indices without prominent documentation. External data cross-referencing requires manual offset. (Source: [A-3 observation](observations/api-friction-expressiveness-A-3_dcopf.md))
+- **PYPOWER userfcn hidden:** The `add_userfcn` callback system for OPF constraint injection exists internally but is not exposed through pandapower's public API. (Source: [A-9 observation](observations/api-friction-expressiveness-A-9_scopf.md), [B-1 observation](observations/api-friction-extensibility-B-1_custom_constraints.md))
+- **Convergence diagnostics private:** NR iteration count accessible only via `net._ppc["iterations"]`; final residual not stored anywhere. (Source: [C-5 observation](observations/api-friction-scalability-C-5_ac_feasibility_progressive_SMALL.md))
+- **Slack bus reconfiguration verbose:** Changing reference bus requires 5-6 API calls with element type juggling (ext_grid/gen distinction). (Source: [B-8 observation](observations/api-friction-extensibility-B-8_reference_bus_config.md))
+- **No PSS/E parser:** Blocks intermediate CSV ingestion for all FNM workflows. (Source: [G-FNM-1 observation](observations/api-friction-fnm_ingestion-G-FNM-1_intermediate_ingestion.md))
 
 ### Documentation Gaps
 
-One doc-gaps observation was recorded:
-
-1. **PYPOWER userfcn mechanism undocumented:** The `add_userfcn` callback system for custom OPF constraints is used internally but not documented in pandapower's own docs (B-1, severity: medium)
-
-The broader documentation gap pattern (from D-2) is the absence of an explicit scope statement. pandapower's docs never state what the tool *cannot* do. Users must infer scope limitations from feature absence rather than from explicit documentation.
+- **No scope boundary statement:** Documentation never explicitly states what pandapower *cannot* do (no SCUC, no SCOPF, no multi-period OPF). Users must infer limits from feature absence. (Source: [D-2](accessibility/D-2_documentation_audit.md))
+- **PYPOWER userfcn undocumented:** The OPF extensibility mechanism exists but is absent from pandapower's own documentation. Users must read PYPOWER source to discover it. (Source: [B-1 observation](observations/doc-gaps-extensibility-B-1_custom_constraints.md))
+- **LMP interpretation absent:** `res_bus.lam_p` produced by OPF but not documented as an LMP or explained in economic terms. (Source: [D-2](accessibility/D-2_documentation_audit.md))
 
 ### Solver Ecosystem
 
-pandapower embeds a fork of PYPOWER as its sole solver backend. No external solver binary is required for any standard operation. The internal solver stack includes:
-
-- **DCPF:** Direct sparse linear solve via `scipy.sparse.linalg.spsolve` (SuperLU)
-- **ACPF:** Newton-Raphson (5 algorithm variants) implemented in pure Python
-- **DC OPF:** PYPOWER interior-point method (bundled)
-- **AC OPF:** PYPOWER interior-point method (bundled)
-
-The self-contained architecture is a supply chain strength but creates a solver quality limitation: users cannot swap in more robust solvers (e.g., Ipopt for ACPF, HiGHS for OPF) without the optional PandaModels.jl Julia bridge. The PYPOWER interior-point solver has documented convergence limitations (case9 DC OPF fails silently in D-3).
+- **Embedded PYPOWER solver only:** pandapower's OPF uses PYPOWER PIPS (interior-point) exclusively. No mechanism to swap to HiGHS, GLPK, or any external LP/MIP solver via parameter change [tool-specific]. (Source: [C-7](scalability/C-7_solver_swap.md))
+- **PYPOWER PIPS scales poorly for OPF:** 62s and 2.35 GB for 10k-bus DCOPF [solver-specific]. Power flow scales well (DCPF 1s, ACPF 2.5s on same network). (Source: [C-3](scalability/C-3_dcopf_medium.md))
+- **lightsim2grid provides 19x ACPF speedup** on MEDIUM but shows no benefit at MEDIUM scale due to Python pre/post-processing bottleneck. (Source: [C-2](scalability/C-2_acpf_medium.md))
+- **Internal NR for ACPF, not Ipopt:** pandapower uses its own Newton-Raphson, not an external NLP solver. This affects convergence comparison with Ipopt-based tools on ill-conditioned networks [tool-specific]. (Source: [G-FNM-4 observation](observations/formulation-difference-fnm_ingestion-G-FNM-4_acpf_convergence.md))
 
 ### Architecture Quality
 
-Two arch-quality observations were recorded:
-
-1. **Exemplary NetworkX graph bridge:** `topology.create_nxgraph()` is a model of how power system tools should expose topology to general-purpose graph libraries (B-2, severity: low/positive)
-2. **OPF duals discarded during result extraction:** The 6-layer architecture is clean, but constraint multipliers and shadow prices from the PYPOWER result dict are dropped during DataFrame conversion (B-6, severity: medium)
-
-pandapower's DataFrame-centric data model (input DataFrames mirror result DataFrames, in-place modification for contingency analysis, custom columns for extension data) is a significant architectural strength. The PYPOWER fork approach (embedded rather than external dependency) reduces deployment complexity but creates a maintenance and upgrade burden.
+- **Positive:** Clean 6-layer architecture with well-separated concerns (public API, orchestration, data model conversion, problem formulation, solver, result extraction). DataFrame-to-numpy boundary is a well-defined data model separation. (Source: [B-6 observation](observations/arch-quality-extensibility-B-6_code_architecture.md))
+- **Positive:** DataFrame-backed network model enables clean in-place contingency toggling and scenario orchestration. (Source: [B-3 observation](observations/arch-quality-extensibility-B-3_contingency_sweep.md))
+- **Positive:** Exemplary NetworkX graph bridge design -- composable, well-documented, clean integration. (Source: [B-2 observation](observations/arch-quality-extensibility-B-2_graph_access.md))
+- **Negative:** OPF result dict (duals, multipliers, shadow prices) discarded during result extraction back to DataFrames. Users needing constraint duals must access undocumented internals or monkey-patch the pipeline. (Source: [B-1 observation](observations/arch-quality-extensibility-B-1_custom_constraints.md))
 
 ### FNM Data Model
 
-Three fnm-data-model observations were recorded:
-
-1. **Load aggregation and branch reclassification:** PPC import aggregates loads per bus (15,062 to 8,576) and reclassifies branches by voltage level instead of tap ratio (G-FNM-1, severity: medium)
-2. **ACPF-critical field coverage limited by PPC path:** Only 55.8% ACPF-critical coverage; transformer control modes, area interchange, and switched shunt parameters lost (G-FNM-2, severity: medium)
-3. **No native market-layer data structures:** 43% of supplemental CSV fields require tool-external storage; no hub, interface, contingency definition, or outage schedule model (G-FNM-5, severity: medium)
-
-The common theme is that pandapower's data model is designed for power flow analysis, not market operations. The PPC import path is the primary bottleneck for FNM data fidelity.
+- **Load aggregation in PPC import:** Multiple PSS/E loads per bus aggregated into single pandapower load element, losing per-load granularity (8,576 vs 15,062 expected). (Source: [G-FNM-1 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-1_intermediate_ingestion.md))
+- **ACPF-critical field coverage limited:** 55.8% via MATPOWER path (missing area interchange, switched shunt parameters, transformer control modes). (Source: [G-FNM-2 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-2_field_coverage_audit.md))
+- **No interface/flowgate or contingency definition models:** 43% of supplemental CSV fields are tool-external. Interface flow limits cannot be enforced in OPF. (Source: [G-FNM-5 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-5_supplemental_csv_representability.md))
+- **Thermal rating unit difference:** `line.max_i_ka` uses current (kA) not power (MVA), requiring voltage-dependent conversion at ingestion. (Source: [G-FNM-5 observation](observations/formulation-difference-fnm_ingestion-G-FNM-5_supplemental_csv_representability.md))
 
 ---
 
-## 6. Items Requiring Human Spot-Check
+## 5. Items Requiring Human Spot-Check
 
-- [ ] **B-1 (Custom constraints) — fragile workaround classification:** The monkey-patching approach depends on `_optimal_powerflow` internal structure, classified as fragile. However, the underlying PYPOWER userfcn mechanism has been architecturally stable for years. Reviewer should assess whether the practical breakage risk merits fragile vs. stable classification.
-- [ ] **B-8 (Reference bus config) — qualified_pass with stable workaround:** The 5-6 API call process is verbose but uses only public API. Reviewer should confirm this appropriately receives qualified_pass rather than pass.
-- [ ] **Scalability grade (C+) — Low confidence:** Only 2 of 10 scalability tests were executed. The C-SMALL-gate was triggered by a cascaded failure from A-5 (SCUC), not a scale failure. Reviewer should assess whether the available evidence (C-5 SMALL pass + FNM DCPF 28K bus solve) warrants a higher grade given that all skipped tests were blocked by feature absence, not scale limitations.
-- [ ] **G-FNM-3 hard-fail — localized outlier impact:** DCPF passes aggregate thresholds (99.6% buses, 99.7% branches) but triggers hard-fail on 596.6% max branch flow deviation in a localized radial cluster. Reviewer should assess whether this hard-fail appropriately reflects tool quality or is an artifact of the ingestion path.
-- [ ] **Expressiveness C+ boundary:** pandapower passes 4 of 10 expressiveness tests cleanly but the 6 failures are all by design (steady-state tool). Reviewer should confirm C+ is the correct grade vs. C (the difference being whether the gaps are "NOT disqualifying" at C+ or "disqualifying" at C).
-
----
-
-## 7. Methodology Notes
-
-- **Scale cap applied:** MEDIUM. All three gate tests (G-1, G-2, G-3) passed. The Suite C SMALL gate was triggered because C-4 (SCUC on SMALL) failed due to cascaded dependency on A-5 (SCUC not supported). This blocked all 8 MEDIUM-tier scalability tests, though the failure reflects feature absence rather than a scale limitation.
-- **FNM status:** Suite G executed (FNM_PATH set). Five FNM tests completed: G-FNM-1 pass, G-FNM-2 pass, G-FNM-3 fail, G-FNM-4 informational (infeasible), G-FNM-5 informational.
-- **Tests skipped:** C-1, C-2, C-3, C-5 MEDIUM, C-7, C-8, C-9, C-10 -- all skipped due to C-SMALL-gate triggered by C-4 cascaded failure from A-5.
-- **Solver versions:** PYPOWER interior-point (bundled in pandapower 3.4.0); scipy 1.16.3 (SuperLU sparse solver); no external solvers used.
-- **Tool version:** pandapower 3.4.0
-- **Protocol version:** v10 (consistent across all tests)
-- **P2 readiness findings:** P2-1 (PSS/E RAW parsing): Not supported, medium-high effort to add. P2-2 (Piecewise-linear costs): Supported natively via `create_pwl_cost()`. P2-3 (Commitment injection): Straightforward via `in_service` column -- low friction.
+- [ ] **A-9 (SCOPF) partial_pass classification** -- The workaround bypasses pandapower's OPF entirely (pandapower used only for PTDF extraction + data container). Verify whether "blocking workaround with partial capability demonstrated" warrants partial_pass vs fail.
+- [ ] **B-1 (Custom constraints) partial_pass with fragile workaround** -- Monkey-patching `_optimal_powerflow` is classified as fragile. Verify this classification vs the underlying PYPOWER mechanism stability.
+- [ ] **B-8 (Reference bus) qualified_pass with stable workaround** -- The workaround uses only public API but is verbose (5-6 calls). Verify qualified_pass is appropriate for a stable but friction-heavy workaround.
+- [ ] **C-3 (DCOPF MEDIUM) pass at 62s** -- The test passes but the 62-second solve time and 2.35 GB memory are notable. Verify whether this timing is acceptable for the pass condition or should affect the scalability assessment.
+- [ ] **G-FNM-3 hard-fail attribution** -- The 596.6% branch deviation is localized to ~101 buses with zero transformer adjacency. Verify whether "data ingestion error in PPC import path" is the correct attribution vs a potential formulation difference.
+- [ ] **G-FNM-4 ACPF infeasibility** -- Non-convergence at all relaxation levels. Verify attribution split between ingestion path data loss (PPC flattening) vs solver limitation (internal NR vs Ipopt).
+- [ ] **Solver-specific vs tool-specific attribution for C-3 timing** -- PYPOWER PIPS interior-point is slow at 10k scale. Is this solver-specific (a different solver in the same tool would be faster) or tool-specific (the tool cannot use a different solver)?
+- [ ] **A-6 SCED mode classification** -- Confirmed `ed_only` (no commitment from A-5, sequential greedy dispatch). Verify this is correctly flagged as partial_pass with fragile workaround.
 
 ---
 
-## 8. Phase 2 Readiness Summary
+## 6. Methodology Notes
 
-| Capability | Status | Notes |
-|------------|--------|-------|
-| PSS/E RAW parsing | Not available | No parser; converter from RAW to MATPOWER via external tool is viable |
-| Piecewise-linear costs | Native support | `create_pwl_cost()` API, tested with DC and AC OPF |
-| Commitment injection | Low friction | `gen.in_service = False` cleanly removes generators from OPF; P2 UC+ED pipeline viable via external SCUC solver + pandapower ED |
+- **Scale cap applied:** MEDIUM (10,000-bus ACTIVSg10k). LARGE-tier testing conducted only via Suite G (FNM ingestion).
+- **FNM status:** Suite G executed (FNM_PATH set). FNM ingested via MATPOWER fallback (`fnm_main_island.m`); no native PSS/E or intermediate CSV ingestion.
+- **Tests skipped:** G-FNM-2 (blocked by G-FNM-1 PSS/E parser absence).
+- **Solver versions:** PYPOWER PIPS interior-point (bundled, version tied to pandapower 3.4.0); scipy 1.16.3 (HiGHS via linprog for A-9 workaround); lightsim2grid 0.12.2 (optional ACPF accelerator).
+- **Tool version:** pandapower 3.4.0 (installed via `uv sync` in devcontainer).
+- **Python version:** 3.12 (Ubuntu 24.04 devcontainer).
+- **Devcontainer environment:** Ubuntu 24.04 + Python 3.12 + Julia 1.10 + Octave + uv.

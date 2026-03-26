@@ -3,9 +3,9 @@ test_id: B-8
 tool: pandapower
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "8c18d155"
+protocol_version: v11
+skill_version: v2
+test_hash: "dad5cf97"
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
