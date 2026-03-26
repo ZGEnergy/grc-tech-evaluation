@@ -3,20 +3,21 @@ test_id: A-4
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "8531c61c"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.1825
+wall_clock_seconds: 0.4776
 timing_source: measured
 peak_memory_mb: 1.8
 convergence_residual: null
 convergence_iterations: null
-loc: 242
+convergence_evidence_quality: binary_convergence_api
+loc: 247
 solver: "MIPS (DC OPF), Newton-Raphson (ACPF)"
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-4: Take DC OPF dispatch from A-3, run full ACPF on that dispatch
@@ -25,23 +26,24 @@ timestamp: 2026-03-13T00:00:00Z
 
 ## Approach
 
-1. Loaded IEEE 39-bus case with differentiated costs and 70% branch derating (identical setup to A-3).
-2. Solved DC OPF via `rundcopf(mpc, mpopt)` with MIPS solver to obtain dispatch.
-3. **In the same model context** (no file export/reimport), transferred the DC OPF result struct directly as the starting point for AC PF: `mpc_ac = results_dc;`.
-4. Reset voltage magnitudes to flat start (1.0 pu) and angles to 0.
-5. Ran AC power flow via `runpf(mpc_ac, mpopt_ac)` with Newton-Raphson solver and Q-limit enforcement (`pf.enforce_q_lims = 1`).
-6. Identified voltage violations, thermal violations, and reactive power limit violations from the results.
+1. Loaded IEEE 39-bus case via `loadcase()`.
+2. Applied differentiated costs from `gen_temporal_params.csv` and 70% branch derating (identical setup to A-3).
+3. Solved DC OPF via `rundcopf(mpc, mpopt)` with MIPS solver to obtain dispatch.
+4. **In the same model context** (no file export/reimport), transferred the DC OPF result struct directly as the starting point for AC PF: `mpc_ac = results_dc;`.
+5. Reset voltage magnitudes to flat start (1.0 pu) and angles to 0 for AC PF initialization.
+6. Ran AC power flow via `runpf(mpc_ac, mpopt_ac)` with Newton-Raphson solver and Q-limit enforcement (`pf.enforce_q_lims = 1`).
+7. Identified voltage violations, thermal violations, and reactive power limit violations from the results.
 
-The entire workflow stays within the `mpc` struct — MATPOWER's data model supports direct modification and re-solving without any file I/O. The DC OPF result struct contains all fields needed for AC PF initialization.
+The entire workflow stays within the `mpc` struct -- MATPOWER's data model supports direct modification and re-solving without any file I/O. The DC OPF result struct contains all fields needed for AC PF initialization. Unit consistency verified: both DC OPF and AC PF use MW/MVA (not per-unit) for generator dispatch and branch flows, with `baseMVA = 100`.
 
 ## Output
 
 | Metric | Value |
 |--------|-------|
 | DC OPF objective | $219,748.32 |
-| DC OPF time | 0.1107 s |
-| AC PF time | 0.0718 s |
-| Total time | 0.1825 s |
+| DC OPF time | 0.2768 s |
+| AC PF time | 0.2008 s |
+| Total time | 0.4776 s |
 | AC PF converged | Yes |
 
 ### Voltage Analysis
@@ -60,7 +62,7 @@ The entire workflow stays within the `mpc` struct — MATPOWER's data model supp
 | 37 | 22->35 | 663.46 | 630.00 | 105.3% |
 | 46 | 29->38 | 840.35 | 840.00 | 100.0% |
 
-3 thermal violations identified. These are branches that were binding in the DC OPF — the reactive power flows in the full AC model push apparent power above the MW-only DC limits.
+3 thermal violations identified. These are branches that were binding in the DC OPF -- the reactive power flows in the full AC model push apparent power above the MW-only DC limits. This is physically expected behavior: DC OPF constrains active power only, while AC PF accounts for apparent power (MVA = sqrt(P^2 + Q^2)).
 
 ### Reactive Power
 
@@ -74,15 +76,16 @@ No Q-limit violations. All generators operate within their reactive power limits
 
 ## Workarounds
 
-None required. MATPOWER's `mpc` struct serves as both input and output, enabling seamless workflow from DC OPF to AC PF within the same model context. The DC OPF result struct is directly usable as AC PF input — no export/reimport needed.
+None required. MATPOWER's `mpc` struct serves as both input and output, enabling seamless workflow from DC OPF to AC PF within the same model context. The DC OPF result struct is directly usable as AC PF input -- no export/reimport needed.
 
 ## Timing
 
-- **Wall-clock:** 0.1825 s (DC: 0.1107 s, AC: 0.0718 s)
+- **Wall-clock:** 0.4776 s (DC: 0.2768 s, AC: 0.2008 s)
 - **Timing source:** measured
 - **Peak memory:** 1.8 MB
-- **Solver iterations:** N/A (Newton-Raphson internal)
-- **Convergence residual:** N/A
+- **Solver iterations:** Not separately reported (NR internal)
+- **Convergence residual:** Not separately reported (below `pf.tol = 1e-8`)
+- **Convergence evidence quality:** binary_convergence_api (`results_ac.success == 1`)
 - **CPU cores used:** 1
 
 ## Test Script

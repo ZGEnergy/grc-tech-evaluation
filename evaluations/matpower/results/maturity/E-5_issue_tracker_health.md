@@ -3,8 +3,8 @@ test_id: E-5
 tool: matpower
 dimension: maturity
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: v2
 test_hash: "1cc758ab"
 status: informational
 workaround_class: null

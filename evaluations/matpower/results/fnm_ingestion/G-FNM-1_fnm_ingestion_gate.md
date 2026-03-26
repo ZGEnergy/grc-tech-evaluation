@@ -3,24 +3,26 @@ test_id: G-FNM-1
 tool: matpower
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "7827a912"
+protocol_version: v11
+skill_version: v2
+test_hash: "62aeab18"
 status: fail
 failure_reason: psse_parse_error
-workaround_class: blocking
+workaround_class: null
+ingestion_path: null
 blocked_by: null
-wall_clock_seconds: 0.001
-timing_source: measured
+wall_clock_seconds: null
+timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 30
+convergence_evidence_quality: null
+loc: null
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
-# G-FNM-1: Two-check gate — PSS/E format compatibility + record count fidelity
+# G-FNM-1: Two-check gate -- PSS/E format compatibility + record count fidelity
 
 ## Result: FAIL
 
@@ -37,18 +39,24 @@ owner, facts, switched_shunt).
 **(b) Record count fidelity:** If CSV loading succeeds, compare ingested record
 counts against `manifest.json` expected counts.
 
-MATPOWER's data import API was systematically surveyed. The tool provides exactly
-two data ingestion paths:
+MATPOWER's data import API was systematically surveyed in the 8.1 source tree. The
+tool provides exactly two data ingestion paths:
 
-1. **`loadcase()`** — reads MATPOWER case format (`.m` script files or `.mat`
+1. **`loadcase()`** -- reads MATPOWER case format (`.m` script files or `.mat`
    binary files) containing an MPC struct with `bus`, `branch`, `gen`, and
-   `gencost` matrices.
-2. **`psse2mpc()`** — parses PSS/E RAW format files (`.raw`) and converts them
+   `gencost` matrices. The `help loadcase` output explicitly states it supports
+   only `.m` and `.mat` files.
+2. **`psse2mpc()`** -- parses PSS/E RAW format files (`.raw`) and converts them
    to the MPC struct format.
 
-No built-in function exists for importing CSV tables. A search for candidate
-functions (`csv2mpc`, `importcsv`, `load_csv`, `readcsv`) returned no matches
-in the MATPOWER 8.1 function library.
+No built-in function exists for importing CSV tables. A search of the MATPOWER 8.1
+`lib/` directory for any file or function containing "csv" returned zero results.
+Candidate function names (`csv2mpc`, `importcsv`, `load_csv`, `readcsv`) do not
+exist in the MATPOWER function library.
+
+This is confirmed by the research-version.md capability table which states:
+"CSV Data Import: no -- `loadcase()` supports only `.m` and `.mat` files natively;
+CSV requires custom parsing scripts."
 
 ## Output
 
@@ -56,7 +64,8 @@ in the MATPOWER 8.1 function library.
 
 | Check | Result |
 |-------|--------|
-| `psse2mpc()` available | Yes |
+| `loadcase()` available | Yes (`.m`/`.mat` only) |
+| `psse2mpc()` available | Yes (`.raw` only) |
 | CSV table import function available | No |
 | Can parse intermediate CSV tables | No |
 
@@ -66,14 +75,13 @@ struct from these CSVs would require writing a complete custom importer that:
 
 1. Reads all 17 CSV tables via Octave's `csvread()` or `dlmread()`
 2. Maps PSS/E v31 field names to MATPOWER column indices
-3. Merges `branch.csv` (24,117 records) and `transformer.csv` (9,723 records)
-   into the unified MATPOWER branch matrix (33,840 rows)
+3. Merges `branch.csv` and `transformer.csv` into the unified MATPOWER branch matrix
 4. Converts PSS/E bus type codes to MATPOWER conventions
 5. Handles transformer tap ratio encoding (PSS/E 0.0 = unity tap)
 6. Constructs the `gencost` matrix from generator cost data
 
 This is not a minor API workaround -- it is building a new importer from scratch,
-equivalent in scope to `psse2mpc()` itself.
+equivalent in scope to `psse2mpc()` itself. [tool-specific: no CSV/tabular import API]
 
 **Sub-check (a) result: FAIL** (`psse_parse_error`)
 
@@ -81,20 +89,6 @@ equivalent in scope to `psse2mpc()` itself.
 
 **BLOCKED** -- CSV parsing failed in sub-check (a). Record count fidelity cannot
 be evaluated.
-
-Reference counts from `intermediate_manifest.json` (for documentation):
-
-| Table | Expected Records |
-|-------|-----------------|
-| bus | 30,307 |
-| load | 15,062 |
-| fixed_shunt | 0 |
-| generator | 5,768 |
-| branch | 24,117 |
-| transformer | 9,723 |
-| area | 49 |
-| zone | 90 |
-| switched_shunt | 3,114 |
 
 ### Fallback Path
 
@@ -104,33 +98,23 @@ pre-cleaned FNM network in MATPOWER's native format.
 
 ## Workarounds
 
-- **What:** No workaround is possible within MATPOWER's API. CSV table ingestion
-  would require building a complete custom importer (hundreds of lines of Octave
-  code) to map 17 CSV tables to the MPC struct format.
-- **Why:** MATPOWER's data model is designed around its own case format and PSS/E
-  RAW files. It has no generic tabular data import capability.
-- **Durability:** blocking -- requires building a new importer from scratch, not
-  using an existing API in a non-obvious way.
-- **Grade impact:** G-FNM-1 fails, blocking G-FNM-2. G-FNM-3/4/5 proceed via
-  the MATPOWER fallback path (`.mat` file).
+None possible within MATPOWER's API. CSV table ingestion would require building a
+complete custom importer (hundreds of lines of Octave code) to map 17 CSV tables to
+the MPC struct format. This is a fundamental architectural limitation of MATPOWER's
+data model, which uses position-indexed numeric matrices rather than named-column
+tabular data.
 
 ## Timing
 
-- **Wall-clock:** 0.001 seconds (API survey only, no data processing)
-- **Timing source:** measured
-- **Peak memory:** not measured (no data loaded)
+- **Wall-clock:** null (API capability survey only, no data processing attempted)
+- **Timing source:** null
+- **Peak memory:** null (no data loaded)
 
 ## Test Script
 
-**Path:** `evaluations/matpower/tests/fnm_ingestion/test_g_fnm_1_fnm_ingestion_gate.m`
+No test script was executed. The determination that MATPOWER cannot parse intermediate
+CSV tables was made by:
 
-Key verification code:
-
-```matlab
-% Confirm psse2mpc exists (reads RAW, not CSV)
-has_psse2mpc = exist('psse2mpc', 'file') > 0;  % returns 1
-
-% Search for any CSV import function
-csv_funcs = {'csv2mpc', 'importcsv', 'load_csv', 'readcsv'};
-% All return 0 — no CSV import capability exists
-```
+1. Inspecting `help loadcase` output confirming only `.m`/`.mat` support
+2. Searching the MATPOWER 8.1 `lib/` directory for any CSV-related functions (zero results)
+3. Reviewing the research-version.md capability table confirming `CSV Data Import: no`

@@ -7,9 +7,9 @@ status: skip
 workaround_class: null
 blocked_by: C-SMALL-gate
 timestamp: 2026-03-14T06:33:04Z
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "1c9cff54"
+protocol_version: "v11"
+skill_version: v2
+test_hash: "a4f62ae7"
 ---
 
 # C-3: Skipped — Suite C SMALL gate failed

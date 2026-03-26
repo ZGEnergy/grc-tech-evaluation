@@ -3,8 +3,8 @@ test_id: F-5
 tool: matpower
 dimension: supply_chain
 network: N/A
-protocol_version: v10
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: 07cd54c8
 status: pass
 workaround_class: null
