@@ -431,6 +431,106 @@ function run(
         )
 
         # ------------------------------------------------------------------
+        # 8b. Ramp binding evidence: re-run with 10% ramp rates
+        #     Scale all ramp rates down to 10% of original values. This should
+        #     make ramp constraints binding (binding dual > 0 in LP).
+        # ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # 8b. Ramp binding evidence: re-run with 10% ramp rates
+        # ------------------------------------------------------------------
+        ramp_binding_evidence = false
+        binding_ramp_count = 0
+        n_tight_ramp_checks = 0
+        tight_status = "not_run"
+        tight_obj = NaN
+        obj_increase = NaN
+
+        try
+            println("\n--- Ramp Binding Evidence: 10% Ramp Rate Re-run ---")
+            gen_params_tight = Dict{Int,NamedTuple}()
+            for (k, v) in gen_params
+                gen_params_tight[k] = (
+                    tech_class_key=v.tech_class_key,
+                    c1=v.c1,
+                    c2=v.c2,
+                    ramp_rate_mw_per_min=(v.ramp_rate_mw_per_min * 0.10),
+                )
+            end
+
+            # Re-instantiate model with tighter ramp rates
+            mn_data_tight = PowerModels.replicate(data, HORIZON_HOURS)
+            for t_p in 1:HORIZON_HOURS
+                set_period_loads!(mn_data_tight["nw"][string(t_p)], load_profile, t_p, base_mva)
+            end
+            pm_tight = PowerModels.instantiate_model(
+                mn_data_tight, PowerModels.DCPPowerModel, PowerModels.build_mn_opf;
+            )
+            n_ramp_tight = add_ramp_constraints!(
+                pm_tight, gen_params_tight, base_mva, HORIZON_HOURS
+            )
+
+            println("  Re-solving with 10% ramp rates ($n_ramp_tight tight constraints)...")
+            result_tight = PowerModels.optimize_model!(
+                pm_tight; optimizer=highs_opt, solution_processors=[PowerModels.sol_data_model!]
+            )
+            tight_status = string(result_tight["termination_status"])
+            tight_obj = get(result_tight, "objective", NaN)
+            println(
+                "  Tight-ramp status: $tight_status, objective: $(round(tight_obj, digits=2)) \$/h"
+            )
+
+            obj_increase = tight_obj - objective_value
+            println("  Objective increase with tight ramps: $(round(obj_increase, digits=2)) \$/h")
+
+            # Check for binding ramp constraints
+            tight_dispatch = Dict{Int,Dict{String,Float64}}()
+            if haskey(result_tight, "solution") && haskey(result_tight["solution"], "nw")
+                for t_p in 1:HORIZON_HOURS
+                    nw_key = string(t_p)
+                    if haskey(result_tight["solution"]["nw"], nw_key) &&
+                        haskey(result_tight["solution"]["nw"][nw_key], "gen")
+                        period_d = Dict{String,Float64}()
+                        for (gid, gsol) in result_tight["solution"]["nw"][nw_key]["gen"]
+                            period_d[gid] = get(gsol, "pg", 0.0) * base_mva
+                        end
+                        tight_dispatch[t_p] = period_d
+                    end
+                end
+
+                for t_p in 1:(HORIZON_HOURS - 1)
+                    for (gid, pg_t_val) in get(tight_dispatch, t_p, Dict())
+                        pg_t1_val = get(get(tight_dispatch, t_p+1, Dict()), gid, nothing)
+                        isnothing(pg_t1_val) && continue
+                        gen_idx_0 = nothing
+                        for (_, gen) in data["gen"]
+                            if string(gen["index"]) == gid
+                                gen_idx_0 = gen["index"] - 1
+                                break
+                            end
+                        end
+                        isnothing(gen_idx_0) && continue
+                        !haskey(gen_params_tight, gen_idx_0) && continue
+                        ramp_limit_tight = gen_params_tight[gen_idx_0].ramp_rate_mw_per_min * 60.0
+                        delta_mw = abs(pg_t1_val - pg_t_val)
+                        n_tight_ramp_checks += 1
+                        if ramp_limit_tight > 1e-3 && delta_mw >= 0.999 * ramp_limit_tight
+                            binding_ramp_count += 1
+                        end
+                    end
+                end
+            end
+            ramp_binding_evidence = binding_ramp_count > 0
+            println(
+                "  Tight-ramp binding constraints: $binding_ramp_count / $n_tight_ramp_checks checks",
+            )
+            println("  Ramp binding evidence: $ramp_binding_evidence")
+        catch e_tight
+            println("  ERROR in ramp binding evidence: $(typeof(e_tight)): $e_tight")
+            bt = catch_backtrace()
+            println(sprint(showerror, e_tight, bt))
+        end
+
+        # ------------------------------------------------------------------
         # 9. Pass condition
         # ------------------------------------------------------------------
         pass_criteria = converged && dispatch_accessible && ramp_enforced
@@ -472,7 +572,14 @@ function run(
             "load_peak_hour" => argmax(period_loads),
             "solver" => "HiGHS (LP via DCPPowerModel + mn_opf)",
             "api_pattern" => "instantiate_model + add_ramp_constraints! + optimize_model!",
-            "loc" => 240,
+            # Ramp binding evidence (10% ramp rate re-run)
+            "tight_ramp_status" => tight_status,
+            "tight_ramp_objective" => tight_obj,
+            "tight_ramp_obj_increase" => obj_increase,
+            "tight_ramp_binding_count" => binding_ramp_count,
+            "tight_ramp_checks" => n_tight_ramp_checks,
+            "ramp_binding_evidence" => ramp_binding_evidence,
+            "loc" => 310,
         )
 
     catch e

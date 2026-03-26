@@ -3,9 +3,9 @@ test_id: C-10
 tool: powermodels
 dimension: scalability
 network: MEDIUM
-protocol_version: v10
-skill_version: v1
-test_hash: da310747
+protocol_version: v11
+skill_version: v2
+test_hash: a1c2bccd
 status: fail
 workaround_class: blocking
 blocked_by: A-11
@@ -14,9 +14,12 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: 2026-03-13T12:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+timestamp: 2026-03-24T22:00:00Z
 ---
 
 # C-10: Distributed Slack DC OPF Scale MEDIUM
@@ -29,7 +32,7 @@ C-10 measures distributed slack DC OPF scalability at MEDIUM scale (ACTIVSg 10k-
 
 A-11 confirmed that PowerModels.jl v0.21.5 does not natively support distributed slack formulations. All built-in formulations use a single reference bus. The workaround requires ~150 lines of custom JuMP PTDF-based DC OPF code, bypassing PowerModels' problem specification API entirely.
 
-While the custom PTDF-based approach could theoretically be scaled to MEDIUM, the A-11 failure was classified as blocking (not stable or fragile) because it requires assembling a complete optimization problem from scratch. This blocks the MEDIUM scalability assessment.
+While the custom PTDF-based approach could theoretically be scaled to MEDIUM, the A-11 failure was classified as blocking (not stable or fragile) because it requires assembling a complete optimization problem from scratch. This blocks the MEDIUM scalability assessment. [tool-specific]
 
 ## Output
 

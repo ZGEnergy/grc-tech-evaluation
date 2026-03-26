@@ -4,18 +4,20 @@ installed_version: 0.21.5
 release_date: 2025-08-12
 latest_version: 0.21.5
 latest_release_date: 2025-08-12
-research_date: 2026-03-13
+research_date: 2026-03-24
 ---
 
 # powermodels — Version & Capability Report
 
 ## Version Summary
 
-The installed version is PowerModels.jl 0.21.5, which is also the current latest stable release (published 2025-08-12). The evaluation environment is fully up to date — there is no version gap to account for.
+The installed version is PowerModels.jl 0.21.5, which is also the current latest stable release (published 2025-08-12). The evaluation environment is fully up to date — there is no version gap to account for. Unreleased commits on master since v0.21.5 are limited to CI dependency bumps (actions/checkout v5->v6, actions/upload-pages-artifact v3->v4) and an update to JSON@1 — no functional changes.
 
 The 0.21.x series has been stable since January 2024 (v0.21.0), with the major change being an update to JuMP's new nonlinear interface. Patch releases since then have been limited to bug fixes (PSS/E parser corrections, `compute_ac_pf` numerical precision errors, switch resolution logic, three-winding transformer parsing), performance improvements to basic data utilities (`calc_basic_incidence_matrix`, `calc_connected_components`, in-place building of basic network data), and developer tooling (PrecompileTools integration, CI updates, Memento logger silencing during precompilation). No new features or capability additions were made in the 0.21.x series beyond what was present in 0.21.0.
 
-Key dependencies in the installed environment: JuMP v1.29.4, InfrastructureModels v0.7.8, with solvers Ipopt v1.14.1 (nonlinear), HiGHS v1.21.1 (LP/MIP), GLPK v1.2.1 (LP/MIP), and SCIP v0.11.6 (MIP/MINLP). JuMP and HiGHS have newer versions available upstream but the pinned versions are functional.
+Key dependencies in the installed environment: JuMP v1.29.4, InfrastructureModels v0.7.8, with solvers Ipopt (nonlinear), HiGHS (LP/MIP), GLPK (LP/MIP), and SCIP (MIP/MINLP). JuMP and HiGHS have newer versions available upstream but the pinned versions are functional.
+
+PowerModels.jl supports an extensive set of power flow formulations: exact non-convex models (ACPPowerModel polar, ACRPowerModel rectangular, ACTPowerModel w-space, IVRPowerModel current-voltage), linear approximations (DCPPowerModel, DCMPPowerModel with transformer parameters, BFAPowerModel branch flow, NFAPowerModel network flow), quadratic approximations (DCPLLPowerModel, LPACCPowerModel cold-start), quadratic relaxations (SOCWRPowerModel, SOCWRConicPowerModel, QCRMPowerModel, QCLSPowerModel, SOCBFPowerModel, SOCBFConicPowerModel), and SDP relaxations (SDPWRMPowerModel, SparseSDPWRMPowerModel). Problem specifications include Power Flow (PF), Optimal Power Flow (OPF), Optimal Power Balance (OPB), Optimal Transmission Switching (OTS), and Transmission Network Expansion Planning (TNEP), each available in BIM, BFM, and CFM variants where applicable.
 
 ## Capability Table
 
@@ -34,7 +36,7 @@ Key dependencies in the installed environment: JuMP v1.29.4, InfrastructureModel
 | CSV Data Import | no | — | Not supported. Accepted formats are MATPOWER `.m`, PSS/E PTI `.raw` (v33 spec), and JSON. No CSV reader. |
 | MATPOWER Case Import | yes | early | `PowerModels.parse_file("case.m")`. Extensive support documented. Tested on case39.m in this evaluation. |
 | Multi-Period / Time Series | yes | 0.14.1 | `replicate(data, n)` creates an n-timestep multi-network. `solve_mn_opf` solves coupled multi-network OPF. Storage state-of-charge linking across periods supported. `parse_files` (v0.17.4) creates multinetwork from multiple source files. |
-| Warm Start / Solution Reuse | partial | unknown | JuMP supports `set_start_value` for variables, but PowerModels does not expose a documented high-level warm-start API. Users must access the underlying JuMP model via `pm.model` and set start values manually. Not documented as a first-class feature. |
+| Warm Start / Solution Reuse | partial | 0.16.0 | PowerModels documents warm starting via `*_start` data keys (`pg_start`, `qg_start`, `vm_start`, `va_start`) and provides `set_ac_pf_start_values!` to configure a solution as starting values. However, the docs warn warm starting is "a very delicate task and can easily result in degraded performance" and recommend flat-start defaults. JuMP-level `set_start_value` also available via `pm.model`. |
 | Parallel Computation | partial | unknown | Julia's built-in `Distributed` and `Threads` can be applied externally. PowerModels itself has no built-in parallel solve API. Solvers like HiGHS support internal parallelism via solver options. `solve_opf_ptdf_branch_power_cuts` is iterative but sequential. |
 
 ### Canonical Feature–Suite Mapping
@@ -117,10 +119,13 @@ No dedicated warm-start or parallel computation features added in any 0.21.x rel
 12. `https://lanl-ansi.github.io/PowerModels.jl/stable/formulations/` — network formulation types (ACPPowerModel, DCPPowerModel, IVRPowerModel, SOC/QC relaxations)
 13. `https://github.com/lanl-ansi/PowerModelsSecurityConstrained.jl` — extension package for SCOPF/contingency analysis (separate from core PowerModels)
 14. Devcontainer `julia --project=. -e 'using Pkg; Pkg.status()'` — runtime version verification (2026-03-13)
+15. `https://lanl-ansi.github.io/PowerModels.jl/stable/power-flow/` — power flow docs, warm start documentation (`set_ac_pf_start_values!`, `*_start` data keys)
+16. `https://lanl-ansi.github.io/PowerModels.jl/stable/formulation-details/` — full formulation type catalog (ACP, ACR, ACT, IVR, DCP, DCMP, BFA, NFA, DCPLL, LPACC, SOCWR, QCR, QCLS, SOCBF, SDPWRM)
+17. GitHub API: `https://api.github.com/repos/lanl-ansi/PowerModels.jl/commits` — unreleased master commits verified (2026-03-24): only CI bumps and JSON@1 update since v0.21.5
 
 ## Gaps and Uncertainties
 
-- **Warm start**: The JuMP model is accessible via `pm.model` and JuMP's `set_start_value` works, but there is no documented high-level PowerModels warm-start workflow. Whether the evaluation protocol's warm-start tests can be satisfied via raw JuMP access needs runtime verification.
+- **Warm start**: PowerModels documents `set_ac_pf_start_values!` and `*_start` data keys for warm starting, but the docs explicitly warn it is "a very delicate task and can easily result in degraded performance." Whether the evaluation protocol's warm-start tests require robust, solver-agnostic warm starting (which PowerModels discourages) or merely the ability to set initial values (which is supported) needs clarification.
 - **Parallel computation**: Solver-level parallelism (HiGHS threads) is available via `set_optimizer_attribute`, but PowerModels-level parallelism is undocumented. The degree to which this satisfies Suite D tests is unclear.
 - **Contingency Analysis (N-1)**: The iterative cut-based solvers (`solve_opf_ptdf_branch_power_cuts`) are related but are OPF-with-violations tools, not classical N-1 contingency screening. Whether the evaluation protocol's contingency tests require classical screening or constraint-based approaches needs clarification from the test specification.
 - **SCUC/SCED**: These are definitively absent from PowerModels.jl — they are not mentioned anywhere in the documentation or source tree. If Suite A tests require SCUC/SCED, they will fail.

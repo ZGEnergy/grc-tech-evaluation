@@ -6,17 +6,18 @@ network: TINY
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.132
+wall_clock_seconds: 0.495
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 12
 solver: null
-protocol_version: v10
-skill_version: v1
-test_hash: b9359eed
-timestamp: 2026-03-13T23:36:40Z
+protocol_version: v11
+skill_version: v2
+test_hash: f79d2223
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # B-2: Graph Access (TINY)
@@ -70,7 +71,7 @@ Bus 16 arcs from `pm.ref[:bus_arcs]`: branches 25, 26, 27, 28, 29 connecting to 
 
 ## Timing
 
-- **Wall-clock:** 0.132 s (includes parse and BFS)
+- **Wall-clock:** 0.495 s (includes parse and BFS)
 - **Timing source:** measured
 - **Peak memory:** not measured
 

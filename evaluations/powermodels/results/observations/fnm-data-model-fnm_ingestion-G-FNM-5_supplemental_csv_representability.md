@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-5
 tool: powermodels
 severity: medium
-timestamp: "2026-03-13T01:30:00Z"
+timestamp: "2026-03-24T13:00:00Z"
 ---
 
 # Observation: PowerModels 39% Native Coverage Reflects Power Flow Tool Domain Boundary

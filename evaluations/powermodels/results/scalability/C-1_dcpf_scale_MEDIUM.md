@@ -3,20 +3,23 @@ test_id: C-1
 tool: powermodels
 dimension: scalability
 network: MEDIUM
-protocol_version: v10
-skill_version: v1
-test_hash: 7d31b2ee
+protocol_version: v11
+skill_version: v2
+test_hash: d84017fa
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 1.67
+wall_clock_seconds: 2.09
 timing_source: measured
-peak_memory_mb: 598.0
+peak_memory_mb: 555.0
 convergence_residual: null
 convergence_iterations: null
-loc: 156
+convergence_evidence_quality: null
+loc: 167
 solver: null
-timestamp: 2026-03-13T23:00:00Z
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: 2026-03-24T20:45:00Z
 ---
 
 # C-1: DCPF Scale MEDIUM
@@ -42,35 +45,35 @@ Loaded `case_ACTIVSg10k.m` with MEDIUM preprocessing (2,462 branches rate_a set 
 | Termination status | Bool=true (converged) |
 | Non-zero bus angles | 9,999 / 10,000 (slack bus = 0 by definition) |
 | Non-zero branch flows | 11,990 / 12,706 |
-| Angle range | -22.5 deg to +106.0 deg |
-| Flow range | -1,854 to +37,119 MW |
+| Angle range | -2.253099e+01 deg to +1.059947e+02 deg |
+| Flow range | -1.853747e+03 to +3.711890e+04 MW |
 
 ### Timing Breakdown
 
 | Phase | Time (s) |
 |-------|----------|
-| Network parse (`parse_file`) | 1.27 |
-| DCPF solve (`compute_dc_pf`) | 0.21 |
-| Branch flow post-processing | 0.03 |
-| **Total** | **1.67** |
+| Network parse (`parse_file`) | 1.65 |
+| DCPF solve (`compute_dc_pf`) | 2.273221e-01 |
+| Branch flow post-processing | 4.084897e-02 |
+| **Total** | **2.09** |
 
-The underlying linear algebra solve is very fast (0.21s) for a 10,000-bus system. The branch flow post-processing (manual formula over 12,706 branches) adds only 0.03s. Total wall-clock is dominated by network parsing (1.27s).
+The underlying linear algebra solve is very fast (0.23s) for a 10,000-bus system. The branch flow post-processing (manual formula over 12,706 branches) adds only 0.04s. Total wall-clock is dominated by network parsing (1.65s).
 
 ## Workarounds
 
 - **What:** `compute_dc_pf` does not populate `result["solution"]["branch"]`. Branch flows must be computed manually from bus voltage angles using `(va_from - va_to - shift) / (br_x * tap)`.
 - **Why:** `compute_dc_pf` is a lightweight linear-algebra solver that only writes bus voltage angles to the solution dict. It does not post-process branch flows.
-- **Durability:** stable -- uses only documented public data dict fields (`br_x`, `tap`, `shift`, `f_bus`, `t_bus`). Scales cleanly to 12,706 branches in 0.03s.
+- **Durability:** stable -- uses only documented public data dict fields (`br_x`, `tap`, `shift`, `f_bus`, `t_bus`). Scales cleanly to 12,706 branches in 0.04s.
 - **Grade impact:** Minor. The data is accessible, requires ~10 lines of post-processing. Does not prevent extracting correct branch flows at scale. Same workaround documented in A-1 TINY and A-1 MEDIUM.
 
 ## Timing
 
-- **Wall-clock:** 1.67s (post-JIT warm-up on case39, includes parse + solve + branch flow post-processing)
+- **Wall-clock:** 2.09s (post-JIT warm-up on case39, includes parse + solve + branch flow post-processing)
 - **Timing source:** measured
-- **Peak memory:** 598.0 MB RSS (delta ~145 MB from JIT baseline of ~453 MB)
+- **Peak memory:** 555.0 MB RSS (delta ~100 MB from JIT baseline of ~455 MB)
 - **Solver iterations:** N/A (direct linear algebra, no iterative solver)
 - **Convergence residual:** N/A (exact linear solve via Julia backslash)
-- **CPU cores used:** 1
+- **CPU cores used:** 1 / 32 available
 
 ## Test Script
 

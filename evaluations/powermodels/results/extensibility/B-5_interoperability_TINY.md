@@ -6,17 +6,18 @@ network: TINY
 status: pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 1.316
+wall_clock_seconds: 1.427
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 3
 solver: null
-protocol_version: v10
-skill_version: v1
-test_hash: 9bd05458
-timestamp: 2026-03-13T23:36:40Z
+protocol_version: v11
+skill_version: v2
+test_hash: 24cf5762
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # B-5: Interoperability (TINY)
@@ -73,7 +74,7 @@ LOC beyond solve: **3 lines per component type** (well within the ≤5 line thre
 
 ## Timing
 
-- **Wall-clock:** 1.316 s (includes DCPF solve + DataFrame construction + CSV I/O)
+- **Wall-clock:** 1.427 s (includes DCPF solve + DataFrame construction + CSV I/O)
 - **Timing source:** measured
 - **Peak memory:** not measured
 

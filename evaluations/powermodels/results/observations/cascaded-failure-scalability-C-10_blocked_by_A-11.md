@@ -4,14 +4,14 @@ source_dimension: scalability
 source_test: C-10
 tool: powermodels
 severity: medium
-timestamp: 2026-03-13T12:00:00Z
+timestamp: 2026-03-24T22:00:00Z
 ---
 
 # Observation: C-10 distributed slack scalability blocked by A-11 expressiveness failure
 
 ## Finding
 
-C-10 (distributed slack DC OPF scale on MEDIUM) cannot be executed because its prerequisite A-11 (distributed slack OPF) failed with a blocking workaround classification. PowerModels.jl v0.21.5 does not natively support distributed slack formulations.
+C-10 (distributed slack DC OPF scale on MEDIUM) cannot be executed because its prerequisite A-11 (distributed slack OPF) failed with a blocking workaround classification. PowerModels.jl v0.21.5 does not natively support distributed slack formulations. [tool-specific]
 
 ## Context
 

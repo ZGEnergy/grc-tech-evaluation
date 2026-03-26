@@ -3,9 +3,9 @@ test_id: G-FNM-5
 tool: powermodels
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: v10
-skill_version: v1
-test_hash: 70115b7a
+protocol_version: v11
+skill_version: v2
+test_hash: 13631cf7
 status: informational
 workaround_class: null
 blocked_by: null
@@ -14,9 +14,11 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: "2026-03-13T01:30:00Z"
+ingestion_path: matpower_raw
+timestamp: "2026-03-24T13:00:00Z"
 ---
 
 # G-FNM-5: Supplemental CSV Representability

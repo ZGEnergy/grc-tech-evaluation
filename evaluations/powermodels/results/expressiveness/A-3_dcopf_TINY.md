@@ -3,9 +3,9 @@ test_id: A-3
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: c29ae4d0
+protocol_version: v11
+skill_version: v2
+test_hash: 5ce4b5e8
 status: pass
 workaround_class: null
 blocked_by: null
@@ -14,9 +14,10 @@ timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 354
+convergence_evidence_quality: null
+loc: 375
 solver: HiGHS
-timestamp: 2026-03-13T12:00:00Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # A-3: DC OPF with Modified Tiny Data
@@ -34,19 +35,19 @@ Loaded `case39.m` using `PowerModels.parse_file`. Applied two Modified Tiny augm
 Solved DC OPF using:
 
 ```julia
-
 result = PowerModels.solve_dc_opf(
     data, highs_opt;
     setting = Dict("output" => Dict("duals" => true))
 )
-
 ```
 
-**API note:** `solve_dc_opf` takes `(data, optimizer; kwargs...)` — only two positional arguments. The `setting` kwarg enables dual variable extraction. The third-argument formulation type (`DCPPowerModel`) is implicit.
+**API note:** `solve_dc_opf` takes `(data, optimizer; kwargs...)` -- only two positional arguments. The `setting` kwarg enables dual variable extraction. The third-argument formulation type (`DCPPowerModel`) is implicit.
 
 **LMPs:** Extracted from `result["solution"]["bus"][id]["lam_kcl_r"]`. Conversion: `LMP $/MWh = -lam_kcl_r / baseMVA`. The negative sign is because the KCL dual for a cost-minimization problem is negative.
 
-**Branch flows and shadow prices:** Directly available in `result["solution"]["branch"][id]["pf"]` (per-unit). `mu_sm_fr` and `mu_sm_to` contain branch flow shadow prices when branches are binding.
+**Branch flows and shadow prices:** Directly available in `result["solution"]["branch"][id]["pf"]` (per-unit).
+
+**Hard constraint check:** After solving, verified max branch loading across all branches. Max loading = 1.000000e+00 p.u. (branch 27, 16-19), confirming hard constraint enforcement. No branches exceed 1.0 + 1e-4 p.u. tolerance.
 
 ## Output
 
@@ -54,13 +55,15 @@ result = PowerModels.solve_dc_opf(
 |--------|-------|
 | Termination status | OPTIMAL |
 | Objective | $215,211/h |
-| Solver time | 0.0011s (HiGHS solve only) |
-| Wall clock | 0.007s (warm run; first invocation ~1.9s with JIT) |
+| Solver time | 0.0015s (HiGHS solve only) |
+| Wall clock | 0.007s (warm run; first invocation ~2.7s with JIT) |
 | Total generation | 6,254 MW |
 | Binding branches | 5 / 46 |
 | LMP min | $7.76/MWh (bus 2) |
 | LMP max | $290.11/MWh (bus 3) |
 | LMP spread | $282.36/MWh |
+| Max branch loading | 1.000000e+00 p.u. (branch 27) |
+| Hard constraints enforced | yes |
 
 Generator dispatch:
 
@@ -79,13 +82,13 @@ Generator dispatch:
 
 Binding branches (at or near thermal limit after 70% derating):
 
-| Branch | From→To | Flow (MW) | Limit (MW) |
+| Branch | From-To | Flow (MW) | Limit (MW) |
 |--------|---------|-----------|-----------|
-| 3 | 2→3 | 350.0 | 350.0 |
-| 20 | 10→32 | -630.0 | 630.0 |
-| 27 | 16→19 | -420.0 | 420.0 |
-| 37 | 22→35 | -630.0 | 630.0 |
-| 46 | 29→38 | -840.0 | 840.0 |
+| 3 | 2-3 | 350.0 | 350.0 |
+| 20 | 10-32 | -630.0 | 630.0 |
+| 27 | 16-19 | -420.0 | 420.0 |
+| 37 | 22-35 | -630.0 | 630.0 |
+| 46 | 29-38 | -840.0 | 840.0 |
 
 LMP sample (first 10 buses):
 
@@ -102,7 +105,7 @@ LMP sample (first 10 buses):
 | 9 | 161.05 |
 | 10 | 236.63 |
 
-The large LMP spread ($282/MWh) is driven by the 5 binding branches creating price separation between load and generation buses. The pattern is economically consistent: low-cost hydro (bus 30, gen 1) and nuclear generators export power through congested corridors, raising LMPs at receiving buses.
+The large LMP spread ($282/MWh) is driven by the 5 binding branches creating price separation between load and generation buses. The pattern is economically consistent: low-cost hydro (bus 30, gen 1) and nuclear generators export power through congested corridors, raising LMPs at receiving buses. Hard constraints are enforced -- no branch exceeds its derated thermal limit.
 
 ## Workarounds
 
@@ -114,10 +117,10 @@ None required. `solve_dc_opf` with `setting=Dict("output"=>Dict("duals"=>true))`
 
 ## Timing
 
-- **Wall-clock:** 0.007s (warm run; first invocation ~1.9s including JIT compilation for JuMP/HiGHS)
+- **Wall-clock:** 0.007s (warm run; first invocation ~2.7s including JIT compilation for JuMP/HiGHS)
 - **Timing source:** measured
 - **Peak memory:** not measured
-- **Solver time (HiGHS only):** 0.0011s
+- **Solver time (HiGHS only):** 0.0015s
 - **CPU cores used:** 1 (HiGHS configured with `threads=1`)
 
 ## Test Script
@@ -127,7 +130,6 @@ None required. `solve_dc_opf` with `setting=Dict("output"=>Dict("duals"=>true))`
 Key API calls:
 
 ```julia
-
 data = PowerModels.parse_file("../../data/networks/case39.m")
 
 # Apply differentiated costs (from gen_temporal_params.csv)
@@ -137,7 +139,7 @@ gen["cost"] = [c2 * base_mva^2, c1 * base_mva, 0.0]
 # Apply 70% branch derating
 branch["rate_a"] *= 0.70
 
-# Solve DC OPF — two positional args + setting kwarg
+# Solve DC OPF -- two positional args + setting kwarg
 highs_opt = optimizer_with_attributes(HiGHS.Optimizer, "output_flag"=>false, "threads"=>1)
 result = PowerModels.solve_dc_opf(data, highs_opt;
     setting = Dict("output" => Dict("duals" => true)))
@@ -148,4 +150,7 @@ lmp = -result["solution"]["bus"][bus_id]["lam_kcl_r"] / base_mva
 # Branch flow (per-unit, multiply by baseMVA for MW)
 pf_mw = result["solution"]["branch"][br_id]["pf"] * base_mva
 
+# Hard constraint check
+max_loading = max(abs(pf_pu) / rate_a_pu for all branches)
+# Result: 1.000000e+00 -- hard constraints enforced
 ```

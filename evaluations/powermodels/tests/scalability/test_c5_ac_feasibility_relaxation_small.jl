@@ -3,32 +3,34 @@ Test C-5: AC Feasibility — Progressive Relaxation on SMALL (ACTIVSg 2000-bus)
 
 Dimension: scalability
 Network: SMALL (ACTIVSg 2000, 2000 buses)
-Pass condition: Relaxation level required (0%, 10%, 20%, or infeasible).
-  Wall-clock time per attempt. Whether solution was found.
+Pass condition: Diagnostic (informational) — relaxation level achieved, wall-clock time,
+  convergence quality. All outcomes are diagnostic, not scored pass/fail.
 Tool: PowerModels.jl v0.21.5
-Solver: Ipopt (NLP)
+Solver: NLsolve (Newton-Raphson via compute_ac_pf), Ipopt fallback
 
-Depends on: A-2 (ACPF convergence)
-
-Protocol:
+Protocol (v11):
   Step 1: Solve DCPF, extract VA for warm start
   Step 2: ACPF at 0% relaxation (VM=1.0, VA=DCPF angles), 30-min timeout
   Step 3: If Step 2 fails, relax thermal limits 10%, retry
   Step 4: If Step 3 fails, relax 20%, retry. Stop here.
+  Use Ipopt with max_iter=1000
 
-converges_ac: true
+converges_ac: true — apply convergence verification
 
 Implementation notes:
   - PowerModels compute_ac_pf uses NLsolve internally (Newton-Raphson)
-  - A-2 MEDIUM showed compute_ac_pf fails on 10k-bus; need to test 2000-bus
+  - A-2 MEDIUM showed compute_ac_pf fails on 10k-bus; test 2000-bus
   - DC warm start: solve DCPF, set va from solution, keep vm=1.0
   - Thermal relaxation: scale rate_a by (1 + relaxation_fraction)
   - 30-minute timeout per attempt
+  - Record cpu_threads_used and cpu_threads_available
 =#
 
 using PowerModels
 using HiGHS
 using Ipopt
+using JuMP
+using Printf
 
 PowerModels.silence()
 
@@ -44,6 +46,14 @@ function peak_rss_mb()
         end
     end
     return nothing
+end
+
+function cpu_threads_available()
+    try
+        return parse(Int, strip(read(`nproc`, String)))
+    catch
+        return Sys.CPU_THREADS
+    end
 end
 
 function run(
@@ -317,6 +327,7 @@ function run(
             "compute_ac_pf does not populate result[\"solution\"][\"branch\"].",
         )
 
+        n_threads_available = cpu_threads_available()
         total_time = time() - t0
         results["details"] = Dict(
             "network_file" => network_file,
@@ -334,6 +345,8 @@ function run(
             "peak_rss_mb" => mem_mb,
             "solver" => "NLsolve (Newton-Raphson via compute_ac_pf)",
             "timeout_per_attempt_s" => TIMEOUT_SECONDS,
+            "cpu_threads_used" => 1,
+            "cpu_threads_available" => n_threads_available,
         )
 
     catch e

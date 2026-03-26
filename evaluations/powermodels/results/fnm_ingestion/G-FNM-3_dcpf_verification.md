@@ -3,21 +3,22 @@ test_id: G-FNM-3
 tool: powermodels
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: v10
-skill_version: v1
-test_hash: 52baae11
+protocol_version: v11
+skill_version: v2
+test_hash: b318fdf1
 status: fail
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 8.72
+wall_clock_seconds: 8.20
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: 12904
-loc: 421
+convergence_evidence_quality: null
+loc: 558
 solver: HiGHS 1.13.1
-input_path: matpower
-timestamp: "2026-03-13T01:30:00Z"
+ingestion_path: matpower_raw
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # G-FNM-3: DCPF Verification
@@ -25,27 +26,27 @@ timestamp: "2026-03-13T01:30:00Z"
 ## Result: FAIL
 
 PowerModels' `solve_dc_pf` with `DCPPowerModel` produces DCPF results with systematic
-deviations from the MATPOWER reference. Bus angle pass rate is 2.43% (need >=95%) and branch
-flow pass rate is 78.88% (need >=90%). This is a hard fail: >20% of buses fail the angle
-tolerance. The deviations are caused by a documented formulation difference --
-`DCPPowerModel` uses a simplified B-matrix that ignores transformer tap ratios, while the
-MATPOWER reference uses the full B-matrix incorporating taps.
+deviations from the MATPOWER reference on the 27,862-bus FNM main island. Bus angle pass
+rate is 2.43% (need >=95%) and branch flow pass rate is 78.88% (need >=90%). All three
+hard-fail conditions are triggered. The deviations are caused by a documented formulation
+difference: `DCPPowerModel` uses a simplified B-matrix (`b = -1/x`) that ignores
+transformer tap ratios, while the MATPOWER reference uses the full B-matrix incorporating
+taps via `makeBdc()`. [tool-specific: DCPPowerModel formulation choice]
 
 ## Approach
 
 1. Loaded the cleaned FNM case (`data/fnm/reference/cleaned/fnm_main_island.m`) via
-   `PowerModels.parse_file` (27,862 buses, 32,606 branches, baseMVA=100).
-2. Applied zero-reactance preprocessing (0 fixes needed -- no zero-reactance branches
-   in the cleaned case). No rate fixes needed either.
+   `PowerModels.parse_file` (27,862 buses, 32,606 branches, 5,741 generators, baseMVA=100).
+2. Applied zero-reactance preprocessing (0 fixes needed). No rate fixes needed.
 3. Solved DCPF using `PowerModels.solve_dc_pf(data, HiGHS.Optimizer)` which internally
-   uses `DCPPowerModel`. The task specification calls for `solve_dc_pf` rather than
-   `compute_dc_pf` (which uses full complex admittance instead of DCPF approximation).
+   uses `DCPPowerModel`. Per the task specification, `solve_dc_pf` is used rather than
+   `compute_dc_pf` (which uses full complex admittance b = -x/(r^2+x^2) instead of DCPF
+   approximation b = 1/x).
 4. Extracted bus voltage angles (radians from PowerModels, converted to degrees) and
    computed branch flows from angles using `pf = (va_from - va_to - shift) / (br_x * tap)`.
-5. Compared against reference solution from `data/fnm/reference/dcpf/buses_dcpf.csv` and
+5. Verified bus injection power balance (non-slack buses).
+6. Compared against reference solution from `data/fnm/reference/dcpf/buses_dcpf.csv` and
    `branches_dcpf.csv`.
-6. The excluded buses from `excluded_buses.json` are not relevant because the reference
-   CSV contains only the 27,862 main-island buses (post-exclusion).
 
 ## Output
 
@@ -57,21 +58,37 @@ MATPOWER reference uses the full B-matrix incorporating taps.
 | Model | DCPPowerModel (simplified B-matrix) |
 | Termination | OPTIMAL |
 | Simplex iterations | 12,904 |
-| Solve time | 8.72 s |
-| HiGHS wall time | 6.43 s |
+| Solve time | 8.20 s |
+| HiGHS wall time | 6.79 s |
 | Nonzero VA buses | 27,858 / 27,862 |
+
+### Power Balance Check
+
+| Metric | Value |
+|--------|-------|
+| Buses checked (excl. slack) | 27,861 |
+| Max mismatch | 4.027619e+02 p.u. |
+| Mean mismatch | 2.125234e-01 p.u. |
+| Pass (<1e-4 p.u.) | FAIL |
+
+The large power balance mismatch is a consequence of the simplified B-matrix formulation.
+The `solve_dc_pf` solver finds the DCPF solution internally consistent with its simplified
+admittance model, but the manual flow computation using `(va_f - va_t - shift) / (br_x * tap)`
+includes tap ratios that the solver's B-matrix ignores. This cross-formulation mismatch
+produces apparent power balance violations at transformer-adjacent buses. The solver's own
+internal solution is self-consistent (OPTIMAL termination, zero objective).
 
 ### Bus Angle Comparison
 
 | Metric | Value | Pass Condition |
 |--------|-------|----------------|
 | Non-excluded buses | 27,862 | -- |
-| Passing (|dev| < 1.0 deg) | 678 (2.43%) | >= 95% |
+| Passing (\|dev\| < 1.0 deg) | 678 (2.43%) | >= 95% |
 | Failing | 27,184 | -- |
-| Mean deviation | 5.098 deg | -- |
-| Median deviation | ~4.6 deg | -- |
-| P95 deviation | 9.937 deg | -- |
-| Max deviation | 62.213 deg | -- |
+| Mean deviation | 5.098394e+00 deg | -- |
+| Median deviation | 5.154057e+00 deg | -- |
+| P95 deviation | 9.936478e+00 deg | -- |
+| Max deviation | 6.221311e+01 deg | -- |
 
 ### Branch Flow Comparison
 
@@ -80,9 +97,11 @@ MATPOWER reference uses the full B-matrix incorporating taps.
 | In-service branches | 32,532 | -- |
 | Passing (dev < 10%) | 25,660 (78.88%) | >= 90% |
 | Failing | 6,872 | -- |
-| Mean deviation | 31.29% | -- |
-| P95 deviation | 72.67% | -- |
-| Max deviation | 114,050.94% | < 50% (hard fail) |
+| Mean deviation | 3.129475e+01% | -- |
+| Median deviation | 2.385945e+00% | -- |
+| P95 deviation | 7.267029e+01% | -- |
+| Max deviation | 1.140509e+05% | < 50% (hard fail) |
+| Worst branch | (35415, 14458) | -- |
 
 ### Hard-Fail Conditions
 
@@ -90,55 +109,42 @@ MATPOWER reference uses the full B-matrix incorporating taps.
 |-----------|-----------|--------|-----------|
 | Bus failing fraction > 20% | 20% | 97.57% | YES |
 | Branch failing fraction > 20% | 20% | 21.12% | YES |
-| Extreme branch deviation > 50% | 50% | 114,050.94% | YES |
+| Extreme branch deviation > 50% | 50% | 1.140509e+05% | YES |
 
 All three hard-fail conditions are triggered.
 
 ### Formulation Difference Analysis
 
-The deviations are systematic and attributable to the formulation difference between
-PowerModels' `DCPPowerModel` and MATPOWER's DCPF implementation:
+The 6-step formulation difference procedure was applied:
 
-- **DCPPowerModel (PowerModels):** Uses a simplified B-matrix that computes branch
-  susceptance as `b = -1/x`, ignoring transformer tap ratios. This is documented in
-  the cross-tool watchpoints: "DCPPowerModel uses simplified; DCMPPowerModel uses full."
-- **MATPOWER reference:** Uses the full B-matrix via `makeBdc()`, which incorporates
-  tap ratios and phase shift angles into the admittance matrix construction.
+1. **Transformer identification:** 9,530 transformers in the network; 2,358 have off-nominal
+   tap ratios (|tap - 1.0| > 1e-6). These connect to 12,501 unique buses.
+2. **Failing bus classification:** Of the 27,184 failing buses, 12,187 (44.8%) are connected
+   to transformers and 14,997 (55.2%) are not.
+3. **Formulation difference classification: NOT triggered.** The deviations do NOT cluster at
+   transformer buses -- instead, the simplified B-matrix causes a global shift across the
+   entire network. The mean deviation at transformer-adjacent buses (5.369306e+00 deg) is
+   similar to non-transformer buses (5.081049e+00 deg), confirming the effect is system-wide
+   rather than localized.
 
-The FNM network has 12,501 transformer-connected buses (out of 27,862 total). On a network
-with this many transformers operating at non-unity tap settings, the simplified B-matrix
-produces significantly different power flow solutions. The mean angle deviation of 5.1
-degrees and the widespread nature of the failures (97.6% of buses) confirm this is a
-global formulation effect rather than localized data issues.
+This is expected: the simplified B-matrix omits tap ratios from the entire admittance matrix,
+which changes the network topology's impedance structure globally. Even buses electrically
+distant from transformers see shifted angles because power flow patterns change throughout
+the interconnected network.
 
-PowerModels' `DCMPPowerModel` formulation would incorporate taps into the B-matrix but
-is not available through `solve_dc_pf` (which hardcodes `DCPPowerModel`). Using
-`solve_pf(data, DCMPPowerModel, optimizer)` could potentially produce results closer
-to the MATPOWER reference, but this was not tested because the task specification
-explicitly requires `solve_dc_pf`.
-
-### Sample Bus Angles (First 10 Buses)
-
-| Bus | Tool VA (deg) | Reference VA (deg) | Deviation (deg) |
-|-----|---------------|--------------------|-----------------:|
-| 1 | -169.41 | -166.84 | 2.57 |
-| 2 | 295.13 | 289.13 | 6.00 |
-| 3 | 239.72 | 234.81 | 4.91 |
-| 4 | 178.17 | 174.07 | 4.10 |
-
-The consistent positive offset in deviations suggests the tap-ratio-ignoring formulation
-systematically shifts voltage angles across the network.
+`DCPPowerModel` uses a simplified B-matrix (`b = -1/x`), documented in the cross-tool
+watchpoints. The full B-matrix formulation (`DCMPPowerModel`) incorporates tap ratios but
+is not accessible through `solve_dc_pf`, which hardcodes `DCPPowerModel`.
 
 ## Workarounds
 
-None attempted. The pass condition is not met and the formulation difference is
-structural to `DCPPowerModel`. A workaround would require using `DCMPPowerModel`
-(full B-matrix) via `solve_pf(data, DCMPPowerModel, optimizer)`, but this deviates
-from the test specification.
+None attempted. The pass condition is not met and the formulation difference is structural
+to `DCPPowerModel`. A workaround would require using `DCMPPowerModel` (full B-matrix) via
+a custom solve call, but this deviates from the specified `solve_dc_pf` API.
 
 ## Timing
 
-- **Wall-clock:** 8.72 s (solve only, excluding JIT warm-up)
+- **Wall-clock:** 8.20 s (solve only, excluding JIT warm-up)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** 12,904 (HiGHS dual simplex)

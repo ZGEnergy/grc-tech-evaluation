@@ -6,19 +6,21 @@ Network: LARGE (FNM 27,862-bus main island)
 Pass condition: Informational (all outcomes recorded, no gate consequence)
 Tool: PowerModels.jl
 Solver: Ipopt
+Ingestion path: matpower_raw (MATPOWER .mat fallback)
+Test hash: 44405f4b
 
 Steps:
-  1. Solve DCPF, extract bus voltage angles for warm start
+  1. Solve DCPF fresh, extract VA angles, record dcpf_init_mean_deg and dcpf_init_max_abs_deg
   2. ACPF at 0% thermal relaxation with DCPF warm start (VM=1.0, VA=DCPF angles), 30-min timeout
-  3. If Step 2 fails, relax thermal limits by 10%, retry, 30-min timeout
-  4. If Step 3 fails, relax by 20%, retry, 30-min timeout. Stop here.
+  3. If Step 2 fails, relax thermal limits x1.10, retry
+  4. If Step 3 fails, relax x1.20, retry
 =#
 
 using PowerModels
 using HiGHS
 using Ipopt
 using JSON
-using Dates
+using Printf
 
 PowerModels.silence()
 
@@ -43,7 +45,6 @@ end
 function apply_dcpf_warm_start!(data::Dict, dcpf_result::Dict)
     bus_sol = dcpf_result["solution"]["bus"]
     for (bus_id_str, bus_entry) in data["bus"]
-        # Set VM to 1.0, VA from DCPF solution
         bus_entry["vm"] = 1.0
         va = get(get(bus_sol, bus_id_str, Dict()), "va", 0.0)
         bus_entry["va"] = va
@@ -60,10 +61,9 @@ function relax_thermal_limits!(data::Dict, relax_fraction::Float64)
     end
 end
 
-function attempt_acpf(data::Dict, timeout_minutes::Int, label::String)
+function attempt_acpf(data::Dict, label::String)
     println("  Attempting ACPF ($label)...")
     t_start = time()
-    result = nothing
     try
         result = PowerModels.solve_ac_pf(
             data, Ipopt.Optimizer; setting=Dict("output" => Dict("duals" => false))
@@ -71,18 +71,19 @@ function attempt_acpf(data::Dict, timeout_minutes::Int, label::String)
         solve_time = time() - t_start
         term_status = string(result["termination_status"])
         println("    Termination: $term_status")
-        println("    Solve time: $(round(solve_time, digits=2))s")
+        println("    Solve time: $(@sprintf("%.2f", solve_time))s")
 
-        # Check for convergence quality
         converged = term_status in ["LOCALLY_SOLVED", "OPTIMAL"]
 
-        # Check voltage profile if converged
+        # Check voltage profile quality
         n_flat = 0
         n_total = 0
+        vm_values = Float64[]
         if converged && haskey(result, "solution") && haskey(result["solution"], "bus")
             for (_, bus_sol) in result["solution"]["bus"]
                 n_total += 1
                 vm = get(bus_sol, "vm", 1.0)
+                push!(vm_values, vm)
                 if abs(vm - 1.0) < 1e-6
                     n_flat += 1
                 end
@@ -90,7 +91,7 @@ function attempt_acpf(data::Dict, timeout_minutes::Int, label::String)
             flat_pct = n_total > 0 ? round(100.0 * n_flat / n_total; digits=1) : 0.0
             println("    Flat VM (=1.0): $n_flat / $n_total ($flat_pct%)")
             if flat_pct > 95.0
-                println("    WARNING: >95% flat VM suggests solver did not converge meaningfully")
+                println("    WARNING: >95% flat VM — solver did not converge meaningfully")
                 converged = false
             end
         end
@@ -108,7 +109,7 @@ function attempt_acpf(data::Dict, timeout_minutes::Int, label::String)
         solve_time = time() - t_start
         err_msg = sprint(showerror, e)
         println("    ERROR: $err_msg")
-        println("    Elapsed: $(round(solve_time, digits=2))s")
+        println("    Elapsed: $(@sprintf("%.2f", solve_time))s")
         return Dict(
             "converged" => false,
             "termination_status" => "ERROR",
@@ -118,10 +119,7 @@ function attempt_acpf(data::Dict, timeout_minutes::Int, label::String)
     end
 end
 
-function run(;
-    matpower_file::String="/workspace/data/fnm/reference/cleaned/fnm_main_island.m",
-    acpf_timeout_minutes::Int=30,
-)
+function run(; matpower_file::String="/workspace/data/fnm/reference/cleaned/fnm_main_island.m")
     results = Dict(
         "status" => "informational",
         "wall_clock_seconds" => 0.0,
@@ -136,41 +134,51 @@ function run(;
         println("Loading network: $matpower_file")
         data = PowerModels.parse_file(matpower_file)
         base_mva = data["baseMVA"]
-        println(
-            "  baseMVA: $base_mva, Buses: $(length(data["bus"])), Branches: $(length(data["branch"]))",
-        )
+        n_bus = length(data["bus"])
+        n_branch = length(data["branch"])
+        println("  baseMVA: $base_mva, Buses: $n_bus, Branches: $n_branch")
 
         n_x_fixed, n_rate_fixed = apply_preprocessing!(data)
         println("  Preprocessing: $n_x_fixed zero-reactance, $n_rate_fixed rate fixes")
 
-        # Step 1: Solve DCPF for warm start
-        println("\nStep 1: DCPF for warm start...")
+        # Step 1: Solve DCPF fresh for warm start + init metrics
+        println("\nStep 1: DCPF for warm start and initialization metrics...")
         t_dcpf = time()
         dcpf_result = PowerModels.solve_dc_pf(data, HiGHS.Optimizer)
         dcpf_time = time() - t_dcpf
-        println("  DCPF solved in $(round(dcpf_time, digits=2))s")
+        println("  DCPF solved in $(@sprintf("%.2f", dcpf_time))s")
         println("  DCPF termination: $(dcpf_result["termination_status"])")
 
-        # Check DCPF has nontrivial solution
+        # Extract DCPF angles and compute init metrics
+        va_degs = Float64[]
         nonzero_va = 0
         for (_, bus_sol) in dcpf_result["solution"]["bus"]
-            if abs(get(bus_sol, "va", 0.0)) > 1e-10
+            va_rad = get(bus_sol, "va", 0.0)
+            if abs(va_rad) > 1e-10
                 nonzero_va += 1
             end
+            push!(va_degs, rad2deg(va_rad))
         end
-        println("  Nonzero VA buses: $nonzero_va / $(length(dcpf_result["solution"]["bus"]))")
+        println("  Nonzero VA buses: $nonzero_va / $(length(va_degs))")
+
+        dcpf_init_mean_deg = isempty(va_degs) ? 0.0 : sum(abs.(va_degs)) / length(va_degs)
+        dcpf_init_max_abs_deg = isempty(va_degs) ? 0.0 : maximum(abs.(va_degs))
+        println("  DCPF init mean |VA|: $(@sprintf("%.4f", dcpf_init_mean_deg)) deg")
+        println("  DCPF init max |VA|: $(@sprintf("%.4f", dcpf_init_max_abs_deg)) deg")
 
         results["details"]["dcpf"] = Dict(
             "solve_time_seconds" => round(dcpf_time; digits=2),
             "termination_status" => string(dcpf_result["termination_status"]),
             "nonzero_va_buses" => nonzero_va,
+            "dcpf_init_mean_deg" => @sprintf("%.4f", dcpf_init_mean_deg),
+            "dcpf_init_max_abs_deg" => @sprintf("%.4f", dcpf_init_max_abs_deg),
         )
 
         # Step 2: ACPF at 0% relaxation with DCPF warm start
         println("\nStep 2: ACPF at 0% relaxation with DCPF warm start...")
         data_0pct = deepcopy(data)
         apply_dcpf_warm_start!(data_0pct, dcpf_result)
-        step2_result = attempt_acpf(data_0pct, acpf_timeout_minutes, "0% relaxation")
+        step2_result = attempt_acpf(data_0pct, "0% relaxation")
         results["details"]["acpf_0pct"] = step2_result
 
         relaxation_achieved = nothing
@@ -184,7 +192,7 @@ function run(;
             data_10pct = deepcopy(data)
             apply_dcpf_warm_start!(data_10pct, dcpf_result)
             relax_thermal_limits!(data_10pct, 0.10)
-            step3_result = attempt_acpf(data_10pct, acpf_timeout_minutes, "10% relaxation")
+            step3_result = attempt_acpf(data_10pct, "10% relaxation")
             results["details"]["acpf_10pct"] = step3_result
 
             if step3_result["converged"]
@@ -196,7 +204,7 @@ function run(;
                 data_20pct = deepcopy(data)
                 apply_dcpf_warm_start!(data_20pct, dcpf_result)
                 relax_thermal_limits!(data_20pct, 0.20)
-                step4_result = attempt_acpf(data_20pct, acpf_timeout_minutes, "20% relaxation")
+                step4_result = attempt_acpf(data_20pct, "20% relaxation")
                 results["details"]["acpf_20pct"] = step4_result
 
                 if step4_result["converged"]
@@ -209,7 +217,6 @@ function run(;
         end
 
         results["details"]["relaxation_level_achieved"] = relaxation_achieved
-        results["details"]["acpf_timeout_minutes"] = acpf_timeout_minutes
         results["status"] = "informational"
 
         println("\n=== RESULT: informational ===")
@@ -227,9 +234,7 @@ function run(;
     return results
 end
 
-# Run and print when executed directly
 if abspath(PROGRAM_FILE) == @__FILE__
-    # JIT warm-up with small case
     println("JIT warm-up...")
     warmup_data = PowerModels.parse_file("/workspace/data/networks/case39.m")
     PowerModels.solve_dc_pf(warmup_data, HiGHS.Optimizer)

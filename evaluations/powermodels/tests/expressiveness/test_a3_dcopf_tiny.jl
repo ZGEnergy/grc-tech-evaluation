@@ -27,6 +27,7 @@ API notes:
 
 using PowerModels
 using HiGHS
+using Printf
 
 PowerModels.silence()
 
@@ -271,6 +272,31 @@ function run(
         println()
 
         # ------------------------------------------------------------------
+        # 7b. Hard constraint check: max_loading <= 1.0 + 1e-4 p.u.
+        #     If any branch exceeds this, the tool uses soft constraints => partial_pass
+        # ------------------------------------------------------------------
+        max_loading_pu = 0.0
+        max_loading_branch = ""
+        for (br_id, br_sol) in result["solution"]["branch"]
+            pf_pu = abs(get(br_sol, "pf", 0.0))
+            rate_a_pu = get(data["branch"][br_id], "rate_a", 0.0)
+            if rate_a_pu > 1e-8
+                loading = pf_pu / rate_a_pu
+                if loading > max_loading_pu
+                    max_loading_pu = loading
+                    max_loading_branch = br_id
+                end
+            end
+        end
+        hard_constraints_ok = max_loading_pu <= 1.0 + 1e-4
+
+        max_loading_str = @sprintf("%.6e", max_loading_pu)
+        println("--- Hard Constraint Check ---")
+        println("  Max branch loading: $max_loading_str p.u. (branch $max_loading_branch)")
+        println("  Hard constraints enforced: $hard_constraints_ok (threshold: 1.0 + 1e-4)")
+        println()
+
+        # ------------------------------------------------------------------
         # 8. Pass condition checks
         # ------------------------------------------------------------------
         converged =
@@ -287,9 +313,20 @@ function run(
         println("  LMP accessible:         $lmp_available  ($(length(lmp_values)) buses)")
         println("  Binding branches >= $BINDING_BRANCHES_MIN:   $binding_ok  (n=$n_binding)")
         println("  Max LMP spread:         $(round(max_lmp_spread, digits=4)) \$/MWh")
+        println("  Hard constraints:       $hard_constraints_ok  (max_loading=$max_loading_str)")
 
-        if converged && dispatch_accessible && lmp_available && binding_ok
+        if converged && dispatch_accessible && lmp_available && binding_ok && hard_constraints_ok
             results["status"] = "pass"
+        elseif converged &&
+            dispatch_accessible &&
+            lmp_available &&
+            binding_ok &&
+            !hard_constraints_ok
+            results["status"] = "partial_pass"
+            push!(
+                results["workarounds"],
+                "Soft branch flow constraints detected: max_loading=$max_loading_str > 1.0 + 1e-4. Tool uses penalty-based enforcement.",
+            )
         elseif converged && dispatch_accessible && binding_ok
             results["status"] = "qualified_pass"
             push!(
@@ -324,8 +361,11 @@ function run(
             "n_binding_branches" => n_binding,
             "binding_branch_ids" => binding_branches,
             "branch_flows_mw" => branch_flows_mw,
+            "max_loading_pu" => max_loading_str,
+            "max_loading_branch" => max_loading_branch,
+            "hard_constraints_ok" => hard_constraints_ok,
             "solver" => "HiGHS (LP via solve_dc_opf / DCPPowerModel)",
-            "loc" => 215,
+            "loc" => 240,
         )
 
     catch e
