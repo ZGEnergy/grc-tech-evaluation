@@ -3,20 +3,21 @@ test_id: A-11
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "95a0e3ae"
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.10
+wall_clock_seconds: 0.28
 timing_source: measured
-peak_memory_mb: 1.9
+peak_memory_mb: 1.8
 convergence_residual: null
 convergence_iterations: null
-loc: 287
+convergence_evidence_quality: null
+loc: 300
 solver: "MIPS"
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-11: Solve DC OPF with distributed slack (load-proportional). Compare LMPs to A-3.
@@ -45,11 +46,11 @@ MATPOWER's OPF formulation uses a single slack bus (bus type 3) internally. Dist
 | Weighted avg LMP (load-prop) | $180.30/MWh |
 | Weighted avg LMP (gen-prop) | $77.93/MWh |
 | Weighted avg LMP (equal) | $166.22/MWh |
-| LMP shift std dev | $0.00/MWh (perfectly uniform) |
+| LMP shift std dev | 0.000000e+00 $/MWh (perfectly uniform) |
 
 ### LMP Samples (Load-Proportional Slack)
 
-| Bus | Single LMP | Distributed LMP | Delta |
+| Bus | Single LMP ($/MWh) | Distributed LMP ($/MWh) | Delta ($/MWh) |
 |-----|-----------|-----------------|-------|
 | 1 | 78.82 | -101.48 | -180.30 |
 | 3 | 300.31 | 120.01 | -180.30 |
@@ -67,7 +68,7 @@ The uniform shift confirms physical consistency: distributed slack re-references
 | Max abs congestion change | $58.82/MWh |
 | Mean abs congestion change | $58.82/MWh |
 
-The congestion LMP components differ between single-slack and distributed-slack PTDF, which is the correct behavior — the PTDF matrix changes with the slack distribution, altering how congestion costs are attributed across buses.
+The congestion LMP components differ between single-slack and distributed-slack PTDF, which is the correct behavior -- the PTDF matrix changes with the slack distribution, altering how congestion costs are attributed across buses.
 
 ### Slack Weight Configurations Tested
 
@@ -77,20 +78,20 @@ The congestion LMP components differ between single-slack and distributed-slack 
 | Generation-proportional | `Pmax / sum(Pmax)` | 10 / 39 |
 | Equal | `1/nb` for all buses | 39 / 39 |
 
-All three configurations produce consistent results with `makePTDF()`.
+All three configurations produce consistent results with `makePTDF()`, demonstrating that distributed slack weights are fully settable via the documented API.
 
 ## Workarounds
 
 - **What:** Solved single-slack DC OPF, then post-processed LMPs using distributed PTDF from `makePTDF(baseMVA, bus, branch, slack_weights)`
 - **Why:** MATPOWER OPF does not support distributed slack natively (issue #136)
-- **Durability:** stable -- `makePTDF()` with a slack distribution vector is a documented public API. The function signature explicitly accepts a vector argument for custom slack distribution. This is not an undocumented feature.
-- **Grade impact:** Qualified pass. The workaround is clean and uses only documented API. The limitation is that the OPF itself uses single slack, so the distributed slack is a post-processing step rather than being embedded in the optimization. For DC OPF this produces identical results; for more complex formulations (lossy DC OPF) the post-processing approach would be less accurate.
+- **Durability:** stable -- `makePTDF()` with a slack distribution vector is a documented public API. The function signature explicitly accepts a vector argument for custom slack distribution. This is not an undocumented feature -- it is described in the MATPOWER reference manual and function help text.
+- **Grade impact:** Qualified pass. The workaround is clean and uses only documented API. The limitation is that the OPF itself uses single slack, so the distributed slack is a post-processing step rather than being embedded in the optimization. For DC OPF this produces identical results (dispatch unchanged, LMPs shift by constant); for lossy DC OPF the post-processing approach would be less accurate.
 
 ## Timing
 
-- **Wall-clock:** ~0.10 s (DC OPF solve + PTDF computation)
+- **Wall-clock:** ~0.28 s (DC OPF solve + PTDF computation for 3 slack configurations)
 - **Timing source:** measured
-- **Peak memory:** 1.9 MB
+- **Peak memory:** 1.8 MB
 - **CPU cores used:** 1
 
 ## Test Script

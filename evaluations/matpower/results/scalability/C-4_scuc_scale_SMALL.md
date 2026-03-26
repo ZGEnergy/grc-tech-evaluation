@@ -3,9 +3,9 @@ test_id: C-4
 tool: matpower
 dimension: scalability
 network: SMALL
-protocol_version: v10
-skill_version: v1
-test_hash: 62bad277
+protocol_version: "v11"
+skill_version: v2
+test_hash: 19c1d696
 status: fail
 workaround_class: null
 blocked_by: A-5

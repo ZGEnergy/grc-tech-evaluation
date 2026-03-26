@@ -3,8 +3,8 @@ test_id: C-5
 tool: matpower
 dimension: scalability
 network: SMALL
-protocol_version: v10
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: 15688fba
 status: pass
 workaround_class: null

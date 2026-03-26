@@ -4,7 +4,7 @@ source_dimension: extensibility
 source_test: B-3
 tool: matpower
 severity: low
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: MATPOWER's flat data model enables low-friction contingency analysis
@@ -15,7 +15,7 @@ MATPOWER's flat matrix data model (`mpc.branch`, `mpc.gen`) with named column co
 
 ## Context
 
-B-3 implemented an escalating N-1/N-2/N-3 contingency sweep with LODF-based screening and graph-distance pruning. The entire sweep (155 contingencies) ran in 3.5 seconds on TINY. Branch outages were applied by setting `mpc.branch(idx, BR_STATUS) = 0` — a single field assignment. No model reconstruction or re-initialization was needed between contingencies.
+B-3 implemented an escalating N-1/N-2/N-3 contingency sweep with LODF-based screening and graph-distance pruning. The entire sweep (126 contingencies) ran in 12.1 seconds on TINY. Branch outages were applied by setting `mpc.branch(idx, BR_STATUS) = 0` -- a single field assignment. No model reconstruction or re-initialization was needed between contingencies.
 
 ## Implications
 

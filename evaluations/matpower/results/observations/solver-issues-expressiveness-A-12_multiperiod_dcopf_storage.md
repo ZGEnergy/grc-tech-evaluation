@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-12
 tool: matpower
 severity: medium
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: MIPS numerical instability on multi-period QP with storage

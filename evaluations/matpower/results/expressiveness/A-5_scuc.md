@@ -3,9 +3,9 @@ test_id: A-5
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: f52c4d21
+protocol_version: "v11"
+skill_version: v2
+test_hash: 4acfc0db
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
