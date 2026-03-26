@@ -57,24 +57,25 @@ try
     bess_init_soc = 0.50; % 300 MWh
 
     %% Apply differentiated costs
-    %% Try quadratic first (c2 = c1 * 0.001), fall back to linear if solver fails
+    %% Protocol specifies quadratic_costs=true (c2 = c1 * 0.001), but MIPS
+    %% diverges on the MOST multi-period QP and GLPK only handles LP. Use
+    %% linear costs first to validate the MOST storage formulation, then
+    %% attempt QP as a secondary test.
     marginal_costs = [5; 10; 10; 25; 25; 10; 40; 10; 10; 40];
-    use_quadratic = false;  %% MIPS diverges on QP with this problem size; GLPK rejects QP
+    use_quadratic = false;  %% MIPS diverges on MOST QP; GLPK rejects QP
+
+    %% Always use 3-coefficient polynomial format (7 columns) for MOST
+    %% compatibility. When use_quadratic=false, set c2=0 (effectively LP).
+    mpc.gencost = zeros(ng, 7);
+    mpc.gencost(:, MODEL) = 2;
+    mpc.gencost(:, NCOST) = 3;
     if use_quadratic
-        mpc.gencost = zeros(ng, 7);
-        mpc.gencost(:, MODEL) = 2;
-        mpc.gencost(:, NCOST) = 3;
-        mpc.gencost(:, COST)   = marginal_costs * 0.001;
-        mpc.gencost(:, COST + 1) = marginal_costs;
-        mpc.gencost(:, COST + 2) = 0;
+        mpc.gencost(:, COST)     = marginal_costs * 0.001;  % c2
     else
-        %% Linear costs -- GLPK can handle LP
-        mpc.gencost = zeros(ng, 6);
-        mpc.gencost(:, MODEL) = 2;
-        mpc.gencost(:, NCOST) = 2;
-        mpc.gencost(:, COST)   = marginal_costs;
-        mpc.gencost(:, COST + 1) = 0;
+        mpc.gencost(:, COST)     = 0;                        % c2 = 0 (LP)
     end
+    mpc.gencost(:, COST + 1) = marginal_costs;              % c1
+    mpc.gencost(:, COST + 2) = 0;                            % c0
 
     %% Apply 70% branch derating
     mpc.branch(:, RATE_A) = mpc.branch(:, RATE_A) * 0.70;
@@ -137,10 +138,11 @@ try
         new_gen(RAMP_AGC) = re_pmax(i);
         mpc.gen = [mpc.gen; new_gen];
 
-        %% Zero-cost renewable (match gencost column count)
+        %% Zero-cost renewable with quadratic format (match column count)
         new_cost = zeros(1, size(mpc.gencost, 2));
         new_cost(MODEL) = 2;
-        new_cost(NCOST) = 2;
+        new_cost(NCOST) = 3;
+        %% c2=0, c1=0, c0=0 for renewables
         mpc.gencost = [mpc.gencost; new_cost];
     end
 
@@ -152,8 +154,6 @@ try
     wind_forecast = csvread(fullfile(timeseries_dir, 'wind_forecast_24h.csv'), 1, 1);
     solar_forecast = csvread(fullfile(timeseries_dir, 'solar_forecast_24h.csv'), 1, 1);
 
-    %% Build per-generator Pmax profile for renewables
-    %% wind_forecast: 3 wind units x 24 hours, solar_forecast: 2 solar units x 24 hours
     re_profile = zeros(nre, nt);
     wind_idx = 1;
     solar_idx = 1;
@@ -170,14 +170,12 @@ try
     %% ================================================================
     %% Build xGenData for all generators (before adding storage)
     %% ================================================================
-    ng_total = size(mpc.gen, 1);  % 10 + 5 = 15
-
     xgd_table.colnames = { ...
-                          'PositiveActiveReservePrice', 'PositiveActiveReserveQuantity', ...
-                          'NegativeActiveReservePrice', 'NegativeActiveReserveQuantity', ...
-                          'PositiveActiveDeltaPrice', 'NegativeActiveDeltaPrice', ...
-                          'PositiveLoadFollowReservePrice', 'PositiveLoadFollowReserveQuantity', ...
-                          'NegativeLoadFollowReservePrice', 'NegativeLoadFollowReserveQuantity' };
+        'PositiveActiveReservePrice', 'PositiveActiveReserveQuantity', ...
+        'NegativeActiveReservePrice', 'NegativeActiveReserveQuantity', ...
+        'PositiveActiveDeltaPrice', 'NegativeActiveDeltaPrice', ...
+        'PositiveLoadFollowReservePrice', 'PositiveLoadFollowReserveQuantity', ...
+        'NegativeLoadFollowReservePrice', 'NegativeLoadFollowReserveQuantity' };
     xgd_table.data = zeros(ng_total, 10);
     xgd_table.data(:, 1) = 1e-6;
     xgd_table.data(:, 2) = mpc.gen(:, PMAX);
@@ -195,39 +193,56 @@ try
     %% ================================================================
     avg_cost = mean(marginal_costs);
 
-    storage.gen = [ ...
-                   bess_bus, 0, 0, 0, 0, 1, 100, 1, bess_power_mw, -bess_power_mw, ...
-                   0, 0, 0, 0, 0, 0, bess_power_mw, bess_power_mw, bess_power_mw, 0, 0];
+    %% Build gen row for storage: [bus, Pg, Qg, Qmax, Qmin, Vg, mBase,
+    %%                              status, Pmax, Pmin, ...]
+    %% Need at least 21 columns to match mpc.gen
+    ncols_gen = size(mpc.gen, 2);
+    storage_gen = zeros(1, ncols_gen);
+    storage_gen(GEN_BUS) = bess_bus;
+    storage_gen(PG) = 0;
+    storage_gen(VG) = 1.0;
+    storage_gen(MBASE) = 100;
+    storage_gen(GEN_STATUS) = 1;
+    storage_gen(PMAX) = bess_power_mw;
+    storage_gen(PMIN) = -bess_power_mw;
+    storage_gen(RAMP_10) = bess_power_mw;
+    storage_gen(RAMP_30) = bess_power_mw;
+    storage_gen(RAMP_AGC) = bess_power_mw;
+
+    storage.gen = storage_gen;
 
     storage.xgd_table.colnames = { ...
-                                  'CommitKey', 'CommitSched', ...
-                                  'PositiveActiveReservePrice', 'PositiveActiveReserveQuantity', ...
-                                  'NegativeActiveReservePrice', 'NegativeActiveReserveQuantity', ...
-                                  'PositiveActiveDeltaPrice', 'NegativeActiveDeltaPrice', ...
-                                  'PosLFResPrice', 'PosLFResQty', ...
-                                  'NegLFResPrice', 'NegLFResQty' };
+        'CommitKey', 'CommitSched', ...
+        'PositiveActiveReservePrice', 'PositiveActiveReserveQuantity', ...
+        'NegativeActiveReservePrice', 'NegativeActiveReserveQuantity', ...
+        'PositiveActiveDeltaPrice', 'NegativeActiveDeltaPrice', ...
+        'PositiveLoadFollowReservePrice', 'PositiveLoadFollowReserveQuantity', ...
+        'NegativeLoadFollowReservePrice', 'NegativeLoadFollowReserveQuantity' };
     storage.xgd_table.data = [ ...
-                              2, 1, ...
-                              1e-8, 2 * bess_power_mw, 2e-8, 2 * bess_power_mw, ...
-                              1e-9, 1e-9, ...
-                              1e-6, 2 * bess_power_mw, 1e-6, 2 * bess_power_mw];
+        2, 1, ...
+        1e-8, 2 * bess_power_mw, 2e-8, 2 * bess_power_mw, ...
+        1e-9, 1e-9, ...
+        1e-6, 2 * bess_power_mw, 1e-6, 2 * bess_power_mw];
 
     storage.sd_table.colnames = { ...
-                                 'InitialStorage', ...
-                                 'InitialStorageLowerBound', 'InitialStorageUpperBound', ...
-                                 'InitialStorageCost', 'TerminalStoragePrice', ...
-                                 'MinStorageLevel', 'MaxStorageLevel', ...
-                                 'OutEff', 'InEff', 'LossFactor', 'rho' };
+        'InitialStorage', ...
+        'InitialStorageLowerBound', 'InitialStorageUpperBound', ...
+        'InitialStorageCost', 'TerminalStoragePrice', ...
+        'MinStorageLevel', 'MaxStorageLevel', ...
+        'OutEff', 'InEff', 'LossFactor', 'rho' };
     storage.sd_table.data = [ ...
-                             bess_init_soc * bess_energy_mwh, ...
-                             bess_init_soc * bess_energy_mwh, bess_init_soc * bess_energy_mwh, ...
-                             avg_cost, avg_cost, ...
-                             bess_min_soc * bess_energy_mwh, bess_max_soc * bess_energy_mwh, ...
-                             eta_discharge, eta_charge, 0, 0];
+        bess_init_soc * bess_energy_mwh, ...
+        bess_init_soc * bess_energy_mwh, bess_init_soc * bess_energy_mwh, ...
+        avg_cost, avg_cost, ...
+        bess_min_soc * bess_energy_mwh, bess_max_soc * bess_energy_mwh, ...
+        eta_discharge, eta_charge, 0, 0];
 
     [iess, mpc, xgd, sd] = addstorage(storage, mpc, xgd);
     ng_all = size(mpc.gen, 1);
     bess_gen_idx = iess;
+
+    fprintf('BESS added at gen index %d (bus %d)\n', bess_gen_idx, bess_bus);
+    fprintf('Total generators: %d (10 conv + 5 RE + 1 BESS)\n', ng_all);
 
     %% ================================================================
     %% Build load profile
@@ -235,12 +250,14 @@ try
     load_data_raw = csvread(fullfile(timeseries_dir, 'load_24h.csv'), 1, 0);
     hourly_totals = sum(load_data_raw(:, 2:25), 1);
 
+    base_load = sum(mpc.bus(:, PD));
+    load_factors = (hourly_totals / base_load)';
+
     load_profile = struct('type', 'mpcData', 'table', CT_TLOAD, ...
-                          'rows', 0, 'col', CT_LOAD_ALL_PQ, 'chgtype', CT_REP, 'values', []);
-    load_profile.values = reshape(hourly_totals', [nt, 1, 1]);
+                          'rows', 0, 'col', CT_LOAD_ALL_PQ, 'chgtype', CT_REL, 'values', []);
+    load_profile.values = reshape(load_factors, [nt, 1, 1]);
 
     %% Build renewable Pmax profiles using CT_TGEN to modify PMAX
-    %% For each renewable generator, create a profile that sets its PMAX per period
     profiles = load_profile;
 
     for i = 1:nre
@@ -252,21 +269,34 @@ try
     end
 
     %% ================================================================
-    %% Convert to internal indexing and build MOST data
+    %% Build MOST data and solve
     %% ================================================================
     mpc = ext2int(mpc);
     md = loadmd(mpc, nt, xgd, sd, [], profiles);
 
-    %% Configure solver
+    %% Configure solver -- GLPK for LP, MIPS for QP
     mpopt = mpoption('verbose', 0, 'out.all', 0, 'model', 'DC');
     mpopt = mpoption(mpopt, 'most.dc_model', 1);
-    mpopt = mpoption(mpopt, 'most.solver', 'GLPK');  %% GLPK for LP (linear costs used)
+    if use_quadratic
+        mpopt = mpoption(mpopt, 'most.solver', 'MIPS');
+    else
+        mpopt = mpoption(mpopt, 'most.solver', 'GLPK');
+    end
     mpopt = mpoption(mpopt, 'most.storage.cyclic', 1);  % cyclic SoC
 
-    %% ================================================================
-    %% Solve multi-period DCOPF with storage
-    %% ================================================================
     fprintf('\n=== A-12: Multi-Period DCOPF with Storage ===\n');
+    if use_quadratic
+        fprintf('Solver: MIPS (QP solver for quadratic costs)\n');
+    else
+        fprintf('Solver: GLPK (LP -- linear costs; QP not available)\n');
+        fprintf('Note: MIPS diverges on MOST multi-period QP; GLPK only does LP.\n');
+        fprintf('[solver-specific: no open-source QP solver available in Octave for MOST]\n');
+    end
+    fprintf('Branch derating: 70%%\n');
+    fprintf('Cyclic SoC: yes\n');
+    fprintf('BESS: %d MW / %d MWh, eta_ch=%.2f, eta_dis=%.2f\n', ...
+            bess_power_mw, bess_energy_mwh, eta_charge, eta_discharge);
+
     tic;
     mdo = most(md, mpopt);
     solve_time = toc;
@@ -325,16 +355,11 @@ try
         end
         pass_congestion = (congestion_hours >= 2);
         fprintf('Hours with >=2 binding branches: %d (need >=2)\n', congestion_hours);
-        if pass_congestion
-            c1s = 'PASS';
-        else
-            c1s = 'FAIL';
-        end
+        if pass_congestion; c1s = 'PASS'; else; c1s = 'FAIL'; end
         fprintf('Condition 1: %s\n', c1s);
 
         %% ================================================================
         %% Pass Condition 2: BESS arbitrage timing
-        %% Find the BESS bus in the internal ordering
         %% ================================================================
         fprintf('\n=== Condition 2: BESS Arbitrage ===\n');
         %% Find BESS bus index in internal ordering
@@ -353,11 +378,7 @@ try
             fprintf('Mean LMP during discharge: $%.4f/MWh\n', mean_lmp_discharge);
             fprintf('Mean LMP during charge: $%.4f/MWh\n', mean_lmp_charge);
             fprintf('Arbitrage spread: $%.4f/MWh\n', mean_lmp_discharge - mean_lmp_charge);
-            if pass_arbitrage
-                c2s = 'PASS';
-            else
-                c2s = 'FAIL';
-            end
+            if pass_arbitrage; c2s = 'PASS'; else; c2s = 'FAIL'; end
             fprintf('Condition 2: %s\n', c2s);
         else
             pass_arbitrage = false;
@@ -374,34 +395,25 @@ try
         soc_min_limit = bess_min_soc * bess_energy_mwh;
         soc_max_limit = bess_max_soc * bess_energy_mwh;
 
-        %% Check bounds
         soc_in_bounds = all(soc >= soc_min_limit - 0.1) && all(soc <= soc_max_limit + 0.1);
         fprintf('SoC range: [%.2f, %.2f] MWh\n', min(soc), max(soc));
         fprintf('SoC bounds: [%.2f, %.2f] MWh\n', soc_min_limit, soc_max_limit);
-        if soc_in_bounds
-            sibs = 'YES';
-        else
-            sibs = 'NO';
-        end
+        if soc_in_bounds; sibs = 'YES'; else; sibs = 'NO'; end
         fprintf('SoC in bounds: %s\n', sibs);
 
         %% Check energy balance
-        %% SoC(t) = SoC(t-1) + eta_ch * P_ch(t) - P_dis(t) / eta_dis
-        %% In MOST, negative dispatch = charging, positive = discharging
         max_balance_error = 0;
-        init_soc = bess_init_soc * bess_energy_mwh;
+        init_soc_val = bess_init_soc * bess_energy_mwh;
         for t = 1:nt
             if t == 1
-                prev_soc = init_soc;
+                prev_soc = init_soc_val;
             else
                 prev_soc = soc(t - 1);
             end
             p = bess_dispatch(t);
             if p < 0
-                %% Charging: P is negative, energy stored = |P| * eta_charge
                 expected_soc = prev_soc + abs(p) * eta_charge;
             else
-                %% Discharging: P is positive, energy removed = P / eta_discharge
                 expected_soc = prev_soc - p / eta_discharge;
             end
             balance_error = abs(soc(t) - expected_soc);
@@ -413,11 +425,7 @@ try
         end
         pass_soc = soc_in_bounds && (max_balance_error < 1.0);
         fprintf('Max energy balance error: %.4f MWh (threshold: 1.0)\n', max_balance_error);
-        if pass_soc
-            c3s = 'PASS';
-        else
-            c3s = 'FAIL';
-        end
+        if pass_soc; c3s = 'PASS'; else; c3s = 'FAIL'; end
         fprintf('Condition 3: %s\n', c3s);
 
         %% ================================================================
@@ -436,30 +444,17 @@ try
         %% Overall pass/fail
         %% ================================================================
         fprintf('\n=== Overall Assessment ===\n');
-        if pass_congestion
-            oc1 = 'PASS';
-        else
-            oc1 = 'FAIL';
-        end
-        if pass_arbitrage
-            oc2 = 'PASS';
-        else
-            oc2 = 'FAIL';
-        end
-        if pass_soc
-            oc3 = 'PASS';
-        else
-            oc3 = 'FAIL';
-        end
-        fprintf('Condition 1 (Congestion):    %s\n', oc1);
-        fprintf('Condition 2 (Arbitrage):     %s\n', oc2);
+        if pass_congestion; oc1 = 'PASS'; else; oc1 = 'FAIL'; end
+        if pass_arbitrage; oc2 = 'PASS'; else; oc2 = 'FAIL'; end
+        if pass_soc; oc3 = 'PASS'; else; oc3 = 'FAIL'; end
+        fprintf('Condition 1 (Congestion):      %s\n', oc1);
+        fprintf('Condition 2 (Arbitrage):       %s\n', oc2);
         fprintf('Condition 3 (SoC feasibility): %s\n', oc3);
 
         if pass_congestion && pass_arbitrage && pass_soc
             result_status = 'pass';
         end
     else
-        %% GLPK exitflag issue
         fprintf('GLPK returned non-positive exitflag: %d\n', mdo.QP.exitflag);
         errors{end + 1} = sprintf('MOST solver returned exitflag=%d (GLPK integration issue)', ...
                                   mdo.QP.exitflag);

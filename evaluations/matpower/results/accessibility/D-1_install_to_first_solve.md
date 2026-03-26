@@ -3,9 +3,9 @@ test_id: D-1
 tool: matpower
 dimension: accessibility
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "958afcb7"
+protocol_version: "v11"
+skill_version: v2
+test_hash: "6e8ee849"
 status: informational
 workaround_class: null
 blocked_by: null

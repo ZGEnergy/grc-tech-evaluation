@@ -3,151 +3,132 @@ test_id: A-12
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: "4b7e1360"
-status: qualified_pass
-workaround_class: stable
+status: constrained_pass
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.71
+wall_clock_seconds: 0.73
 timing_source: measured
 peak_memory_mb: 1.8
 convergence_residual: null
 convergence_iterations: null
-loc: 279
+convergence_evidence_quality: null
+loc: 501
 solver: GLPK
-timestamp: 2026-03-13T00:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-12: 24hr multi-period DCOPF with storage, renewables, quadratic costs, congestion
 
-## Result: QUALIFIED PASS
+## Result: CONSTRAINED PASS
 
 ## Approach
 
-MATPOWER's MOST (MATPOWER Optimal Scheduling Tool, v1.3.1) provides native multi-period
-DCOPF with storage as a core capability. The test was set up using MOST's documented API:
+MATPOWER's MOST (v1.3.1) provides native multi-period DC OPF with storage via the `most()` function and `addstorage()` API. The full A-12 formulation was assembled as follows:
 
-1. **Base case:** IEEE 39-bus loaded via `loadcase()`.
-2. **Differentiated costs:** Linear costs applied (hydro $5, nuclear $10, coal $25, gas $40
-   $/MWh). Quadratic costs could not be used because MIPS (the only available QP solver
-   in MOST) encounters numerical issues (singular matrix) on this problem size, and GLPK
-   only handles LP.
-3. **Branch derating:** 70% applied to all RATE_A/B/C values to produce congestion.
-4. **Renewables:** 5 variable generators (3 wind + 2 solar, 732 + 488 MW nameplate) added
-   from `renewable_units.csv` with time-varying Pmax profiles from forecast CSVs.
-5. **Storage:** 150 MW / 600 MWh BESS at bus 5 added via `addstorage()` with:
-   - Charge efficiency: 0.92, Discharge efficiency: 0.95
-   - SoC bounds: [60, 540] MWh (10%-90% of 600 MWh)
-   - Initial SoC: 300 MWh (50%)
-   - Cyclic SoC constraint enabled (`most.storage.cyclic = 1`)
-6. **Load profile:** 24-hour from `load_24h.csv` (4,237-6,254 MW).
-7. **Solver:** GLPK (LP).
+1. **Base case:** Loaded IEEE 39-bus case via `loadcase()`, applied differentiated costs (hydro $5, nuclear $10, coal $25, gas_CC $40 $/MWh).
 
-The `addstorage()` function properly integrates the BESS generator, xGenData, and
-StorageData into the MOST data structures, including the storage unit index mapping.
+2. **Renewables:** Added 5 renewable generators (3 wind at buses 2, 5, 6; 2 solar at buses 16, 19) from `renewable_units.csv`. Time-varying Pmax profiles from `wind_forecast_24h.csv` and `solar_forecast_24h.csv` applied via MOST `CT_TGEN` change tables.
+
+3. **Storage:** Added 1 BESS (150 MW / 600 MWh, bus 5) via `addstorage()` with:
+   - `OutEff=0.95` (discharge), `InEff=0.92` (charge)
+   - `MinStorageLevel=60 MWh` (10%), `MaxStorageLevel=540 MWh` (90%)
+   - `InitialStorage=300 MWh` (50%)
+   - Cyclic SoC constraint via `most.storage.cyclic=1`
+
+4. **Branch derating:** All RATE_A/B/C multiplied by 0.70.
+
+5. **Load profiles:** 24-hour load from `load_24h.csv` via `CT_TLOAD` change tables.
+
+6. **Solver:** GLPK with **linear costs only**. The protocol specifies `quadratic_costs: true`, but MIPS (MATPOWER's built-in QP solver) diverges on the MOST multi-period QP (singular matrix), and GLPK only handles LP. [solver-specific: no open-source QP solver available in Octave for MOST multi-period problems]
+
+**Constraint:** The `constrained_pass` status reflects the inability to use quadratic costs as specified. All three behavioral pass conditions are met with linear costs. The MOST formulation correctly supports quadratic costs in principle (and works with single-period QP via `rundcopf`), but the multi-period QP is too large for MIPS to solve reliably in the Octave environment.
 
 ## Output
 
-### BESS Dispatch and SoC
+### BESS Dispatch & SoC
 
-| Hour | Dispatch (MW) | SoC (MWh) | Status |
-|------|--------------|-----------|--------|
-| HR01 | -0.00 | 300.0 | idle |
-| HR03 | -43.8 | 340.3 | charge |
-| HR04 | -94.1 | 426.9 | charge |
-| HR05 | -61.5 | 483.4 | charge |
-| HR06 | -61.5 | 540.0 | charge |
-| HR15 | 12.5 | 526.8 | discharge |
-| HR17 | 75.4 | 447.5 | discharge |
-| HR18 | 144.2 | 295.8 | discharge |
-| HR19 | 144.2 | 144.0 | discharge |
-| HR20 | 79.8 | 60.0 | discharge |
-| HR23 | -110.9 | 162.0 | charge |
-| HR24 | -150.0 | 300.0 | charge |
+| Phase | Hours | Mean |P| (MW) | Mean LMP ($/MWh) |
+|-------|-------|------|------|
+| Charge | 3, 4, 5, 6, 23, 24 | 86.96 | 9.95 |
+| Discharge | 15, 17, 18, 19, 20 | 91.20 | 20.09 |
+| Idle | 1, 2, 7-14, 16, 21, 22 | 0 | -- |
 
-BESS charges during low-price early morning hours and discharges during high-price
-afternoon/evening hours. SoC returns to 300 MWh at HR24 (cyclic constraint).
+BESS charges during low-LMP hours (HR03-06, HR23-24) and discharges during high-LMP peak hours (HR15, HR17-20), demonstrating rational arbitrage behavior.
 
-### Condition 1: Congestion (PASS)
+### Condition 1: Congestion
 
-11 of 24 hours have >= 2 branches with non-zero shadow prices (threshold: 2).
-Peak congestion at HR18 with 5 binding branches and mean shadow price $25.0/MWh.
+11 of 24 hours have >= 2 binding branches (shadow price > 1e-4). Peak congestion at HR18 with 5 binding branches. Mean shadow price on binding branches: $3.97-$24.99/MWh. **PASS** (threshold: >= 2 hours).
 
-### Condition 2: BESS Arbitrage (PASS)
+### Condition 2: BESS Arbitrage Timing
 
-| Metric | Value |
-|--------|-------|
-| Discharge hours | HR15, HR17-20 |
-| Charge hours | HR3-6, HR23-24 |
-| Mean LMP during discharge | $20.09/MWh |
-| Mean LMP during charge | $9.95/MWh |
-| Arbitrage spread | $10.14/MWh |
+- Mean LMP during discharge hours: $20.09/MWh
+- Mean LMP during charge hours: $9.95/MWh
+- Arbitrage spread: $10.15/MWh
 
-The BESS correctly arbitrages between low-price and high-price hours, discharging when
-LMPs are approximately 2x higher than during charging periods.
+**PASS** (discharge LMP > charge LMP).
 
-### Condition 3: SoC Feasibility (PASS)
+### Condition 3: SoC Feasibility
 
-| Metric | Value |
-|--------|-------|
-| SoC range | [60.0, 540.0] MWh |
-| SoC bounds | [60.0, 540.0] MWh |
-| Max energy balance error | 0.0000 MWh |
-| Cyclic SoC | Yes (HR24 = HR00 = 300 MWh) |
+- SoC range: [60.00, 540.00] MWh (exactly at bounds)
+- Energy balance max error: 0.0000 MWh (threshold: 1.0 MWh)
+- Cyclic SoC: Initial = Final = 300 MWh
 
-Energy balance is exactly consistent at all timesteps (error < 1e-10 MWh).
+**PASS** (all bounds respected, energy balance perfect).
 
 ### LMP Summary
 
-LMP spread ranges from $5-6/MWh during off-peak to $42.9/MWh during peak hours (HR13-20),
-driven by congestion from 70% branch derating and differentiated generator costs.
+| Hours | Load Range (MW) | LMP Range ($/MWh) | Max Spread |
+|-------|-----------------|-------------------|------------|
+| HR01-07 (off-peak) | 4,237-4,871 | 5.00-11.28 | 6.28 |
+| HR08-12 (mid-peak) | 5,122-5,623 | 5.00-10.00 | 5.00 |
+| HR13-20 (peak) | 5,680-6,254 | 5.00-47.91 | 42.91 |
+| HR21-24 (evening) | 4,591-5,621 | 5.00-11.28 | 6.28 |
+
+LMP spreads increase dramatically during peak hours due to congestion on derated branches.
 
 ## Workarounds
 
-- **What:** Used linear costs instead of quadratic costs (c2 = c1 * 0.001 as specified in
-  the test parameters). This required using GLPK (LP solver) instead of a QP solver.
-- **Why:** MIPS (the only QP-capable solver available in MOST on Octave) encounters
-  singular matrix numerical issues on this problem size (16 generators x 24 periods with
-  storage constraints). GLPK can solve LP but rejects QP. HiGHS is not available for MOST
-  in the Octave devcontainer. With commercial solvers (CPLEX, Gurobi, MOSEK) or MATLAB,
-  quadratic costs would work.
-- **Durability:** stable -- The MOST API for multi-period DCOPF with storage (`addstorage`,
-  `loadmd`, `most`) is fully documented and works correctly. The limitation is solver
-  availability on Octave, not a formulation issue. Linear costs produce valid but non-unique
-  shadow prices (LP degeneracy), which is why the test specification prefers quadratic costs.
-  Despite linear costs, all three behavioral pass conditions are met.
-- **Grade impact:** Minor. The multi-period storage formulation is a core MOST capability
-  demonstrated successfully. The quadratic cost limitation affects LMP uniqueness but not the
-  correctness of BESS arbitrage behavior or SoC feasibility.
+None required for the MOST formulation itself. The constraint to linear costs is a solver limitation, not a workaround.
+
+- **What:** Used linear costs (c2=0) instead of quadratic costs (c2 = c1 * 0.001)
+- **Why:** MIPS diverges on the MOST multi-period QP (24 periods, 16 generators + storage + branch constraints = singular KKT matrix). GLPK only supports LP.
+- **Attribution:** [solver-specific: MIPS interior-point QP solver fails on large sparse MOST formulation; GLPK LP-only]
+- **Grade impact:** All three behavioral pass conditions are met. The LP formulation produces valid congestion, arbitrage, and SoC results. Quadratic costs would produce smoother dispatch and non-degenerate LMPs but do not change the pass/fail outcome.
 
 ## Timing
 
-- **Wall-clock:** 0.71 s
+- **Wall-clock:** 0.73 s
 - **Timing source:** measured
 - **Peak memory:** 1.8 MB
-- **Solver:** GLPK
+- **Solver:** GLPK (LP)
 - **CPU cores used:** 1
 
 ## Test Script
 
 **Path:** `evaluations/matpower/tests/expressiveness/test_a12_multiperiod_dcopf_storage.m`
 
-Key API calls for multi-period DCOPF with storage:
-
+Key API calls demonstrating MOST storage formulation:
 ```matlab
-%% Add storage via MOST's addstorage() API
+%% Add BESS via addstorage() -- native MOST API
+storage.gen = [...];  % generator row with Pmin=-150, Pmax=150
+storage.xgd_table = ...;  % reserve parameters
+storage.sd_table.data = [InitialStorage, LB, UB, InitCost, TermPrice, ...
+                         MinStorage, MaxStorage, OutEff, InEff, LossFactor, rho];
 [iess, mpc, xgd, sd] = addstorage(storage, mpc, xgd);
 
-%% Build multi-period data and solve
-md = loadmd(mpc, nt, xgd, sd, [], profiles);
-mpopt = mpoption('most.dc_model', 1, 'most.storage.cyclic', 1);
+%% Solve with cyclic SoC
+mpopt = mpoption('most.storage.cyclic', 1, 'most.solver', 'GLPK');
 mdo = most(md, mpopt);
 
-%% Extract results
-ms = most_summary(mdo);
-dispatch = ms.Pg(:, :, 1, 1);           % generator dispatch
-lmps = ms.lamP(:, :, 1, 1);             % nodal prices
-shadow = ms.muF(:, :, 1, 1);            % branch shadow prices
-soc = mdo.Storage.ExpectedStorageState;  % state of charge
+%% Extract storage state
+soc = mdo.Storage.ExpectedStorageState;
+dispatch = ms.Pg(bess_gen_idx, :);
 ```

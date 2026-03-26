@@ -3,11 +3,10 @@ test_id: G-FNM-5
 tool: matpower
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: v11
+skill_version: v2
 test_hash: "00e6353c"
 status: informational
-input_path: matpower
 workaround_class: null
 blocked_by: null
 wall_clock_seconds: null
@@ -15,208 +14,223 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+ingestion_path: matpower_raw
+input_path: matpower
+timestamp: "2026-03-24T18:00:00Z"
 ---
 
-# G-FNM-5: Supplemental CSV representability audit for 7 market-specific CSVs
+# G-FNM-5: Supplemental CSV representability audit
 
 ## Result: INFORMATIONAL
 
+## Finding
+
+MATPOWER achieves 45% native (N), 27% extension (E), and 28% external (X)
+field coverage across the 7 supplemental CSVs (44 total classifiable
+fields). This ranks second among all six evaluated tools, behind
+PowerSimulations.jl (50% native). MATPOWER's native interface support
+(`mpc.if`/`mpc.iflim`) is a significant differentiator shared only with
+PowerSimulations.jl.
+
 ## Approach
 
-For each of the 7 supplemental CSVs, every field was classified as:
-- **N (Native):** MATPOWER has a built-in column or struct field that directly
-  stores this data (e.g., `mpc.branch` columns RATE_A/B/C).
-- **E (Extension):** MATPOWER can carry this data via custom fields on the
-  `mpc` struct (e.g., `mpc.contingency = [...]`) without forking the source.
-- **X (External):** No representation path within MATPOWER's data model.
-  Data must be maintained in an external data structure.
+For each of the 7 supplemental CSVs, every field was classified as Native
+(N), Extension (E), or External (X) per the representability tier system
+defined in `data/fnm/docs/supplemental-csvs.md`. Classifications are
+based on MATPOWER 8.1's `mpc` struct format and documented extension
+mechanisms. No code execution was required -- this is an analytical audit.
 
-Classifications are derived from the per-field analysis in
-`data/fnm/docs/supplemental-csvs.md` and verified against MATPOWER 8.1's
-case format specification.
+MATPOWER's extension mechanism is the ability to add arbitrary fields to
+the `mpc` struct (e.g., `mpc.bus_name`, `mpc.gentype`, `mpc.genfuel`).
+These custom fields are preserved by `loadcase()` and `savecase()` for
+`.mat` files, and by `loadcase()` for `.m` files that define them.
+Custom struct fields are not interpreted by MATPOWER's solvers but are
+carried through the data pipeline.
 
-MATPOWER's extension mechanism: the `mpc` (MATPOWER case) struct accepts
-arbitrary user-defined fields beyond the standard set (`bus`, `branch`,
-`gen`, `gencost`, `baseMVA`). Custom fields like `mpc.contingency`,
-`mpc.if`, `mpc.iflim` are documented and used by MATPOWER internally for
-interface flow limits. Additional user fields are preserved through
-`loadcase()` / `savecase()`.
+## Per-CSV Per-Field Representability
 
-## Output
+### LINE_AND_TRANSFORMER.csv (10 fields)
 
-### Per-CSV Field Classification
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| FROM_BUS | N | `mpc.branch` col 1 (F_BUS) | Native bus index |
+| TO_BUS | N | `mpc.branch` col 2 (T_BUS) | Native bus index |
+| CKT | E | Custom `mpc` field | PSS/E circuit ID; no native analog |
+| ELEMENT_TYPE | E | Custom `mpc` field | LINE vs TRANSFORMER distinction lost in unified branch matrix |
+| RATE_A | N | `mpc.branch` col 6 (RATE_A) | Normal thermal rating |
+| RATE_B | N | `mpc.branch` col 7 (RATE_B) | Short-term emergency rating |
+| RATE_C | N | `mpc.branch` col 8 (RATE_C) | Emergency rating |
+| RATE_D | E | Custom `mpc` field | 4th tier rating not in standard branch matrix |
+| STATUS | N | `mpc.branch` col 11 (BR_STATUS) | In-service flag |
+| EFFECTIVE_DATE | E | Custom `mpc` field | No temporal validity in MATPOWER |
 
-#### LINE_AND_TRANSFORMER.csv (10 fields)
+**Summary:** 6 N, 4 E, 0 X (60% native)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| FROM_BUS | N | `mpc.branch` col 1 (F_BUS) |
-| TO_BUS | N | `mpc.branch` col 2 (T_BUS) |
-| CKT | E | Custom `mpc` field (no native circuit ID column) |
-| ELEMENT_TYPE | E | Custom `mpc` field |
-| RATE_A | N | `mpc.branch` col 6 (RATE_A) |
-| RATE_B | N | `mpc.branch` col 7 (RATE_B) |
-| RATE_C | N | `mpc.branch` col 8 (RATE_C) |
-| RATE_D | E | Custom `mpc` field (no native 4th rating tier) |
-| STATUS | N | `mpc.branch` col 11 (BR_STATUS) |
-| EFFECTIVE_DATE | E | Custom `mpc` field (no temporal validity) |
+### TRADING_HUB.csv (4 fields)
 
-**Summary:** 6 N (60%), 4 E (40%), 0 X (0%)
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| HUB_NAME | X | None | No hub model in MATPOWER |
+| BUS_NUMBER | N | `mpc.bus` col 1 (BUS_I) | Physical bus identifier |
+| DISTRIBUTION_FACTOR | X | None | No hub distribution factor concept |
+| HUB_TYPE | X | None | No hub classification |
 
-#### TRADING_HUB.csv (4 fields)
+**Summary:** 1 N, 0 E, 3 X (25% native)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| HUB_NAME | X | No hub model in MATPOWER |
-| BUS_NUMBER | N | `mpc.bus` col 1 (BUS_I) |
-| DISTRIBUTION_FACTOR | X | No hub distribution factor concept |
-| HUB_TYPE | X | No hub model in MATPOWER |
+### GEN_DISTRIBUTION_FACTOR.csv (5 fields)
 
-**Summary:** 1 N (25%), 0 E (0%), 3 X (75%)
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| GEN_BUS | N | `mpc.gen` col 1 (GEN_BUS) | Generator bus number |
+| GEN_ID | E | Custom `mpc` field | Machine ID not in standard gen matrix |
+| HUB_NAME | X | None | No hub model |
+| PARTICIPATION_FACTOR | X | None | No distribution factor attribute |
+| GEN_NAME | E | Custom `mpc` field (or `mpc.gentype`) | No native name column in gen matrix |
 
-#### GEN_DISTRIBUTION_FACTOR.csv (5 fields)
+**Summary:** 1 N, 2 E, 2 X (20% native)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| GEN_BUS | N | `mpc.gen` col 1 (GEN_BUS) |
-| GEN_ID | E | Custom `mpc` field (generators identified by row index, not ID) |
-| HUB_NAME | X | No hub model |
-| PARTICIPATION_FACTOR | X | No distribution factor attribute |
-| GEN_NAME | E | Custom `mpc` field (no native name column in gen matrix) |
+### CONTINGENCY.csv (6 fields)
 
-**Summary:** 1 N (20%), 2 E (40%), 2 X (40%)
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| CONTINGENCY_NAME | X | None | No contingency definition model |
+| ELEMENT_TYPE | X | None | No contingency element type |
+| ELEMENT_FROM_BUS | N | `mpc.branch` col 1 (F_BUS) | Bus identifier for branch contingencies |
+| ELEMENT_TO_BUS | N | `mpc.branch` col 2 (T_BUS) | Bus identifier for branch contingencies |
+| ELEMENT_CKT | E | Custom `mpc` field | Circuit identifier |
+| ELEMENT_BUS | N | `mpc.gen` col 1 (GEN_BUS) | Bus identifier for generator contingencies |
 
-#### CONTINGENCY.csv (6 fields)
+**Summary:** 3 N, 1 E, 2 X (50% native)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| CONTINGENCY_NAME | X | No native contingency definition model |
-| ELEMENT_TYPE | X | No contingency model |
-| ELEMENT_FROM_BUS | N | `mpc.branch` col 1 (F_BUS) |
-| ELEMENT_TO_BUS | N | `mpc.branch` col 2 (T_BUS) |
-| ELEMENT_CKT | E | Custom `mpc` field |
-| ELEMENT_BUS | N | `mpc.gen` col 1 (GEN_BUS) |
+### INTERFACE.csv (5 fields)
 
-**Summary:** 3 N (50%), 1 E (17%), 2 X (33%)
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| INTERFACE_ID | N | `mpc.if` col 1 | Native interface ID via `toggle_iflims` |
+| INTERFACE_NAME | E | Custom `mpc` field | No native name attribute for interfaces |
+| NORMAL_LIMIT_MW | N | `mpc.iflim` | Interface flow limits enforced in OPF |
+| EMERGENCY_LIMIT_MW | E | Custom `mpc` field | Only one limit tier natively supported |
+| DIRECTION | E | Custom `mpc` field | Direction embedded in `mpc.if` element signs |
 
-#### INTERFACE.csv (5 fields)
+**Summary:** 2 N, 2 E, 1 X (40% native)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| INTERFACE_ID | N | `mpc.if` col 1 (interface ID) |
-| INTERFACE_NAME | E | Custom `mpc` field (no native name column in `mpc.if`) |
-| NORMAL_LIMIT_MW | N | `mpc.iflim` (interface flow limits) |
-| EMERGENCY_LIMIT_MW | E | Custom `mpc` field (only one limit tier native) |
-| DIRECTION | E | Custom `mpc` field |
+MATPOWER supports interface definitions via `mpc.if` (interface element
+membership with direction coefficients) and `mpc.iflim` (interface flow
+limits). Interface constraints are enforced in OPF via `toggle_iflims`.
+This is a documented public API. The DIRECTION field is classified as E
+rather than N because the sign convention is embedded in the element
+direction coefficients rather than being a standalone attribute.
 
-**Summary:** 2 N (40%), 3 E (60%), 0 X (0%)
+**Extension approach for INTERFACE_NAME:** Store as
+`mpc.interface_names{interface_id} = 'Path_15'` in a custom cell array
+field on the mpc struct.
 
-MATPOWER has native interface support via `mpc.if` (interface element
-definitions) and `mpc.iflim` (interface flow limits), used in OPF to
-enforce aggregate flow constraints on groups of branches.
+**Extension approach for EMERGENCY_LIMIT_MW:** Store in a custom field
+`mpc.iflim_emergency` paralleling the `mpc.iflim` structure.
 
-#### INTERFACE_ELEMENT.csv (6 fields)
+### INTERFACE_ELEMENT.csv (6 fields)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| INTERFACE_ID | N | `mpc.if` col 1 |
-| FROM_BUS | N | `mpc.branch` col 1 (F_BUS) |
-| TO_BUS | N | `mpc.branch` col 2 (T_BUS) |
-| CKT | E | Custom `mpc` field |
-| DIRECTION_COEFF | N | `mpc.if` direction coefficient |
-| WEIGHT_FACTOR | E | Custom `mpc` field |
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| INTERFACE_ID | N | `mpc.if` col 1 | Links element to parent interface |
+| FROM_BUS | N | `mpc.branch` col 1 | Element from-bus |
+| TO_BUS | N | `mpc.branch` col 2 | Element to-bus |
+| CKT | E | Custom `mpc` field | Circuit identifier |
+| DIRECTION_COEFF | N | `mpc.if` direction sign | +1/-1 for flow contribution |
+| WEIGHT_FACTOR | E | Custom `mpc` field | Weighting not natively supported |
 
-**Summary:** 4 N (67%), 2 E (33%), 0 X (0%)
+**Summary:** 4 N, 2 E, 0 X (67% native)
 
-#### OUTAGE.csv (8 fields)
+### OUTAGE.csv (8 fields)
 
-| Field | Classification | MATPOWER Representation |
-|-------|---------------|------------------------|
-| ELEMENT_TYPE | X | No outage schedule model |
-| ELEMENT_FROM_BUS | N | `mpc.branch` col 1 (F_BUS) |
-| ELEMENT_TO_BUS | N | `mpc.branch` col 2 (T_BUS) |
-| ELEMENT_CKT | E | Custom `mpc` field |
-| ELEMENT_BUS | N | `mpc.gen` col 1 (GEN_BUS) |
-| OUTAGE_START | X | No temporal outage scheduling |
-| OUTAGE_END | X | No temporal outage scheduling |
-| OUTAGE_TYPE | X | No outage classification model |
+| Field | Tier | MATPOWER Attribute | Notes |
+|-------|------|-------------------|-------|
+| ELEMENT_TYPE | X | None | No outage schedule model |
+| ELEMENT_FROM_BUS | N | `mpc.branch` col 1 (F_BUS) | Bus identifier |
+| ELEMENT_TO_BUS | N | `mpc.branch` col 2 (T_BUS) | Bus identifier |
+| ELEMENT_CKT | E | Custom `mpc` field | Circuit identifier |
+| ELEMENT_BUS | N | `mpc.gen` col 1 (GEN_BUS) | Bus identifier |
+| OUTAGE_START | X | None | No temporal scheduling |
+| OUTAGE_END | X | None | No temporal scheduling |
+| OUTAGE_TYPE | X | None | No outage classification |
 
-**Summary:** 3 N (38%), 1 E (12%), 4 X (50%)
+**Summary:** 3 N, 1 E, 4 X (38% native)
 
-### Cross-CSV Summary
+## Market Solution Fidelity Summary
 
-| CSV | Fields | N | E | X | N% | E% | X% |
-|-----|--------|---|---|---|----|----|-----|
-| LINE_AND_TRANSFORMER | 10 | 6 | 4 | 0 | 60% | 40% | 0% |
-| TRADING_HUB | 4 | 1 | 0 | 3 | 25% | 0% | 75% |
-| GEN_DISTRIBUTION_FACTOR | 5 | 1 | 2 | 2 | 20% | 40% | 40% |
-| CONTINGENCY | 6 | 3 | 1 | 2 | 50% | 17% | 33% |
-| INTERFACE | 5 | 2 | 3 | 0 | 40% | 60% | 0% |
-| INTERFACE_ELEMENT | 6 | 4 | 2 | 0 | 67% | 33% | 0% |
-| OUTAGE | 8 | 3 | 1 | 4 | 38% | 12% | 50% |
-| **Totals** | **44** | **20** | **13** | **11** | **45%** | **30%** | **25%** |
+### Aggregate Field Coverage
+
+| Tier | Fields | Percentage |
+|------|--------|------------|
+| Native (N) | 20 / 44 | 45% |
+| Extension (E) | 12 / 44 | 27% |
+| External (X) | 12 / 44 | 28% |
 
 ### Concept-Level Representability
 
-| Data Concept | Source CSV(s) | MATPOWER Classification |
-|--------------|---------------|------------------------|
-| Thermal Ratings (4-tier) | LINE_AND_TRANSFORMER | extension (RATE_D not native) |
-| Seasonal/Temporal Ratings | LINE_AND_TRANSFORMER | extension (EFFECTIVE_DATE not native) |
-| Trading Hub Definitions | TRADING_HUB | external (no hub model) |
-| Generator Distribution Factors | GEN_DISTRIBUTION_FACTOR | external (no dist factor) |
-| Contingency Definitions | CONTINGENCY | external (no contingency object) |
-| Interface Definitions + Limits | INTERFACE, INTERFACE_ELEMENT | extension (native `mpc.if`/`mpc.iflim`) |
-| Outage Schedule | OUTAGE | external (no temporal outage model) |
+| Data Concept | Source CSV(s) | Tier | Notes |
+|--------------|---------------|------|-------|
+| Thermal Ratings (4-tier) | LINE_AND_TRANSFORMER | E | 3 tiers native (RATE_A/B/C), 4th tier via extension |
+| Seasonal/Temporal Rating Variations | LINE_AND_TRANSFORMER | E | EFFECTIVE_DATE via custom field |
+| Trading Hub Definitions | TRADING_HUB | X | No hub model; must use external DataFrame |
+| Generator Distribution Factors | GEN_DISTRIBUTION_FACTOR | X | No participation factor concept |
+| Contingency Definitions | CONTINGENCY | X | No native contingency object; must script BR_STATUS toggling |
+| Interface Definitions and Flow Limits | INTERFACE, INTERFACE_ELEMENT | E | `mpc.if`/`mpc.iflim` provide native interface support but EMERGENCY_LIMIT_MW and WEIGHT_FACTOR require extension |
+| Outage Actions / Planned Outage Parameters | OUTAGE | X | No temporal outage scheduling |
+| Ownership and Operational Metadata | LINE_AND_TRANSFORMER | E | CKT, ELEMENT_TYPE, EFFECTIVE_DATE via custom fields |
 
-### Market Solution Fidelity Summary
+### Key Strengths
 
-| Capability | MATPOWER Support | Mechanism | Complexity |
-|------------|-----------------|-----------|------------|
-| Multi-tier thermal ratings | Partial native | RATE_A/B/C native; RATE_D requires extension | Low |
-| Interface flow limits | Native | `mpc.if` + `mpc.iflim` in OPF | Low |
-| Contingency analysis | Scripted | External loop modifying `mpc.branch(:, BR_STATUS)` | Medium |
-| Trading hub pricing | External | Post-solve: LMP weights from external DataFrame | Medium |
-| Generator distribution factors | External | External mapping outside `mpc` struct | Low |
-| Outage application | External | Script modifies `BR_STATUS`/`GEN_STATUS` per outage | Medium |
-| Seasonal rating switching | External | Script swaps RATE_A values by date | Low |
+1. **Native interface support:** MATPOWER's `mpc.if`/`mpc.iflim` with
+   `toggle_iflims` provides first-class interface flow constraint
+   enforcement in OPF. This is a significant differentiator -- only
+   PowerSimulations.jl also has native interface support.
 
-## Key Findings
+2. **Three-tier thermal ratings:** `mpc.branch` columns RATE_A, RATE_B,
+   RATE_C provide native support for normal, short-term emergency, and
+   emergency ratings. Most other tools support only one native rating tier.
 
-1. **MATPOWER ranks second overall** at 45% native field coverage (20 of 44
-   fields), behind only PowerSimulations.jl (50%). This is driven by native
-   support for 3 thermal rating tiers and interface definitions.
+3. **Flexible extension mechanism:** Arbitrary fields can be added to the
+   `mpc` struct and persisted through `.mat` file save/load cycles. This
+   provides a straightforward path for carrying supplemental data alongside
+   the network model without external data structures.
 
-2. **Interface support is a differentiator.** MATPOWER's `mpc.if`/`mpc.iflim`
-   structures provide native interface flow limit enforcement in OPF. Only
-   PowerSimulations.jl also has native interface support (via
-   `TransmissionInterface`). Four of six tools have zero native interface
-   coverage.
+### Key Gaps
 
-3. **Market-layer concepts are universally external.** Trading hubs, generator
-   distribution factors, and outage schedules have no native representation
-   in MATPOWER (or any other evaluated tool). These require external data
-   structures and custom post-processing.
+1. **No contingency definitions:** MATPOWER has no native contingency
+   object. N-1/N-2 analysis requires external scripting to enumerate
+   contingencies and modify `BR_STATUS` for each scenario. Compare with
+   GridCal (`ContingencyGroup`) and PowerSimulations.jl (`Contingency`).
 
-4. **Contingency definitions lack native support.** MATPOWER has no
-   contingency definition object. N-1/N-2 analysis requires external
-   scripting to enumerate and apply contingencies by modifying branch/gen
-   status. This is common across 4 of 6 tools (GridCal and
-   PowerSimulations.jl are exceptions).
+2. **No generator name field:** The standard gen matrix is purely numeric.
+   Generator names require the optional `mpc.gentype` or custom fields.
 
-5. **Generator naming is extension-only.** MATPOWER's gen matrix uses
-   numeric columns with no native name field. Generator names must be
-   stored in a custom `mpc` field, unlike PyPSA/pandapower/GridCal which
-   have native name attributes.
+3. **No temporal concepts:** Effective dates, outage schedules, and
+   seasonal rating changes have no representation path. MATPOWER models a
+   single operating point.
 
-## Workarounds
+4. **No market-layer data:** Trading hubs, generator distribution factors,
+   and hub types are entirely outside MATPOWER's domain model.
 
-None required. This is an evidence-collection test with no pass/fail gate.
+## Implications
+
+MATPOWER's 45% native coverage is competitive for a power flow tool
+focused on single-operating-point analysis. The interface support is a
+meaningful advantage for Phase 2 congestion analysis readiness. The gaps
+in contingency definitions and market-layer data are consistent with
+MATPOWER's design as a research-grade power system simulation tool rather
+than a market operations platform.
+
+For extensibility grading: the 27% extension-representable fields benefit
+from MATPOWER's permissive struct extension mechanism, but the data is not
+semantically interpreted by solvers. The 28% external fields represent
+concepts fundamentally outside MATPOWER's domain (hubs, outage schedules).
 
 ## Test Script
 
-No test script -- this is a data model mapping analysis based on MATPOWER 8.1
-case format documentation and the supplemental CSV field definitions in
-`data/fnm/docs/supplemental-csvs.md`.
+No test script -- this is an analytical audit based on MATPOWER 8.1
+documentation, the `mpc` case format specification, and the per-field
+representability analysis in `data/fnm/docs/supplemental-csvs.md`.

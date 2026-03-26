@@ -3,93 +3,57 @@ test_id: P2-1
 tool: matpower
 dimension: p2_readiness
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: "e1aebe67"
 status: informational
 workaround_class: null
-timestamp: 2026-03-14T00:00:00Z
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "e1aebe67"
+timestamp: 2026-03-24T12:00:00Z
 ---
 
-# P2-1: PSS/E RAW v30/v33 Parsing Capability
+# P2-1: PSS/E RAW Parsing Capability
 
-## Result: INFORMATIONAL
-
-## Capability: Yes -- native support
-
-MATPOWER 8.1 provides built-in PSS/E RAW file import and export through two functions:
-
-| Function | Direction | Format |
-|----------|-----------|--------|
-| `psse2mpc(rawfile)` | Import | PSS/E RAW (auto-detects revision) |
-| `save2psse(fname, mpc)` | Export | PSS/E RAW Rev 33 |
+## Capability: YES -- native support via `psse2mpc()`
 
 ## Supported RAW Versions
 
-**Import:** Auto-detects revision from the file header. Tested successfully on:
-- Rev 29 (bundled test file `t_psse_case2.raw` -- 10 buses, 3 gens, 10 branches)
-- Rev 30 (bundled test file `t_psse_case3.raw` -- 46 buses, 15 gens, 56 branches)
+MATPOWER 8.1 ships `psse2mpc()` which converts PSS/E RAW data files to MATPOWER `mpc` case
+structs. The underlying parser (`psse_parse.m`) contains explicit revision-dependent branching
+for PSS/E RAW revisions 24 through 33+, with a default fallback to revision 23 when the
+revision cannot be auto-detected from the file header.
 
-The parser uses a regex pattern `PSS(/|\(tm\))E-(?<rev>\d+)` to detect the revision from
-the identification record. If no revision is detected, it defaults to Rev 23. The `REV`
-parameter can be explicitly overridden: `psse2mpc(rawfile, '', verbose, REV)`.
+Revision-specific code paths handle structural differences across versions:
 
-**Export:** Writes PSS/E RAW Rev 33 format exclusively.
+| RAW Revision Range | Key Structural Difference Handled |
+|--------------------|-----------------------------------|
+| rev <= 23 | Load data embedded in bus records |
+| rev 24-30 | Load data separate; fixed shunt data in bus records |
+| rev >= 31 | Fixed shunt data in separate section |
+| rev <= 27 | Transformer ratio/angle in branch records |
+| rev 28-30 | Expanded transformer data format |
+| rev >= 31 | Further transformer data expansion |
+| rev >= 32 | Additional data sections |
+| rev >= 33 | Latest supported format extensions |
 
-## Data Sections Parsed
+The parser auto-detects the revision from the file's identification record (looking for
+`PSS/E-XX` or `PSS(tm)E-XX` patterns in the header comment). Users can also force a
+specific revision via the `REV` argument: `psse2mpc(rawfile, verbose, rev)`.
 
-From the `psse2mpc` help text, the following PSS/E record types are imported:
-- Identification data
-- Bus data
-- Branch data
-- Fixed shunt data
-- Generator data
-- Transformer data
-- Switched shunt data
-- Area data
-- HVDC line data
+**Data sections parsed:** identification, bus, load, branch, fixed shunt, generator,
+transformer, switched shunt, area, and HVDC line data. Other PSS/E data sections (e.g.,
+multi-terminal DC, impedance correction, multi-section line, zone, interarea transfer,
+owner, FACTS) are present in the file but currently ignored by the parser.
 
-Other data sections (e.g., multi-terminal DC, impedance correction, multi-section line,
-zone, interarea transfer, owner, FACTS) are currently ignored.
+**Export:** `save2psse(file, mpc)` exports to PSS/E RAW Rev 33 format. MATPOWER 8.1 also
+added `save2psse_rop()` for PSS/E ROP (remedial action plan) file export.
 
-## Effort Estimate
+## Effort to Add if Absent
 
-**Zero effort required.** PSS/E RAW import is a built-in, documented function (`psse2mpc`)
-that ships with MATPOWER. No additional packages, wrappers, or custom code needed.
+Not applicable -- capability is native.
 
-## Octave Compatibility Note
+## Sources
 
-During probing, `psse2mpc` on the bundled `t_psse_case.raw` (a parser test fixture, not a
-real power system case) produced a `cellfun: all values must be scalars when UniformOutput
-= true` error in `psse_parse_section`. This is an Octave-specific compatibility issue with
-that particular test fixture (which uses unusual formatting to stress-test the parser). The
-two real power system test files (`t_psse_case2.raw` Rev 29, `t_psse_case3.raw` Rev 30)
-parsed successfully on Octave without errors. The MATPOWER test suite (`t_psse.m`) is
-designed primarily for MATLAB and may exercise code paths with Octave-incompatible
-`cellfun` usage, but the core import pathway works.
-
-## Supporting Infrastructure
-
-The PSS/E converter is implemented as a pipeline of internal functions:
-- `psse_read` -- reads and tokenizes the RAW file
-- `psse_parse` -- parses records into a structured data object
-- `psse_parse_section` -- parses individual data sections
-- `psse_parse_line` -- parses individual records
-- `psse_convert` -- converts parsed data to MATPOWER `mpc` struct
-- `psse_convert_xfmr` -- specialized transformer conversion
-- `psse_convert_hvdc` -- specialized HVDC conversion
-
-## Functional Probe
-
-```matlab
-mp_root = '/workspace/evaluations/matpower/matpower8.1';
-addpath(fullfile(mp_root, 'lib'));
-
-% Import Rev 30 RAW file
-mpc = psse2mpc(fullfile(mp_root, 'lib', 't', 't_psse_case3.raw'), '', 0);
-% Result: 46 buses, 15 gens, 56 branches -- success
-
-% Import Rev 29 RAW file
-mpc2 = psse2mpc(fullfile(mp_root, 'lib', 't', 't_psse_case2.raw'), '', 0);
-% Result: 10 buses, 3 gens, 10 branches -- success
-```
+- `/workspace/evaluations/matpower/matpower8.1/lib/psse2mpc.m` -- entry point
+- `/workspace/evaluations/matpower/matpower8.1/lib/psse_parse.m` -- revision-dependent parser (lines 156-450 contain rev-specific branching)
+- `/workspace/evaluations/matpower/matpower8.1/lib/psse_convert.m` -- conversion from parsed data to mpc struct
+- `/workspace/evaluations/matpower/matpower8.1/lib/save2psse.m` -- export to RAW Rev 33
