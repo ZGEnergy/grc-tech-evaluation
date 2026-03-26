@@ -6,17 +6,18 @@ network: TINY
 status: fail
 workaround_class: blocking
 blocked_by: null
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "0a550931"
-wall_clock_seconds: 0.78
+wall_clock_seconds: 2.24
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 246
+convergence_evidence_quality: null
+loc: 242
 solver: "PYPOWER interior-point (bundled)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-10: Solve DC OPF with loss approximation and decompose LMPs
@@ -66,7 +67,7 @@ The PandaModels.jl bridge offers `runpm_ploss()` for loss minimization but this 
 
 ## Timing
 
-- **Wall-clock:** 0.78 s (includes lossless baseline OPF solve)
+- **Wall-clock:** 2.24 s (includes lossless baseline OPF solve)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** not reported by PYPOWER

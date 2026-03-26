@@ -3,8 +3,8 @@ test_id: B-5
 tool: pandapower
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: v11
+skill_version: v2
 test_hash: "3d423124"
 status: pass
 workaround_class: null

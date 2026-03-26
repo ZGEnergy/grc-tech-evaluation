@@ -1,7 +1,7 @@
 # pandapower — Research: API & Formulations
 
 **Version studied:** 3.4.0 (installed via `uv sync` in devcontainer)
-**Repository:** [e2nIEE/pandapower](https://github.com/e2nIEE/pandapower) (1,118 stars, 556 forks, BSD-like license)
+**Repository:** [e2nIEE/pandapower](https://github.com/e2nIEE/pandapower) (1,128 stars, 558 forks, BSD-like license)
 **Documentation:** [pandapower.readthedocs.io](https://pandapower.readthedocs.io/en/latest/)
 
 ## Key Findings
@@ -91,9 +91,15 @@ After running a power flow or OPF, results are stored in `res_*` DataFrames inde
 
 The convergence status is stored in `net.converged` (bool) and `net.OPF_converged` (bool).
 
+**OPF additional result columns:** After `runopp()` or `rundcopp()`, `net.res_bus` gains two extra columns:
+- `lam_p` — active power LMP (shadow price / dual variable of bus power balance, EUR/MW)
+- `lam_q` — reactive power marginal price (shadow price of reactive balance, EUR/MVAr)
+
+These are locational marginal prices directly from the PYPOWER interior-point solver. Verified via `rundcopp()` on case9: the `lam_p` values reflect the marginal cost of serving an additional MW at each bus.
+
 Bus power values use consumer sign convention: positive = consumption.
 
-Source: `_empty_res_*` table inspection; [bus results docs](https://pandapower.readthedocs.io/en/latest/elements/bus.html)
+Source: `_empty_res_*` table inspection; OPF result verification on case9; [bus results docs](https://pandapower.readthedocs.io/en/latest/elements/bus.html)
 
 ### Power Flow (ACPF / DCPF)
 
@@ -240,6 +246,9 @@ Source: `inspect.signature(pp.runpm*)`; [PandaModels docs](https://pandapower.re
 | AC/DC OPF | Interior point | PYPOWER | Native solver |
 | AC/DC OPF | Ipopt, Gurobi, HiGHS | PowerModels.jl (Julia) | Via PandaModels bridge |
 | TNEP/OTS | Juniper (MINLP) | PowerModels.jl (Julia) | Mixed-integer problems |
+| N-1 Contingency | Newton-Raphson | lightsim2grid/KLU (C++) | Via `run_contingency_ls2g()` |
+| Short circuit | IEC 60909 | pandapower | 3ph, 2ph, 1ph faults |
+| State estimation | WLS | pandapower | Chi-squared bad data detection |
 
 ### Input/Output Formats
 
@@ -276,6 +285,14 @@ Source: `inspect.signature(pp.runpm*)`; [PandaModels docs](https://pandapower.re
 Source: `inspect.signature(pp.from_*)` / `pp.to_*()`; [Converter docs](https://pandapower.readthedocs.io/en/latest/converter.html)
 
 ### Additional Analysis Capabilities
+
+**Contingency analysis (`pp.contingency`):**
+- `pp.contingency.run_contingency(net, ...)` — N-1 contingency analysis
+- `pp.contingency.run_contingency_ls2g(net, ...)` — Accelerated contingency via lightsim2grid backend
+- `pp.contingency.check_elements_within_limits(net, ...)` — Post-contingency limit checking
+- `pp.contingency.get_element_limits(net, ...)` — Extract element limits for analysis
+- `pp.contingency.report_contingency_results(net, ...)` — Summary reporting
+- Uses KLU sparse solver backend for performance (`ContingencyAnalysisCPP` class)
 
 **Short-circuit analysis (`pp.shortcircuit`):**
 - `pp.shortcircuit.calc_sc(net, fault='3ph', case='max')` — IEC 60909 compliant
@@ -376,16 +393,20 @@ Source: [internal datastructure tutorial](https://github.com/e2nIEE/pandapower/b
 13. [About pandapower](https://www.pandapower.org/about/)
 14. [pandapower paper (arXiv:1709.06743)](https://arxiv.org/abs/1709.06743)
 15. Source code inspection: `/workspace/evaluations/pandapower/.venv/lib/python3.12/site-packages/pandapower/`
+16. [lightsim2grid as pandapower solver](https://lightsim2grid.readthedocs.io/en/latest/use_solver.html)
+17. [lightsim2grid benchmarks](https://lightsim2grid.readthedocs.io/en/latest/benchmarks.html)
+18. OPF LMP verification: `rundcopp()` and `runopp()` on case9 in devcontainer — confirmed `lam_p`, `lam_q` in `res_bus`
+19. Contingency module inspection: `pp.contingency` with `run_contingency()`, `run_contingency_ls2g()`, `ContingencyAnalysisCPP`
 
 ## Gaps and Uncertainties
 
 - **No native SCUC/SCED**: pandapower does not have built-in security-constrained unit commitment or economic dispatch. The closest is DC OPF with generator constraints. Whether PandaModels.jl bridge supports SCUC-like formulations via custom Julia files needs verification.
-- **LMP extraction**: The native PYPOWER OPF does not appear to directly expose locational marginal prices (bus shadow prices / dual variables). Need to verify whether `runopp()` populates any dual/shadow price results, or whether only PandaModels.jl provides this.
-- **Contingency analysis**: No dedicated N-1 contingency analysis function found. Would need to be implemented manually by looping over contingencies and re-running power flow.
-- **lightsim2grid integration depth**: Documentation mentions it but specifics on activation, limitations, and which analyses it supports (PF only? OPF?) need testing.
+- ~~**LMP extraction**~~: **RESOLVED** — Both `runopp()` and `rundcopp()` produce `lam_p` (active LMP) and `lam_q` (reactive marginal price) columns in `net.res_bus`. Verified on case9: `lam_p` correctly reflects marginal cost at each bus.
+- ~~**Contingency analysis**~~: **RESOLVED** — pandapower has a dedicated `pp.contingency` module with `run_contingency()` and an accelerated `run_contingency_ls2g()` using lightsim2grid/KLU backend. Includes limit checking and reporting.
+- **lightsim2grid integration depth**: lightsim2grid 0.12.2 is installed. It provides C++ Newton-Raphson via KLU sparse solver, usable for power flow and contingency analysis. Whether it accelerates OPF (not just PF) needs testing. Benchmark claims ~18x speedup over pandapower+numba on IEEE 118.
 - **PandaModels.jl actual availability**: The Julia bridge requires separate Julia installation and package setup. Whether this works reliably in the devcontainer environment is untested.
-- **CIM CGMES converter**: Requires `lxml` package which is not installed in the current environment. Functionality untested.
+- **CIM CGMES converter**: Requires `lxml` package which may not be installed in the current environment. Functionality untested.
 - **PowerFactory converter**: Requires PowerFactory installation. Cannot be tested in this environment.
-- **OPF convergence robustness**: The PYPOWER interior-point solver may struggle with large networks. Practical scalability limits for `runopp()` vs `runpm_ac_opf()` are unknown.
+- **OPF convergence robustness**: The PYPOWER interior-point solver (PIPS — Primal-dual Interior Point Solver) may struggle with large networks. Practical scalability limits for `runopp()` vs `runpm_ac_opf()` are unknown. PIPS parameters are configurable: `OPF_VIOLATION`, `PDIPM_COSTTOL`, `PDIPM_GRADTOL`, `PDIPM_COMPTOL`, `PDIPM_MAX_IT` (default 150).
 - **Cost function limitations**: The native PYPOWER OPF supports polynomial (up to quadratic) and piecewise-linear costs. Whether higher-order polynomials work needs verification.
-- **DC OPF bus dual variables**: Whether `rundcopp()` returns bus marginal prices (shadow prices on power balance constraints) is not documented and needs testing.
+- **Grid equivalencing module**: `pp.grid_equivalents.get_equivalent()` exists for Ward/REI equivalents. Depth of functionality and correctness untested.

@@ -4,7 +4,7 @@ installed_version: 3.4.0
 release_date: 2026-02-09
 latest_version: 3.4.0
 latest_release_date: 2026-02-09
-research_date: 2026-03-13
+research_date: 2026-03-24
 ---
 
 # pandapower — Version & Capability Report

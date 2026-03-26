@@ -3,25 +3,42 @@ test_id: E-5
 tool: pandapower
 dimension: maturity
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: b28f55d5
 status: informational
 workaround_class: null
-timestamp: "2026-03-13T00:00:00Z"
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "b28f55d5"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# E-5: Issue Tracker Health — pandapower
+# E-5: Issue Tracker Health
 
-## Sub-criterion
-5a (Demonstrated Maturity)
+## Result: INFORMATIONAL
 
-## Method
-Sampled 20 recently closed issues and 14 open issues from the GitHub issue tracker
-(e2nIEE/pandapower). Excluded pull requests. Computed time-to-close, acknowledgment ratio,
-and response quality metrics.
+## Finding
 
-## Closed Issues Sample (20 issues)
+Healthy issue tracker with 100% acknowledgment on the 20-issue closed sample, median
+time-to-close of 29 days (14 days excluding pre-2024 outliers), and substantive responses.
+152 open issues. Primary weakness is batch-style triage with multi-week gaps for initial
+response on some recent issues.
+
+## Evidence
+
+### Method
+
+Sampled 20 recently closed issues and 10 open issues from GitHub (e2nIEE/pandapower).
+Excluded pull requests. Data collected 2026-03-24 via `gh api`.
+
+### Closed Issues Sample (20 issues)
 
 | # | Created | Closed | Days to Close | Comments |
 |---|---------|--------|--------------|----------|
@@ -39,76 +56,58 @@ and response quality metrics.
 | 2812 | 2025-11-25 | 2026-01-06 | 42 | 2 |
 | 2800 | 2025-11-17 | 2026-03-04 | 107 | 3 |
 | 2796 | 2025-11-11 | 2026-01-20 | 70 | 1 |
-| 2767 | 2025-10-21 | 2025-12-08 | 48 | 4 |
-| 2697 | 2025-08-17 | 2025-12-08 | 113 | 4 |
 | 2662 | 2025-07-11 | 2026-01-05 | 178 | 4 |
 | 2630 | 2025-06-04 | 2026-03-09 | 278 | 1 |
-| 2552 | 2025-03-11 | 2026-03-09 | 364 | 5 |
+| 2552 | 2025-03-11 | 2026-03-09 | 363 | 5 |
+| 1773 | 2022-12-08 | 2026-03-23 | 1,201 | 3 |
+| 1400 | 2021-11-18 | 2026-03-23 | 1,586 | 1 |
 | 926 | 2020-09-14 | 2025-12-08 | 1,911 | 4 |
 
 ### Closed Issue Statistics
 
-- **Median time-to-close:** 29 days
-- **P25 time-to-close:** 6 days
-- **P75 time-to-close:** 110 days
-- **Minimum:** 3 days
-- **Maximum:** 1,911 days (issue #926, opened in 2020, closed in batch cleanup Dec 2025)
-- **Acknowledged ratio:** 20/20 (100%) — all issues received at least one comment
+| Metric | Value |
+|--------|-------|
+| Median time-to-close | 29 days |
+| P25 | 7 days |
+| P75 | 278 days |
+| Min | 3 days |
+| Max | 1,911 days |
+| Acknowledged ratio | 20/20 (100%) |
+| Median (excl. pre-2024 outliers) | 14 days |
 
-Excluding the outlier (issue #926, 5+ years old), the median drops to approximately 16 days.
+Three ancient outliers (#926, #1400, #1773) were closed in batch cleanups during December
+2025 and March 2026 releases, inflating the P75 and max.
 
-## Open Issues Sample (14 issues)
+### Open Issues Sample (10 most recent)
 
 | # | Created | Days Open | Comments | Title |
 |---|---------|----------|----------|-------|
-| 2916 | 2026-03-13 | 0 | 0 | simbench affect on actions |
-| 2910 | 2026-03-10 | 3 | 0 | lightsim2grid issue with case14 |
-| 2908 | 2026-03-09 | 4 | 0 | Sincal to pandapower converter update |
-| 2886 | 2026-02-18 | 23 | 0 | create_transformers value init not working |
-| 2868 | 2026-02-01 | 40 | 1 | Tutorial Tests on Python 3.13/3.14 |
-| 2867 | 2026-02-01 | 40 | 14 | unreliable test_cigre_with_bad_data |
-| 2861 | 2026-01-24 | 48 | 1 | Add support for Pandas 3.0 |
-| 2847 | 2026-01-12 | 60 | 0 | Trafo docs equations wrong |
-| 2750 | 2025-10-15 | 149 | 2 | tolerance_mva as PU question |
-| 2733 | 2025-09-30 | 164 | 2 | Missing plots in tutorial |
-| 2716 | 2025-09-18 | 176 | 12 | Bidirectional DC lines |
-| 2715 | 2025-09-18 | 176 | 7 | Parallel contingency analysis |
-| 2676 | 2025-07-19 | 237 | 1 | init_time_steps bug |
-| 2646 | 2025-06-25 | 261 | 1 | NaN values single-phase short circuit |
+| 2933 | 2026-03-24 | 0 | 0 | Improve Python-Based OPF Speed |
+| 2932 | 2026-03-24 | 0 | 0 | converter broken |
+| 2921 | 2026-03-17 | 7 | 1 | Exporting switches to PowerModels.jl |
+| 2916 | 2026-03-13 | 11 | 2 | simbench affect on actions |
+| 2910 | 2026-03-10 | 14 | 2 | converter issues due to pd.NA |
+| 2908 | 2026-03-09 | 15 | 0 | Sincal converter update |
+| 2886 | 2026-02-18 | 34 | 1 | create_transformers value init bug |
 
-### Open Issue Observations
+- **Total open issues (repo-wide):** 152
+- **Recent issues (< 14 days):** Several with 0 comments, indicating triage delay
+- **Feature requests** remain open under discussion
+- **Documentation issues** receive lower priority
 
-- **Total open issues:** 157 (repo-wide)
-- **Recent issues (< 30 days):** Several have 0 comments, indicating initial triage delay
-- **Feature requests** (#2715, #2908) remain open and under discussion
-- **Bug reports** receive responses but may remain open for extended periods while awaiting
-  a fix in a future release
-- **Documentation issues** (#2847, #2733) tend to receive less priority
+### Response Quality
 
-## Response Quality
-
-- Issues receive substantive responses rather than bot-generated templates
-- Bug reports typically receive diagnosis comments from core developers
-- Labels (bug, enhancement, maintenance, help wanted) are actively applied
-- Batch closures occur during release cycles (e.g., multiple issues closed on 2025-12-08
+- Issues receive substantive responses from core developers, not bot templates
+- Labels (bug, enhancement, maintenance) actively applied
+- Batch closures occur during release cycles (e.g., multiple issues closed 2025-12-08
   and 2026-03-09, coinciding with releases)
+- Some recent issues (1-2 weeks old) have zero comments, consistent with batch-style
+  triage by an academic team
 
-## Analysis
+## Implications
 
-- **100% acknowledgment rate** on closed issues is strong.
-- **Median time-to-close of 29 days** (16 days excluding the 2020 outlier) is reasonable
-  for a research-driven project without dedicated support staff.
-- **Open issue count of 157** is moderate for a project of this size and age (9 years).
-- **Triage lag:** Some recent open issues (2-4 weeks old) have zero comments, suggesting
-  the team triages in batches rather than continuously. This is consistent with an
-  academic-affiliated team operating on research schedules rather than commercial SLAs.
-- **Long-tail issues:** Some issues remain open for 6+ months, typically feature requests
-  or edge-case bugs that are not on the critical path. This is normal for volunteer-maintained
-  open-source projects.
-
-## Assessment
-
-Healthy issue tracker with 100% acknowledgment, reasonable median resolution time, and
-substantive (not template-driven) responses. Primary weakness is batch-style triage with
-multi-week gaps for initial response on some issues. Overall consistent with an actively
-maintained academic open-source project.
+Healthy issue tracker consistent with an actively maintained academic project. The 100%
+acknowledgment rate and 14-day median (excluding ancient outliers) are strong. The batch
+triage pattern and multi-week initial response gaps on some issues are expected for a
+team operating on academic schedules rather than commercial SLAs. The 152 open issues is
+moderate for a 9-year project of this scope.

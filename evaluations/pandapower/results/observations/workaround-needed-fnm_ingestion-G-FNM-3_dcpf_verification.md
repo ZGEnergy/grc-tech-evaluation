@@ -3,30 +3,32 @@ tag: workaround-needed
 source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: pandapower
-severity: medium
-timestamp: 2026-03-14T04:00:00Z
+severity: low
+timestamp: 2026-03-24T12:00:00Z
 ---
 
-# Observation: MATPOWER fallback required for FNM DCPF verification
+# Observation: MATPOWER fallback required for FNM ingestion in pandapower
 
 ## Finding
 
-pandapower requires MATPOWER fallback for FNM ingestion because it has no native
-CSV import capability. The DCPF verification used `matpowercaseframes.CaseFrames`
-to parse the cleaned `.m` file followed by `from_ppc` conversion. This is the same
-stable workaround documented in G-FNM-1. Additionally, the `from_ppc` zero-RATE_A
-bug workaround was applied.
+pandapower has no native capability to ingest the intermediate CSV format tables.
+Both G-FNM-3 and G-FNM-4 used the pre-cleaned MATPOWER case file via
+`matpowercaseframes.CaseFrames` + `from_ppc` as a stable workaround. A secondary
+workaround (zero RATE_A values set to 9999) was also required due to a pandapower 3.4.0
+bug in `_from_ppc_branch`.
 
 ## Context
 
-G-FNM-3 needed to load the pre-cleaned FNM main island for DCPF comparison against
-the reference solution. The tool cannot ingest intermediate CSV files directly, so
-the `input_path: matpower` fallback was used. Both workarounds are classified as
-stable (documented public APIs, deterministic pre-processing).
+The MATPOWER fallback path is classified as a stable workaround because
+`matpowercaseframes`, `from_ppc`, and `rundcpp`/`runpp` are all public, documented APIs.
+However, the PPC format inherently flattens transformer-specific data (tap control modes,
+winding impedance details, switched shunt discrete steps), which reduces data fidelity
+compared to direct CSV ingestion.
 
 ## Implications
 
-The MATPOWER fallback is a persistent limitation for the FNM evaluation pipeline.
-Any tool evaluation involving CSV-formatted network data requires an external
-conversion step for pandapower. This is relevant to the extensibility dimension's
-assessment of pandapower's data interoperability.
+The MATPOWER fallback is a stable workaround with grade impact limited to field fidelity
+reduction. The zero RATE_A fix is a deterministic pre-processing step that compensates for
+a specific pandapower bug. Both workarounds should be noted in the Extensibility narrative
+as evidence of pandapower's reliance on MATPOWER-format intermediaries for non-native
+data sources.
