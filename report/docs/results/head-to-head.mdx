@@ -20,11 +20,11 @@ customer requires inspectable source code, which precludes the compiled MATLAB r
 
 | Capability | PyPSA | PowerModels | PowerSim. | pandapower | GridCal | MATPOWER* |
 |-----------|-------|-------------|-----------|------------|---------|-----------|
-| SCOPF | **Native** | Extension | Extension | Gap | **Native** | Extension |
+| SCOPF | **Native** | Extension | Extension | Gap | **Native** | Workaround |
 | Distributed Slack OPF | Workaround | Workaround | **Native** | Gap | Gap | Extension |
 | PWL Cost Curves | Workaround | **Native** | **Native** | **Native** | Gap | **Native** |
 | PSS/E RAW Parsing | Gap | Workaround | Workaround | Gap | Workaround | **Native** |
-| Custom Constraints | **Native** | **Native** | **Native** | Workaround | Workaround | Extension |
+| Custom Constraints | **Native** | **Native** | **Native** | Workaround | Workaround | **Native** |
 | UC/ED Pipeline | **Native** | Gap | **Native** | Gap | **Native** | **Native** |
 
 ## Capability Details
@@ -43,7 +43,7 @@ reducing Phase 2 development effort significantly.
 | PowerSimulations | Extension | Manual LODF constraint injection into the JuMP model; HiGHS crashes with `OTHER_ERROR` on the 10,000-bus network (A-9, C-8). |
 | GridCal | **Native** | Native LODF-based SCOPF via `consider_contingencies` parameter; 50 contingencies on 10,000-bus network solved in 32s with 956 MW aggregate redispatch (A-9, C-8). |
 | pandapower | Gap | No SCOPF capability. Manual PTDF/LODF construction plus an external solver bypasses pandapower's OPF entirely; OOM at 10,000-bus scale (A-9, C-8). |
-| MATPOWER* | Extension | LODF constraint injection via `mpc.A/l/u` user constraint API; MIPS numerical issues on augmented KKT system at scale (A-9). |
+| MATPOWER* | Workaround | LODF constraint injection via `mpc.A/l/u` user constraint API; N-1 infeasible on test case with MIPS numerical issues; blocking durability (A-9). |
 
 </details>
 
@@ -120,7 +120,7 @@ economic analysis.
 | PowerSimulations | **Native** | JuMP model access via `PSI.get_jump_model()` enables arbitrary constraint addition and dual extraction. Requires knowledge of PSI internal constraint naming conventions (B-1). |
 | pandapower | Workaround | Requires replicating `_optimal_powerflow`, monkey-patching module references, and capturing the PYPOWER result dict for dual access. Fragile; depends on undocumented internal structure (B-1). |
 | GridCal | Workaround | Monkey-patch of `PulpLpModel.solve` relying on internal constraint naming convention `br_flow_upper_lim_0_<idx>`. Fragile; no public API for constraint injection (B-1). |
-| MATPOWER* | Extension | Documented `mpc.A/l/u` custom constraint API with dual extraction at `results.lin.mu.u.usr`. MIPS fails with user constraints on QP problems, requiring GLPK (LP) with linearized costs (B-1). |
+| MATPOWER* | Native | Documented `mpc.A/l/u` custom constraint API with dual extraction at `results.lin.mu.u.usr`. MIPS fails with user constraints on QP problems, requiring GLPK (LP) with linearized costs (B-1). |
 
 </details>
 

@@ -19,7 +19,7 @@
                 "powersimulations": {"status": "Native", "notes": "Native distributed slack in power flow via PowerFlows.jl (A-11 pass)"},
                 "gridcal": {"status": "Gap", "notes": "Distributed slack hardcoded off in OPF; blocking limitation (A-11)"},
                 "pandapower": {"status": "Gap", "notes": "No distributed slack formulation available (A-11)"},
-                "matpower": {"status": "Native", "notes": "Post-processing distributed slack via makePTDF with slack_weights; stable workaround using documented API (A-11)"}
+                "matpower": {"status": "Extension", "notes": "Post-processing distributed slack via makePTDF with slack_weights; stable workaround using documented API (A-11)"}
             }
         },
         {
