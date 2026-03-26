@@ -3,14 +3,14 @@ test_id: G-1
 tool: gridcal
 dimension: gate
 network: TINY
+protocol_version: v11
+skill_version: v2
+test_hash: "0a74adbf"
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T00:00:00Z
-protocol_version: "v10"
-skill_version: v1
-test_hash: "0a74adbf"
+test_category: gate_minimum_bar
 wall_clock_seconds: 0.094
-timing_source: measured
+timestamp: 2026-03-24T19:05:18Z
 ---
 
 # G-1: Ingest TINY Network (IEEE 39-bus)
@@ -33,4 +33,4 @@ timing_source: measured
 
 ## Test Script
 
-**Path:** `evaluations/gridcal/tests/test_gate.py`
+**Path:** `evaluations/gridcal/tests/test_gate.py` (class `TestGateG1`)

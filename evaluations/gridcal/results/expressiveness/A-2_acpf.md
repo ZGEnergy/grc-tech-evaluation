@@ -3,20 +3,21 @@ test_id: A-2
 tool: gridcal
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "eb349d9c"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "fca7353e"
-wall_clock_seconds: 2.24
+wall_clock_seconds: 2.20
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: 3.32e-11
 convergence_iterations: 4
-loc: 198
+convergence_evidence_quality: residual_reported
+loc: 215
 solver: "NR (native)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-2: Solve AC power flow (Newton-Raphson) on TINY
@@ -35,6 +36,10 @@ implementation. This is documented as a finding (see Observations below). The na
 solver is the correct and only option for ACPF in GridCal.
 
 Flat start converged on the first attempt -- no DC warm start fallback was needed.
+
+**Convergence evidence quality: `residual_reported` (Tier 1).** GridCal's `PowerFlowResults`
+exposes both `results.error` (final NR residual = 3.32e-11) and `results.iterations` (= 4)
+as direct API attributes. This is the highest convergence evidence tier.
 
 Results are accessed via:
 - `results.voltage` -- complex bus voltages
@@ -77,7 +82,7 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 2.24 s
+- **Wall-clock:** 2.20 s
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** 4 (NR)
@@ -98,7 +103,7 @@ pf_opts = vge.PowerFlowOptions(
 )
 pf_results = vge.power_flow(grid, options=pf_opts)
 
-# Convergence diagnostics directly accessible
+# Convergence diagnostics directly accessible (Tier 1: residual_reported)
 iterations = pf_results.iterations   # 4
 error = pf_results.error             # 3.32e-11
 converged = pf_results.converged     # True

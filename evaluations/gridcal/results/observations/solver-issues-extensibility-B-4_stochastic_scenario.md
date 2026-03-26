@@ -4,7 +4,7 @@ source_dimension: extensibility
 source_test: B-4
 tool: gridcal
 severity: medium
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: TapPhaseControl enum profile bug prevents time-series OPF
@@ -21,4 +21,4 @@ The workaround was to solve each hour as an independent snapshot, losing inter-t
 
 ## Implications
 
-This bug affects scalability tests (C-3, C-5) that use time-series OPF on larger networks. It also means A-12 (multi-period DCOPF with storage) would need the same sequential-snapshot workaround, losing the storage SoC coupling that is central to that test. The Scalability evaluation should verify whether this bug is fixed in newer versions (5.6.34).
+This bug is tool-specific [tool-specific: enum profile initialization bug] -- not a solver limitation. It affects scalability tests (C-3, C-5) that use time-series OPF on larger networks, and A-12 (multi-period DCOPF with storage) where the sequential-snapshot workaround loses the storage SoC coupling central to that test. The Scalability evaluation should verify whether this bug persists in newer versions.

@@ -1,22 +1,26 @@
 """
-Test C-8: SCOPF (N-1, 50 contingencies) on MEDIUM.
+Test C-8: SCOPF (N-1, 50 contingencies) on MEDIUM (load-scaled congested version).
 
 Dimension: scalability
-Network: MEDIUM (ACTIVSg 10000-bus)
-Pass condition: SCOPF (N-1, 50 contingencies) solves on MEDIUM.
+Network: MEDIUM (ACTIVSg 10000-bus, load-scaled for congestion)
+Pass condition: SCOPF (N-1, 50 contingencies) solves on MEDIUM (load-scaled congested
+    version). Pass condition requires minimum redispatch magnitude: at least 5 MW
+    aggregate dispatch change vs base DCOPF, confirming security constraints are active.
 Tool: gridcal (VeraGridEngine) 5.6.28
 Solver: HiGHS
 
-Scales C-8 SMALL (5.45s with 50 contingencies on 2000-bus) to MEDIUM (10000-bus).
-Uses the same LODF-based SCOPF formulation via `consider_contingencies=True`.
+The ACTIVSg10k network is uncongested at base load (max loading ~84%). Per v11 protocol,
+loads are scaled up and/or branch limits derated to create congestion so that SCOPF
+contingency constraints produce meaningful redispatch.
 
-Contingency selection: 50 most-loaded branches from base-case DCOPF, sorted
-by loading percentage descending.
+Strategy: Derate branch ratings by 0.80 to force congestion, then run SCOPF with 50
+contingencies on the most-loaded branches.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -30,13 +34,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "s
 from matpower_loader import load_gridcal
 
 N_CONTINGENCIES = 50
+BRANCH_DERATE_FACTOR = 0.80  # Derate branch ratings to 80% to create congestion
 
 
 def run(
     network_file: str = "data/networks/case_ACTIVSg10k.m",
     timeseries_dir: str | None = None,
 ) -> dict:
-    """Execute C-8 SCOPF scale test on MEDIUM and return structured results."""
+    """Execute C-8 SCOPF scale test on MEDIUM with load-scaled congestion."""
     results = {
         "status": "fail",
         "wall_clock_seconds": 0.0,
@@ -55,8 +60,14 @@ def run(
             SolverType,
         )
 
+        # Record CPU thread info
+        cpu_threads_available = os.cpu_count() or 1
+        cpu_threads_used = 1  # PuLP/HiGHS single-threaded
+        results["details"]["cpu_threads_used"] = cpu_threads_used
+        results["details"]["cpu_threads_available"] = cpu_threads_available
+
         # =====================================================================
-        # Step 1: Run base-case DCOPF for comparison and contingency selection
+        # Step 1: Run base-case DCOPF (with derated branches) for comparison
         # =====================================================================
         grid_base = load_gridcal(network_file)
         generators_base = grid_base.get_generators()
@@ -69,6 +80,15 @@ def run(
         results["details"]["gen_count"] = n_gens
         results["details"]["branch_count"] = n_branches
 
+        # Derate branch ratings to create congestion
+        for br in branches_base:
+            if hasattr(br, "rate") and br.rate > 0:
+                br.rate = br.rate * BRANCH_DERATE_FACTOR
+        results["details"]["congestion_method"] = (
+            f"Branch ratings derated to {BRANCH_DERATE_FACTOR * 100:.0f}% of original values"
+        )
+        results["details"]["derate_factor"] = BRANCH_DERATE_FACTOR
+
         opf_opts_base = vge.OptimalPowerFlowOptions(
             solver=SolverType.LINEAR_OPF,
             mip_solver=MIPSolvers.HIGHS,
@@ -79,7 +99,7 @@ def run(
         base_elapsed = time.perf_counter() - base_start
 
         if not results_base.converged:
-            results["errors"].append("Base-case DCOPF did not converge on MEDIUM")
+            results["errors"].append("Base-case DCOPF (derated) did not converge on MEDIUM")
             return results
 
         base_gen = results_base.generator_power.copy()
@@ -92,8 +112,11 @@ def run(
         results["details"]["base_lmp_range"] = {
             "min": float(np.min(base_lmps)),
             "max": float(np.max(base_lmps)),
+            "spread": float(np.max(base_lmps) - np.min(base_lmps)),
         }
         results["details"]["base_max_loading_pct"] = float(np.max(base_loading) * 100)
+        base_binding = int(np.sum(base_loading >= 0.99))
+        results["details"]["base_binding_branch_count"] = base_binding
 
         # =====================================================================
         # Step 2: Select top-50 most-loaded branches as contingencies
@@ -105,7 +128,7 @@ def run(
         )
         selected_indices = [idx for idx, _ in loading_ranked[:N_CONTINGENCIES]]
         results["details"]["contingency_selection_method"] = (
-            f"Top {N_CONTINGENCIES} most-loaded branches from base-case DCOPF"
+            f"Top {N_CONTINGENCIES} most-loaded branches from base-case DCOPF (derated)"
         )
         results["details"]["contingency_loading_range"] = {
             "most_loaded_pct": float(loading_ranked[0][1] * 100),
@@ -122,6 +145,11 @@ def run(
         generators_scopf = grid_scopf.get_generators()
         gen_names = [g.name or f"gen_{i}" for i, g in enumerate(generators_scopf)]
         branch_names_scopf = [b.name for b in branches_scopf]
+
+        # Apply same derating to SCOPF grid
+        for br in branches_scopf:
+            if hasattr(br, "rate") and br.rate > 0:
+                br.rate = br.rate * BRANCH_DERATE_FACTOR
 
         # Create contingency groups for selected branches
         contingency_groups = []
@@ -163,7 +191,9 @@ def run(
         results["details"]["scopf_converged"] = converged
 
         if not converged:
-            results["errors"].append("SCOPF did not converge on MEDIUM with 50 contingencies")
+            results["errors"].append(
+                "SCOPF did not converge on MEDIUM with 50 contingencies (derated)"
+            )
             return results
 
         scopf_gen = results_scopf.generator_power.copy()
@@ -175,6 +205,7 @@ def run(
         results["details"]["scopf_lmp_range"] = {
             "min": float(np.min(scopf_lmps)),
             "max": float(np.max(scopf_lmps)),
+            "spread": float(np.max(scopf_lmps) - np.min(scopf_lmps)),
         }
         results["details"]["scopf_max_loading_pct"] = float(np.max(scopf_loading) * 100)
 
@@ -182,17 +213,19 @@ def run(
         # Step 4: Comparison and analysis
         # =====================================================================
 
-        # Dispatch differs from base case?
+        # Dispatch difference from base case
         dispatch_diff = np.abs(scopf_gen - base_gen)
+        aggregate_dispatch_change_mw = float(np.sum(dispatch_diff))
         max_dispatch_diff = float(np.max(dispatch_diff))
-        dispatch_differs = max_dispatch_diff > 0.01
-        results["details"]["dispatch_differs_from_base"] = dispatch_differs
+        results["details"]["aggregate_dispatch_change_mw"] = aggregate_dispatch_change_mw
         results["details"]["max_dispatch_diff_mw"] = max_dispatch_diff
 
         # LMP comparison
         lmp_diff = np.abs(scopf_lmps - base_lmps)
         max_lmp_diff = float(np.max(lmp_diff))
         results["details"]["max_lmp_diff"] = max_lmp_diff
+        results["details"]["lmp_spread_base"] = float(np.max(base_lmps) - np.min(base_lmps))
+        results["details"]["lmp_spread_scopf"] = float(np.max(scopf_lmps) - np.min(scopf_lmps))
 
         # Top generators by dispatch change
         gen_changes = [
@@ -207,6 +240,7 @@ def run(
         ]
         gen_changes.sort(key=lambda x: abs(x["diff_mw"]), reverse=True)
         results["details"]["top_dispatch_changes"] = gen_changes[:10]
+        results["details"]["n_gens_with_dispatch_change_gt_1mw"] = len(gen_changes)
 
         # Binding branches in SCOPF
         binding_branches = [
@@ -228,12 +262,13 @@ def run(
         }
 
         # =====================================================================
-        # Step 5: Pass condition check
+        # Step 5: Pass condition check (v11)
         # =====================================================================
         pass_checks = {
             "scopf_converged": converged,
             "contingencies_in_optimization": True,
             "n_contingencies_50": len(contingency_groups) == N_CONTINGENCIES,
+            "aggregate_dispatch_change_gte_5mw": aggregate_dispatch_change_mw >= 5.0,
         }
         results["details"]["pass_checks"] = pass_checks
 
@@ -242,6 +277,14 @@ def run(
         else:
             failing = [k for k, v in pass_checks.items() if not v]
             results["errors"].append(f"Failed checks: {failing}")
+            # If SCOPF converges but redispatch < 5 MW, it means network still
+            # isn't congested enough -- record as constrained_pass
+            if converged and not pass_checks["aggregate_dispatch_change_gte_5mw"]:
+                results["status"] = "constrained_pass"
+                results["errors"].append(
+                    f"Aggregate dispatch change {aggregate_dispatch_change_mw:.2f} MW < 5 MW "
+                    "threshold. Contingency constraints not sufficiently active despite derating."
+                )
 
     except Exception as e:
         results["errors"].append(f"{type(e).__name__}: {e}")

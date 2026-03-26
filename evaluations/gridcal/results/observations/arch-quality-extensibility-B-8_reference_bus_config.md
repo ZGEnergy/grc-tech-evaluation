@@ -4,7 +4,7 @@ source_dimension: extensibility
 source_test: B-8
 tool: gridcal
 severity: low
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: PTDF-based DC OPF produces slack-invariant LMPs

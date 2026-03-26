@@ -16,6 +16,7 @@ swappable and whether swap is a parameter change or requires reformulation.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -122,6 +123,12 @@ def run(
     try:
         from VeraGridEngine.enumerations import MIPSolvers
 
+        # Record CPU thread info
+        cpu_threads_available = os.cpu_count() or 1
+        cpu_threads_used = 1  # PuLP solvers run single-threaded by default
+        results["details"]["cpu_threads_used"] = cpu_threads_used
+        results["details"]["cpu_threads_available"] = cpu_threads_available
+
         # =====================================================================
         # Step 1: Document available solvers
         # =====================================================================
@@ -218,7 +225,7 @@ def run(
         results["details"]["pass_checks"] = pass_checks
 
         if all(pass_checks.values()):
-            results["status"] = "pass"
+            results["status"] = "qualified_pass"
         else:
             failing = [k for k, v in pass_checks.items() if not v]
             results["errors"].append(f"Failed checks: {failing}")

@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: gridcal
 severity: low
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: GridCal solves DCPF on 27,862-bus FNM in 2.4 seconds
@@ -12,9 +12,11 @@ timestamp: 2026-03-13T00:00:00Z
 ## Finding
 
 GridCal's linear (DC) power flow solver handles the 27,862-bus FNM main island
-network without difficulty. DCPF solve time is 2.36 seconds, with network loading
-taking 32.18 seconds. Peak memory usage is 1,892 MB. The solution produces
-non-trivial results (27,858 of 27,862 buses have nonzero voltage angles).
+network without difficulty. DCPF solve time is 2.369 seconds, with network loading
+taking 31.899 seconds. Peak memory usage is 1,894 MB. The solution produces
+non-trivial results (27,858 of 27,862 buses have nonzero voltage angles). Total
+wall-clock time including comparison logic is 48.457 seconds, well within the
+10-minute timeout.
 
 ## Context
 

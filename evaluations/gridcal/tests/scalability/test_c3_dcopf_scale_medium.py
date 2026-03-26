@@ -16,6 +16,7 @@ SCIP is used as the GLPK substitute (open-source LP/MILP solver).
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -63,6 +64,8 @@ def solve_dcopf(network_file: str, solver_enum, solver_name: str) -> dict:
         "bus_count": n_buses,
         "gen_count": n_gens,
         "branch_count": n_branches,
+        "cpu_threads_available": os.cpu_count(),
+        "cpu_threads_used": 1,  # HiGHS/SCIP single-threaded per solver-config
     }
 
     if converged:
@@ -87,6 +90,11 @@ def solve_dcopf(network_file: str, solver_enum, solver_name: str) -> dict:
         result["max_loading_pct"] = float(np.max(loading) * 100)
         binding = int(np.sum(loading >= 0.99))
         result["binding_branch_count"] = binding
+
+        # Soft constraint check: any branch > 100% + 1e-4 pu tolerance?
+        soft_constraint_branches = int(np.sum(loading > 1.0 + 1e-4))
+        result["soft_constraint_branches"] = soft_constraint_branches
+        result["soft_constraint_finding"] = soft_constraint_branches > 0
 
     return result
 

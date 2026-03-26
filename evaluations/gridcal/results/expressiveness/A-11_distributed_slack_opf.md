@@ -3,20 +3,21 @@ test_id: A-11
 tool: gridcal
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "95a0e3ae"
 status: fail
 workaround_class: blocking
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "95a0e3ae"
-wall_clock_seconds: 1.78
+wall_clock_seconds: 1.41
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 219
 solver: "HiGHS"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-11: DC OPF with distributed slack (load-proportional) on TINY
@@ -52,6 +53,7 @@ results.
 **Root cause:** The linear OPF formulation (`linear_opf_ts.py`, line 3022) hardcodes
 `distributed_slack=False` in its internal `LinearAnalysis` call for PTDF computation. The
 `PowerFlowOptions.distributed_slack` flag is ignored by the OPF formulation entirely.
+[tool-specific]
 
 **DCPF verification:** Distributed slack does work correctly in the power flow context:
 
@@ -64,7 +66,7 @@ confirming the feature works for power flow but not for OPF.
 
 **Weight API:** No API exists for setting distributed slack weights. The distributed slack in
 DCPF uses a load-proportional distribution hardcoded in `LinearAnalysis`. Custom weights
-(e.g., proportional to generation) are not configurable.
+(e.g., proportional to generation) are not configurable. [tool-specific]
 
 ## Workarounds
 
@@ -80,7 +82,7 @@ DCPF uses a load-proportional distribution hardcoded in `LinearAnalysis`. Custom
 
 ## Timing
 
-- **Wall-clock:** 1.78 s (includes both single and distributed slack runs)
+- **Wall-clock:** 1.41 s (includes both single and distributed slack runs + DCPF verification)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1
@@ -92,7 +94,7 @@ DCPF uses a load-proportional distribution hardcoded in `LinearAnalysis`. Custom
 Key finding in source code:
 
 ```python
-# linear_opf_ts.py line 3022 — hardcoded False
+# linear_opf_ts.py line 3022 -- hardcoded False
 ls = LinearAnalysis(nc=nc,
                     distributed_slack=False,  # <-- not configurable
                     correct_values=True)

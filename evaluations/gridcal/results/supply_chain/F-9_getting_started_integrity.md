@@ -3,27 +3,37 @@ test_id: F-9
 tool: gridcal
 dimension: supply_chain
 network: N/A
-status: informational
+status: pass
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "81981b48"
-timestamp: "2026-03-13T23:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T18:00:00Z"
 ---
 
 # F-9: Getting-Started Integrity
 
+## Result: PASS
+
 ## Finding
 
-The evaluation's getting-started artifact (`verify_install.py`) works correctly and demonstrates DCPF on the IEEE 39-bus case. However, the version pin in `pyproject.toml` is unpinned (`veragridengine` with no version constraint), and the upstream project's own getting-started documentation has reported broken links.
+The evaluation's getting-started artifact (`verify_install.py`) works correctly and demonstrates DCPF on the IEEE 39-bus case. The `pyproject.toml` does not pin the veragridengine version, but a `uv.lock` file exists that freezes the complete dependency tree, ensuring reproducible installs. The upstream project's examples directory contains 49 scripts but version pins are absent.
 
 ## Evidence
 
 **Evaluation getting-started artifact:**
 - File: `evaluations/gridcal/verify_install.py`
-- Functionality: Loads case39.m, runs DC power flow (SolverType.Linear), verifies convergence
+- Functionality: Loads case39.m, runs DC power flow (`SolverType.Linear`), verifies convergence
 - Output: Reports version, bus count, branch count, convergence status
-- Exit code: 0 on success, 1 on failure
 - Status: **Works correctly** with veragridengine 5.6.28
 
 **Version pinning in `pyproject.toml`:**
@@ -32,23 +42,26 @@ dependencies = [
     "veragridengine",
 ]
 ```
-- No version constraint: `veragridengine` with no `>=`, `==`, or `~=` specifier
-- This means `uv sync` will install whatever version is latest at install time
-- Risk: breaking changes in future versions could cause verify_install.py to fail
-- The 5.4.0 rename (GridCalEngine -> VeraGridEngine) is already reflected in the dependency name
+- No version constraint on veragridengine (no `>=`, `==`, or `~=`)
+- Risk: breaking changes in future versions could cause failures
 
-**Upstream getting-started documentation:**
-- GitHub issue #416: "Getting Started Link is not working" (created 2025-08-05, closed 2026-01-07)
-- GitHub issue #347: "Link on tutorials is broken" (created 2025-03-11, closed 2026-01-07)
-- ReadTheDocs documentation covers up to v5.0.2 only; current version is 5.6.x
-- README provides basic install instructions (`pip install VeraGridEngine`) that work correctly
+**Lock file:**
+- `uv.lock` file exists (304 KB, dated 2026-03-09)
+- This freezes all 62 dependency versions for reproducible installs via `uv sync`
+- The lock file mitigates the unpinned `pyproject.toml` constraint
+
+**Upstream getting-started resources:**
+- GitHub `examples/` directory: 49 Python scripts covering various analysis types (power flow, OPF, contingency analysis, CPF, etc.)
+- Examples do not specify version requirements or pin dependencies
+- README provides basic install: `pip install VeraGridEngine` (no version pin)
+- ReadTheDocs documentation covers up to v5.0.2; current version is 5.6.x (significant documentation lag)
+- GitHub issues #416 and #347 reported broken getting-started/tutorial links (both closed 2026-01-07)
 
 **Reproducibility assessment:**
-- The `pyproject.toml` uses `uv` with `package = false` (application mode)
-- No `uv.lock` file was observed, meaning exact dependency versions are not locked
-- Running `uv sync` at different times could produce different dependency versions
-- The installed version (5.6.28) is 6 patch releases behind latest (5.6.34)
+- With `uv sync`: reproducible (lock file pins all versions)
+- With `pip install`: not reproducible (no version pins, will get latest)
+- Installed version (5.6.28) is 10 patch releases behind PyPI latest (5.6.38)
 
 ## Implications
 
-The getting-started artifact functions correctly but has two integrity gaps: (1) no version pin on `veragridengine`, meaning future installs may get a different (potentially incompatible) version, and (2) no lock file to freeze the complete dependency tree. For evaluation reproducibility, pinning to `veragridengine==5.6.28` and committing a `uv.lock` would be advisable. The upstream project's broken documentation links (now fixed) suggest a history of documentation maintenance issues.
+The getting-started artifact functions correctly. The presence of a `uv.lock` file provides reproducible dependency resolution, which is the primary integrity requirement. The unpinned `pyproject.toml` is a minor concern mitigated by the lock file. The upstream project's documentation lag (ReadTheDocs at v5.0.2 vs current v5.6.x) and history of broken links indicate ongoing documentation maintenance challenges, but this does not affect the evaluation's own artifact integrity.

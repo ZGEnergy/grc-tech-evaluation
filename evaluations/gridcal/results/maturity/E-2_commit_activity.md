@@ -3,46 +3,66 @@ test_id: E-2
 tool: gridcal
 dimension: maturity
 network: N/A
+protocol_version: "v11"
+skill_version: v2
+test_hash: "060ee3ca"
 status: informational
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "060ee3ca"
-timestamp: "2026-03-13T23:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: estimated
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # E-2: Commit Activity
 
+## Result: INFORMATIONAL
+
 ## Finding
 
-The repository shows very high commit activity with approximately 2,357 commits in the last 52 weeks, but the activity is heavily concentrated on a single developer (SanPen) who accounts for 58% of public GitHub commits. The GitHub stats API reports 1,349 owner commits vs 2,357 total, suggesting substantial development occurs in a private eRoots repository with periodic bulk merges to the public repo.
+The repository shows very high commit activity with approximately 2,217 commits in the last 12 months across 12 unique committers (excluding bots). Development is heavily concentrated on the lead developer (SanPen, 56.9%) with a secondary cluster of eRoots Analytics employees. A significant portion of commits (231, 10.4%) have null authors, indicating bulk merges from the private eRoots development repository.
 
 ## Evidence
 
-**Last 12 months (2025-03-13 to 2026-03-13):**
-- Total commits on GitHub: >1,200 (API returned 100+ per page across 20+ pages)
-- GitHub participation stats (last 52 weeks): 2,357 total commits, 1,349 from owner
+**Commit volume (2025-03-24 to 2026-03-24, via GitHub API paginated query):**
+- Total commits: **2,217** (22 full pages of 100 + 17 on final page)
 
-**Unique committers (last 12 months, public GitHub):**
+**Unique committers (last 12 months, GitHub API):**
 
-| Author | Commits | Role |
-|--------|---------|------|
-| SanPen (Santiago Penate Vera) | 461 | Creator/Lead |
-| alexblancoeroots | 118 | eRoots developer |
-| mmutto | 40 | eRoots developer |
-| mrosesgh | 24 | eRoots developer |
-| Carlos-Alegre | 9 | Contributor |
-| leeraiyan | 8 | Contributor |
-| JosepFanals | 3 | Contributor |
-| PabloDJ | 2 | Contributor |
-| (null/unknown) | 135 | Bulk merge commits |
+| Rank | Author | Commits | Share | Affiliation |
+|------|--------|---------|-------|-------------|
+| 1 | SanPen | 1,261 | 56.9% | Creator/Lead, eRoots |
+| 2 | alexblancoeroots | 280 | 12.6% | eRoots developer |
+| 3 | (null/email-only) | 231 | 10.4% | Bulk merge commits |
+| 4 | JosepFanals | 209 | 9.4% | eRoots contributor |
+| 5 | Carlos-Alegre | 112 | 5.1% | eRoots contributor |
+| 6 | mmutto | 54 | 2.4% | eRoots developer |
+| 7 | leeraiyan | 28 | 1.3% | Contributor |
+| 8 | mrosesgh | 24 | 1.1% | eRoots developer |
+| 9 | dependabot[bot] | 8 | 0.4% | Bot |
+| 10 | fernpos | 6 | 0.3% | Contributor |
+| 11 | ramferan | 2 | 0.1% | Contributor |
+| 12 | PabloDJ | 2 | 0.1% | Contributor |
 
-**Total unique committers:** 8 named individuals (+ 135 null-author commits from bulk merges).
+**Total unique human committers:** 11 (excluding dependabot bot).
 
-**Substantive vs maintenance ratio:** The 135 null-author commits are bulk merges from the private eRoots repo, representing consolidated feature/bugfix work. Dependabot contributes ~35 PRs all-time but these are dependency update PRs. Estimated substantive ratio: ~85% substantive, ~15% maintenance/dependabot.
+**Substantive vs maintenance ratio:**
+- Dependabot commits: 8 (0.4%) -- pure maintenance (dependency updates)
+- Null-author bulk merges: 231 (10.4%) -- consolidated feature/bugfix work from private repo
+- Named human commits: 1,978 (89.2%) -- mix of features, bug fixes, refactoring
+- Estimated substantive ratio: ~90% substantive, ~10% maintenance/dependency
 
-**Commit cadence:** Weekly commit counts in early 2026 show 0-4 commits per week on the public repo, but this undercounts actual development which occurs in the private eRoots repo and is periodically synchronized.
+**Dual-repo development model:** The 231 null-author commits represent periodic bulk merges from the private eRoots development repository. This means the public GitHub commit history undercounts the actual development pace and obscures individual commit attribution for a significant fraction of work.
+
+Sources:
+- GitHub API: `repos/SanPen/GridCal/commits?since=2025-03-24T00:00:00Z&until=2026-03-24T00:00:00Z` (paginated, accessed 2026-03-24)
 
 ## Implications
 
-The high commit volume is positive for active development, but the dual-repo model (private eRoots + public GitHub) makes it difficult to assess the true development pace. The public repo receives periodic large merges rather than continuous small commits, which complicates change tracking and code review visibility.
+The commit volume (2,217/year) is very high for a power systems tool, indicating sustained active development. However, the dual-repo model makes external audit of individual changes difficult. The concentration of commits among eRoots employees (SanPen + alexblancoeroots + JosepFanals + Carlos-Alegre + mmutto + mrosesgh = ~86%) means the project's development velocity is directly tied to eRoots Analytics' staffing and commercial viability.

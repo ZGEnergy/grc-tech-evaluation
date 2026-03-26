@@ -4,7 +4,7 @@ source_dimension: extensibility
 source_test: B-1
 tool: gridcal
 severity: high
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: No public API for custom OPF constraint injection
@@ -15,7 +15,7 @@ GridCal/VeraGridEngine has no documented public API for injecting user-defined c
 
 ## Context
 
-During B-1 (custom constraints) testing, we needed to add a flowgate limit to the DC OPF. The `run_linear_opf_ts` function builds, solves, and returns results in a single call with no hook points. The workaround required: (1) monkey-patching `PulpLpModel.solve`, (2) extracting flow expressions from internal constraints named `br_flow_upper_lim_0_<idx>`, (3) filtering slack variables by internal naming pattern `flow_slack_pos_0_<idx>`.
+During B-1 (custom constraints) testing, we needed to add a flowgate limit to the DC OPF. The `run_linear_opf_ts` function builds, solves, and returns results in a single call with no hook points. The workaround required: (1) monkey-patching `PulpLpModel.solve`, (2) extracting flow expressions from internal constraints named `br_flow_upper_lim_0_<idx>`, (3) filtering slack variables by internal naming pattern `flow_slack_pos_0_<idx>`. This is classified as a fragile workaround, producing a `partial_pass` status.
 
 ## Implications
 

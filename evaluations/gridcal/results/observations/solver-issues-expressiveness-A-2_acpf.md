@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-2
 tool: gridcal
 severity: medium
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: GridCal has no Ipopt integration for AC power flow
@@ -14,12 +14,14 @@ timestamp: "2026-03-13T00:00:00Z"
 GridCal (VeraGridEngine v5.6.28) does not integrate Ipopt or any external NLP solver for
 AC power flow. It uses its own native Newton-Raphson implementation (`SolverType.NR`). The
 eval-config specifies Ipopt as the ACPF solver, but this is not applicable to GridCal.
+[tool-specific: no Ipopt integration; custom NR solver only]
 
 ## Context
 
 During A-2 (ACPF on TINY), the test was configured to use `SolverType.NR` instead of Ipopt.
-The native NR solver converged in 4 iterations with a residual of 3.32e-11 -- well within
-tolerance. The solver is performant and accurate on the TINY network.
+The native NR solver converged in 4 iterations with a residual of 3.32e-11 -- achieving
+Tier 1 convergence evidence quality (residual_reported). The solver is performant and
+accurate on the TINY network.
 
 GridCal's AC OPF (nonlinear OPF) also uses a custom interior-point solver rather than Ipopt,
 meaning Ipopt is absent from the entire tool.
