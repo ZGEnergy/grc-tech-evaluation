@@ -3,20 +3,21 @@ test_id: A-1
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "05bc255c"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.0006
+wall_clock_seconds: 0.0008
 timing_source: measured
-peak_memory_mb: 876.7
+peak_memory_mb: 832.7
 convergence_residual: null
 convergence_iterations: null
-loc: 165
+convergence_evidence_quality: null
+loc: 174
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-1: DC Power Flow (DCPF)
@@ -84,9 +85,9 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 0.0006 s (second run, after JIT warm-up)
+- **Wall-clock:** 0.0008 s (second run, after JIT warm-up)
 - **Timing source:** measured
-- **Peak memory:** 876.7 MB (Julia process RSS including JIT cache)
+- **Peak memory:** 832.7 MB (Julia process RSS including JIT cache)
 - **Solver iterations:** N/A (direct linear solve)
 - **CPU cores used:** 1
 
@@ -104,5 +105,5 @@ flow_df = pf_result["1"]["flow_results"]
 
 ## Observations
 
-- **api-friction:** DC and AC power flow return different result nesting structures
+- **api-friction:** DC and AC power flow return different result nesting structures (DC nests under key `"1"`, AC returns flat Dict)
 - **convergence-quality:** DCPF is a direct solve; no convergence metric applicable

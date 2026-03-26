@@ -3,9 +3,9 @@ test_id: P2-3
 tool: powersimulations
 dimension: p2_readiness
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "4a4fe24e"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "01475a3c"
 status: informational
 workaround_class: null
 blocked_by: null
@@ -14,10 +14,11 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
 depends_on: A-5
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # P2-3: Commitment Injection Workflow (SCUC -> DCOPF -> ACPF)

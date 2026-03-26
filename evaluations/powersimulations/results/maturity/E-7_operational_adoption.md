@@ -3,8 +3,8 @@ test_id: E-7
 tool: powersimulations
 dimension: maturity
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "c1355776"
 status: informational
 workaround_class: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # E-7: Operational Adoption
@@ -33,21 +33,21 @@ PowerSimulations.jl is developed and used operationally at NREL (a U.S. DOE nati
 
 - PowerSimulations.jl was developed under the Scalable Integrated Infrastructure Planning (SIIP) initiative at NREL, funded by the U.S. Department of Energy (DOE). Software Record SWR-23-104.
 - NREL uses Sienna (the ecosystem containing PowerSimulations.jl) for internal power system analysis, including production cost modeling and renewable integration studies.
-- The [NREL Sienna page](https://www.nrel.gov/analysis/sienna) states: "To plan and design clean energy systems, more researchers, utilities, and operators are turning to Sienna."
+- The NREL Sienna page (`https://www.nrel.gov/analysis/sienna`) states: "To plan and design clean energy systems, more researchers, utilities, and operators are turning to Sienna."
 - However, no specific utilities or operators are named on the page.
 
 ### G-PST Consortium
 
-- The [G-PST Consortium](https://globalpst.org/sienna-modeling-framework/) features Sienna as a recommended open-source modeling framework for power system transformation.
+- The G-PST Consortium (`https://globalpst.org/sienna-modeling-framework/`) features Sienna as a recommended open-source modeling framework for power system transformation.
 - G-PST is a practitioner-driven initiative engaging power system operators, research institutes, and governments globally.
 - A USAID-NREL G-PST webinar series presented Sienna tools alongside SAM and RE Data Explorer for production cost modeling in developing nations.
 - This indicates institutional backing for adoption but does not confirm specific operational deployments.
 
 ### Academic and Research Use
 
-- The 2024 arXiv paper ([2404.03074](https://arxiv.org/abs/2404.03074)) describes PowerSimulations.jl's architecture in an academic context (UC Berkeley + NREL authors).
+- The 2024 arXiv paper (2404.03074) describes PowerSimulations.jl's architecture in an academic context (UC Berkeley + NREL authors).
 - The paper compares PowerSimulations.jl to commercial tools (PLEXOS, PROMOD, GE-MAPS) but does not document any utility or ISO adopting it as a replacement.
-- GitHub metrics: 311 stars, 78 forks (as of 2026-03-14), indicating moderate community interest.
+- GitHub metrics: 312 stars, 79 forks (as of 2026-03-24), indicating moderate community interest. Marginal increase from 311/78 observed 10 days prior.
 
 ### What Was NOT Found
 
@@ -59,9 +59,8 @@ Despite targeted searches, the following could not be confirmed:
 
 ### Data Source
 
-- `gh api repos/NREL-Sienna/PowerSimulations.jl` (accessed 2026-03-14)
-- Web searches for "PowerSimulations.jl production deployment utility ISO" (accessed 2026-03-14)
-- NREL Sienna page, G-PST consortium page, arXiv paper 2404.03074 (accessed 2026-03-14)
+- `gh api repos/NREL-Sienna/PowerSimulations.jl` (accessed 2026-03-24)
+- NREL Sienna page, G-PST consortium page, arXiv paper 2404.03074 (accessed 2026-03-14, re-confirmed 2026-03-24)
 
 ## Implications
 

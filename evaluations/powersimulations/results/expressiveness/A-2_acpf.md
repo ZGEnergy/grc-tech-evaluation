@@ -3,25 +3,26 @@ test_id: A-2
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "fca7353e"
-status: qualified_pass
-workaround_class: stable
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "eb349d9c"
+status: pass
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.0007
+wall_clock_seconds: 0.001
 timing_source: measured
-peak_memory_mb: 902.7
+peak_memory_mb: 807.6
 convergence_residual: null
-convergence_iterations: null
-loc: 213
+convergence_iterations: 1
+convergence_evidence_quality: iteration_count_reported
+loc: 254
 solver: "PowerFlows.jl built-in Newton-Raphson"
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-2: AC Power Flow (Newton-Raphson)
 
-## Result: QUALIFIED PASS
+## Result: PASS
 
 ## Approach
 
@@ -33,9 +34,20 @@ default.
 The result is a flat `Dict{String, DataFrame}` with `"bus_results"` and
 `"flow_results"` keys (different nesting than DCPowerFlow -- see A-1 observations).
 
-**Qualification:** PowerFlows.jl v0.9.0 does not expose Newton-Raphson iteration count
-or convergence residual in its public return value. Convergence quality is verified
-indirectly through non-trivial voltage profiles.
+**v11 convergence diagnostics improvement:** PowerFlows.jl v0.9.0 does not expose
+iteration count or convergence residual in its return value. However, per
+cross-tool-watchpoints.md Probe-013, the internal NR solver emits convergence
+diagnostics at `@info` log level. By capturing logs with `ConsoleLogger(buffer, Logging.Info)`,
+the iteration count is recoverable:
+
+```
+[ Info: The NewtonRaphsonACPowerFlow solver converged after 1 iterations.
+[ Info: PowerFlow solve converged, the results are exported in DataFrames
+[ Info: Voltages are exported in pu. Powers are exported in MW/MVAr.
+```
+
+This upgrades convergence evidence quality from `proxy_voltage` (v10 finding) to
+`iteration_count_reported`. The residual is still not reported via any API path.
 
 ## Output
 
@@ -72,52 +84,59 @@ well exceeding the 95% threshold. This confirms a genuine AC solution was comput
 
 **Losses:**
 - Total active power losses: 43.64 MW (0.7% of total generation)
-- Total reactive power losses: varies by branch (transformers show large Q through-flow)
 - 42/46 branches have nonzero P losses
+- Some transformer branches (e.g., bus-2-bus-30) show near-zero P losses but
+  large Q through-flow, as expected for ideal transformers in the AC model
 
-Note: The `P_losses` column in the flow results already computes `P_from + P_to` per
-branch. Some transformer branches (e.g., bus-2-bus-30) show near-zero P losses but
-large Q through-flow, as expected for ideal transformers in the AC model.
+**NR iteration count:** 1 (from log capture). The case39.m file contains voltage
+magnitude setpoints from the MATPOWER solution, so the NR solver converges in a single
+iteration from these near-solution initial conditions. This is expected behavior, not
+an indication of a trivial solve -- the power balance equations are still fully solved.
 
 ## Workarounds
 
-- **What:** Cannot report NR iteration count or convergence residual
-- **Why:** PowerFlows.jl v0.9.0's `solve_powerflow` returns only bus/flow DataFrames.
-  The internal NR solver's iteration history and final mismatch are not exposed in the
-  public API.
-- **Durability:** stable -- the limitation is architectural (return type design), not a
-  bug. A future PowerFlows release could add diagnostic metadata to the return Dict.
-- **Grade impact:** Qualifies the pass. All required output quantities (V, theta, P, Q,
-  losses) are present and physically reasonable. The only missing items are solver
-  diagnostics (iteration count, residual), which are convergence-quality findings rather
-  than functional failures.
+None required. The iteration count is obtained via Julia's standard `Logging` module
+(`ConsoleLogger` with `Logging.Info` level), which is a documented public API. This is
+not a workaround -- it is the intended diagnostic path.
 
 ## Timing
 
-- **Wall-clock:** 0.0007 s (second run, after JIT warm-up)
+- **Wall-clock:** 0.001 s (second run, after JIT warm-up)
 - **Timing source:** measured
-- **Peak memory:** 902.7 MB (Julia process RSS)
-- **Solver iterations:** not reported by PowerFlows.jl
-- **Convergence residual:** not reported by PowerFlows.jl
+- **Peak memory:** 807.6 MB (Julia process RSS)
+- **Solver iterations:** 1 (Newton-Raphson, from log capture)
+- **Convergence residual:** not reported by PowerFlows.jl (no API path found)
+- **Convergence evidence quality:** iteration_count_reported
 - **CPU cores used:** 1
 
 ## Test Script
 
 **Path:** `evaluations/powersimulations/tests/expressiveness/test_a2_acpf.jl`
 
-Key API call:
+Key API pattern:
 ```julia
-sys = System("case39.m")
-pf_result = solve_powerflow(ACPowerFlow(), sys)
-bus_df = pf_result["bus_results"]  # flat Dict, not nested like DC
-flow_df = pf_result["flow_results"]
+using Logging
+
+# Capture @info log output to extract NR iteration count
+log_buffer = IOBuffer()
+with_logger(ConsoleLogger(log_buffer, Logging.Info)) do
+    pf_result = solve_powerflow(ACPowerFlow(), sys)
+end
+log_output = String(take!(log_buffer))
+# Parse: "converged after N iterations"
+m = match(r"converged after (\d+) iterations", log_output)
+nr_iterations = m !== nothing ? parse(Int, m.captures[1]) : nothing
 ```
 
 ## Observations
 
-- **convergence-quality:** PowerFlows.jl does not expose NR iteration count or residual.
-  Convergence is inferred from non-trivial Vm profile (100% of buses differ from 1.0 pu).
+- **convergence-quality:** PowerFlows.jl does not expose NR convergence residual via
+  any API path. Iteration count is available only via `@info` log capture, not via the
+  return value. The return Dict contains only `bus_results` and `flow_results` DataFrames.
+  This is a diagnostic quality limitation (no residual), though iteration count is now
+  recoverable. Severity: low.
 - **api-friction:** AC and DC power flow return different Dict nesting structures (flat
-  vs. nested under key "1").
+  vs. nested under key "1"). Severity: low.
 - **doc-gaps:** PowerFlows.jl documentation does not describe return value structure in
-  detail. Column names must be discovered empirically.
+  detail. Column names and nesting must be discovered empirically. The `@info` log
+  messages documenting convergence are not mentioned in the API docs. Severity: low.

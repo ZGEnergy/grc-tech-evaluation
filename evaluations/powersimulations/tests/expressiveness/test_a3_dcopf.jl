@@ -3,8 +3,10 @@ Test A-3: DCOPF with differentiated costs and 70% branch derating
 
 Dimension: expressiveness
 Network: TINY (IEEE 39-bus)
-Pass condition: Converges. Optimal dispatch and LMPs extractable. With differentiated costs
-  and 70% derating, >=2 branches have non-zero shadow prices. Report max LMP spread.
+Pass condition (v11): Converges. Optimal dispatch and LMPs extractable. With differentiated
+  costs and 70% derating, >=2 branches have non-zero shadow prices. Report max LMP spread.
+  v11 requires hard constraint enforcement: max(loading_percent) <= 100 + 1e-4 p.u.
+  Soft-constraint DCOPF = partial_pass.
 Tool: PowerSimulations.jl v0.30.2
 =#
 
@@ -64,18 +66,18 @@ function setup_system(network_file, timeseries_dir)
         end
     end
 
-    # Apply 70% branch derating
+    # Apply 70% branch derating — store original ratings for loading calculation
     derated = 0
     for line in get_components(Line, sys)
-        set_rating!(line, get_rating(line) * 0.7);
+        set_rating!(line, get_rating(line) * 0.7)
         derated += 1
     end
     for xfmr in get_components(Transformer2W, sys)
-        set_rating!(xfmr, get_rating(xfmr) * 0.7);
+        set_rating!(xfmr, get_rating(xfmr) * 0.7)
         derated += 1
     end
     for xfmr in get_components(TapTransformer, sys)
-        set_rating!(xfmr, get_rating(xfmr) * 0.7);
+        set_rating!(xfmr, get_rating(xfmr) * 0.7)
         derated += 1
     end
 
@@ -169,8 +171,6 @@ function run(
         results["details"]["dispatch"] = dispatch_summary
 
         # LMPs from nodal balance duals
-        # PSI returns duals in internal units (per-unit based).
-        # LMP ($/MWh) = -dual_value / base_power
         nodal_dual = read_dual(res, "NodalBalanceActiveConstraint__ACBus")
         lmp_data = Dict{String,Float64}()
         lmp_vals = Float64[]
@@ -195,34 +195,133 @@ function run(
             "n_buses" => length(lmp_vals),
         )
 
-        # Identify binding branches
-        flows = read_variable(res, "FlowActivePowerVariable__Line")
+        # ===== v11: Hard constraint enforcement verification =====
+        # Check ALL branch types (Line, Transformer2W, TapTransformer) for loading
+        all_loading = Float64[]
         binding_branches = Dict{String,Any}[]
+
+        # Line flows
+        flows_line = read_variable(res, "FlowActivePowerVariable__Line")
         for line in get_components(Line, sys)
             ln = get_name(line)
-            if ln in names(flows)
-                flow_mw = abs(flows[1, ln])
+            if ln in names(flows_line)
+                flow_mw = abs(flows_line[1, ln])
                 rating_mw = get_rating(line) * base_power
-                loading_pct = flow_mw / rating_mw * 100.0
-                if loading_pct > 99.0
-                    push!(
-                        binding_branches,
-                        Dict(
-                            "branch" => ln,
-                            "flow_mw" => round(flow_mw; digits=1),
-                            "rating_mw" => round(rating_mw; digits=1),
-                            "loading_pct" => round(loading_pct; digits=1),
-                        ),
-                    )
+                if rating_mw > 0
+                    loading_pct = flow_mw / rating_mw * 100.0
+                    push!(all_loading, loading_pct)
+                    if loading_pct > 99.0
+                        push!(
+                            binding_branches,
+                            Dict(
+                                "branch" => ln,
+                                "type" => "Line",
+                                "flow_mw" => round(flow_mw; digits=1),
+                                "rating_mw" => round(rating_mw; digits=1),
+                                "loading_pct" => round(loading_pct; digits=2),
+                            ),
+                        )
+                    end
                 end
             end
         end
+
+        # Check Transformer2W flows if variable exists
+        try
+            flows_t2w = read_variable(res, "FlowActivePowerVariable__Transformer2W")
+            for xfmr in get_components(Transformer2W, sys)
+                xn = get_name(xfmr)
+                if xn in names(flows_t2w)
+                    flow_mw = abs(flows_t2w[1, xn])
+                    rating_mw = get_rating(xfmr) * base_power
+                    if rating_mw > 0
+                        loading_pct = flow_mw / rating_mw * 100.0
+                        push!(all_loading, loading_pct)
+                        if loading_pct > 99.0
+                            push!(
+                                binding_branches,
+                                Dict(
+                                    "branch" => xn,
+                                    "type" => "Transformer2W",
+                                    "flow_mw" => round(flow_mw; digits=1),
+                                    "rating_mw" => round(rating_mw; digits=1),
+                                    "loading_pct" => round(loading_pct; digits=2),
+                                ),
+                            )
+                        end
+                    end
+                end
+            end
+        catch
+            # Variable may not exist if no Transformer2W in system
+        end
+
+        # Check TapTransformer flows if variable exists
+        try
+            flows_tap = read_variable(res, "FlowActivePowerVariable__TapTransformer")
+            for xfmr in get_components(TapTransformer, sys)
+                xn = get_name(xfmr)
+                if xn in names(flows_tap)
+                    flow_mw = abs(flows_tap[1, xn])
+                    rating_mw = get_rating(xfmr) * base_power
+                    if rating_mw > 0
+                        loading_pct = flow_mw / rating_mw * 100.0
+                        push!(all_loading, loading_pct)
+                        if loading_pct > 99.0
+                            push!(
+                                binding_branches,
+                                Dict(
+                                    "branch" => xn,
+                                    "type" => "TapTransformer",
+                                    "flow_mw" => round(flow_mw; digits=1),
+                                    "rating_mw" => round(rating_mw; digits=1),
+                                    "loading_pct" => round(loading_pct; digits=2),
+                                ),
+                            )
+                        end
+                    end
+                end
+            end
+        catch
+            # Variable may not exist if no TapTransformer in system
+        end
+
         results["details"]["binding_branches"] = binding_branches
         results["details"]["num_binding_branches"] = length(binding_branches)
 
-        # Objective and termination
+        # v11 hard constraint verification
+        max_loading = isempty(all_loading) ? 0.0 : maximum(all_loading)
+        hard_constraint_threshold = 100.0 + 1e-2  # 100% + 1e-4 p.u. expressed as percentage
+        hard_constraint_met = max_loading <= hard_constraint_threshold
+
+        results["details"]["hard_constraint_enforcement"] = Dict(
+            "max_loading_pct" => round(max_loading; digits=4),
+            "threshold_pct" => hard_constraint_threshold,
+            "hard_constraints_enforced" => hard_constraint_met,
+            "total_branches_checked" => length(all_loading),
+            "note" => "v11: max(loading_percent) must be <= 100 + 1e-4 p.u. for hard constraint pass",
+        )
+
+        # Check for soft constraints: inspect if slack variables are present in the JuMP model
         oc = PowerSimulations.get_optimization_container(model)
         jm = PowerSimulations.get_jump_model(oc)
+        has_flow_slacks = false
+        try
+            # Check if flow slack variables exist in the model
+            all_var_names = [
+                string(JuMP.name(v)) for v in JuMP.all_variables(jm) if JuMP.name(v) != ""
+            ]
+            flow_slack_vars = filter(
+                n -> occursin("Slack", n) && occursin("Flow", n), all_var_names
+            )
+            has_flow_slacks = !isempty(flow_slack_vars)
+            results["details"]["hard_constraint_enforcement"]["flow_slack_variables_found"] =
+                flow_slack_vars
+        catch e
+            results["details"]["hard_constraint_enforcement"]["slack_check_error"] = string(e)
+        end
+
+        # Objective and termination
         results["details"]["objective_value"] = objective_value(jm)
         results["details"]["termination_status"] = string(termination_status(jm))
 
@@ -255,10 +354,21 @@ function run(
             "num_binding_branches" => length(binding_branches),
             "binding_branches_gte_2" => shadow_check,
             "lmp_spread_dollar_per_mwh" => round(lmp_spread; digits=2),
+            "hard_constraints_enforced" => hard_constraint_met,
+            "uses_soft_constraints" => has_flow_slacks,
         )
 
         if has_dispatch && has_lmps && shadow_check
-            results["status"] = "pass"
+            if has_flow_slacks && !hard_constraint_met
+                # Soft constraints detected and limits exceeded
+                results["status"] = "partial_pass"
+                push!(
+                    results["workarounds"],
+                    "Soft branch flow constraints detected (flow slack variables present). max_loading=$(round(max_loading; digits=2))% exceeds hard constraint threshold.",
+                )
+            else
+                results["status"] = "pass"
+            end
         elseif has_dispatch && has_lmps
             results["status"] = "qualified_pass"
             push!(

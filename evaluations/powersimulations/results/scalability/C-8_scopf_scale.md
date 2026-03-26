@@ -2,176 +2,212 @@
 test_id: C-8
 tool: powersimulations
 dimension: scalability
-network: SMALL, MEDIUM
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "b75f151e"
-status: qualified_pass
+network: MEDIUM
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "dddfe556"
+status: constrained_pass
 workaround_class: fragile
 blocked_by: null
-wall_clock_seconds: 602.156
-wall_clock_per_network:
-  small_seconds: 602.156
-  medium_seconds: 448.945
+wall_clock_seconds: 14.43
 timing_source: measured
-peak_memory_mb: 5066.7
+peak_memory_mb: 5042.7
 convergence_residual: null
 convergence_iterations: null
-loc: 412
+convergence_evidence_quality: null
+loc: 560
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# C-8: SCOPF N-1 (50 contingencies) on SMALL and MEDIUM
+# C-8: SCOPF N-1 (50 Contingencies) on SMALL and MEDIUM
 
-## Result: QUALIFIED PASS
+## Result: CONSTRAINED PASS
+
+SCOPF with 50 contingencies solved optimally on SMALL (2000-bus) in 14.4s with 8,829 MW
+aggregate redispatch. MEDIUM (10k-bus) SCOPF failed with HiGHS OTHER_ERROR after 328s due
+to the 535k-constraint LP exceeding solver numerical limits. The SCOPF capability is
+demonstrated under SMALL-scale constraints only; it does not generalize to MEDIUM scale.
 
 ## Approach
 
-Tested Security-Constrained OPF with N-1 contingency constraints on SMALL (ACTIVSg 2000-bus)
-and MEDIUM (ACTIVSg 10000-bus). Used the same manual LODF-based constraint assembly approach
-as A-9 (SCOPF on TINY), scaled up to 50 contingencies per network.
+PowerSimulations.jl has no built-in SCOPF (open issue #944). Manual SCOPF was assembled using
+the same approach as A-9 (SCOPF on TINY), scaled to SMALL and MEDIUM networks:
 
-**Contingency selection:** Computed the full LODF matrix via `PowerNetworkMatrices.jl`, then
-selected the 50 highest-impact branches by maximum absolute LODF value (excluding near-radial
-branches with |LODF| >= 0.95).
+1. **LODF computation:** `LODF(sys)` from PowerNetworkMatrices.jl computes the full Line Outage
+   Distribution Factor matrix for all branches.
+2. **Contingency selection:** Top 50 contingencies selected by maximum LODF impact magnitude,
+   excluding near-radial branches (|LODF| >= 0.95).
+3. **Model construction:** `DecisionModel` with `DCPPowerModel` and `StaticBranchUnbounded`
+   (branch flow limits removed from PSI formulation). Base-case flow limits and N-1 contingency
+   constraints added manually via JuMP `@constraint` macro.
+4. **Reference dispatch:** Unconstrained DCOPF (no flow limits) solved first to establish
+   baseline dispatch for aggregate redispatch comparison.
 
-**Constraint assembly:** For each of 50 contingencies and each monitored line, added two
-constraints via JuMP: `flow_l + LODF[l,k] * flow_k <= rating_l` and
-`-(flow_l + LODF[l,k] * flow_k) <= rating_l`. This produces O(50 x N_lines x 2) constraints.
+**Workarounds inherited from C-3 (DCOPF at MEDIUM scale):**
+- `initialize_model=false` + `JuMP.optimize!()` (PSI initialization bypass)
+- `StaticBranchUnbounded` (PSI `StaticBranch` causes numerical infeasibility at scale)
+- Linear cost override by quartile ($10-55/MWh, replacing MATPOWER quadratic costs). Required
+  for both tiers -- quadratic costs cause HiGHS QP issues with `initialize_model=false`.
+- All thermal and renewable generators set `available=true`
+- HydroDispatch omitted (no PSI formulation in v0.30.2)
 
-**Model setup:** `DecisionModel` with `DCPPowerModel`, `ThermalDispatchNoMin`,
-`RenewableFullDispatch`, `initialize_model=false`. Time series added for loads, renewables,
-and hydro. Build succeeded with status BUILT.
+**Load scaling:** Not applied. Load scaling at 1.15x caused MEDIUM to fail at the unconstrained
+DCOPF stage (infeasibility due to hydro omission reducing available generation capacity). The
+v11 congestion requirement (>=5 MW aggregate redispatch) is met on SMALL (8,829 MW) through
+N-1 constraints alone. MEDIUM could not be tested with load scaling.
 
 ## Output
 
-### SMALL (ACTIVSg 2000-bus)
+### SMALL (ACTIVSg 2000-bus) -- PASS
 
 | Metric | Value |
 |--------|-------|
-| Buses / Branches / Generators | 2,000 / 3,206 / 544 |
-| LODF matrix shape | 3,206 x 3,206 |
-| LODF compute time | 0.48 s |
-| Contingencies requested | 50 |
-| Contingency constraints added | 145,912 |
-| Constraint build time | 0.17 s |
-| Base DCOPF variables | 5,618 |
-| Total constraints (base + contingency) | 161,748 |
-| HiGHS solve time | 600.4 s |
-| Termination status | TIME_LIMIT |
-| Objective value (incumbent) | 2,503.25 |
-| Peak memory | 1,776 MB |
+| Termination status | OPTIMAL |
+| Unconstrained DCOPF objective | $1,448,067.07 |
+| SCOPF objective | $1,450,658.63 |
+| Cost increase | $2,591.56 (+0.18%) |
+| Aggregate redispatch | 8,829.32 MW |
+| Generators redispatched | 31 |
+| Binding contingencies | 3 |
+| N-1 constraints | 145,912 |
+| Base-case flow constraints | 4,690 |
+| Total constraints | 160,443 |
+| Variables | 5,725 |
+| Unconstrained DCOPF solve | 0.3s |
+| SCOPF solve | 9.6s |
+| Wall-clock (total) | 14.4s |
+| Peak memory (RSS) | 1,511 MB |
 
-**SMALL finding:** HiGHS found a feasible incumbent solution (objective = 2,503.25) but could
-not prove optimality within the 600-second time limit. The LP has 5,618 variables and 161,748
-constraints — the contingency constraints outnumber the base DCOPF constraints by ~26:1.
+**Binding contingencies (SMALL):**
 
-### MEDIUM (ACTIVSg 10000-bus)
+| Contingency Branch | Effect |
+|-------------------|--------|
+| PANHANDLE 4 0-RALLS 1 0-i_160 | Post-contingency flow at rating on monitored branch |
+| NEW BRAUNFELS 1 0-SAN MARCOS 0-i_2068 | Post-contingency flow at rating on monitored branch |
+| GRAHAM 0-JACKSBORO 1 0-i_865 | Post-contingency flow at rating on monitored branch |
+
+The SCOPF on SMALL demonstrates correct behavior: 3 binding contingencies cause dispatch
+to shift by 8,829 MW aggregate across 31 generators, at a cost premium of 0.18%. The N-1
+constraints are embedded in the optimization (not post-hoc), and the SCOPF is strictly more
+expensive than the unconstrained DCOPF.
+
+### MEDIUM (ACTIVSg 10k-bus) -- FAIL
 
 | Metric | Value |
 |--------|-------|
-| Buses / Branches / Generators | 10,000 / 12,706 / 2,485 |
-| LODF matrix shape | 12,706 x 12,706 |
-| LODF compute time | 3.6 s |
-| Contingencies requested | 50 |
-| Contingency constraints added | 474,178 |
-| Constraint build time | 1.12 s |
-| Base DCOPF variables | 24,113 |
-| Total constraints (base + contingency) | 539,661 |
-| HiGHS solve time | 438.4 s |
 | Termination status | OTHER_ERROR |
-| Peak memory | 5,067 MB |
+| Unconstrained DCOPF | OPTIMAL ($3,659,662.46, 6.4s) |
+| SCOPF solve time (before crash) | 327.5s |
+| N-1 constraints | 474,178 |
+| Base-case flow constraints | 19,452 |
+| Total constraints | 535,000 |
+| Variables | 24,476 |
+| Peak memory (RSS) | 5,043 MB |
 
-**MEDIUM finding:** HiGHS encountered an internal error (OTHER_ERROR) after 438 seconds on
-the MEDIUM problem. The LP has 24,113 variables and 539,661 constraints. The 474K contingency
-constraints (~20:1 ratio vs base) combined with 5 GB memory consumption likely exceeded HiGHS's
-internal limits for single-threaded LP.
+The unconstrained DCOPF on MEDIUM solves correctly (matching C-3 result of $3,659,662.46
+exactly). However, the SCOPF with 535,000 total constraints causes HiGHS to crash with
+OTHER_ERROR after 328s [solver-specific: HiGHS numerical failure on 535k-constraint LP at
+10K scale].
 
 ### Scale Comparison
 
 | Metric | SMALL | MEDIUM | Ratio |
 |--------|-------|--------|-------|
 | Branches | 3,206 | 12,706 | 4.0x |
-| Contingency constraints | 145,912 | 474,178 | 3.3x |
-| Total constraints | 161,748 | 539,661 | 3.3x |
-| LODF compute time | 0.48 s | 3.6 s | 7.5x |
-| Constraint build time | 0.17 s | 1.12 s | 6.6x |
-| Peak memory | 1,776 MB | 5,067 MB | 2.9x |
-| Solver outcome | TIME_LIMIT (incumbent) | OTHER_ERROR | - |
+| N-1 constraints | 145,912 | 474,178 | 3.3x |
+| Total constraints | 160,443 | 535,000 | 3.3x |
+| LODF compute time | 0.76s | 3.5s | 4.6x |
+| Constraint injection time | 0.19s | 0.71s | 3.7x |
+| Peak memory | 1,511 MB | 5,043 MB | 3.3x |
+| Solver outcome | OPTIMAL (9.6s) | OTHER_ERROR (328s) | -- |
 
 The LODF matrix scales as O(branches^2): 3206^2 = 10.3M entries for SMALL vs 12706^2 = 161.4M
-for MEDIUM (15.7x). The LODF computation itself scaled 7.5x, suggesting good algorithmic
-efficiency. Constraint count scaled ~3.3x (sub-linear due to sparsity filtering of small LODF
-values).
-
-### Mechanical Success
-
-The approach works mechanically at both scales:
-- System loading and time series setup succeeded
-- LODF matrix computation completed (0.5s SMALL, 3.6s MEDIUM)
-- PSI model building succeeded (BUILT status)
-- JuMP constraint injection worked (145K-474K constraints added in <1.2s)
-- The bottleneck is entirely in the LP solver phase
+for MEDIUM (15.7x). Constraint count scales ~3.3x (sub-linear due to LODF sparsity filtering).
+The mechanical overhead (LODF computation + constraint injection) scales well; the bottleneck
+is entirely in the LP solver phase.
 
 ### Reference: A-9 SCOPF on TINY
 
-On TINY (39-bus), the same approach with full N-1 (all lines) produced ~1,600 contingency
-constraints and solved in <1 second. The constraint count explosion from 1.6K (TINY) to
-146K (SMALL, 50 contingencies) to 474K (MEDIUM, 50 contingencies) demonstrates that the
-brute-force LODF constraint injection approach does not scale well. A practical SCOPF
-implementation would need iterative contingency screening (solve, check, add violated
-contingencies, repeat).
+On TINY (39-bus, A-9), the same approach with all 46 branches produced 312 N-1 constraints and
+solved in <1s with a 17.7% cost premium. The constraint count progression: 312 (TINY, all
+branches) -> 145,912 (SMALL, 50 contingencies) -> 474,178 (MEDIUM, 50 contingencies) confirms
+that the brute-force approach does not scale. A production SCOPF would use iterative screening
+(Benders decomposition or lazy constraint callbacks).
 
 ## Workarounds
 
-- **What:** (1) No built-in SCOPF in PowerSimulations.jl. Manually assembled N-1 contingency
-  constraints via LODF matrix (PowerNetworkMatrices.jl) + JuMP `@constraint` macro.
-  (2) Used `initialize_model=false` and `JuMP.optimize!()` directly.
-  (3) Selected top-50 contingencies by max LODF magnitude for scalable contingency screening.
-- **Why:** (1) PSI has no SCOPF formulation (open issue #944). (2) PSI initialization fails
-  at SMALL+ scale. (3) Full N-1 on SMALL (3,206 contingencies) would produce ~10M constraints.
-- **Durability:** fragile — same internal API access pattern as A-9 and A-5. The LODF computation
-  and JuMP constraint injection are stable, but PSI's internal variable containers may change
-  between versions.
+- **What:** (1) No built-in SCOPF -- manual assembly via LODF + JuMP constraint injection.
+  (2) StaticBranchUnbounded + manual base-case flow limits via JuMP (replacing PSI StaticBranch).
+  (3) initialize_model=false + JuMP.optimize!() (PSI initialization bypass).
+  (4) Linear cost override by quartile (replacing MATPOWER quadratic costs).
+  (5) All generators set available=true.
+  (6) HydroDispatch omitted from template.
+- **Why:** (1) PSI lacks SCOPF capability (open issue #944) [tool-specific].
+  (2) PSI StaticBranch causes numerical infeasibility at scale [tool-specific].
+  (3) PSI initialization fails at scale [tool-specific].
+  (4) Quadratic costs cause HiGHS QP issues with initialize_model=false
+  [mixed: tool initialization + solver QP handling].
+  (5-6) ACTIVSg10k hydro capacity gap [tool-specific: no hydro OPF formulation].
+- **Durability:** fragile -- Six stacked workarounds. Items (2), (3), (5), (6) depend on
+  internal PSI behavior and architectural limitations. The manual SCOPF assembly (1) uses
+  documented public APIs (LODF from PowerNetworkMatrices.jl, get_jump_model from PSI, @constraint
+  from JuMP) but requires ~560 lines of domain-specific code. The cascaded workaround pattern
+  from C-3 compounds at SCOPF scale.
+- **Grade impact:** SCOPF demonstrated at SMALL scale only. MEDIUM failure is
+  [mixed attribution]: tool-specific (manual brute-force approach generates 474k constraints that
+  a built-in iterative SCOPF would avoid) + solver-specific (HiGHS crashes on the resulting LP).
+  A tool with built-in SCOPF using Benders decomposition would produce far fewer active
+  constraints and likely succeed at MEDIUM scale.
 
 ## Timing
 
-- **Wall-clock (SMALL, total):** 602.2 s (build 1.6s + LODF 0.5s + constraints 0.2s + solve 600s)
-- **Wall-clock (MEDIUM, total):** 448.9 s (build 5.7s + LODF 3.6s + constraints 1.1s + solve 438s)
+- **Wall-clock (SMALL, total):** 14.4s (unconstrained DCOPF 0.3s + SCOPF build 4.5s + solve 9.6s)
+- **Wall-clock (MEDIUM, total):** 356.7s (unconstrained DCOPF 6.4s + SCOPF build+crash 350s)
 - **Timing source:** measured (post JIT warm-up)
-- **Peak memory:** 5,067 MB (MEDIUM)
-- **CPU cores used:** 1 (32 available)
+- **Peak memory:** 5,043 MB (MEDIUM); 1,511 MB (SMALL)
+- **LODF computation:** SMALL 0.76s, MEDIUM 3.5s
+- **Constraint injection:** SMALL 0.19s, MEDIUM 0.71s
+- **CPU threads used:** 1
+- **CPU threads available:** 32
 
 ## Test Script
 
 **Path:** `evaluations/powersimulations/tests/scalability/test_c8_scopf_scale.jl`
 
-Key scale-up patterns:
+Key patterns:
 ```julia
-# Contingency selection: top-50 by max LODF impact
-impact_scores = Dict{String, Float64}()
-for cont_name in branch_names
-    max_impact = maximum(abs(lodf_matrix[mon, cont_name])
-        for mon in branch_names if mon != cont_name && abs(lodf_matrix[mon, cont_name]) < 0.95)
-    impact_scores[cont_name] = max_impact
-end
-sorted = sort(collect(impact_scores), by=x -> -x[2])
-top_50 = [s[1] for s in sorted[1:50]]
+# Step 1: Unconstrained DCOPF reference (StaticBranchUnbounded, no flow limits)
+model1 = build_dcopf(sys1, solver)
+JuMP.optimize!(PSI.get_jump_model(PSI.get_optimization_container(model1)))
+ref_dispatch = extract_dispatch_mw(oc1, base_power)
 
-# Time series needed for RenewableDispatch and HydroDispatch at SMALL+ scale
-for gen in get_components(RenewableDispatch, sys)
-    add_time_series!(sys, gen, SingleTimeSeries("max_active_power", ...))
+# Step 2: Build SCOPF model with manual constraints
+model2 = build_dcopf(sys2, solver)
+jm2 = PSI.get_jump_model(PSI.get_optimization_container(model2))
+
+# Add base-case flow limits (replacing PSI StaticBranch)
+for mon_line in flow_line_names
+    @constraint(jm2, flow[mon_line, t] <= rating)
+    @constraint(jm2, -flow[mon_line, t] <= rating)
 end
+
+# Add N-1 contingency constraints via LODF
+for cont in contingencies, mon in monitored
+    lodf_val = lodf_matrix[mon, cont]
+    @constraint(jm2, flow[mon, t] + lodf_val * flow[cont, t] <= rating[mon])
+    @constraint(jm2, -(flow[mon, t] + lodf_val * flow[cont, t]) <= rating[mon])
+end
+
+# Solve and compute aggregate redispatch
+JuMP.optimize!(jm2)
+scopf_dispatch = extract_dispatch_mw(oc2, base_power)
+agg_redispatch = sum(abs(scopf_mw - ref_mw) for (g, scopf_mw, ref_mw) ...)
 ```
 
 ## Observations
 
-- **solver-issues:** HiGHS hits TIME_LIMIT on SMALL (145K constraints) and OTHER_ERROR on MEDIUM
-  (474K constraints) for the brute-force SCOPF LP. The constraint-to-variable ratio is extreme:
-  ~29:1 on SMALL, ~22:1 on MEDIUM. A production SCOPF would need iterative contingency screening
-  (Benders decomposition or lazy constraint callbacks) rather than upfront constraint injection.
-- **api-friction:** PSI requires time series on *all* dispatchable device types
-  (RenewableDispatch, HydroDispatch) even for a single-period DC OPF snapshot. Omitting these
-  causes a silent build failure where `build!()` logs an error but returns without throwing,
-  leaving a partially-constructed model that produces solver errors.
+- [observation](../observations/solver-issues-scalability-C-8_scopf_scale.md)
+- [observation](../observations/cascaded-failure-scalability-C-8_scopf_scale.md)

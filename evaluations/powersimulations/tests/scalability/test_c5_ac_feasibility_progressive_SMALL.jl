@@ -133,7 +133,8 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg2000.m")
 
     try
         cores = cpu_core_count()
-        results["details"]["cpu_cores_available"] = cores
+        results["details"]["cpu_threads_available"] = cores
+        results["details"]["cpu_threads_used"] = 1  # NR is single-threaded
 
         t_total_start = time()
 
@@ -183,6 +184,16 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg2000.m")
             "min" => round(rad2deg(minimum(dc_angles)); digits=2),
             "max" => round(rad2deg(maximum(dc_angles)); digits=2),
         )
+
+        # Step 3b: JIT warm-up — solve ACPF once to compile, discard timing
+        println(stderr, "JIT warm-up for ACPF...")
+        try
+            sys_warmup = load_system(network_file)
+            solve_powerflow(ACPowerFlow(), sys_warmup)
+            println(stderr, "JIT warm-up complete.")
+        catch e
+            println(stderr, "JIT warm-up failed (OK): $(typeof(e))")
+        end
 
         # Step 4: Progressive relaxation attempts
         relaxation_levels = [0.0, 0.10, 0.20]
