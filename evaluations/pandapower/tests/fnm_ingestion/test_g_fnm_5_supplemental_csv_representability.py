@@ -7,6 +7,10 @@ Pass condition: No hard pass/fail gate. Evidence-collection test. Per-CSV
     representability report with N/E/X classifications and market solution
     fidelity summary.
 Tool: pandapower 3.4.0
+
+Protocol: v11
+Skill: v2
+Test hash: 0bf44f12
 """
 
 from __future__ import annotations
@@ -14,6 +18,8 @@ from __future__ import annotations
 import json
 import time
 import traceback
+
+import pandapower as pp
 
 # pandapower representability classifications for each supplemental CSV field.
 # Derived from the analytical reference in data/fnm/docs/supplemental-csvs.md
@@ -178,6 +184,72 @@ def run() -> dict:
             "e_pct": round(total_e / total_fields * 100, 1),
             "x_pct": round(total_x / total_fields * 100, 1),
         }
+
+        # Empirical validation: verify Extension mechanism works
+        validation = {}
+
+        # 1. Custom columns on line DataFrame (E fields)
+        net = pp.create_empty_network()
+        pp.create_bus(net, vn_kv=110)
+        pp.create_bus(net, vn_kv=110)
+        pp.create_line_from_parameters(
+            net,
+            from_bus=0,
+            to_bus=1,
+            length_km=10,
+            r_ohm_per_km=0.1,
+            x_ohm_per_km=0.4,
+            c_nf_per_km=0,
+            max_i_ka=0.5,
+        )
+        pp.create_gen(net, bus=0, p_mw=100, vm_pu=1.0, name="GEN_1")
+
+        # Add E-classified custom columns
+        net.line["rate_b_mva"] = [890.0]
+        net.line["rate_c_mva"] = [1050.0]
+        net.line["rate_d_mva"] = [1200.0]
+        net.line["ckt"] = ["1"]
+        net.line["element_type"] = ["LINE"]
+        net.line["effective_date"] = ["2024-06-01"]
+        net.gen["gen_id"] = ["1"]
+
+        # Verify JSON round-trip preserves custom columns
+        json_str = pp.to_json(net)
+        net2 = pp.from_json_string(json_str)
+        custom_cols_preserved = all(
+            col in net2.line.columns
+            for col in ["rate_b_mva", "rate_c_mva", "rate_d_mva", "ckt", "element_type"]
+        )
+        gen_custom_preserved = "gen_id" in net2.gen.columns
+
+        validation["custom_column_extension"] = {
+            "line_custom_cols_preserved": custom_cols_preserved,
+            "gen_custom_cols_preserved": gen_custom_preserved,
+            "rate_b_value_match": float(net2.line["rate_b_mva"].iloc[0]) == 890.0,
+        }
+
+        # 2. Verify native fields exist
+        validation["native_fields"] = {
+            "line.from_bus": "from_bus" in net.line.columns,
+            "line.to_bus": "to_bus" in net.line.columns,
+            "line.max_i_ka": "max_i_ka" in net.line.columns,
+            "line.in_service": "in_service" in net.line.columns,
+            "gen.bus": "bus" in net.gen.columns,
+            "gen.name": "name" in net.gen.columns,
+        }
+
+        # 3. Verify contingency module availability
+        try:
+            from pandapower.contingency import run_contingency  # noqa: F401
+
+            validation["contingency_module"] = True
+        except ImportError:
+            validation["contingency_module"] = False
+
+        # 4. Verify pandapower version
+        validation["pandapower_version"] = pp.__version__
+
+        results["details"]["empirical_validation"] = validation
 
         # Market solution fidelity summary
         results["details"]["market_fidelity"] = {

@@ -3,12 +3,14 @@ test_id: G-2
 tool: pandapower
 dimension: gate
 network: SMALL
+protocol_version: v11
+skill_version: v2
+test_hash: "326e8597"
 status: pass
 workaround_class: null
-timestamp: "2026-03-14T02:50:33Z"
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "326e8597"
+test_category: gate_minimum_bar
+wall_clock_seconds: 0.128
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # G-2: Ingest reference network (SMALL)
@@ -20,7 +22,7 @@ test_hash: "326e8597"
 - **Network file:** data/networks/case_ACTIVSg2000.m
 - **Expected counts:** 2000 buses / 3206 branches / 544 generators
 - **Actual counts:** 2000 buses / 3206 branches / 544 generators
-- **Load time:** 0.124s
+- **Load time:** 0.128s
 - **Element breakdown:**
   - Branches: line=2359, trafo=0, trafo3w=0, impedance=847
   - Generators: gen=484, ext_grid=1 (slack), sgen=59

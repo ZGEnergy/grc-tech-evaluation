@@ -3,20 +3,21 @@ test_id: B-3
 tool: pandapower
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "49124456"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 16.60
+wall_clock_seconds: 22.16
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 262
+convergence_evidence_quality: null
+loc: 258
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-3: N-M contingency sweep (x=3, m=3) with pruning
@@ -51,8 +52,8 @@ Performed an N-3 contingency sweep on the IEEE 39-bus network with graph-distanc
 | Cases with load loss | 924 (28.2%) |
 | Max load loss | 6,245 MW (99.9% of total load) |
 | Mean load loss | 236.7 MW |
-| Sweep time | 15.5 s |
-| Time per contingency | 4.7 ms |
+| Sweep time | 20.87 s |
+| Time per contingency | 6.4 ms |
 
 **Top 5 worst contingencies:**
 
@@ -71,6 +72,7 @@ Line 8 appears in the top 4 worst contingencies, indicating it is a critical tra
 - **No model reconstruction per contingency:** The pandapower network object is reused across all contingency cases. Only `net.line["in_service"]` is toggled. pandapower rebuilds the internal PYPOWER bus-branch model (`net._ppc`) from DataFrames on each `rundcpp()` call, but the pandas DataFrames themselves persist.
 - **Pruning via graph bridge:** The `create_nxgraph()` + NetworkX `single_source_shortest_path_length()` combination provides clean, documented graph-distance scoping.
 - **Load loss detection:** `pandapower.topology.unsupplied_buses(net)` identifies buses electrically disconnected from all slack/ext_grid buses after branch outages.
+- **N-M not natively supported:** pandapower has a built-in `run_contingency()` for N-1 analysis, but it does not natively support N-M (simultaneous multi-branch outage) sweeps. The manual loop approach using in-service toggling is the idiomatic pandapower pattern for N-M analysis.
 
 ## Workarounds
 
@@ -81,14 +83,12 @@ None required. The entire workflow uses documented public APIs:
 - `top.unsupplied_buses()` for load loss detection
 - `net.line.at[idx, 'in_service']` for in-place branch toggling
 
-pandapower also has a built-in `run_contingency()` function for N-1 analysis, but it does not natively support N-M (simultaneous multi-branch outage) sweeps. The manual loop approach using in-service toggling is the idiomatic pandapower pattern for N-M analysis.
-
 ## Timing
 
-- **Wall-clock:** 16.60 s (total)
+- **Wall-clock:** 22.16 s (total)
 - **Timing source:** measured
-- **Sweep time:** 15.5 s (3,276 contingency cases)
-- **Time per contingency:** 4.7 ms
+- **Sweep time:** 20.87 s (3,276 contingency cases)
+- **Time per contingency:** 6.4 ms
 - **Peak memory:** not measured
 - **CPU cores used:** 1
 

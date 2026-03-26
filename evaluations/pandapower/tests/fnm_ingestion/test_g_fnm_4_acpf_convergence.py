@@ -1,5 +1,5 @@
 """
-Test G-FNM-4: ACPF convergence — DCPF warm-start + progressive relaxation
+Test G-FNM-4: ACPF convergence -- DCPF warm-start + progressive relaxation
 
 Dimension: fnm_ingestion
 Network: LARGE (FNM Annual S01)
@@ -15,6 +15,8 @@ import time
 import traceback
 
 import numpy as np
+
+ACPF_TIMEOUT_SECONDS = 1800  # 30 minutes per attempt
 
 
 def run(
@@ -69,6 +71,7 @@ def run(
         results["details"]["load_time_seconds"] = t_load
         results["details"]["bus_count"] = len(net.bus)
         results["details"]["input_path"] = "matpower"
+        results["details"]["ingestion_path"] = "matpower_raw"
         results["details"]["baseMVA"] = net.sn_mva
 
         # Solve DCPF
@@ -77,7 +80,7 @@ def run(
         t_dcpf = time.perf_counter() - t_dcpf_start
 
         if not net["converged"]:
-            results["errors"].append("DCPF did not converge — cannot warm-start ACPF")
+            results["errors"].append("DCPF did not converge -- cannot warm-start ACPF")
             return results
 
         results["details"]["dcpf_solve_seconds"] = t_dcpf
@@ -89,22 +92,20 @@ def run(
         dcpf_mean_deg = float(np.mean(np.abs(valid_angles)))
         dcpf_max_abs_deg = float(np.max(np.abs(valid_angles)))
 
-        results["details"]["dcpf_init_mean_deg"] = dcpf_mean_deg
-        results["details"]["dcpf_init_max_abs_deg"] = dcpf_max_abs_deg
+        results["details"]["dcpf_init_mean_deg"] = f"{dcpf_mean_deg:.6e}"
+        results["details"]["dcpf_init_max_abs_deg"] = f"{dcpf_max_abs_deg:.6e}"
         results["details"]["dcpf_converged"] = True
 
         # --- Store original thermal limits for relaxation ---
-        # pandapower stores thermal limits in line.max_i_ka, trafo.sn_mva, impedance
-        # We track them for progressive relaxation.
         orig_line_max_i = net.line["max_i_ka"].copy()
         orig_trafo_sn = net.trafo["sn_mva"].copy()
         orig_impedance_sn = net.impedance["sn_mva"].copy()
 
         # --- ACPF convergence attempt function ---
-        def attempt_acpf(net_obj, relaxation_label, timeout_seconds=1800):
+        def attempt_acpf(net_obj, relaxation_label, timeout_seconds=ACPF_TIMEOUT_SECONDS):
             """Attempt ACPF with init='results' (DCPF warm-start).
 
-            Returns (converged, solve_time, iterations, error_msg).
+            Returns dict with converged, solve_time, iterations, error, convergence details.
             """
             t_start = time.perf_counter()
             try:
@@ -119,39 +120,53 @@ def run(
                 )
                 elapsed = time.perf_counter() - t_start
                 converged = net_obj["converged"]
-                # pandapower stores NR iteration count internally
-                nr_iters = getattr(net_obj, "_ppc", {}).get("iterations", None)
-                return converged, elapsed, nr_iters, None
+
+                result = {
+                    "relaxation": relaxation_label,
+                    "converged": converged,
+                    "wall_clock_seconds": elapsed,
+                    "error": None,
+                }
+
+                if converged:
+                    vm_pu = net_obj.res_bus["vm_pu"].values
+                    valid_vm = vm_pu[np.isfinite(vm_pu)]
+                    va_deg = net_obj.res_bus["va_degree"].values
+                    valid_va = va_deg[np.isfinite(va_deg)]
+                    non_flat = np.sum(np.abs(valid_vm - 1.0) > 0.001)
+
+                    result["vm_stats"] = {
+                        "mean": f"{float(np.mean(valid_vm)):.6e}",
+                        "min": f"{float(np.min(valid_vm)):.6e}",
+                        "max": f"{float(np.max(valid_vm)):.6e}",
+                        "std": f"{float(np.std(valid_vm)):.6e}",
+                        "non_flat_pct": f"{float(non_flat / len(valid_vm) * 100):.2f}",
+                    }
+                    result["va_stats"] = {
+                        "mean_abs_deg": f"{float(np.mean(np.abs(valid_va))):.6e}",
+                        "max_abs_deg": f"{float(np.max(np.abs(valid_va))):.6e}",
+                    }
+
+                return result
+
             except Exception as e:
                 elapsed = time.perf_counter() - t_start
-                return False, elapsed, None, f"{type(e).__name__}: {e}"
+                return {
+                    "relaxation": relaxation_label,
+                    "converged": False,
+                    "wall_clock_seconds": elapsed,
+                    "error": f"{type(e).__name__}: {e}",
+                }
 
         # --- Step 2: ACPF at 0% relaxation ---
-        converged_0, time_0, iters_0, err_0 = attempt_acpf(net, "0%")
-
-        step2 = {
-            "relaxation": "0%",
-            "converged": converged_0,
-            "wall_clock_seconds": time_0,
-            "iterations": iters_0,
-            "error": err_0,
-        }
+        step2 = attempt_acpf(net, "0%")
         results["details"]["step2_0pct"] = step2
 
-        if converged_0:
+        if step2["converged"]:
             results["details"]["relaxation_level_achieved"] = "0%"
-            # Record voltage statistics
-            vm_pu = net.res_bus["vm_pu"].values
-            valid_vm = vm_pu[np.isfinite(vm_pu)]
-            results["details"]["acpf_vm_mean"] = float(np.mean(valid_vm))
-            results["details"]["acpf_vm_min"] = float(np.min(valid_vm))
-            results["details"]["acpf_vm_max"] = float(np.max(valid_vm))
-            results["details"]["acpf_vm_std"] = float(np.std(valid_vm))
-            non_flat = np.sum(np.abs(valid_vm - 1.0) > 0.001)
-            results["details"]["acpf_non_flat_pct"] = float(non_flat / len(valid_vm) * 100)
         else:
             # --- Step 3: ACPF at 10% relaxation ---
-            # Restore DCPF warm-start by re-solving DCPF
+            # Re-solve DCPF for warm-start
             pp.rundcpp(net)
 
             # Relax thermal limits by 10%
@@ -159,31 +174,14 @@ def run(
             net.trafo["sn_mva"] = orig_trafo_sn * 1.10
             net.impedance["sn_mva"] = orig_impedance_sn * 1.10
 
-            converged_10, time_10, iters_10, err_10 = attempt_acpf(net, "10%")
-
-            step3 = {
-                "relaxation": "10%",
-                "converged": converged_10,
-                "wall_clock_seconds": time_10,
-                "iterations": iters_10,
-                "error": err_10,
-            }
+            step3 = attempt_acpf(net, "10%")
             results["details"]["step3_10pct"] = step3
 
-            if converged_10:
+            if step3["converged"]:
                 results["details"]["relaxation_level_achieved"] = "10%"
-                vm_pu = net.res_bus["vm_pu"].values
-                valid_vm = vm_pu[np.isfinite(vm_pu)]
-                results["details"]["acpf_vm_mean"] = float(np.mean(valid_vm))
-                results["details"]["acpf_vm_min"] = float(np.min(valid_vm))
-                results["details"]["acpf_vm_max"] = float(np.max(valid_vm))
-                results["details"]["acpf_vm_std"] = float(np.std(valid_vm))
-                non_flat = np.sum(np.abs(valid_vm - 1.0) > 0.001)
-                results["details"]["acpf_non_flat_pct"] = float(non_flat / len(valid_vm) * 100)
             else:
                 # --- Step 4: ACPF at 20% relaxation ---
-                # Re-solve DCPF for warm-start
-                # Reset limits first
+                # Reset limits and re-solve DCPF
                 net.line["max_i_ka"] = orig_line_max_i
                 net.trafo["sn_mva"] = orig_trafo_sn
                 net.impedance["sn_mva"] = orig_impedance_sn
@@ -194,27 +192,11 @@ def run(
                 net.trafo["sn_mva"] = orig_trafo_sn * 1.20
                 net.impedance["sn_mva"] = orig_impedance_sn * 1.20
 
-                converged_20, time_20, iters_20, err_20 = attempt_acpf(net, "20%")
-
-                step4 = {
-                    "relaxation": "20%",
-                    "converged": converged_20,
-                    "wall_clock_seconds": time_20,
-                    "iterations": iters_20,
-                    "error": err_20,
-                }
+                step4 = attempt_acpf(net, "20%")
                 results["details"]["step4_20pct"] = step4
 
-                if converged_20:
+                if step4["converged"]:
                     results["details"]["relaxation_level_achieved"] = "20%"
-                    vm_pu = net.res_bus["vm_pu"].values
-                    valid_vm = vm_pu[np.isfinite(vm_pu)]
-                    results["details"]["acpf_vm_mean"] = float(np.mean(valid_vm))
-                    results["details"]["acpf_vm_min"] = float(np.min(valid_vm))
-                    results["details"]["acpf_vm_max"] = float(np.max(valid_vm))
-                    results["details"]["acpf_vm_std"] = float(np.std(valid_vm))
-                    non_flat = np.sum(np.abs(valid_vm - 1.0) > 0.001)
-                    results["details"]["acpf_non_flat_pct"] = float(non_flat / len(valid_vm) * 100)
                 else:
                     results["details"]["relaxation_level_achieved"] = "infeasible"
 
@@ -222,6 +204,7 @@ def run(
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
         results["details"]["peak_memory_mb"] = peak / (1024 * 1024)
+        results["details"]["acpf_timeout_minutes"] = ACPF_TIMEOUT_SECONDS / 60
 
         # Record workarounds
         results["workarounds"] = [
