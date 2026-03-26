@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:01:54Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "4dbbf497"
+test_hash: "6108ab51"
 ---
 
 # F-5: Trace execution path from API call to solver invocation

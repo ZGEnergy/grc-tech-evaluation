@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:01:54Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "090796da"
+test_hash: "8b638f83"
 ---
 
 # F-2: Full dependency tree enumeration

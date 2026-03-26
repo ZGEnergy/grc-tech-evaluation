@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:00:00Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "c5701afa"
+test_hash: "34d044d2"
 ---
 
 # F-6: Release distribution channel and integrity

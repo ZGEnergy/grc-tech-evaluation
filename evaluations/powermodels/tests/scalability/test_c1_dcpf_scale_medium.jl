@@ -2,7 +2,7 @@
 Test C-1: DCPF Scale — MEDIUM grade assessment
 Dimension: scalability
 Network: MEDIUM (ACTIVSg 10000-bus, case_ACTIVSg10k.m)
-Pass condition: Wall-clock time, peak memory
+Pass condition: Wall-clock time, peak memory, cpu_threads_used/available
 Tool: PowerModels.jl v0.21.5
 Solver: N/A (direct linear algebra via compute_dc_pf)
 
@@ -15,6 +15,7 @@ Branch flows require manual post-processing (workaround from A-1).
 =#
 
 using PowerModels
+using Printf
 
 PowerModels.silence()
 
@@ -59,6 +60,9 @@ function run(
         "workarounds" => String[],
     )
 
+    cpu_threads_available = Sys.CPU_THREADS
+    cpu_threads_used = 1  # compute_dc_pf is single-threaded direct solve
+
     # Warm-up on case39 to eliminate JIT compilation from timing
     try
         tiny_file = joinpath(dirname(network_file), "case39.m")
@@ -92,7 +96,7 @@ function run(
         t_solve_start = time()
         result = PowerModels.compute_dc_pf(data)
         t_solve = time() - t_solve_start
-        println("DCPF solve time: $(round(t_solve, digits=2))s")
+        println("DCPF solve time: $(@sprintf("%.6e", t_solve))s")
 
         converged = result["termination_status"] == true
         println("Converged: $converged")
@@ -110,7 +114,7 @@ function run(
         end
         println("Non-zero bus angles: $n_nonzero_angles / $n_buses")
         println(
-            "Angle range: $(round(minimum(angle_vals), digits=1))° to $(round(maximum(angle_vals), digits=1))°",
+            "Angle range: $(@sprintf("%.6e", minimum(angle_vals)))° to $(@sprintf("%.6e", maximum(angle_vals)))°",
         )
 
         # Compute branch flows from angles (workaround: compute_dc_pf doesn't populate solution["branch"])
@@ -136,13 +140,13 @@ function run(
             end
         end
         t_post = time() - t_post_start
-        println("Branch flow computation: $(round(t_post, digits=2))s")
+        println("Branch flow computation: $(@sprintf("%.6e", t_post))s")
         println("Non-zero branch flows: $n_nonzero_flows / $n_branches")
 
         flow_range_min = isempty(flow_mw_list) ? NaN : minimum(flow_mw_list)
         flow_range_max = isempty(flow_mw_list) ? NaN : maximum(flow_mw_list)
         println(
-            "Flow range: $(round(flow_range_min,digits=2)) to $(round(flow_range_max,digits=2)) MW"
+            "Flow range: $(@sprintf("%.6e", flow_range_min)) to $(@sprintf("%.6e", flow_range_max)) MW",
         )
 
         rss_after = peak_rss_mb()
@@ -176,6 +180,8 @@ function run(
             "t_total_s" => t_total,
             "peak_rss_mb_before" => rss_before,
             "peak_rss_mb_after" => rss_after,
+            "cpu_threads_used" => cpu_threads_used,
+            "cpu_threads_available" => cpu_threads_available,
             "solver" => "N/A (compute_dc_pf, direct sparse linear algebra)",
             "timing_source" => "measured",
         )
@@ -190,8 +196,10 @@ function run(
     end
 
     println("\nStatus: $(results["status"])")
-    println("Wall clock: $(round(results["wall_clock_seconds"], digits=3))s")
+    println("Wall clock: $(@sprintf("%.6e", results["wall_clock_seconds"]))s")
     println("Peak RSS: $(peak_rss_mb()) MB")
+    println("cpu_threads_used: $cpu_threads_used")
+    println("cpu_threads_available: $cpu_threads_available")
 
     return results
 end
@@ -205,7 +213,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("errors:             $(result["errors"])")
     println("workarounds:        $(result["workarounds"])")
     println("--- details ---")
-    for (k, v) in result["details"]
+    for (k, v) in sort(collect(result["details"]); by=first)
         println("  $k: $v")
     end
 end

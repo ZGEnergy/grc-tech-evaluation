@@ -3,15 +3,17 @@ test_id: G-2
 tool: powermodels
 dimension: gate
 network: SMALL
+protocol_version: v11
+skill_version: v2
+test_hash: 326e8597
 status: pass
 workaround_class: null
-timestamp: "2026-03-13T22:57:06Z"
-protocol_version: "v10"
-skill_version: v1
-test_hash: "86c5996e"
+test_category: gate_minimum_bar
+wall_clock_seconds: 0.28
+timestamp: "2026-03-24T18:49:08Z"
 ---
 
-# G-2: Ingest ACTIVSg 2000 reference network
+# G-2: Ingest ACTIVSg 2000-bus reference network (SMALL)
 
 ## Result: PASS
 
@@ -20,17 +22,9 @@ test_hash: "86c5996e"
 - **Network file:** data/networks/case_ACTIVSg2000.m
 - **Expected counts:** 2000 buses / 3206 branches / 544 generators
 - **Actual counts:** 2000 buses / 3206 branches / 544 generators
-- **Load time:** 0.27s
-
-## Post-Import Audit
-
-- Bus voltage bounds: all finite
-- Slack/reference bus (bus_type=3): present
-- Branch rate_a: all finite
-- Branch reactance (br_x): no zero values
-- Generator cost data: present for all generators
-- Generator limits (pmin/pmax/qmin/qmax): all finite
-- Data quality issues: none
+- **Load time:** 0.28s
+- **Data quality notes:** No issues. All bus voltage bounds finite, slack bus present, all branch rate_a finite, no zero-reactance branches, generator cost data present for all generators, all generator limits (pmin/pmax/qmin/qmax) finite.
+- **Errors/warnings:** None
 
 ## Test Script
 

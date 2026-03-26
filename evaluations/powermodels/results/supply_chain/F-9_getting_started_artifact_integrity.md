@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:00:00Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "0aba8d44"
+test_hash: "738f75e3"
 ---
 
 # F-9: Getting-started artifact integrity
