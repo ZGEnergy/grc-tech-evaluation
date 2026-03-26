@@ -1,461 +1,282 @@
-# MATPOWER: Extension Mechanisms, Architecture, and Interoperability
+# MATPOWER -- Research: Extensions & Architecture
 
-Research compiled 2026-03-13 for contract FA714626C0006.
+## Key Findings
 
-## 1. Internal Architecture (Separation of Concerns)
+- MATPOWER 8 introduced a major object-oriented rewrite (MP-Core) with a three-layer architecture: Data Model, Network Model, and Mathematical Model, each decoupled via element containers and converter services.
+- The `mp.extension` API provides nine override points (5 container-class constructors + 4 element-class modifier lists) enabling users to add, remove, or replace element types at every layer without modifying core code.
+- Legacy callback API (`add_userfcn`) supports five stages (`ext2int`, `formulation`, `int2ext`, `printpf`, `savecase`) for injecting custom variables, constraints, and costs into OPF problems.
+- The Continuation Power Flow (CPF) has its own event/callback system (`cpf_register_event`, `cpf_register_callback`) with priority-based ordering, enabling user-defined termination criteria and solution monitoring.
+- Custom nonlinear OPF constraints can be added via `mm.add_nln_constraint()` (with user-supplied function, Jacobian, and Hessian), or by subclassing math model element classes and deploying them through the extension API.
+- Graph/topology analysis is supported natively: `makeYbus` (admittance matrix), `connected_components` (BFS traversal on incidence matrix), `find_islands`, `extract_islands`, `find_bridges` (Tarjan's algorithm), `makePTDF`, `makeLODF`, and `order_radial`.
+- No native DataFrame, NetworkX, or CSV export exists within MATPOWER itself; interoperability requires external bridges: `matpower-pip` + `oct2py` for Python/Octave integration, `matpowercaseframes` for pandas DataFrame parsing, and `pandapower` for bidirectional MATPOWER case conversion.
+- MOST (MATPOWER Optimal Scheduling Tool) extends MATPOWER to multiperiod, stochastic, security-constrained unit commitment and OPF with storage, ramping, and reserves.
+- The `extras/` directory ships community-contributed packages: state estimation, SDP-OPF, network reduction, synthetic grid generation, and maximum loadability limits -- each using the userfcn callback or standalone function patterns.
+- Data structures are MATLAB/Octave structs and numeric matrices (the `mpc` case struct), with a newer `mp_table` class providing basic named-column table access compatible with Octave.
 
-### 1.1 Three-Layer Model Architecture (MP-Core, MATPOWER 8.x)
+## Detailed Notes
 
-MATPOWER 8.x introduced a new object-oriented framework ("MP-Core") with explicit
-separation into three model layers, coordinated by a **task** object:
+### Three-Layer Architecture (MP-Core, MATPOWER 8+)
 
-| Layer | Base Class | Purpose |
-|---|---|---|
-| **Data Model** | `mp.data_model` | User-visible parameters, input/output data (analogous to legacy `mpc` struct) |
-| **Network Model** | `mp.net_model` | Electrical topology, admittance relationships, node/port/state indexing |
-| **Mathematical Model** | `mp.math_model` | Optimization problem formulation (variables, constraints, costs) |
-| **Data Model Converter** | `mp.dm_converter` | Bridges external data formats (e.g. MPC structs) to internal representation |
-| **Task** | `mp.task` | Orchestrates the full workflow: build models, solve, propagate solution |
+MATPOWER 8 replaced the legacy monolithic codebase with a layered, object-oriented architecture called MP-Core. The three layers are:
 
-Source: MATPOWER Developer's Manual, Sections 3-8 ([matpower.org/doc/dev-manual/](https://matpower.org/doc/dev-manual/)).
+1. **Data Model (`mp.data_model`)** -- Encapsulates user-visible parameters (bus, gen, branch, load, shunt data). Element data is stored in table objects (`dme.tab`). A data model converter (`mp.dm_converter`) decouples the data model from specific file formats (MATPOWER case struct v2, PSS/E RAW, IEEE CDF).
 
-Each layer is a **container** (`mp.element_container`) holding typed **element** objects.
-For example, the data model contains `mp.dme_bus`, `mp.dme_gen`, `mp.dme_branch`,
-`mp.dme_load`, and `mp.dme_shunt` by default. Each element class encapsulates the
-data and behavior for one type of power system component.
+2. **Network Model (`mp.net_model`)** -- Defines nodes, ports, states, and the relationships between them. Builds the admittance matrix (Ybus) and related network parameters from data model elements. Formulation-specific subclasses exist for DC (`mp.net_model_dc`), AC polar (`mp.net_model_acp`), and AC cartesian (`mp.net_model_acc`).
 
-### 1.2 Element Container Pattern
+3. **Mathematical Model (`mp.math_model`)** -- Inherits from `opt_model` (MP-Opt-Model). Formulates the actual optimization or simulation problem: variables, constraints, objective function. Task-specific and formulation-specific subclasses (e.g., `mp.math_model_opf_acps` for AC polar power OPF).
 
-Every model layer follows the same pattern: a container object holds a collection of
-element objects, each identified by a `name()` method. Building proceeds in stages:
+A **Task** object (`mp.task`) orchestrates the workflow: it creates the data model converter, builds the three models in sequence, solves the math model, and propagates solutions back through the layers. Task subclasses exist for PF (`mp.task_pf`), CPF (`mp.task_cpf`), and OPF (`mp.task_opf`).
 
-1. Create element objects from `element_classes` list
-2. Count elements, remove empty types
-3. Initialize status (online/offline)
-4. Build parameters from data
+Each layer is organized as an **element container** (`mp.element_container`), holding typed element objects in a `mp.mapped_array` accessible by both name and index.
 
-Elements in one layer reference corresponding elements in other layers during the
-build process, enabling cross-layer coordination without tight coupling.
+**Sources:**
+- [Architecture Overview (MATPOWER Dev Manual)](https://matpower.org/documentation/dev-manual/architecture.html)
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/task.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/data_model.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/net_model.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/math_model.m`
 
-Source: `mp.element_container` mixin; `mp.data_model.build()` method in
-`lib/+mp/data_model.m`.
+### Extension API (`mp.extension`)
 
-### 1.3 Two Parallel Frameworks
+The `mp.extension` abstract base class defines nine virtual methods that an extension can override:
 
-MATPOWER maintains two parallel execution frameworks:
+**Container-class constructors** (return a function handle to replace the default constructor):
+- `task_class(task_class, mpopt)` -- override the task object
+- `dm_converter_class(dmc_class, fmt, mpopt)` -- override the data model converter
+- `data_model_class(dm_class, task_tag, mpopt)` -- override the data model
+- `network_model_class(nm_class, task_tag, mpopt)` -- override the network model
+- `math_model_class(mm_class, task_tag, mpopt)` -- override the math model
 
-- **Legacy framework**: Uses `runpf()`, `runopf()`, `runcpf()` entry points.
-  Data flows through `ext2int()` / `int2ext()` conversion. Extensions use
-  `userfcn` callbacks and `toggle_*` functions. Backward-compatible with
-  MATPOWER 4.x-7.x code.
+**Element-class modifiers** (return a cell array of modifications):
+- `dmc_element_classes(dmc_class, fmt, mpopt)`
+- `dm_element_classes(dm_class, task_tag, mpopt)`
+- `nm_element_classes(nm_class, task_tag, mpopt)`
+- `mm_element_classes(mm_class, task_tag, mpopt)`
 
-- **Flexible framework**: Uses `run_pf()`, `run_opf()`, `run_cpf()` (underscore
-  variants) via `run_mp()`. Full OOP with `mp.extension` classes. Supports
-  advanced features like three-phase unbalanced modeling.
+Element class modifiers use three operations:
+| Operation | Syntax | Effect |
+|-----------|--------|--------|
+| Append | `@new_class` | Adds a new element type |
+| Remove | `'old_class'` (string) | Removes elements where `isa(E(), 'old_class')` is true |
+| Replace | `{@new_class, 'old_class'}` | Replaces matching elements |
 
-Both frameworks coexist in MATPOWER 8.x; the legacy framework internally wraps
-MP-Core via `mp.task_*_legacy` classes.
-
-Source: MATPOWER Dev Manual, Section 3 "Two MATPOWER Frameworks"
-([matpower.org/doc/dev-manual/architecture.html](https://matpower.org/doc/dev-manual/architecture.html)).
-
-### 1.4 MP-Opt-Model (Mathematical Modeling Layer)
-
-The mathematical model layer is built on **MP-Opt-Model** (`mp-opt-model/`), a
-standalone optimization modeling framework. The `opt_model` class (and its modern
-successor `mp.opt_model`) provides:
-
-- Named variable sets: `om.add_var('V', nb, V0, Vmin, Vmax, 'C')`
-- Linear constraints: `om.add_lin_constraint('Pmis', A, l, u, varsets)`
-- Nonlinear constraints: `om.add_nln_constraint('Qmis', n, iseq, fcn, hess)`
-- Quadratic costs: `om.add_quad_cost('gen_cost', Q, c, k, varsets)`
-- Nonlinear costs: `om.add_nln_cost('fuel_cost', n, fcn, varsets)`
-- Unified solver interface: `om.solve()` routes to appropriate backend
-
-Supported solver backends: MIPS (built-in), IPOPT, GLPK, Gurobi, CPLEX, MOSEK,
-HiGHS, OSQP, Knitro, fmincon, and others. Solver selection is automatic based
-on problem type (LP/QP/MILP/NLP) or configurable via `mpoption`.
-
-Source: MP-Opt-Model library at `mp-opt-model/lib/@opt_model/`;
-[matpower.org/doc/mpom/](https://matpower.org/doc/mpom/).
-## 2. Extension Mechanisms
-
-### 2.1 Legacy userfcn Callback System
-
-The legacy framework provides five callback stages, registered via
-`add_userfcn(mpc, stage, fcn, args)`:
-
-| Stage | When Called | Typical Use |
-|---|---|---|
-| `ext2int` | After external-to-internal conversion | Reorder extension data |
-| `formulation` | After base OPF model setup, before solve | Add variables, constraints, costs |
-| `int2ext` | Before internal-to-external conversion | Package results |
-| `printpf` | During pretty-printing | Print extension results |
-| `savecase` | During case file saving | Save extension data |
-
-Signature examples:
-```matlab
-mpc = userfcn_reserves_ext2int(mpc, mpopt, args)
-om  = userfcn_reserves_formulation(om, mpopt, args)
-results = userfcn_reserves_int2ext(results, mpopt, args)
-results = userfcn_reserves_printpf(results, fd, mpopt, args)
-mpc = userfcn_reserves_savecase(mpc, fd, prefix, args)
-```
-
-Functions: `add_userfcn()`, `remove_userfcn()`, `run_userfcn()` in `lib/`.
-
-Source: `lib/add_userfcn.m` lines 1-85.
-
-### 2.2 toggle_* Convenience Functions (Legacy)
-
-Built-in extensions using the userfcn mechanism:
-
-| Function | Purpose |
-|---|---|
-| `toggle_reserves(mpc, 'on'/'off')` | Fixed zonal reserve co-optimization |
-| `toggle_softlims(mpc, 'on'/'off')` | Relaxed OPF inequality constraints with penalties |
-| `toggle_iflims(mpc, 'on'/'off')` | Interface flow limits (DC model) |
-| `toggle_dcline(mpc, 'on'/'off')` | DC line modeling via linked generator pairs |
-
-Each function registers/removes the five userfcn callbacks. Status can be queried:
-`toggle_reserves(mpc, 'status')` returns 1 or 0.
-
-Source: `lib/toggle_reserves.m`, `lib/toggle_softlims.m`, `lib/toggle_iflims.m`,
-`lib/toggle_dcline.m`.
-
-### 2.3 mp.extension API (Flexible Framework)
-
-The modern extension API uses the `mp.extension` abstract base class. An extension
-subclass overrides up to 9 methods to modify or replace default classes at each
-model layer:
-
-**Container-level class overrides** (return function handles to constructors):
-```matlab
-task_class(obj, task_class, mpopt)          % override task class
-dm_converter_class(obj, dmc_class, fmt, mpopt)  % override converter class
-dm_class(obj, dm_class, mpopt)              % override data model class
-nm_class(obj, nm_class, mpopt)              % override network model class
-mm_class(obj, mm_class, mpopt)              % override math model class
-```
-
-**Element-level class modifiers** (return cell arrays of modifiers):
-```matlab
-dmc_element_classes(obj, dmc_class, fmt, mpopt)   % data converter elements
-dm_element_classes(obj, dm_class, task_tag, mpopt) % data model elements
-nm_element_classes(obj, nm_class, task_tag, mpopt) % network model elements
-mm_element_classes(obj, mm_class, task_tag, mpopt) % math model elements
-```
-
-Element class modifiers support three operations applied sequentially:
-
-| Modifier Type | Syntax | Effect |
-|---|---|---|
-| Add | `@new_class` | Append new element class |
-| Delete | `'old_class'` | Remove matching element class |
-| Replace | `{@new_class, 'old_class'}` | Substitute matching class |
-
-Usage:
+Extensions are passed to `run_mp`/`run_opf`/`run_pf` via the `'mpx'` named argument:
 ```matlab
 task = run_opf('case9', mpopt, 'mpx', mp.xt_reserves);
-task = run_opf('case9', mpopt, 'mpx', {mpx1, mpx2});  % multiple extensions
 ```
 
-Source: `lib/+mp/extension.m`; MATPOWER Dev Manual Section 9
-([matpower.org/doc/dev-manual/customizing.html](https://matpower.org/doc/dev-manual/customizing.html));
-[matpower.org/doc/howto/extension.html](https://matpower.org/doc/howto/extension.html).
-
-### 2.4 Built-in Extensions (Flexible Framework)
-
-| Extension Class | Purpose |
-|---|---|
-| `mp.xt_reserves` | Fixed zonal reserves for OPF (adds `reserve_gen` and `reserve_zone` elements) |
-| `mp.xt_3p` | Three-phase unbalanced elements (bus3p, gen3p, load3p, line3p, shunt3p, xfmr3p) |
-
-Source: `lib/+mp/xt_reserves.m`, `lib/+mp/xt_3p.m`.
-
-### 2.5 Customization via MATPOWER Options
-
-The `mpopt.exp` struct allows runtime class overrides without creating an extension:
-
+Multiple extensions can be composed as a cell array:
 ```matlab
-mpopt.exp.math_model_class = @custom_math_model;
-mpopt.exp.mm_element_classes = {@custom_gen_opf, 'mp.mme_gen_opf'};
-mpopt.exp.exclude_elements = {'shunt'};
+task = run_opf('case9', mpopt, 'mpx', {mp.xt_reserves, mp.xt_3p});
 ```
 
-Available `mpopt.exp` fields: `dm_converter_class`, `data_model_class`,
-`network_model_class`, `math_model_class`, `dmc_element_classes`,
-`dm_element_classes`, `nm_element_classes`, `mm_element_classes`,
-`exclude_elements`.
+**Shipped extensions:**
+- `mp.xt_reserves` -- Co-optimization of fixed zonal reserves in OPF. Adds `reserve_gen` and `reserve_zone` elements to data model converter, data model, and math model.
+- `mp.xt_3p` -- Prototype unbalanced three-phase element support (`bus3p`, `gen3p`, `load3p`, `line3p`, `xfmr3p`, `shunt3p`, `buslink`) for AC PF, CPF, and OPF.
 
-Source: MATPOWER Dev Manual Section 9.2.
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/extension.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/xt_reserves.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/+mp/xt_3p.m`
+- [Customizing MATPOWER (Dev Manual)](https://matpower.org/documentation/dev-manual/customizing.html)
+- [mp.extension reference](https://matpower.org/documentation/ref-manual/classes/mp/extension.html)
 
-### 2.6 CPF Event and Callback System
+### Legacy Callback / Userfcn API
 
-The Continuation Power Flow (CPF) has its own event/callback registration mechanism:
+The pre-MATPOWER-8 extension mechanism, still supported, uses `add_userfcn(mpc, stage, fcn, args)` to register callbacks at five stages:
 
-**Events** detect specific conditions during CPF tracing:
-```matlab
-cpf_events = cpf_register_event(cpf_events, name, fcn, tol, locate)
-```
-Built-in events: voltage limits, flow limits, nose point detection, generator
-reactive limits, target lambda.
+1. **`ext2int`** -- Called after external-to-internal index conversion. Used to reorder custom data.
+2. **`formulation`** -- Called after the OPF model (OM) is initialized but before the solver. This is where custom variables, constraints, and costs are added to the `opt_model`.
+3. **`int2ext`** -- Called before converting results back to external indexing. Used to extract custom results.
+4. **`printpf`** -- Called after standard pretty-printing. Used for custom output.
+5. **`savecase`** -- Called when saving case to file. Used to write custom fields.
 
-**Callbacks** respond to events and control CPF behavior:
-```matlab
-cpf_callbacks = cpf_register_callback(cpf_callbacks, fcn, priority, args)
-```
-Callbacks have configurable priority (higher = runs first). Default priorities
-range from 0 (`cpf_default_callback`) to 53 (`cpf_flim_event_cb`).
+Built-in toggle functions use this pattern:
+- `toggle_reserves(mpc, 'on')` -- fixed zonal reserve requirements
+- `toggle_iflims(mpc, 'on')` -- interface flow limits (DC model)
+- `toggle_softlims(mpc, 'on')` -- relaxed OPF inequality constraints (VMIN, VMAX, RATE_A, PMIN, PMAX, QMIN, QMAX, ANGMIN, ANGMAX) with user-specified violation costs
+- `toggle_dcline(mpc, 'on')` -- DC transmission line modeling
 
-User callbacks are specified via `mpopt.cpf.user_callback` (string, struct with
-`fcn`/`priority`/`args`, or cell array of these).
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/add_userfcn.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/toggle_reserves.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/toggle_softlims.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/toggle_iflims.m`
 
-Source: `lib/cpf_register_event.m`, `lib/cpf_register_callback.m`.
+### Custom OPF Constraints
 
-### 2.7 Adding Custom OPF Constraints
+Two approaches are documented for adding custom constraints:
 
-Two approaches for adding custom constraints:
+**Approach 1: Legacy direct specification.** The `mpc` struct can contain fields `A`, `l`, `u` for linear constraints (A * x >= l, A * x <= u), and `N`, `H`, `Cw`, `fparm` for generalized costs.
 
-**Legacy approach** (via userfcn `formulation` callback):
-```matlab
-% Inside formulation callback, add to opt_model:
-om.add_lin_constraint('my_constraint', A, l, u, {'Pg', 'Qg'});
-om.add_nln_constraint('pq_cap', n, 0, @my_fcn, @my_hess, {'Pg', 'Qg'});
-```
+**Approach 2: Extension/element subclass (MATPOWER 8+).** Subclass a math model element (e.g., `mp.mme_gen_opf_ac`) and override `add_constraints()` to call `mm.add_nln_constraint(name, N, iseq, fcn, hess, varsets)`. The constraint function must return the constraint vector and Jacobian; the Hessian function returns second derivatives. Deploy via `mpopt.exp.mm_element_classes` or through an `mp.extension` subclass.
 
-**Modern approach** (via element class subclassing):
-Create a subclass of the relevant math model element (e.g., `mp.mme_gen_opf_ac`)
-and override `add_constraints()` to call `add_nln_constraint()`. The how-to guide
-demonstrates an "oval PQ capability curve" constraint as an example.
+The `add_nln_constraint` method on `opt_model` accepts:
+- `name` -- constraint set name
+- `N` -- number of constraints
+- `iseq` -- 1 for equality, 0 for inequality
+- `fcn` -- function handle returning `[g, dg]` (constraint values and Jacobian)
+- `hess` -- function handle returning `d2g` (Hessian of Lagrangian)
+- `varsets` -- cell array of variable set names (e.g., `{'Pg', 'Qg'}`)
 
-Source: [matpower.org/doc/howto/add-constraint.html](https://matpower.org/doc/howto/add-constraint.html);
-`mp-opt-model/lib/@opt_model/add_nln_constraint.m`.
+**Sources:**
+- [How to Add an OPF Constraint](https://matpower.org/documentation/howto/add-constraint.html)
+- [Extending the OPF](https://matpower.app/manual/matpower/ExtendingtheOPF.html)
+- `/workspace/evaluations/matpower/matpower8.1/mp-opt-model/lib/@opt_model/add_nln_constraint.m`
 
-### 2.8 Creating New Element Types
+### CPF Event and Callback System
 
-A new element type requires classes at up to four layers:
+The Continuation Power Flow has a separate extensibility mechanism:
 
-1. **Data model element** (`mp.dm_element` subclass): Define `name()`,
-   `main_table_var_names()`, `cxn_type()`, `cxn_idx_prop()`, `build_params()`.
-   OPF variant adds cost parameters.
+**Events** (`cpf_register_event`): Register functions that return a scalar/vector value; when the value crosses zero, an event is detected. Built-in events:
+- `cpf_nose_event` -- nose point detection (priority 51)
+- `cpf_vlim_event` -- voltage limit violations (priority 52)
+- `cpf_flim_event` -- flow limit violations (priority 53)
+- `cpf_target_lam_event` -- target loading parameter reached (priority 50)
+- `cpf_qlim_event` -- reactive power limit (priority 41)
+- `cpf_plim_event` -- active power limit (priority 40)
 
-2. **Data model converter element** (`mp.dmc_element` subclass): Define
-   `data_field()`, `table_var_map()` for import/export.
+**Callbacks** (`cpf_register_callback`): Registered with a priority (higher runs first). The callback receives current, next, and previous states, and can modify the step, request rollback, or signal termination. User callbacks are specified via `mpopt.cpf.user_callback`.
 
-3. **Network model element** (`mp.nm_element` subclass): Define `np()` (ports),
-   `nz()` (states), `build_params()`. Separate classes for AC polar, AC
-   cartesian, and DC formulations.
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/cpf_register_callback.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/cpf_register_event.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/cpf_default_callback.m`
 
-4. **Math model element** (`mp.mm_element` subclass): Define `add_vars()`,
-   `add_constraints()`, `add_costs()`, `data_model_update_on()`. Separate
-   classes for PF vs OPF and AC vs DC.
+### Graph and Topology Access
 
-Source: [matpower.org/doc/howto/element.html](https://matpower.org/doc/howto/element.html).
-## 3. Graph/Network Topology Access
+MATPOWER provides several functions for network topology analysis, all operating on the `mpc` case struct or derived sparse matrices:
 
-### 3.1 Admittance and Distribution Factor Matrices
-
-MATPOWER provides direct access to key network matrices:
-
-| Function | Returns | Size |
-|---|---|---|
-| `makeYbus(mpc)` | Bus admittance matrix `Ybus`, branch matrices `Yf`, `Yt` | nb x nb, nl x nb |
-| `makeBdc(mpc)` | DC susceptance matrices `Bbus`, `Bf`, injection vectors | nb x nb, nl x nb |
-| `makePTDF(mpc, slack)` | Power Transfer Distribution Factor matrix | nl x nb |
-| `makeLODF(mpc, PTDF)` | Line Outage Distribution Factor matrix | nl x nl |
-| `makeJac(mpc)` | Jacobian matrix for Newton power flow | 2nb x 2nb |
-
-These matrices implicitly encode the network graph structure. `Ybus` is the
-weighted graph Laplacian (with self-loops for shunts). The bus admittance
-matrix is a sparse matrix with non-zero entries corresponding to direct
-electrical connections.
-
-Source: `lib/makeYbus.m`, `lib/makeBdc.m`, `lib/makePTDF.m`, `lib/makeLODF.m`.
-
-### 3.2 Graph Topology Functions
-
-Explicit graph-theoretic operations:
-
-| Function | Purpose |
-|---|---|
-| `find_islands(mpc)` | Find connected components; returns cell array of bus groups |
-| `extract_islands(mpc)` | Extract individual islands as separate MPC structs |
-| `connected_components(C)` | BFS on node-branch incidence matrix `C` |
+| Function | Description |
+|----------|-------------|
+| `makeYbus(mpc)` | Builds sparse bus admittance matrix `Ybus` and branch matrices `Yf`, `Yt` |
+| `makePTDF(mpc, slack)` | DC Power Transfer Distribution Factor matrix (nbr x nb) |
+| `makeLODF(mpc, PTDF)` | Line Outage Distribution Factor matrix (nbr x nbr) |
+| `connected_components(C)` | BFS on node-branch incidence matrix; returns cell array of node groups |
+| `find_islands(mpc)` | Finds connected islands in the network |
+| `extract_islands(mpc, k)` | Extracts island k as a separate `mpc` struct |
 | `find_bridges(mpc)` | Tarjan's algorithm for bridge detection |
 | `order_radial(mpc)` | Oriented ordering for radial networks |
+| `makeBdc(mpc)` | DC model B matrices |
 
-The incidence matrix `C` is constructed from branch from/to bus data:
-```matlab
-C = sparse(1:nl, f, -status, nl, nb) + sparse(1:nl, t, status, nl, nb);
-```
-This `C` matrix is the directed node-branch incidence matrix of the network
-graph.
+The incidence matrix `C` is constructed from `mpc.branch(:, F_BUS)` and `mpc.branch(:, T_BUS)` columns. There is no built-in adjacency list or adjacency matrix function, but the sparse incidence matrix is trivially convertible. No native BFS/DFS/shortest-path API exists beyond `connected_components`.
 
-Source: `lib/find_islands.m`, `lib/connected_components.m`,
-`lib/find_bridges.m`, `lib/order_radial.m`.
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/makeYbus.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/makePTDF.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/makeLODF.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/connected_components.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/find_islands.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/find_bridges.m`
 
-### 3.3 Network Model Node/Port/State Framework
+### Interoperability and Data Export
 
-In the flexible framework, `mp.net_model` provides structured topology access:
+MATPOWER's native data format is the `mpc` struct (MATLAB/Octave struct with numeric matrices for `bus`, `gen`, `branch`, `gencost`). Import/export support:
 
-- **Nodes**: Network connection points (buses). Tracked via `mp_idx_manager`.
-- **Ports**: Element connection points mapped to nodes via incidence matrices `C`.
-- **States**: Voltage (V) and non-voltage (Z) state variables.
+**Native formats:**
+- MATPOWER case file (`.m` or `.mat`) -- `loadcase()` / `savecase()`
+- PSS/E RAW -- `psse2mpc()` / `save2psse()`
+- IEEE CDF -- `cdf2mpc()`
 
-Each network model element defines:
-- `np()`: number of ports
-- `nz()`: number of non-voltage states
-- Incidence matrices mapping ports to nodes and states to variables
+**No native CSV, JSON, or DataFrame export.** All data lives in MATLAB/Octave matrices and structs.
 
-The network model inherits from `mp.nm_element`, `mp.element_container`, and
-`mp_idx_manager`, providing both graph structure and variable indexing.
+**Python bridges (third-party):**
+- **[matpower-pip](https://pypi.org/project/matpower/)** (PyPI) -- Packages MATPOWER 8.1 for pip install. Uses `oct2py` to run Octave from Python. `matpower.start_instance()` returns an Octave session with MATPOWER on path.
+- **[matpowercaseframes](https://pypi.org/project/matpowercaseframes/)** -- Pure-Python parser (regex-based, no Octave required) that converts `.m` case files into pandas DataFrames. Supports `to_excel()` export.
+- **[pandapower](https://pandapower.readthedocs.io/en/latest/converter/matpower.html)** -- `from_mpc()` and `to_mpc()` converters between pandapower networks and MATPOWER case structs. Uses `matpowercaseframes` for `.m` file parsing.
+- **[PYPOWER](https://github.com/rwl/PYPOWER)** -- Pure-Python port of MATPOWER 4.1 (very outdated, no active development).
 
-Source: `lib/+mp/net_model.m`, MATPOWER Dev Manual Section 7.
+**No native NetworkX integration.** The sparse admittance/incidence matrices from `makeYbus`/`connected_components` could be converted to NetworkX graphs via `scipy.sparse` + `networkx.from_scipy_sparse_array()`, but this requires manual bridging.
 
-### 3.4 No Native Graph Object
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/savecase.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/save2psse.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/psse2mpc.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/cdf2mpc.m`
+- [matpower-pip on PyPI](https://pypi.org/project/matpower/)
+- [matpowercaseframes on PyPI](https://pypi.org/project/matpowercaseframes/)
+- [pandapower MATPOWER converter](https://pandapower.readthedocs.io/en/latest/converter/matpower.html)
+- [GitHub Issue #134: Run MATPOWER from Python](https://github.com/MATPOWER/matpower/issues/134)
 
-MATPOWER does **not** provide a native graph object (e.g., no `Graph` class or
-adjacency list structure). The network topology is encoded implicitly in:
-- Sparse admittance matrices (`Ybus`)
-- Branch from/to bus columns (`branch(:, F_BUS)`, `branch(:, T_BUS)`)
-- Incidence matrices (`C`)
+### MOST (MATPOWER Optimal Scheduling Tool)
 
-Users needing explicit graph representations must construct them from the
-branch data. The adjacency matrix can be derived from `Ybus`:
-```matlab
-adj = spones(Ybus) - speye(nb);  % adjacency matrix (unweighted)
-```
-## 4. Interoperability
+MOST extends MATPOWER to solve multiperiod, stochastic, contingency-constrained OPF with unit commitment. Key capabilities:
+- Multiperiod scheduling with ramping constraints and costs
+- Stochastic scenarios for load and renewable generation
+- Security constraints (N-1 contingency)
+- Lossy storage resources with terminal targets and cyclic constraints
+- Deferrable/flexible demands
+- Fixed zonal reserves (locational)
+- Mixed-integer programming for unit commitment (min up/down times)
 
-### 4.1 Native Format
+MOST uses the legacy framework (not MP-Core extensions). Input is an `mdi` (MOST Data Input) struct; output is `mdo` (MOST Data Output).
 
-MATPOWER's native data format is the **MPC struct** (MATPOWER Case), a MATLAB/Octave
-struct with fields: `baseMVA`, `bus`, `gen`, `branch`, `gencost`, and optional
-fields (`dcline`, `reserves`, `if`, `softlims`, `bus_name`, etc.).
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/most/lib/most.m`
+- [MOST User's Manual (PDF)](https://matpower.org/docs/MOST-manual.pdf)
+- [MOST GitHub repository](https://github.com/MATPOWER/most)
 
-Data is stored as numeric matrices with column indices defined by constant
-functions (`idx_bus`, `idx_gen`, `idx_brch`, `idx_cost`, `idx_dcline`).
+### Extras / Community Extensions
 
-File formats: `.m` (MATLAB script) and `.mat` (MATLAB binary).
-Functions: `loadcase()`, `savecase()`.
+The `extras/` directory ships with several contributed packages:
 
-### 4.2 Industry Format Import/Export
-
-| Function | Direction | Format |
-|---|---|---|
-| `psse2mpc(rawfile)` | Import | PSS/E RAW (auto-detects revision) |
-| `save2psse(fname, mpc)` | Export | PSS/E RAW Rev 33 |
-| `cdf2mpc(cdffile)` | Import | IEEE Common Data Format |
-
-The PSS/E converter supports import from multiple revisions and export to Rev 33.
-
-Source: `lib/psse2mpc.m`, `lib/save2psse.m`, `lib/cdf2mpc.m`.
-
-### 4.3 Python Interoperability
-
-The `matpower` PyPI package (`pip install matpower`) bundles MATPOWER 8.1 and
-provides Python access via:
-- **oct2py**: Python-to-Octave bridge
-- **matlab.engine**: Python-to-MATLAB bridge
-
-```python
-from matpower import start_instance
-m = start_instance()
-mpc = m.loadcase('case9')
-results = m.runpf(mpc)
-```
-
-**Limitations**:
-- `runopf()` returns `opf_model` objects that oct2py cannot serialize; manual
-  field removal is required.
-- MATLAB engine does not support sparse matrices natively.
-- Data crosses a process boundary (Python <-> Octave/MATLAB), incurring
-  serialization overhead.
-
-Source: [pypi.org/project/matpower/](https://pypi.org/project/matpower/).
-
-### 4.4 No Native DataFrame/NetworkX/Graphs.jl Integration
-
-MATPOWER has **no built-in integration** with:
-- Python DataFrames (pandas)
-- NetworkX graph library
-- Julia Graphs.jl
-
-All data lives in MATLAB/Octave numeric matrices and structs. The table-based
-data model in the flexible framework (`dm.elements.bus.tab`) uses MATLAB's
-`table` class or MATPOWER's `mp_table` wrapper, not pandas DataFrames.
-
-Interoperability with these ecosystems requires explicit conversion:
-- Export MPC to CSV/MAT and load in Python/Julia
-- Use oct2py or matlab.engine bridges
-- Construct graphs manually from branch `F_BUS`/`T_BUS` columns
-
-### 4.5 MOST Integration
-
-MOST (MATPOWER Optimal Scheduling Tool) extends MATPOWER for multi-period,
-stochastic, security-constrained OPF with unit commitment. It uses the same
-MPC data format augmented with:
-- `md_init()`: Initialize MOST data structure
-- `loadmd()`: Load MOST data
-- `most(mdi, mpopt)`: Run scheduling optimization
-- Storage, wind, profile, and ramping data structures
-
-MOST is bundled with MATPOWER at `most/lib/`.
-
-Source: `most/lib/most.m`.
-
-### 4.6 Additional Toolboxes (extras/)
-
-MATPOWER bundles several contributed extensions in `extras/`:
-
-| Toolbox | Purpose |
-|---|---|
-| `se/` | State estimation |
+| Package | Description |
+|---------|-------------|
+| `se/` | State estimation (`run_se`, `doSE`, `isobservable`) |
+| `sdp_pf/` | Semidefinite programming OPF solver (`runsdpopf`) |
 | `syngrid/` | Synthetic grid generation |
-| `reduction/` | Network reduction |
-| `sdp_pf/` | SDP-based power flow relaxation |
-| `smartmarket/` | Electricity market simulation |
+| `reduction/` | Network reduction toolbox (Kron reduction, Ward equivalents) |
+| `maxloadlim/` | Maximum loadability limit computation (uses userfcn callbacks) |
+| `smartmarket/` | Auction/market clearing |
+| `simulink_matpower/` | Simulink integration blocks |
+| `state_estimator/` | Alternative state estimator |
 
-| `maxloadlim/` | Maximum loadability limit |
-| `simulink_matpower/` | Simulink integration |
-## 5. Assessment Summary
+These are not integrated via the `mp.extension` API; they use standalone functions or the legacy userfcn callback pattern.
 
-### Strengths
+**Source:** `/workspace/evaluations/matpower/matpower8.1/extras/`
 
-- **Mature, well-documented extension architecture**: Both legacy (userfcn) and
-  modern (mp.extension) APIs provide structured extensibility.
-- **Clean separation of concerns**: Three-layer model architecture with distinct
-  data/network/math layers and element-based decomposition.
-- **Rich built-in extensions**: Reserves, soft limits, interface flow limits,
-  DC lines, three-phase elements demonstrate the framework's flexibility.
-- **Comprehensive network matrix functions**: Ybus, PTDF, LODF, Jacobian,
-  and graph topology functions (islands, bridges) are directly accessible.
-- **Multiple constraint addition mechanisms**: Both linear (`A*x` bounds) and
-  nonlinear (function handle + Hessian) constraints.
-- **Solver abstraction**: MP-Opt-Model decouples problem formulation from solver
-  selection across 10+ solver backends.
+### mp_table and Data Access in MP-Core
 
-### Weaknesses
+MATPOWER 8 introduced `mp_table`, a basic table class compatible with MATLAB's `table` but also working in Octave (which lacks native table support). In the MP-Core framework, data model elements store their data in `dme.tab` (an `mp_table` instance) with named columns:
 
-- **No native graph object**: Network topology is implicit in sparse matrices,
-  not exposed as a graph data structure.
-- **MATLAB/Octave ecosystem lock-in**: No native Python, Julia, or cross-language
-  bindings. The oct2py bridge has significant limitations (sparse matrix
-  serialization, opf_model objects).
-- **No DataFrame integration**: Data is in numeric matrices, not
-  columnar/labeled structures accessible to data science ecosystems.
-- **Extension complexity**: Creating a new element type requires implementing
-  classes at 4 layers with up to 8+ subclasses for different formulations
-  (AC polar, AC cartesian, DC) and tasks (PF, OPF).
-- **Two parallel frameworks**: Maintaining legacy and flexible frameworks
-  creates cognitive overhead and potential confusion about which API to use.
+```matlab
+task = run_opf('case9');
+lam_p = task.dm.elements.bus.tab.lam_p;   % nodal prices
+pg = task.dm.elements.gen.tab.pg;          % generator dispatch
+```
 
-### Gaps and Uncertainties
+This provides named-column access similar to a DataFrame, though without filtering, grouping, or join operations.
 
-- The full extent of mp.extension overriding capabilities (e.g., can an extension
-  replace the solver itself?) is not fully documented beyond the examples.
-- Performance implications of the OOP layered architecture in Octave (which has
-  slower OOP dispatch than MATLAB) are not quantified.
-- The `mp_table` class's compatibility with MATLAB's native `table` in Octave
-  environments may vary; Octave's `table` support is relatively recent.
+**Sources:**
+- `/workspace/evaluations/matpower/matpower8.1/lib/mp_table.m`
+- `/workspace/evaluations/matpower/matpower8.1/lib/run_mp.m` (docstring examples)
+
+## Sources
+
+1. [MATPOWER Architecture Overview (Dev Manual)](https://matpower.org/documentation/dev-manual/architecture.html)
+2. [Customizing MATPOWER (Dev Manual)](https://matpower.org/documentation/dev-manual/customizing.html)
+3. [mp.extension reference](https://matpower.org/documentation/ref-manual/classes/mp/extension.html)
+4. [How to Add an OPF Constraint](https://matpower.org/documentation/howto/add-constraint.html)
+5. [Extending the OPF (User Manual)](https://matpower.app/manual/matpower/ExtendingtheOPF.html)
+6. [Callback Stages and Example](https://matpower.app/manual/matpower/CallbackStagesandExample.html)
+7. [MATPOWER 8.0 Release Notes](https://github.com/MATPOWER/matpower/blob/master/docs/relnotes/MATPOWER-Release-Notes-8.0.md)
+8. [MP-Element GitHub (historical)](https://github.com/MATPOWER/mp-element)
+9. [MOST GitHub](https://github.com/MATPOWER/most)
+10. [MOST User's Manual (PDF)](https://matpower.org/docs/MOST-manual.pdf)
+11. [matpower-pip on PyPI](https://pypi.org/project/matpower/)
+12. [matpowercaseframes on PyPI](https://pypi.org/project/matpowercaseframes/)
+13. [pandapower MATPOWER converter docs](https://pandapower.readthedocs.io/en/latest/converter/matpower.html)
+14. [GitHub Issue #134: Run MATPOWER from Python](https://github.com/MATPOWER/matpower/issues/134)
+15. [MATPOWER OPF Architecture slides (PSERC)](http://www.pserc.cornell.edu/matpower/MATPOWER-OPF-slides.pdf)
+16. [MATPOWER User's Manual 8.1 (PDF)](https://matpower.org/docs/MATPOWER-manual.pdf)
+17. Source files in `/workspace/evaluations/matpower/matpower8.1/lib/` (see individual section citations)
+
+## Gaps and Uncertainties
+
+- **MP-Core extension composition**: It is unclear how conflicts are resolved when multiple extensions modify the same element class (e.g., two extensions both replacing `mp.mme_gen_opf_ac`). The documentation does not describe priority or ordering rules for conflicting element class modifiers across extensions.
+- **MOST and MP-Core integration**: MOST still uses the legacy framework and has not been ported to the MP-Core extension architecture. A [GitHub issue](https://github.com/MATPOWER/most/issues/8) requests user-defined variables/constraints/costs in MOST, which remains open.
+- **No native CSV/JSON/DataFrame export**: All interoperability with Python/pandas requires third-party bridges. The quality and maintenance status of `matpowercaseframes` and `matpower-pip` should be independently verified.
+- **NetworkX bridge**: No documented or maintained bridge exists between MATPOWER's sparse matrices and NetworkX graph objects. Manual conversion is straightforward but undocumented.
+- **PYPOWER staleness**: PYPOWER is a port of MATPOWER 4.1 (circa 2011) and lacks all features from MATPOWER 5-8. It should not be considered a current interoperability path.
+- **Three-phase support maturity**: The `mp.xt_3p` extension is described as a "prototype" in the source code. Its production readiness and completeness are uncertain.
+- **Documentation gaps**: Technical Note 5 (TN5-MP-Element.pdf) provides mathematical details on the element model but is a dense PDF without web-searchable content. The dev manual's "How To" section returned 404 for the constraint guide at one URL path, suggesting documentation is still being reorganized.

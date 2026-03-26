@@ -3,8 +3,8 @@ test_id: A-1
 tool: matpower
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: v2
 test_hash: "05bc255c"
 status: pass
 workaround_class: null
