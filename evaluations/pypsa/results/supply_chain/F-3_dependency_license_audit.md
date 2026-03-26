@@ -3,118 +3,113 @@ test_id: F-3
 tool: pypsa
 dimension: supply_chain
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: ac2a9361
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 15e985d9
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+loc: null
+solver: null
+timestamp: 2026-03-24T14:00:00Z
 ---
 
 # F-3: Dependency License Audit
 
-## Findings
+## Result: QUALIFIED PASS
 
-### License Inventory
+## Finding
 
-All runtime dependencies were audited via `importlib.metadata`. Licenses
-grouped by type:
+One direct dependency (`Levenshtein`) carries a GPL-2.0-or-later license (strong copyleft). Two transitive dependencies (`certifi`, `tqdm`) carry MPL-2.0 (weak copyleft). All remaining 85 packages are permissively licensed (MIT, BSD, Apache 2.0, PSF, HPND). A `license-flags` observation has been emitted.
 
-#### Permissive (MIT, BSD, Apache 2.0, PSF) — No Concerns
+## Evidence
 
-| Package | License | Type |
-|---------|---------|------|
-| pypsa | MIT | Core |
-| numpy | BSD 3-Clause | Computation |
-| scipy | BSD 3-Clause | Computation |
-| pandas | BSD 3-Clause | Data |
-| xarray | Apache 2.0 | Data |
-| linopy | MIT | Optimization |
-| highspy | MIT | Solver |
-| matplotlib | PSF | Visualization |
-| plotly | MIT | Visualization |
-| seaborn | BSD 3-Clause | Visualization |
-| networkx | BSD 3-Clause | Graph |
-| geopandas | BSD 3-Clause | Geospatial |
-| shapely | BSD 3-Clause | Geospatial |
-| deprecation | Apache 2.0 | Utility |
-| validators | MIT | Utility |
-| rapidfuzz | MIT | Utility (transitive) |
-| pydantic | MIT | Validation |
-| pandera | MIT | Validation |
-| requests | Apache 2.0 | HTTP |
-| google-cloud-storage | Apache 2.0 | Cloud |
-| google-api-core | Apache 2.0 | Cloud |
-| google-auth | Apache 2.0 | Cloud |
-| jinja2 | BSD 3-Clause | Template |
-| pillow | HPND | Image |
-| polars | MIT | Data |
-| dask | BSD 3-Clause | Parallel |
+Full license audit of all 88 installed packages performed via `importlib.metadata` on 2026-03-24. Every direct and transitive runtime dependency was checked.
 
-#### Weak Copyleft (MPL-2.0) — Low Concern
+### Permissive Licenses (No Concerns) — 85 packages
 
-| Package | License | Notes |
-|---------|---------|-------|
-| certifi | MPL-2.0 | CA certificate bundle. File-level copyleft only — does not propagate to calling code. Standard in Python ecosystem. |
-| tqdm | MPL-2.0 AND MIT | Dual-licensed. MIT option available. |
+| Package | Version | License |
+|---------|---------|---------|
+| pypsa | 1.1.2 | MIT |
+| numpy | 2.3.5 | BSD 3-Clause |
+| scipy | 1.16.3 | BSD 3-Clause |
+| pandas | 2.3.3 | BSD 3-Clause |
+| xarray | 2026.2.0 | Apache 2.0 |
+| linopy | 0.6.4 | MIT |
+| highspy | 1.13.1 | MIT |
+| matplotlib | 3.10.8 | PSF/matplotlib |
+| plotly | 6.6.0 | MIT |
+| seaborn | 0.13.2 | BSD 3-Clause |
+| networkx | 3.6.1 | BSD 3-Clause |
+| geopandas | 1.1.2 | BSD 3-Clause |
+| shapely | 2.1.2 | BSD 3-Clause |
+| deprecation | 2.1.0 | Apache 2.0 |
+| validators | 0.35.0 | MIT |
+| RapidFuzz | 3.14.3 | MIT |
+| pydantic | 2.12.5 | MIT |
+| pandera | 0.26.1 | MIT |
+| requests | 2.32.5 | Apache 2.0 |
+| google-cloud-storage | 3.9.0 | Apache 2.0 |
+| google-api-core | 2.30.0 | Apache 2.0 |
+| google-auth | 2.48.0 | Apache 2.0 |
+| google-cloud-core | 2.5.0 | Apache 2.0 |
+| google-crc32c | 1.8.0 | Apache 2.0 (PyPI verified; metadata field empty) |
+| google-resumable-media | 2.8.0 | Apache 2.0 |
+| googleapis-common-protos | 1.72.0 | Apache 2.0 |
+| dask | 2026.1.2 | BSD 3-Clause |
+| polars | 1.38.1 | MIT |
+| pillow | 12.1.1 | MIT-CMU (HPND) |
+| Jinja2 | 3.1.6 | BSD |
+| netCDF4 | 1.7.3 | MIT |
+| pydeck | 0.9.1 | Apache 2.0 |
+| cryptography | 46.0.5 | Apache 2.0 / BSD 3-Clause (dual) |
+| cffi | 2.0.0 | MIT |
+| click | 8.3.1 | BSD 3-Clause |
+| idna | 3.11 | BSD 3-Clause |
+| pyomo | 6.10.0 | BSD 3-Clause |
+| packaging | 25.0 | Apache 2.0 |
+| typing_extensions | 4.15.0 | PSF-2.0 |
+| (remaining ~47 packages) | various | MIT/BSD/Apache 2.0 |
 
-#### Strong Copyleft (GPL) — FLAGGED
+### Weak Copyleft (MPL-2.0) — Low Concern
 
-| Package | License | Notes |
-|---------|---------|-------|
-| **Levenshtein** | **GPL-2.0-or-later** | Direct dependency of PyPSA. Used for fuzzy string matching in component name validation. |
+| Package | Version | License | Notes |
+|---------|---------|---------|-------|
+| certifi | 2026.2.25 | MPL-2.0 | CA certificate bundle. File-level copyleft only; does not propagate to calling code. Standard in virtually all Python HTTP stacks. |
+| tqdm | 4.67.3 | MPL-2.0 AND MIT | Dual-licensed. MIT option available, so MPL does not apply. |
+
+### Strong Copyleft (GPL) — FLAGGED
+
+| Package | Version | License | Notes |
+|---------|---------|---------|-------|
+| **Levenshtein** | **0.27.3** | **GPL-2.0-or-later** | Direct dependency of PyPSA. Used for fuzzy string matching in component name validation (UX feature, not computational). |
+
+### Packages with Unclear Metadata (Verified Manually)
+
+| Package | Metadata Status | Verified License |
+|---------|----------------|-----------------|
+| google-crc32c | No License field or classifiers | Apache 2.0 (verified on PyPI) |
+| cycler | License text only (no SPDX) | BSD 3-Clause (classifier: OSI Approved :: BSD License) |
+| kiwisolver | License text only (no SPDX) | BSD 3-Clause (classifier: OSI Approved :: BSD License) |
 
 ### Levenshtein GPL-2.0 Analysis
 
-**License-Expression** (from package metadata): `GPL-2.0-or-later`
+- **License-Expression**: `GPL-2.0-or-later` (confirmed from package metadata)
+- **Usage in PyPSA**: Imported in component validation code for fuzzy matching of mistyped attribute names. Convenience/UX feature, not computational.
+- **Conservative interpretation** (FSF position): importing a GPL library makes the combined work a derivative, requiring GPL-compatible distribution terms.
+- **Internal use**: GPL imposes no additional obligations for internal-only use (no redistribution).
+- **Mitigation**: Replaceable with `rapidfuzz` (MIT, already a transitive dependency of Levenshtein) or could be made optional.
 
-**Usage in PyPSA**: The `levenshtein` package is imported in PyPSA's
-component validation code to suggest corrections when users mistype
-component attribute names. It is a convenience feature, not a
-computational dependency.
+## Workarounds
 
-**Risk assessment**:
-- The GPL-2.0-or-later license requires that derivative works be
-  distributed under GPL-compatible terms
-- Whether importing a GPL library makes the importing code a "derivative
-  work" is a legal gray area, but the conservative interpretation (FSF
-  position) is that it does
-- PyPSA itself is MIT-licensed, which is GPL-compatible for distribution
-  purposes (MIT code can be incorporated into GPL projects, but the reverse
-  requires the combined work to be GPL)
-- For ZGE's use case (internal use, not redistribution), GPL does not
-  impose additional obligations
-- For redistribution scenarios, legal counsel should evaluate
+- **What:** The GPL-2.0 `levenshtein` dependency can be replaced with `rapidfuzz` (MIT) for fuzzy matching, or the import can be made optional.
+- **Why:** GPL-2.0-or-later creates copyleft propagation risk in redistribution scenarios.
+- **Durability:** stable — rapidfuzz is already installed as a transitive dependency; switching requires a one-line code change in PyPSA.
+- **Grade impact:** Qualified pass rather than full pass due to the copyleft finding. Does not affect internal-use deployments.
 
-**Mitigation**: The `levenshtein` package could be replaced with the
-MIT-licensed `rapidfuzz` (which is already a transitive dependency of
-`levenshtein`) or the functionality could be made optional.
+## Implications
 
-### Packages with Unclear License Metadata
-
-Several packages lack explicit license fields in their metadata but have
-OSI-approved classifiers or well-known licenses:
-
-| Package | Metadata | Actual License |
-|---------|----------|----------------|
-| cffi | No field | MIT (PyPI) |
-| click | No field | BSD 3-Clause (PyPI) |
-| cryptography | No field | Apache 2.0 / BSD (dual) |
-| dask | No field | BSD 3-Clause (PyPI) |
-| idna | No field | BSD 3-Clause (PyPI) |
-| netCDF4 | No field | MIT (PyPI) |
-| pyomo | No field | BSD 3-Clause (PyPI) |
-| pydantic | No field | MIT (PyPI) |
-
-All verified as permissive upon manual PyPI check.
-
-## Qualification Reason
-
-Qualified pass due to the GPL-2.0-or-later `levenshtein` dependency.
-This is a direct dependency declared in PyPSA's `pyproject.toml`. While
-it does not affect internal-use-only deployments, it creates a copyleft
-concern for redistribution scenarios.
-
-## Recorded Metrics
-
-- flagged_licenses: 1 (Levenshtein: GPL-2.0-or-later)
+The single GPL dependency is a known issue in the PyPSA community. For ZGE's internal-use scenario, this carries no legal obligation. For redistribution scenarios, legal counsel should evaluate. The `license-flags` observation documents this finding for downstream consumption.

@@ -4,35 +4,35 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: pypsa
 severity: low
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
-# Observation: No formulation difference — PyPSA DCPF matches MATPOWER exactly after branch status fix
+# Observation: No formulation difference -- PyPSA DCPF matches MATPOWER at machine precision after branch status fix
 
 ## Finding
 
-PyPSA's DCPF solution (`n.lpf()`) produces **zero deviation** from the MATPOWER reference
-on the 27,862-bus FNM main island when loaded via the shared `matpower_loader.load_pypsa()`.
-100% of buses and 100% of branches match exactly. Both tools use the same B-matrix
-formulation: `b = 1/(x * tap)` (MATPOWER's `makeBdc.m` and PyPSA's `calculate_B_H` are
-equivalent).
+PyPSA's DCPF solution (`n.lpf()`) produces deviations at float64 machine-precision level
+from the MATPOWER reference on the 27,862-bus FNM main island when loaded via the shared
+`matpower_loader.load_pypsa()`. Max bus angle deviation: 1.073352e-08 degrees. Max branch
+flow deviation: 5.757744e-07 %. 100% of buses and 100% of branches pass all thresholds.
+Both tools use the same B-matrix formulation.
 
 ## Context
 
-The original G-FNM-3 run (without the shared loader) showed 91% bus angle failures and
-87,054% max branch flow deviation. Investigation identified the root cause as
-`import_from_pypower_ppc` ignoring MATPOWER's `BR_STATUS` column — 74 inactive branches
-were included in the DCPF, distorting the B-matrix globally. The shared loader adds a
-branch-status patch that correctly deactivates these branches.
+The network contains 9,481 transformers, of which 2,358 have tap ratios != 1.0 (range
+[0.7894, 1.4165]). Despite this significant transformer population with off-nominal taps,
+no systematic formulation difference is observed. PyPSA's `calculate_B_H` and MATPOWER's
+`makeBdc.m` produce equivalent B-matrix constructions when the branch status patch is
+applied.
 
-The `b = 1/x` transformer susceptance patch in the loader has no effect on DCPF results
-because PyPSA's `calculate_B_H` recomputes susceptance from `x_pu_eff` internally,
-bypassing the `b` attribute. The formulations are identical; the deviation was purely a
-data import issue.
+Bus injection power balance was verified on all 27,862 non-excluded buses using post-solve
+generator dispatch values. Maximum bus mismatch: 1.317039e-07 MW. All buses balanced
+within 1.000000e-03 MW tolerance.
 
 ## Implications
 
 No formulation difference exists between PyPSA and MATPOWER for DCPF on this network.
 The `import_from_pypower_ppc` branch status bug is documented in the shared
-`matpower_loader` and workaround-classified as `stable`. Tools that bypass this function
-(e.g., pandapower's native `from_mpc`) would not be affected.
+`matpower_loader` and workaround-classified as `stable`. The previous v10 result reported
+"0.0" deviations due to display rounding; the v11 result uses scientific notation to
+correctly show the float64 numerical noise floor.

@@ -3,30 +3,37 @@ test_id: F-7
 tool: pypsa
 dimension: supply_chain
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: 462a162d
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 462a162d
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+loc: null
+solver: null
+timestamp: 2026-03-24T14:00:00Z
 ---
 
 # F-7: Air-Gap Installability
 
-## Findings
+## Result: PASS
 
-### Offline Installation Feasibility
+## Finding
 
-**Yes, fully feasible.** PyPSA and all dependencies can be installed
-offline using standard Python packaging tools.
+PyPSA and all 88 dependencies can be installed fully offline using standard Python packaging tools (`pip download` / `pip install --no-index`). No runtime network access is required for core power-system computation.
 
-### Methodology
+## Evidence
+
+### Offline Installation Methodology
 
 1. **Download phase** (requires network):
    ```bash
    pip download pypsa --dest ./offline_packages/
+   # or: uv pip download pypsa -o ./offline_packages/
    ```
-   This downloads PyPSA and all transitive dependencies as wheel files.
 
 2. **Install phase** (air-gapped):
    ```bash
@@ -35,41 +42,29 @@ offline using standard Python packaging tools.
 
 ### Package Format Analysis
 
-- **PyPSA itself**: Pure Python wheel (`py3-none-any.whl`). No
-  platform-specific compilation needed.
-- **Platform-dependent wheels**: numpy, scipy, highspy, shapely, pyproj,
-  pyogrio, netCDF4, and Levenshtein/rapidfuzz ship pre-built wheels for
-  Linux (manylinux), macOS, and Windows. These wheels must be downloaded
-  for the target platform.
-- **No source-only packages**: All dependencies have pre-built wheels
-  available on PyPI for common platforms.
+- **PyPSA**: Pure Python wheel (`py3-none-any.whl`). No compilation needed.
+- **Platform-dependent wheels**: numpy, scipy, highspy, shapely, pyproj, pyogrio, netCDF4, Levenshtein/rapidfuzz ship pre-built manylinux wheels for Linux x86_64. All available on PyPI.
+- **No source-only packages**: All 88 dependencies have pre-built wheels for common platforms.
 
 ### Runtime Network Dependencies
 
-**No runtime network access required** for core functionality:
-- Power flow (`n.lpf()`, `n.pf()`) operates entirely in-memory
-- Optimization (`n.optimize()`) operates entirely in-memory
-- File I/O (NetCDF, CSV, HDF5) uses local filesystem only
+**None required** for core functionality:
 
-Optional features that require network access:
-- `google-cloud-storage` integration (for loading/saving models to GCS)
-- Remote URL loading via `pypsa.Network("https://...")`
-- The `certifi` CA bundle is pulled as a dependency but is not used in
-  core computation
+| Feature | Network Required | Notes |
+|---------|:---------------:|-------|
+| `n.lpf()` (DCPF) | No | In-memory computation |
+| `n.pf()` (ACPF) | No | In-memory computation |
+| `n.optimize()` (OPF) | No | In-memory computation |
+| File I/O (NetCDF, CSV) | No | Local filesystem only |
+| GCS model storage | Yes | Optional, via google-cloud-storage |
+| Remote URL loading | Yes | Optional, `pypsa.Network("https://...")` |
 
 ### Air-Gap Constraints
 
-1. The `google-cloud-storage` dependency chain (~8 packages) will be
-   downloaded but serves no purpose in an air-gapped environment. This
-   is wasted space (~5 MB) but not a functional issue.
-2. Platform-specific wheels must be pre-downloaded for the exact OS/arch
-   combination. For Linux x86_64 (the evaluation platform), manylinux
-   wheels are available for all packages.
-3. `pip download` or `uv pip compile` handles the full transitive closure
-   automatically.
+1. The `google-cloud-storage` transitive chain (~8 packages, ~5 MB) is downloaded but unused in air-gapped environments. Wasted space, not a functional issue.
+2. Platform-specific wheels must be pre-downloaded for the target OS/architecture. manylinux wheels cover standard Linux x86_64.
+3. `pip download` / `uv pip compile` handles the full transitive closure automatically.
 
-## Recorded Metrics
+## Implications
 
-- offline_installable: yes (via pip download + pip install --no-index)
-- runtime_network_deps: none for core functionality; optional GCS and
-  remote URL features require network
+Fully air-gap installable with no runtime network dependencies for power-system computation. The offline installation path uses standard Python tooling with no custom steps required.

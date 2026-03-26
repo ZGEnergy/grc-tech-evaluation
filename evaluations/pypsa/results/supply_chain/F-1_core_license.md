@@ -3,47 +3,50 @@ test_id: F-1
 tool: pypsa
 dimension: supply_chain
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: c0a27872
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: c0a27872
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+loc: null
+solver: null
+timestamp: 2026-03-24T14:00:00Z
 ---
 
 # F-1: Core License
 
-## Findings
+## Result: PASS
 
-### License Type
+## Finding
 
-**MIT License** (permissive).
+PyPSA v1.1.2 is licensed under the **MIT License** (permissive, OSI-approved). No copyleft or proprietary restrictions on the core package.
 
-Confirmed via:
-- PyPI metadata: `License :: OSI Approved :: MIT License`
-- `pyproject.toml`: `license = { file = "LICENSE" }` with MIT classifier
-- GitHub repository LICENSE file
-- SPDX headers in source files: `SPDX-License-Identifier: MIT`
+## Evidence
 
-### Full License Text
+- **Package metadata** (`importlib.metadata`): `License: MIT License`
+- **PyPI classifiers**: `License :: OSI Approved :: MIT License`
+- **`pyproject.toml`**: `license = { file = "LICENSE" }` with MIT classifier
+- **GitHub repository**: LICENSE file contains standard MIT text with copyright held by "PyPSA Contributors"
+- **SPDX headers**: Source files contain `SPDX-License-Identifier: MIT`
 
-Standard MIT License with copyright held by "PyPSA Contributors."
+### License Flags
 
-### Flags
+| Flag | Status |
+|------|--------|
+| Copyleft | No |
+| Proprietary | No |
+| Commercial use | Permitted without restriction |
+| Modification | Permitted without restriction |
+| Distribution | Permitted with attribution (copyright notice) |
 
-- **Copyleft**: No. MIT is permissive.
-- **Proprietary**: No.
-- **Commercial use**: Permitted without restriction.
-- **Modification**: Permitted without restriction.
-- **Distribution**: Permitted with attribution.
+### Note on Dependency Chain
 
-### Note on Dependency License
+While PyPSA itself is MIT, the `levenshtein` direct dependency is GPL-2.0-or-later (see F-3 for full analysis). This creates a potential copyleft propagation concern in the dependency chain but does not affect the core package license classification.
 
-While PyPSA itself is MIT, the `levenshtein` dependency is GPL-2.0-or-later
-(see F-3 for details). This creates a potential copyleft propagation concern
-in the dependency chain.
+## Implications
 
-## Recorded Metrics
-
-- license_type: MIT
-- flags: none on core package; see F-3 for dependency flag
+MIT license is fully compatible with commercial deployment, redistribution, and modification. No supply chain license risk from the core package itself.
