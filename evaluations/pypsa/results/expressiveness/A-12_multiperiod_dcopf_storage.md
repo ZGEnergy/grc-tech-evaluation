@@ -3,25 +3,28 @@ test_id: A-12
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: bb8a8930
-status: pass
+status: qualified_pass
 workaround_class: fragile
 blocked_by: null
-wall_clock_seconds: 6.86
+wall_clock_seconds: 7.32
 timing_source: measured
 peak_memory_mb: 123.89
 convergence_residual: null
 convergence_iterations: null
-loc: 432
+convergence_evidence_quality: null
+loc: 433
 solver: HiGHS
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-12: Solve 24-hour multi-period DCOPF with storage and congestion on TINY
 
-## Result: PASS
+## Result: QUALIFIED PASS
+
+All three pass conditions met. Branch shadow price extraction required a fragile workaround (linopy model internals) because PyPSA v1.1.2 does not populate `n.lines_t.mu_upper`/`mu_lower` after `n.optimize()`.
 
 ## Approach
 
@@ -57,7 +60,7 @@ All 24 hours had at least 2 branches with non-zero shadow prices. Hours 7-12 and
 |--------|-------|
 | Charge hours | 5 (h01-h05) |
 | Discharge hours | 4 (h16-h19) |
-| Mean LMP at bus 16 during discharge | $109.09/MWh |
+| Mean LMP at bus 16 during discharge | $109.10/MWh |
 | Mean LMP at bus 16 during charge | $40.22/MWh |
 | Total charged | 217.4 MWh |
 | Total discharged | 190.0 MWh |
@@ -88,13 +91,13 @@ LMPs show strong spatial and temporal variation, with negative prices at off-pea
 ## Workarounds
 
 - **What:** Branch shadow prices extracted from linopy model constraint duals (`n.model.constraints['Line-fix-s-upper'].dual`) instead of the documented `n.lines_t.mu_upper`/`mu_lower` attributes.
-- **Why:** `n.lines_t.mu_upper` and `n.lines_t.mu_lower` are empty after `n.optimize()` in PyPSA v1.1.2. The solver log confirms shadow prices were computed ("shadow-prices of the constraints ... were not assigned to the network"), indicating a PyPSA post-solve assignment bug.
+- **Why:** `n.lines_t.mu_upper` and `n.lines_t.mu_lower` are empty after `n.optimize()` in PyPSA v1.1.2. The solver log confirms shadow prices were computed but "were not assigned to the network", indicating a PyPSA post-solve assignment bug [tool-specific].
 - **Durability:** fragile -- depends on the internal linopy constraint naming convention (`Line-fix-s-upper`), which is not part of PyPSA's public API and could change in future versions.
-- **Grade impact:** The workaround only affects shadow price extraction for pass condition 1. The BESS arbitrage (condition 2) and SoC feasibility (condition 3) use standard public API attributes (`n.buses_t.marginal_price`, `n.storage_units_t.p`, `n.storage_units_t.state_of_charge`).
+- **Grade impact:** The workaround only affects shadow price extraction for pass condition 1. The BESS arbitrage (condition 2) and SoC feasibility (condition 3) use standard public API attributes (`n.buses_t.marginal_price`, `n.storage_units_t.p`, `n.storage_units_t.state_of_charge`). Status is qualified_pass rather than pass due to the fragile workaround.
 
 ## Timing
 
-- **Wall-clock:** 6.86s (total), 1.77s (solve only)
+- **Wall-clock:** 7.32s (total), 1.91s (solve only)
 - **Timing source:** measured
 - **Peak memory:** 123.89 MB
 - **Solver iterations:** 845 simplex + 538 QP ASM

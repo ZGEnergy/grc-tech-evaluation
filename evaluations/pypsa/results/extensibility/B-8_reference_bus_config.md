@@ -3,20 +3,21 @@ test_id: B-8
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: 8c18d155
+protocol_version: v11
+skill_version: v2
+test_hash: dad5cf97
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 2.16
+wall_clock_seconds: 2.36
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 244
+convergence_evidence_quality: null
+loc: 247
 solver: HiGHS
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-8: Solve DC OPF on TINY with three different slack configurations
@@ -43,7 +44,7 @@ Solver settings: HiGHS, time_limit=300, presolve=on, threads=1.
 | Bus 1 | 1 | 370,208.16 | 10.00 | 763.27 | 753.27 |
 | Bus 20 | 20 | 370,208.16 | 10.00 | 763.27 | 753.27 |
 
-**Key finding**: All three configurations produce *identical* objectives and LMPs. This is mathematically correct for DCOPF. In PyPSA's LP-based DCOPF formulation (`n.optimize()`), the slack bus determines which bus angle is fixed to zero, but the LP dual variables (LMPs) are invariant to this choice because the formulation uses nodal power balance constraints. The shift in the angle reference cancels out in the dual space.
+**Key finding**: All three configurations produce identical objectives and LMPs. This is mathematically correct for DCOPF. In PyPSA's LP-based DCOPF formulation (`n.optimize()`), the slack bus determines which bus angle is fixed to zero, but the LP dual variables (LMPs) are invariant to this choice because the formulation uses nodal power balance constraints. The shift in the angle reference cancels out in the dual space.
 
 This contrasts with DCPF (`n.lpf()`), where the slack bus affects the power balance by absorbing all network losses/imbalances. For OPF, the optimizer determines dispatch independently of the reference angle.
 
@@ -63,7 +64,7 @@ None required. The `control` column on `n.buses` is a documented public attribut
 
 ## Timing
 
-- **Wall-clock:** 2.16s (total for all 3 configs)
+- **Wall-clock:** 2.36s (total for all 3 configs)
 - **Timing source:** measured
 - **Peak memory:** not measured
 

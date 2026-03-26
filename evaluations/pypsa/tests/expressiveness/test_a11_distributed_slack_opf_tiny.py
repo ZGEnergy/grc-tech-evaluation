@@ -286,7 +286,7 @@ def run(network_file: str = DEFAULT_NETWORK, timeseries_dir: str | None = None) 
         # because the PF-context distributed slack IS a meaningful capability.
 
         if pf_distributed_success:
-            results["status"] = "qualified_pass"
+            results["status"] = "partial_pass"
             results["details"]["pass_rationale"] = (
                 "PyPSA supports distribute_slack=True in n.pf() (Newton-Raphson AC power flow) "
                 "with settable slack_weights parameter (p_set, p_nom, custom). "

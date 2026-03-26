@@ -3,20 +3,20 @@ test_id: B-5
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: 3d423124
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.20
+wall_clock_seconds: 1.36
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 141
+loc: 136
 solver: null
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-5: Export DCPF results from A-1 to pandas DataFrame and write to CSV
@@ -81,14 +81,14 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 1.20s (includes network loading, DCPF solve, CSV write, and verification)
+- **Wall-clock:** 1.36s (includes network loading, DCPF solve, CSV write, and verification)
 - **Timing source:** measured
 - **Peak memory:** not measured (not required for extensibility test)
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/extensibility/test_b5_interoperability.py`
+**Path:** `evaluations/pypsa/tests/extensibility/test_b5_interoperability_tiny.py`
 
 The core export is trivially simple because PyPSA's entire data model is built on pandas
 DataFrames. There is no impedance mismatch between PyPSA's internal representation and
-the export format — they are the same thing.
+the export format -- they are the same thing.

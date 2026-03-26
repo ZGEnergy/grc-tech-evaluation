@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-1
 tool: pypsa
 severity: high
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # Observation: PyPSA has no PSS/E or intermediate CSV ingestion path
