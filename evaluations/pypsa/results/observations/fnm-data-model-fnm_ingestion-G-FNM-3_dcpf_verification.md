@@ -4,10 +4,10 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: pypsa
 severity: medium
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
-# Observation: import_from_pypower_ppc ignores MATPOWER branch status — fixed by shared loader
+# Observation: import_from_pypower_ppc ignores MATPOWER branch status -- fixed by shared loader
 
 ## Finding
 
@@ -19,13 +19,14 @@ participate in the DCPF B-matrix when they should be excluded.
 
 ## Context
 
-This bug caused the original G-FNM-3 to fail with 91% bus angle failures and 87,054%
+This bug caused the original G-FNM-3 (v10) to fail with 91% bus angle failures and 87,054%
 max branch flow deviation. After applying the shared `matpower_loader.load_pypsa()`
 which includes a branch status patch (`active = False` for branches with `status == 0`),
-G-FNM-3 passes with 0.0 deviation across all 27,862 buses and 32,532 active branches.
+G-FNM-3 passes with deviations at float64 machine-precision level (max bus angle
+deviation: 1.073352e-08 deg, max branch flow deviation: 5.757744e-07 %).
 
-The `import_from_pypower_ppc` warning — "Note that when importing from PYPOWER, some
-PYPOWER features not supported: areas, gencosts, component status" — documents this
+The `import_from_pypower_ppc` warning -- "Note that when importing from PYPOWER, some
+PYPOWER features not supported: areas, gencosts, component status" -- documents this
 limitation but is easy to overlook. The shared loader addresses it deterministically.
 
 ## Implications

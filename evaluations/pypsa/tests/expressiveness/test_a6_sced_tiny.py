@@ -390,6 +390,111 @@ def run(
             )
 
         # -------------------------------------------------------------------
+        # Ramp binding evidence (mandatory):
+        # 1. Extract ramp duals from the baseline ED solve
+        # 2. Re-run ED with ramps at 50% of baseline to get binding duals
+        # 3. If 50% also infeasible, try graduated reductions
+        # -------------------------------------------------------------------
+        print("\n=== RAMP BINDING EVIDENCE ===")
+        ramp_binding_evidence = False
+        ramp_binding_details = {}
+
+        # First: extract ramp duals from the baseline ED solve (n2)
+        try:
+            model2 = n2.model
+            baseline_ramp_duals = {}
+            for cname in model2.constraints:
+                if "ramp" in cname.lower():
+                    dual_vals = model2.constraints[cname].dual
+                    if dual_vals is not None:
+                        max_dual = float(abs(dual_vals).max().values)
+                        n_binding = int((abs(dual_vals) > 1e-6).sum().values)
+                        baseline_ramp_duals[cname] = {
+                            "max_dual": max_dual,
+                            "n_binding": n_binding,
+                        }
+                        if max_dual > 1e-6:
+                            ramp_binding_evidence = True
+            ramp_binding_details["baseline_ramp_duals"] = baseline_ramp_duals
+            print(f"  Baseline ED ramp duals: {baseline_ramp_duals}")
+        except Exception as e:
+            ramp_binding_details["baseline_dual_error"] = str(e)
+            print(f"  Baseline dual extraction error: {e}")
+
+        # Second: try reduced ramp runs at decreasing fractions
+        for ramp_fraction in [0.50, 0.30, 0.10]:
+            try:
+                n3 = load_pypsa(network_file)
+                n3.set_snapshots(snapshots)
+                _, _ = setup_uc_parameters(n3, snapshots, ts_dir)
+                n3.generators["committable"] = False
+                n3.generators["min_up_time"] = 0
+                n3.generators["min_down_time"] = 0
+                n3.generators["start_up_cost"] = 0.0
+                n3.generators_t.p_min_pu = p_min_pu_df.copy()
+                n3.generators_t.p_max_pu = p_max_pu_df.copy()
+
+                # Reduce ramp limits
+                for g in gen_names:
+                    if g in ramp_limits_pu:
+                        n3.generators.at[g, "ramp_limit_up"] = ramp_limits_pu[g] * ramp_fraction
+                        n3.generators.at[g, "ramp_limit_down"] = ramp_limits_pu[g] * ramp_fraction
+
+                ramp_bind_status, _ = n3.optimize(
+                    snapshots=snapshots,
+                    solver_name=SOLVER_NAME,
+                    solver_options=SOLVER_OPTIONS_LP,
+                )
+                frac_key = f"ramp_{int(ramp_fraction * 100)}pct"
+
+                if str(ramp_bind_status).lower() in ("ok", "optimal"):
+                    model3 = n3.model
+                    reduced_duals = {}
+                    for cname in model3.constraints:
+                        if "ramp" in cname.lower():
+                            dual_vals = model3.constraints[cname].dual
+                            if dual_vals is not None:
+                                max_dual = float(abs(dual_vals).max().values)
+                                n_bind = int((abs(dual_vals) > 1e-6).sum().values)
+                                reduced_duals[cname] = {
+                                    "max_dual": max_dual,
+                                    "n_binding": n_bind,
+                                }
+                                if max_dual > 1e-6:
+                                    ramp_binding_evidence = True
+
+                    ramp_binding_details[frac_key] = {
+                        "status": "optimal",
+                        "objective": float(n3.objective),
+                        "ramp_duals": reduced_duals,
+                    }
+                    print(
+                        f"  {int(ramp_fraction * 100)}% ramp: optimal, obj=${float(n3.objective):,.2f}"
+                    )
+                    print(f"    Ramp duals: {reduced_duals}")
+                    if ramp_binding_evidence:
+                        break  # found binding evidence, stop
+                else:
+                    ramp_binding_details[frac_key] = {
+                        "status": "infeasible",
+                        "note": "Ramp constraints too tight — proves enforcement",
+                    }
+                    # Infeasibility at reduced ramps IS evidence of enforcement
+                    ramp_binding_evidence = True
+                    print(
+                        f"  {int(ramp_fraction * 100)}% ramp: INFEASIBLE (ramp enforcement confirmed)"
+                    )
+                    break
+            except Exception as rbe:
+                ramp_binding_details[f"ramp_{int(ramp_fraction * 100)}pct"] = {"error": str(rbe)}
+                print(f"  {int(ramp_fraction * 100)}% ramp error: {rbe}")
+
+        ramp_binding_details["confirmed"] = ramp_binding_evidence
+        results["details"]["ramp_binding_evidence"] = ramp_binding_details
+        results["details"]["ramp_binding_confirmed"] = ramp_binding_evidence
+        print(f"  Ramp binding evidence confirmed: {ramp_binding_evidence}")
+
+        # -------------------------------------------------------------------
         # Pass condition evaluation
         # -------------------------------------------------------------------
         ed_feasible = True

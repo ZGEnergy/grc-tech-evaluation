@@ -3,20 +3,20 @@ test_id: A-10
 tool: pypsa
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: 0a550931
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.93
+wall_clock_seconds: 2.21
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
 loc: 332
 solver: HiGHS
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # A-10: Lossy DC OPF with LMP Decomposition
@@ -59,10 +59,10 @@ Network loaded via shared `matpower_loader.load_pypsa()`. Marginal costs overrid
 | Metric | Value |
 |--------|-------|
 | Slack bus | Bus 31 |
-| Energy component (slack LMP) | $617.29/MWh |
+| Energy component (slack LMP) | $627.29/MWh |
 | Loss component range | [-617.3, +165.5] $/MWh |
 | Buses with non-zero loss component | 37 of 39 |
-| Buses with LMP change (lossy vs lossless) | 38 of 39 |
+| Buses with LMP change (lossy vs lossless) | 31 of 39 |
 
 ### Congestion Rents
 
@@ -78,7 +78,7 @@ Network loaded via shared `matpower_loader.load_pypsa()`. Marginal costs overrid
 | (a) Non-zero loss components present | PASS |
 | (b) Losses = 0.761% of load (0.5-3% range) | PASS |
 | (c) Lossy obj >= Lossless obj | PASS |
-| (d) Bus LMPs change between lossy and lossless | PASS (38/39 buses) |
+| (d) Bus LMPs change between lossy and lossless | PASS (31/39 buses) |
 
 All four consistency checks passed. The loss-inclusive LMPs show physically correct behavior: losses are in the expected 0.5-3% range, the lossy objective exceeds the lossless baseline, and loss components are non-zero on 37 of 39 buses.
 
@@ -90,7 +90,7 @@ Note: Marginal costs were overridden from the case39 default (uniform $0.30/MWh)
 
 ## Timing
 
-- **Wall-clock:** 1.93s (lossless + lossy combined)
+- **Wall-clock:** 2.21s (lossless + lossy combined)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** N/A (LP)

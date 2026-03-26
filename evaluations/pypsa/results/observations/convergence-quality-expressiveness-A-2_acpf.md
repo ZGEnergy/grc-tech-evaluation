@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-2
 tool: pypsa
 severity: low
-timestamp: 2026-03-13T23:09:44Z
+timestamp: 2026-03-24T12:01:00Z
 ---
 
 # Observation: PyPSA ACPF convergence diagnostics fully accessible

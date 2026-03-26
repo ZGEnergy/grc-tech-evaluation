@@ -3,54 +3,71 @@ test_id: D-3
 tool: pypsa
 dimension: accessibility
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: 51ab811c
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: 51ab811c
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: 2026-03-24T18:30:00Z
 ---
 
 # D-3: Example Verification
 
-## Summary
+## Result: PASS
 
-All 6 built-in PyPSA example networks load and solve without modification. Five
-additional hand-constructed examples covering core workflows (OPF, SCUC, storage,
-DCPF, ACPF) also pass without modification. No examples are silently broken.
+## Finding
 
-## Built-in Example Networks (`pypsa.examples`)
+All 6 built-in PyPSA example networks load successfully, and all 3 that were
+solve-tested run without modification. No examples are silently broken.
 
-| Example | Load | Solve | Notes |
-|---------|------|-------|-------|
-| `ac_dc_meshed` | PASS | PASS (OPF, optimal) | 9 buses, 7 lines, 6 generators. HiGHS warns about large column bounds but solves correctly. |
-| `scigrid_de` | PASS | PASS (LPF) | 585 buses, 852 lines, 1423 generators. German transmission grid. |
-| `storage_hvdc` | PASS | PASS (OPF, optimal) | 6 buses, 6 lines, 12 generators. Multi-period with storage units. |
-| `carbon_management` | PASS | N/A (large network) | 2164 buses. Imported from v0.28.0 format with version compatibility warning. |
-| `model_energy` | PASS | N/A | 2 buses. Simple energy model example. |
-| `stochastic_network` | PASS | N/A | 3 buses. Stochastic scenario network. |
+## Evidence
 
-## Hand-Constructed Workflow Examples
+### Built-in Example Networks (`pypsa.examples`)
 
-| Example | Result | Notes |
-|---------|--------|-------|
-| 2-bus OPF | PASS | Minimal network, `n.optimize()` returns optimal with correct dispatch (50 MW). |
-| SCUC with committable generators | PASS | 2 generators, one committed, one decommitted. Binary variables solve correctly. |
-| 4-snapshot storage unit | PASS | `StorageUnit` with `cyclic_state_of_charge=True`. Charge/discharge cycle visible in SoC. |
-| 3-bus DCPF | PASS | Triangle topology, `n.lpf()`. Flows distribute correctly by impedance ratio. |
-| 2-bus ACPF | PASS | `n.pf()` converges in 2 NR iterations, residual 3.4e-11. |
+Tested on PyPSA v1.1.2 inside the devcontainer (2026-03-24).
 
-## Assessment
+| Example | Load | Solve | Details |
+|---------|------|-------|---------|
+| `ac_dc_meshed` | PASS | PASS (OPF, optimal) | 9 buses, 7 lines, 6 generators. HiGHS warns about large column bounds but solves correctly. 126 simplex iterations. |
+| `scigrid_de` | PASS | PASS (LPF) | 585 buses, 852 lines, 1423 generators. German transmission grid. 24 snapshots solved via `n.lpf()`. |
+| `storage_hvdc` | PASS | PASS (OPF, optimal) | 6 buses, 6 lines, 12 generators. Multi-period with storage units. 409 simplex iterations. |
+| `carbon_management` | PASS | N/A | 2164 buses, 1489 generators. Imported from v0.28.0 format with version compatibility warning (non-blocking). |
+| `model_energy` | PASS | N/A | 2 buses, 3 generators. Simple energy model example. |
+| `stochastic_network` | PASS | N/A | 3 buses, 12 generators. Stochastic scenario network. |
 
-- **Examples that work unmodified:** 11 of 11 (100%)
+### Warnings Observed (non-blocking)
+
+- `carbon_management`: version compatibility warning (imported from PyPSA v0.28.0
+  format into v1.1.2). Loads successfully despite version gap.
+- `ac_dc_meshed`: HiGHS warns about "excessively large column bounds." Solves
+  to optimality regardless.
+- `storage_hvdc`: carrier undefined warnings (`n.sanitize()` suggested). Solves
+  to optimality regardless.
+- `ac_dc_meshed` and `scigrid_de`: zero-impedance line warnings. Non-blocking
+  for LPF; noted as potentially problematic for AC PF.
+
+### Summary Statistics
+
+- **Examples that load unmodified:** 6 of 6 (100%)
+- **Examples that solve unmodified:** 3 of 3 tested (100%)
 - **Examples requiring fixes:** 0
 - **Silently broken examples:** 0
 
-The `carbon_management` example emits a version compatibility warning (imported from
-PyPSA v0.28.0 format into v1.1.2) but loads successfully. All example networks
-download from GitHub on first use, which requires internet access -- this is documented
-behavior.
+All example networks download from GitHub on first use, which requires internet
+access. This is documented behavior in `pypsa.examples`.
+
+## Implications
 
 PyPSA's example infrastructure is reliable. The `pypsa.examples` module provides
 well-maintained network fixtures that load and solve correctly with the current
-release.
+release. The version compatibility between v0.28.0 and v1.1.2 demonstrates good
+backward compatibility for network data formats.

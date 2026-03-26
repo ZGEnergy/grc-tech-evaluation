@@ -3,68 +3,66 @@ test_id: F-6
 tool: pypsa
 dimension: supply_chain
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: e598e441
 status: pass
 workaround_class: null
-timestamp: 2026-03-13T12:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: e598e441
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+loc: null
+solver: null
+timestamp: 2026-03-24T14:00:00Z
 ---
 
 # F-6: Distribution Integrity
 
-## Findings
+## Result: PASS
+
+## Finding
+
+PyPSA is distributed via PyPI (standard Python package repository) with versioned releases, SHA-256/BLAKE2b digest hashes, and automated CI/CD release pipeline. No PGP signatures (deprecated by PyPI in 2023), no Sigstore attestations yet.
+
+## Evidence
 
 ### Distribution Channel
 
-**PyPI** (Python Package Index) — the standard Python package repository.
-
-- Package URL: https://pypi.org/project/pypsa/
-- Source URL: https://github.com/PyPSA/PyPSA
+- **Primary**: PyPI — https://pypi.org/project/pypsa/
+- **Source**: GitHub — https://github.com/PyPSA/PyPSA
 
 ### Versioned Releases
 
-**Yes.** All releases are versioned using semantic versioning. The PyPI
-release history shows 50+ versioned releases going back to the initial
-PyPI upload.
+All releases use semantic versioning. PyPI release history shows 50+ versioned releases. Current version: v1.1.2.
 
-### Release Artifacts
+### Release Artifacts (v1.1.2)
 
-For v1.1.2 (current):
-- `pypsa-1.1.2-py3-none-any.whl` — Python wheel (pure Python, platform-independent)
-- `pypsa-1.1.2.tar.gz` — Source distribution
+| Artifact | Type | Platform |
+|----------|------|----------|
+| `pypsa-1.1.2-py3-none-any.whl` | Wheel | Platform-independent (pure Python) |
+| `pypsa-1.1.2.tar.gz` | Source distribution | Platform-independent |
 
-Both artifacts include SHA-256, MD5, and BLAKE2b-256 digest hashes
-provided by PyPI's infrastructure.
+Both artifacts include SHA-256, MD5, and BLAKE2b-256 digest hashes provided by PyPI infrastructure.
 
-### Signed Artifacts
+### Signing Status
 
-**No.** PyPI indicates `has_sig: false` for both the wheel and source
-distribution. PGP signatures are not provided.
-
-This is typical for the Python ecosystem — PyPI deprecated PGP signature
-support in 2023 in favor of Trusted Publishers and Sigstore-based
-attestations. PyPSA's release workflow (`release.yml`) uses GitHub Actions,
-which enables PyPI Trusted Publishers but does not currently produce
-Sigstore attestations.
+- **PGP signatures**: No (`has_sig: false`). PyPI deprecated PGP signature uploads in 2023.
+- **Sigstore attestations**: Not yet adopted. This is a gap shared across most of the Python ecosystem.
+- **Trusted Publishers**: The release workflow uses GitHub Actions, which enables PyPI Trusted Publishers (OIDC-based provenance).
 
 ### Release Process
 
-The GitHub repository has a `release.yml` workflow that automates:
-1. Package build via `setuptools_scm` (version from git tags)
-2. Upload to PyPI
-
-Releases are tagged in git with the version number (e.g., `v1.1.2`).
+- `release.yml` GitHub Actions workflow automates build and PyPI upload
+- Version derived from git tags via `setuptools_scm`
+- Git tags match PyPI versions (e.g., `v1.1.2`)
 
 ### Flags
 
 - No unversioned tarballs or blob store artifacts
 - No mutable download URLs
-- Standard PyPI distribution channel
+- Standard PyPI distribution channel with hash verification
 
-## Recorded Metrics
+## Implications
 
-- versioned: yes (semantic versioning)
-- signed: no (PGP deprecated on PyPI; no Sigstore attestations)
-- channel: PyPI (standard)
-- flags: none
+Distribution integrity is solid. The lack of Sigstore attestations is an ecosystem-wide gap, not specific to PyPSA. PyPI's hash-based integrity plus Trusted Publishers OIDC provenance provides reasonable supply chain assurance.

@@ -3,20 +3,20 @@ test_id: B-2
 tool: pypsa
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: 5068a626
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.09
+wall_clock_seconds: 1.838
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 126
+loc: 122
 solver: null
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # B-2: From a chosen bus, run BFS to depth 3 on TINY
@@ -25,7 +25,11 @@ timestamp: 2026-03-13T00:00:00Z
 
 ## Approach
 
-Used PyPSA's documented `n.graph()` method which returns a NetworkX `OrderedGraph` (a subclass of `nx.Graph`). Buses are nodes and branches (lines + transformers) are edges. From this graph, standard NetworkX BFS via `nx.single_source_shortest_path_length()` with `cutoff=3` was used to find all buses reachable within 3 hops from the chosen root bus.
+Used PyPSA's documented `n.graph()` method which returns a NetworkX
+`OrderedGraph`. Buses are nodes and branches (lines + transformers) are
+edges. From this graph, standard NetworkX BFS via
+`nx.single_source_shortest_path_length()` with `cutoff=3` was used to
+find all buses reachable within 3 hops from the chosen root bus.
 
 The entire operation requires 3 lines of substantive code:
 1. `G = n.graph()` -- export to NetworkX
@@ -54,11 +58,14 @@ No workarounds, no undocumented internals, no source patching.
 - **Edges in depth-3 subgraph:** 11
 - **Branches:** L0, L1, L2, L3, L4, L5, L13, L14, L30, T0, T9
 
-The subgraph covers 31% of the network's buses (12/39) and 24% of edges (11/46), demonstrating that the graph faithfully represents the network topology including both lines and transformers.
+The subgraph covers 31% of the network's buses (12/39) and 24% of edges
+(11/46), demonstrating that the graph faithfully represents the network
+topology including both lines and transformers.
 
 **Additional documented graph APIs:**
 - `n.adjacency_matrix()` -- sparse adjacency matrix
-- `n.incidence_matrix()` -- sparse incidence matrix
+- `n.incidence_matrix()` -- sparse CSR incidence matrix
+- `n.cycle_matrix()` -- cycle basis matrix
 - `n.determine_network_topology()` -- connected component detection
 
 ## Workarounds
@@ -67,10 +74,11 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 1.09s (includes network loading)
+- **Wall-clock:** 1.838s (includes network loading)
 - **Timing source:** measured
 - **Peak memory:** not measured
+- **CPU cores used:** 1
 
 ## Test Script
 
-**Path:** `evaluations/pypsa/tests/extensibility/test_b2_graph_access.py`
+**Path:** `evaluations/pypsa/tests/extensibility/test_b2_graph_access_tiny.py`

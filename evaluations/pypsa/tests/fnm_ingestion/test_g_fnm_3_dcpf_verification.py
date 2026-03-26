@@ -5,10 +5,11 @@ Dimension: fnm_ingestion
 Network: LARGE (FNM Annual S01, 27862-bus main island)
 Pass condition: Pass if all aggregate thresholds are met and no hard-fail condition
   is triggered, per the dcpf section of data/fnm/reference/pass_conditions.json.
-  Buses and branches that exceed the aggregate tolerance but are classified as known
-  outlier causes are reported as classified outliers, not unqualified failures.
+  Bus injection power balance check must pass.
+  Deviation values in scientific notation.
 Tool: PyPSA 1.1.2
 Input: MATPOWER fallback (data/fnm/reference/cleaned/fnm_main_island.m)
+Protocol: v11, skill v2, test_hash 64141acc
 """
 
 from __future__ import annotations
@@ -29,6 +30,11 @@ REF_BUSES = Path("/workspace/data/fnm/reference/dcpf/buses_dcpf.csv")
 REF_BRANCHES = Path("/workspace/data/fnm/reference/dcpf/branches_dcpf.csv")
 PASS_CONDITIONS = Path("/workspace/data/fnm/reference/pass_conditions.json")
 EXCLUDED_BUSES = Path("/workspace/data/fnm/reference/excluded_buses.json")
+
+
+def _sci(val: float) -> str:
+    """Format a float in scientific notation with 6 decimal places."""
+    return f"{val:.6e}"
 
 
 def run() -> dict:
@@ -89,10 +95,6 @@ def run() -> dict:
         results["details"]["tool_version"] = pypsa.__version__
 
         # ── 2. Load cleaned MATPOWER case via shared matpower_loader ──
-        # matpower_loader.load_pypsa() applies two correctness patches:
-        #   1. Transformer susceptance: b = 1/x (MATPOWER convention)
-        #      instead of PyPSA's default b = 1/(x*tap)
-        #   2. Generator marginal costs populated from gencost table
         net = load_pypsa(str(CLEANED_M), overwrite_zero_s_nom=100000.0)
         net.set_snapshots([0])
 
@@ -119,7 +121,7 @@ def run() -> dict:
         results["workarounds"].append(
             "MATPOWER fallback: G-FNM-1 failed (psse_parse_error). Loaded from "
             "pre-cleaned MATPOWER .m file via shared matpower_loader.load_pypsa() "
-            "(applies transformer susceptance and gencost patches)."
+            "(applies branch status, transformer susceptance, and gencost patches)."
         )
 
         n_lines = len(net.lines)
@@ -133,7 +135,7 @@ def run() -> dict:
             "loads": len(net.loads),
         }
 
-        # ── 4. Run DCPF (lpf) ──────────────────────────────────────────
+        # ── 3. Run DCPF (lpf) ──────────────────────────────────────────
         tracemalloc.start()
         t_solve_start = time.perf_counter()
         net.lpf()
@@ -145,7 +147,7 @@ def run() -> dict:
         results["details"]["solve_wall_clock_seconds"] = round(t_solve, 4)
         results["details"]["peak_memory_mb"] = round(peak_mem_mb, 1)
 
-        # ── 5. Extract PyPSA results ────────────────────────────────────
+        # ── 4. Extract PyPSA results ────────────────────────────────────
         if hasattr(net, "buses_t") and "v_ang" in net.buses_t and len(net.buses_t.v_ang) > 0:
             pypsa_va_rad = net.buses_t.v_ang.iloc[0]
         else:
@@ -167,7 +169,7 @@ def run() -> dict:
         else:
             pypsa_xfmr_p0 = net.transformers.get("p0", pd.Series(dtype=float))
 
-        # ── 6. Compare bus voltage angles ───────────────────────────────
+        # ── 5. Compare bus voltage angles ───────────────────────────────
         ref_bus_va = {
             int(row["bus_number"]): float(row["va_deg"]) for _, row in ref_buses_df.iterrows()
         }
@@ -196,19 +198,19 @@ def run() -> dict:
             "tolerance_deg": VA_TOL_DEG,
             "buses_passing": buses_passing,
             "fraction_passing": round(bus_pass_frac, 6),
-            "max_deviation_deg": round(float(np.max(va_deviations)), 6)
+            "max_deviation_deg": _sci(float(np.max(va_deviations)))
             if len(va_deviations) > 0
             else None,
-            "mean_deviation_deg": round(float(np.mean(va_deviations)), 6)
+            "mean_deviation_deg": _sci(float(np.mean(va_deviations)))
             if len(va_deviations) > 0
             else None,
-            "median_deviation_deg": round(float(np.median(va_deviations)), 6)
+            "median_deviation_deg": _sci(float(np.median(va_deviations)))
             if len(va_deviations) > 0
             else None,
-            "p95_deviation_deg": round(float(np.percentile(va_deviations, 95)), 6)
+            "p95_deviation_deg": _sci(float(np.percentile(va_deviations, 95)))
             if len(va_deviations) > 0
             else None,
-            "p99_deviation_deg": round(float(np.percentile(va_deviations, 99)), 6)
+            "p99_deviation_deg": _sci(float(np.percentile(va_deviations, 99)))
             if len(va_deviations) > 0
             else None,
         }
@@ -229,21 +231,21 @@ def run() -> dict:
                 kv = ref_bus_kv.get(bus_num, 0)
                 if kv_min <= kv < kv_max:
                     tier_devs.append(va_deviations[i])
-            tier_devs = np.array(tier_devs) if tier_devs else np.array([])
-            if len(tier_devs) > 0:
-                tier_pass = int(np.sum(tier_devs <= VA_TOL_DEG))
+            tier_devs_arr = np.array(tier_devs) if tier_devs else np.array([])
+            if len(tier_devs_arr) > 0:
+                tier_pass = int(np.sum(tier_devs_arr <= VA_TOL_DEG))
                 tier_stats[label] = {
-                    "count": len(tier_devs),
+                    "count": len(tier_devs_arr),
                     "passing": tier_pass,
-                    "fraction_passing": round(tier_pass / len(tier_devs), 6),
-                    "max_deviation_deg": round(float(np.max(tier_devs)), 4),
-                    "mean_deviation_deg": round(float(np.mean(tier_devs)), 4),
+                    "fraction_passing": round(tier_pass / len(tier_devs_arr), 6),
+                    "max_deviation_deg": _sci(float(np.max(tier_devs_arr))),
+                    "mean_deviation_deg": _sci(float(np.mean(tier_devs_arr))),
                 }
             else:
                 tier_stats[label] = {"count": 0}
         results["details"]["bus_angle_by_voltage_tier"] = tier_stats
 
-        # ── 7. Hard-fail checks on buses ─────────────────────────────────
+        # ── 6. Hard-fail checks on buses ─────────────────────────────────
         bus_failing_frac = 1.0 - bus_pass_frac
         hard_fail_bus = bus_failing_frac > HARD_FAIL_BUS_FRAC
         if hard_fail_bus:
@@ -252,8 +254,7 @@ def run() -> dict:
                 f"(threshold {HARD_FAIL_BUS_FRAC:.0%})"
             )
 
-        # ── 8. Compare branch power flows ──────────────────────────────
-        # Build mapping from MATPOWER branch row to PyPSA component name
+        # ── 7. Compare branch power flows ──────────────────────────────
         bus_v_nom = dict(zip(bus_array[:, 0].astype(int), bus_array[:, 9]))
         n_branches_mat = branch_array.shape[0]
 
@@ -281,11 +282,12 @@ def run() -> dict:
         line_p0_dict = dict(zip(pypsa_line_p0.index, pypsa_line_p0.values))
         xfmr_p0_dict = dict(zip(pypsa_xfmr_p0.index, pypsa_xfmr_p0.values))
 
-        # Build ref branch lookup by index
         p_deviations_pct = []
+        p_deviations_mw = []
         p_dev_lines = []
         p_dev_xfmrs = []
         max_dev_pct = 0.0
+        max_dev_mw = 0.0
         active_row = 0
 
         for mat_row in range(n_branches_mat):
@@ -304,12 +306,15 @@ def run() -> dict:
                 pypsa_p = xfmr_p0_dict.get(comp_name, float("nan"))
 
             if not np.isnan(pypsa_p):
-                abs_dev = abs(float(pypsa_p) - ref_p)
+                abs_dev_mw = abs(float(pypsa_p) - ref_p)
                 denom = max(abs(ref_p), P_BASE_FLOOR)
-                dev_pct = (abs_dev / denom) * 100.0
+                dev_pct = (abs_dev_mw / denom) * 100.0
                 p_deviations_pct.append(dev_pct)
+                p_deviations_mw.append(abs_dev_mw)
                 if dev_pct > max_dev_pct:
                     max_dev_pct = dev_pct
+                if abs_dev_mw > max_dev_mw:
+                    max_dev_mw = abs_dev_mw
                 if comp_type == "line":
                     p_dev_lines.append(dev_pct)
                 else:
@@ -318,6 +323,7 @@ def run() -> dict:
             active_row += 1
 
         p_deviations_pct = np.array(p_deviations_pct)
+        p_deviations_mw = np.array(p_deviations_mw)
         n_branches_matched = len(p_deviations_pct)
         branches_passing = int(np.sum(p_deviations_pct < P_TOL_PCT))
         branch_pass_frac = (
@@ -330,17 +336,18 @@ def run() -> dict:
             "p_base_floor_mw": P_BASE_FLOOR,
             "branches_passing": branches_passing,
             "fraction_passing": round(branch_pass_frac, 6),
-            "max_deviation_pct": round(float(max_dev_pct), 4),
-            "mean_deviation_pct": round(float(np.mean(p_deviations_pct)), 4)
+            "max_deviation_pct": _sci(float(max_dev_pct)),
+            "max_deviation_mw": _sci(float(max_dev_mw)),
+            "mean_deviation_pct": _sci(float(np.mean(p_deviations_pct)))
             if len(p_deviations_pct) > 0
             else None,
-            "median_deviation_pct": round(float(np.median(p_deviations_pct)), 4)
+            "median_deviation_pct": _sci(float(np.median(p_deviations_pct)))
             if len(p_deviations_pct) > 0
             else None,
-            "p95_deviation_pct": round(float(np.percentile(p_deviations_pct, 95)), 4)
+            "p95_deviation_pct": _sci(float(np.percentile(p_deviations_pct, 95)))
             if len(p_deviations_pct) > 0
             else None,
-            "p99_deviation_pct": round(float(np.percentile(p_deviations_pct, 99)), 4)
+            "p99_deviation_pct": _sci(float(np.percentile(p_deviations_pct, 99)))
             if len(p_deviations_pct) > 0
             else None,
         }
@@ -348,21 +355,17 @@ def run() -> dict:
         results["details"]["branch_flow_by_type"] = {
             "lines": {
                 "count": len(p_dev_lines),
-                "mean_deviation_pct": round(float(np.mean(p_dev_lines)), 4)
-                if p_dev_lines
-                else None,
-                "max_deviation_pct": round(float(np.max(p_dev_lines)), 4) if p_dev_lines else None,
+                "mean_deviation_pct": _sci(float(np.mean(p_dev_lines))) if p_dev_lines else None,
+                "max_deviation_pct": _sci(float(np.max(p_dev_lines))) if p_dev_lines else None,
             },
             "transformers": {
                 "count": len(p_dev_xfmrs),
-                "mean_deviation_pct": round(float(np.mean(p_dev_xfmrs)), 4)
-                if p_dev_xfmrs
-                else None,
-                "max_deviation_pct": round(float(np.max(p_dev_xfmrs)), 4) if p_dev_xfmrs else None,
+                "mean_deviation_pct": _sci(float(np.mean(p_dev_xfmrs))) if p_dev_xfmrs else None,
+                "max_deviation_pct": _sci(float(np.max(p_dev_xfmrs))) if p_dev_xfmrs else None,
             },
         }
 
-        # ── 9. Hard-fail checks on branches ──────────────────────────────
+        # ── 8. Hard-fail checks on branches ──────────────────────────────
         branch_failing_frac = 1.0 - branch_pass_frac
         hard_fail_branch = branch_failing_frac > HARD_FAIL_BRANCH_FRAC
         hard_fail_max = max_dev_pct > HARD_FAIL_MAX_DEV_PCT
@@ -377,7 +380,7 @@ def run() -> dict:
                 f"{HARD_FAIL_MAX_DEV_PCT:.0f}% hard-fail threshold"
             )
 
-        # ── 10. Transformer tap analysis ─────────────────────────────────
+        # ── 9. Transformer tap analysis ─────────────────────────────────
         taps = branch_array[:, 8]
         taps_xfmr = taps[is_xfmr]
         taps_xfmr = np.where(taps_xfmr == 0, 1.0, taps_xfmr)
@@ -395,7 +398,122 @@ def run() -> dict:
             ),
         }
 
-        # ── 11. Power balance ────────────────────────────────────────────
+        # ── 10. Bus injection power balance check ─────────────────────────
+        # For DCPF, verify that net injection (generation - load) at each bus
+        # equals the sum of branch flows out of that bus, within numerical tolerance.
+        # Use post-solve generator output (p) which includes slack bus adjustment.
+        if hasattr(net, "generators_t") and "p" in net.generators_t and len(net.generators_t.p) > 0:
+            gen_p_series = net.generators_t.p.iloc[0]
+        else:
+            gen_p_series = net.generators.get("p", net.generators["p_set"])
+
+        bus_gen_inject = {}
+        for gen_name in net.generators.index:
+            bus = str(net.generators.at[gen_name, "bus"])
+            gen_p = (
+                float(gen_p_series.get(gen_name, 0.0)) if gen_name in gen_p_series.index else 0.0
+            )
+            bus_gen_inject[bus] = bus_gen_inject.get(bus, 0.0) + gen_p
+
+        bus_load_inject = {}
+        for load_name, load_row in net.loads.iterrows():
+            bus = str(load_row["bus"])
+            bus_load_inject[bus] = bus_load_inject.get(bus, 0.0) + float(load_row["p_set"])
+
+        # Bus net injection = generation - load
+        bus_net_injection = {}
+        all_buses = set(net.buses.index)
+        for bus in all_buses:
+            bus_net_injection[bus] = bus_gen_inject.get(bus, 0.0) - bus_load_inject.get(bus, 0.0)
+
+        # Sum of branch flows leaving each bus (p0 = flow from bus0, p1 = flow from bus1)
+        bus_flow_out = {bus: 0.0 for bus in all_buses}
+
+        # Lines: p0 at bus0, p1 at bus1
+        if hasattr(net, "lines_t") and "p0" in net.lines_t and len(net.lines_t.p0) > 0:
+            line_p0_vals = net.lines_t.p0.iloc[0]
+            line_p1_vals = net.lines_t.p1.iloc[0]
+        else:
+            line_p0_vals = net.lines.get("p0", pd.Series(dtype=float))
+            line_p1_vals = net.lines.get("p1", pd.Series(dtype=float))
+
+        for line_name in net.lines.index:
+            if not net.lines.at[line_name, "active"]:
+                continue
+            bus0 = str(net.lines.at[line_name, "bus0"])
+            bus1 = str(net.lines.at[line_name, "bus1"])
+            p0 = float(line_p0_vals.get(line_name, 0.0)) if line_name in line_p0_vals.index else 0.0
+            p1 = float(line_p1_vals.get(line_name, 0.0)) if line_name in line_p1_vals.index else 0.0
+            bus_flow_out[bus0] = bus_flow_out.get(bus0, 0.0) + p0
+            bus_flow_out[bus1] = bus_flow_out.get(bus1, 0.0) + p1
+
+        # Transformers
+        if (
+            hasattr(net, "transformers_t")
+            and "p0" in net.transformers_t
+            and len(net.transformers_t.p0) > 0
+        ):
+            xfmr_p0_vals = net.transformers_t.p0.iloc[0]
+            xfmr_p1_vals = net.transformers_t.p1.iloc[0]
+        else:
+            xfmr_p0_vals = net.transformers.get("p0", pd.Series(dtype=float))
+            xfmr_p1_vals = net.transformers.get("p1", pd.Series(dtype=float))
+
+        for xfmr_name in net.transformers.index:
+            if not net.transformers.at[xfmr_name, "active"]:
+                continue
+            bus0 = str(net.transformers.at[xfmr_name, "bus0"])
+            bus1 = str(net.transformers.at[xfmr_name, "bus1"])
+            p0 = float(xfmr_p0_vals.get(xfmr_name, 0.0)) if xfmr_name in xfmr_p0_vals.index else 0.0
+            p1 = float(xfmr_p1_vals.get(xfmr_name, 0.0)) if xfmr_name in xfmr_p1_vals.index else 0.0
+            bus_flow_out[bus0] = bus_flow_out.get(bus0, 0.0) + p0
+            bus_flow_out[bus1] = bus_flow_out.get(bus1, 0.0) + p1
+
+        # Check: net_injection = sum_of_flows_out for each bus (DCPF is lossless)
+        # In DCPF, p0 + p1 = 0 for each branch (lossless), so
+        # net_injection_bus = sum_of_p0_leaving_bus (positive = outflow)
+        balance_mismatches = []
+        for bus in all_buses:
+            try:
+                bus_num = int(bus)
+            except (ValueError, TypeError):
+                continue
+            if bus_num in excluded_bus_set:
+                continue
+            net_inj = bus_net_injection.get(bus, 0.0)
+            flow_out = bus_flow_out.get(bus, 0.0)
+            mismatch = abs(net_inj - flow_out)
+            balance_mismatches.append(mismatch)
+
+        balance_mismatches = np.array(balance_mismatches)
+        # Tolerance: 1e-3 MW (0.001 MW) for numerical noise
+        BALANCE_TOL_MW = 1e-3
+        buses_balanced = int(np.sum(balance_mismatches <= BALANCE_TOL_MW))
+        balance_pass = buses_balanced == len(balance_mismatches)
+
+        results["details"]["power_balance_check"] = {
+            "buses_checked": len(balance_mismatches),
+            "tolerance_mw": BALANCE_TOL_MW,
+            "buses_balanced": buses_balanced,
+            "buses_imbalanced": len(balance_mismatches) - buses_balanced,
+            "max_mismatch_mw": _sci(float(np.max(balance_mismatches)))
+            if len(balance_mismatches) > 0
+            else None,
+            "mean_mismatch_mw": _sci(float(np.mean(balance_mismatches)))
+            if len(balance_mismatches) > 0
+            else None,
+            "balance_pass": balance_pass,
+        }
+
+        if not balance_pass:
+            n_imbal = len(balance_mismatches) - buses_balanced
+            results["errors"].append(
+                f"Bus injection power balance failed: {n_imbal} buses exceed "
+                f"{BALANCE_TOL_MW} MW tolerance "
+                f"(max mismatch: {_sci(float(np.max(balance_mismatches)))} MW)"
+            )
+
+        # ── 11. Power balance (system-level) ──────────────────────────────
         total_gen_mw = float(net.generators.p_set.sum())
         total_load_mw = float(net.loads.p_set.sum())
         results["details"]["power_balance"] = {
@@ -416,11 +534,12 @@ def run() -> dict:
             "branch_flow_fraction": round(branch_pass_frac, 6),
             "branch_flow_required": BRANCH_PASS_FRAC,
             "hard_fail_triggered": hard_fail,
+            "balance_pass": balance_pass,
         }
 
         if hard_fail:
             results["status"] = "fail"
-        elif bus_pass and branch_pass:
+        elif bus_pass and branch_pass and balance_pass:
             results["status"] = "pass"
         else:
             results["status"] = "fail"
