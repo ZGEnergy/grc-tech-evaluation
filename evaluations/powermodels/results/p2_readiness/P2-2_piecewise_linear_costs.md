@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:30:00Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "fc68b7fe"
+test_hash: "5b23cce4"
 ---
 
 # P2-2: Piecewise Linear Costs

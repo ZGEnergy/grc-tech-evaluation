@@ -3,20 +3,21 @@ test_id: B-3
 tool: powermodels
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: eceb2bf4
+protocol_version: v11
+skill_version: v2
+test_hash: b992387f
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.098
+wall_clock_seconds: 1.176
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 320
+convergence_evidence_quality: null
+loc: 348
 solver: null
-timestamp: 2026-03-14T00:47:28Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # B-3: N-M Contingency Sweep (TINY)
@@ -25,7 +26,7 @@ timestamp: 2026-03-14T00:47:28Z
 
 ## Approach
 
-N-M contingency sweep with escalating order (x=3, m=3) and graph-distance pruning. This is a new test in v10 replacing the v9 N-1 contingency loop.
+N-M contingency sweep with escalating order (x=3, m=3) and graph-distance pruning. B-3 depends on B-2 (graph access for distance-based scoping).
 
 **Enumeration strategy:**
 1. Order 1 (N-1): all 46 single-branch outages
@@ -35,12 +36,12 @@ N-M contingency sweep with escalating order (x=3, m=3) and graph-distance prunin
 **Graph-distance scoping** (reuses B-2 adjacency pattern): BFS from each branch's endpoint buses to find nearby branches within the specified distance. Branches outside the distance threshold are pruned from consideration as co-outages, dramatically reducing the combinatorial space.
 
 **Per-contingency workflow:**
-1. `deepcopy(data)` — clone the parsed data dict (no re-parse from file)
+1. `deepcopy(data)` -- clone the parsed data dict (no re-parse from file)
 2. Set `d["branch"][br_id]["br_status"] = 0` for each outaged branch
-3. `calc_connected_components(d)` — check for islands
+3. `calc_connected_components(d)` -- check for islands
 4. If connected: `compute_dc_pf(d)` + `update_data!` + `calc_branch_flow_dc(d)` for max loading
 
-No model reconstruction per contingency case. All contingencies use the same `deepcopy` + mutation pattern.
+No model reconstruction per contingency case. All contingencies use the same `deepcopy` + mutation pattern. [tool-specific: no model reconstruction needed -- data dict mutation is the native API]
 
 ## Output
 
@@ -54,8 +55,8 @@ No model reconstruction per contingency case. All contingencies use the same `de
 | Converged | 223 |
 | Islands (connectivity loss) | 372 |
 | Overloaded (>100%) | 124 |
-| Loop wall-clock | 0.68 s |
-| Avg time per contingency | 1.14 ms |
+| Loop wall-clock | 0.747 s |
+| Avg time per contingency | 1.25 ms |
 
 ### Top 5 worst contingencies (by max branch loading):
 
@@ -69,7 +70,7 @@ No model reconstruction per contingency case. All contingencies use the same `de
 
 Branches 10 and 12 are a critical corridor: their simultaneous outage causes severe overloading regardless of the third outaged branch. Graph-distance pruning eliminated 4,657 out of 5,252 candidate contingencies (88.7% reduction), keeping only topologically proximate combinations.
 
-372 of 595 contingencies cause islands — expected for case39's tree-like topology where removing 2-3 nearby branches easily disconnects radial sub-networks.
+372 of 595 contingencies cause islands -- expected for case39's tree-like topology where removing 2-3 nearby branches easily disconnects radial sub-networks.
 
 ## Workarounds
 
@@ -77,11 +78,11 @@ None required. The `deepcopy()` + `br_status=0` pattern is idiomatic Julia and u
 
 ## Timing
 
-- **Wall-clock:** 1.098 s total (parse + 595 contingencies)
+- **Wall-clock:** 1.176 s total (parse + 595 contingencies)
 - **Timing source:** measured
 - **Peak memory:** not measured
-- **Loop time:** 0.68 s for 595 contingencies
-- **Per-contingency average:** 1.14 ms
+- **Loop time:** 0.747 s for 595 contingencies
+- **Per-contingency average:** 1.25 ms
 - **CPU cores used:** 1
 
 ## Test Script

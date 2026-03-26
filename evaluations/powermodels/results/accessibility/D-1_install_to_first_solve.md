@@ -3,32 +3,69 @@ test_id: D-1
 tool: powermodels
 dimension: accessibility
 network: N/A
+protocol_version: v11
+skill_version: v2
+test_hash: ef7694d3
 status: qualified_pass
 workaround_class: null
-timestamp: 2026-03-13T23:00:00Z
-protocol_version: v10
-skill_version: v1
-test_hash: "9be8107b"
+blocked_by: null
+wall_clock_seconds: 3.588
+timing_source: measured
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: HiGHS
+timestamp: 2026-03-24T18:00:00Z
 ---
 
-# D-1: Install-to-First-Solve
+# D-1: Install-to-First-Solve Wall-Clock Time
 
-## Summary
+## Result: QUALIFIED PASS
 
-PowerModels.jl is installable as a pure Julia package via the standard `Pkg` workflow. The devcontainer pre-installs the environment; from a clean system the full path is: install Julia, clone the repo, run `julia --project=. -e 'using Pkg; Pkg.instantiate()'`. No C extensions, no system libraries beyond what Julia ships with, and no solver-specific system dependencies (HiGHS and Ipopt are vendored as Julia artifacts).
+## Finding
 
-Status is **qualified_pass**: installation itself is frictionless, but the Julia JIT compilation overhead and an undocumented API signature difference impose a meaningful first-use tax.
+PowerModels.jl install-to-first-solve takes **3.588 seconds** (measured) with a warm precompile
+cache, or 5-15 minutes from a clean `Pkg.instantiate()` due to Julia JIT compilation overhead.
+The installation is frictionless for Julia users (zero system dependencies beyond Julia itself),
+but JIT compilation and an undocumented API signature difference impose a meaningful first-use tax.
 
-## Installation Steps
+## Evidence
 
-1. **Julia 1.10** -- download and install from `https://julialang.org/downloads/`. No system package manager needed; the binary is self-contained.
-2. **Clone repo / create project** -- any directory with a `Project.toml` and `Manifest.toml` defines the environment.
-3. **Instantiate** -- `julia --project=. -e 'using Pkg; Pkg.instantiate()'`. On first run this downloads and compiles all packages to native code. Duration: 5-15 minutes on first install (building Ipopt, HiGHS, SCIP native code); subsequent runs reuse the precompiled cache.
+### Measured Timing (devcontainer, Julia 1.10, precompile cache warm)
+
+| Phase | Wall-clock (s) |
+|-------|---------------|
+| Julia process startup + `using PowerModels, HiGHS` | 1.118 |
+| `parse_file` (case3.m) | 0.492 |
+| `solve_dc_opf` first invocation (incl JIT) | 1.978 |
+| **Total wall-clock from process launch to result** | **3.588** |
+
+Timing source: **measured** via Julia `time()` calls in a self-contained script executed
+inside the devcontainer on 2026-03-24. The script was:
+
+```julia
+t_start = time()
+using PowerModels; using HiGHS
+t_loaded = time()
+data = PowerModels.parse_file(...)
+t_parsed = time()
+result = solve_dc_opf(data, HiGHS.Optimizer)
+t_solved = time()
+```
+
+Result: `termination_status: OPTIMAL`, `objective: 5782.032079653238`
+
+### Installation Steps
+
+1. **Julia 1.10** -- download from `https://julialang.org/downloads/`. Self-contained binary.
+2. **Project setup** -- directory with `Project.toml` and `Manifest.toml`.
+3. **Instantiate** -- `julia --project=. -e 'using Pkg; Pkg.instantiate()'`. First run downloads
+   and compiles all packages (5-15 minutes). Subsequent runs use precompile cache.
 4. **Verify** -- `julia --project=. verify_install.jl`
 
-## Environment Configuration
-
-The evaluation `Project.toml` declares 8 dependencies:
+### Environment Configuration
 
 | Package | Version | Purpose |
 |---------|---------|---------|
@@ -38,59 +75,28 @@ The evaluation `Project.toml` declares 8 dependencies:
 | Ipopt | 1.x | NLP solver |
 | SCIP | 0.11.x | MILP/MINLP solver |
 | GLPK | 1.x | LP/MILP solver |
-| DataFrames | any | Tabular data |
-| CSV | any | File export |
 
-Julia 1.10 is the minimum required version. The `Manifest.toml` pins exact dependency versions for reproducibility.
+No C extensions, no system libraries beyond Julia. HiGHS, Ipopt, and SCIP are vendored as
+Julia JLL artifacts.
 
-## Measured Timing (cold start, precompile cache warm)
+### API Friction on First Use
 
-| Measurement | Value |
-|---|---|
-| Julia process startup to `using PowerModels, HiGHS` ready | ~1.0 s (cache warm) |
-| `parse_file` for case39.m | ~0.2 s |
-| `solve_dc_opf` first invocation (JIT included) | 1.33 s |
-| Total wall-clock from process launch to printed result | 2.96 s |
-| Solve-only time (excluding startup/JIT) | 1.33 s |
+The official quickstart shows `solve_ac_opf("matpower/case3.m", Ipopt.Optimizer)` (2-argument
+convenience wrapper). Some online examples show a 3-argument `solve_dc_opf(data, DCPPowerModel,
+optimizer)` which is invalid in v0.21.5 and produces a `MethodError` mentioning
+`InitializeInfrastructureModel` rather than pointing at the API mismatch.
 
-Note: these timings include loading precompiled package cache but not recompilation. The first `Pkg.instantiate()` from zero takes materially longer (minutes, not seconds) due to native code compilation of Ipopt, HiGHS, and SCIP.
+### Issues Encountered
 
-## API Friction on First Use
+| # | Issue | Severity |
+|---|-------|----------|
+| 1 | JIT compilation delay (~5-15 min first install) | Medium -- one-time cost, Julia design characteristic |
+| 2 | API signature mismatch between quickstart and some online examples | Low -- use 2-arg form |
+| 3 | `verify_install.jl` uses `OPTIMAL` constant requiring JuMP import | Low |
 
-The official documentation quickstart shows:
+## Implications
 
-```julia
-solve_ac_opf("matpower/case3.m", Ipopt.Optimizer)
-solve_dc_opf("matpower/case3.m", Ipopt.Optimizer)
-```
-
-These are 2-argument convenience wrappers. The generic 3-argument form is:
-
-```julia
-solve_opf(data, ACPPowerModel, Ipopt.Optimizer)
-```
-
-Some online examples (and older documentation) show a 3-argument form for `solve_dc_opf` that is invalid in v0.21.5:
-
-```julia
-# INVALID -- produces MethodError
-solve_dc_opf(data, DCPPowerModel, optimizer)
-```
-
-The error message mentions `InitializeInfrastructureModel` rather than pointing at the API mismatch, which is a discoverability gap for new users.
-
-## Issues Encountered
-
-| # | Issue | Severity | Resolution |
-|---|-------|----------|------------|
-| 1 | JIT compilation delay (~5-15 min first install) | Medium | One-time cost; Julia design characteristic |
-| 2 | API signature mismatch between quickstart and some online examples | Low | Use 2-arg form for convenience functions; 3-arg for `solve_opf` |
-| 3 | `verify_install.jl` uses `OPTIMAL` constant requiring JuMP import | Low | Add `using JuMP` or compare to string |
-
-## Result
-
-`termination_status: OPTIMAL` -- first solve succeeds cleanly. Pass conditions met.
-
-## Pass/Fail Rationale
-
-**qualified_pass**: Installation is zero-friction for a Julia user. The JIT overhead and the API signature discovery issue add friction for new users, but neither blocks the first successful solve. Total wall-clock from `Pkg.instantiate()` to first successful solve result is under 20 minutes including compilation; under 3 seconds on subsequent runs.
+The 3.6s warm-start time is competitive for a Julia tool (JIT overhead is inherent to the
+language). The 5-15 minute cold-start for `Pkg.instantiate()` is a significant barrier for
+first-time evaluation but is a one-time cost. Status is qualified_pass because neither the
+JIT overhead nor the API signature issue blocks a successful first solve.

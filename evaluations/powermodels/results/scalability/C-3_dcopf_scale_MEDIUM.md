@@ -3,20 +3,23 @@ test_id: C-3
 tool: powermodels
 dimension: scalability
 network: MEDIUM
-protocol_version: v10
-skill_version: v1
-test_hash: 1967bffe
+protocol_version: v11
+skill_version: v2
+test_hash: 6cbf4087
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 72.45
+wall_clock_seconds: 77.20
 timing_source: measured
-peak_memory_mb: 877.4
+peak_memory_mb: 934.0
 convergence_residual: null
 convergence_iterations: null
-loc: 204
+convergence_evidence_quality: null
+loc: 213
 solver: HiGHS, GLPK
-timestamp: 2026-03-13T23:00:00Z
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: 2026-03-24T20:55:00Z
 ---
 
 # C-3: DC OPF Scale MEDIUM
@@ -29,7 +32,7 @@ Loaded `case_ACTIVSg10k.m` with MEDIUM preprocessing (2,462 branches rate_a set 
 
 **Required workaround -- quadratic cost linearization:** ACTIVSg10k uses polynomial cost model 2 (quadratic), which causes `solve_dc_opf` to generate a QP formulation. Costs were linearized to LP by dropping the c2 (quadratic) coefficient for 1,130 generators (45.5% of the generator fleet).
 
-JIT warm-up on `case39.m` was performed for both HiGHS and GLPK before the timed runs.
+JIT warm-up on `case39.m` was performed for both HiGHS and GLPK before the timed runs. Note: GLPK warm-up triggered `MathOptInterface.UnsupportedAttribute` for QP objective on case39 (which has quadratic costs); this is expected since GLPK cannot handle QP.
 
 ## Output
 
@@ -37,10 +40,10 @@ JIT warm-up on `case39.m` was performed for both HiGHS and GLPK before the timed
 
 | Solver | Status | Objective ($/h) | Solver Time (s) | Wall Clock (s) | Iterations |
 |--------|--------|-----------------|-----------------|----------------|------------|
-| HiGHS | OPTIMAL | 2,401,337.08 | 3.91 | 6.34 | 6,032 simplex |
-| GLPK | OPTIMAL | 2,401,337.08 | 61.86 | 63.20 | 50,193 simplex |
+| HiGHS | OPTIMAL | 2.401337e+06 | 3.957 | 6.199 | 6,032 simplex |
+| GLPK | OPTIMAL | 2.401337e+06 | 67.35 | 68.50 | 50,193 simplex |
 
-**Objective consistency: VERIFIED.** Both solvers produce the same objective value to within machine precision (diff: 3.19e-6 $/h, 1.33e-10%).
+**Objective consistency: VERIFIED.** Both solvers produce the same objective value (diff: 3.190245e-06 $/h, 1.328529e-10%).
 
 ### Network Metrics
 
@@ -55,16 +58,30 @@ JIT warm-up on `case39.m` was performed for both HiGHS and GLPK before the timed
 | Generators cost-linearized | 1,130 (45.5%) |
 | LP dimensions | 34,924 rows x 24,643 cols |
 | LP nonzeros | 89,902 |
-| Binding branches | 0 / 12,706 |
-| LMPs (all buses) | 20.064 $/MWh (uniform) |
 
-**LMP uniformity note:** All 10,000 buses have identical LMPs ($20.064/MWh). Per `cross-tool-watchpoints.md`, ACTIVSg10k has no binding branch constraints in base-case DCOPF (~84-85% maximum loading). Uniform LMPs indicate an uncongested network, not a tool limitation.
+### Max Branch Loading (Hard Constraint Check)
+
+| Solver | Max Loading (p.u.) | Max Loading (%) | Branch | Over 100% |
+|--------|--------------------|-----------------|--------|-----------|
+| HiGHS | 8.435760e-01 | 84.36% | 10744 | 0 |
+| GLPK | 8.435760e-01 | 84.36% | 10744 | 0 |
+
+No branches exceed thermal limits. Hard constraints are properly enforced by both solvers. The network is uncongested at ~84% maximum loading, consistent with cross-tool-watchpoints documentation.
+
+### LMP Analysis
+
+| Metric | Value |
+|--------|-------|
+| Binding branches | 0 / 12,706 |
+| LMP min | 2.006400e+01 $/MWh |
+| LMP max | 2.006400e+01 $/MWh |
+| LMP count | 10,000 |
+
+**LMP uniformity note:** All 10,000 buses have effectively identical LMPs (~$20.064/MWh). Per `cross-tool-watchpoints.md`, ACTIVSg10k has no binding branch constraints in base-case DCOPF. Uniform LMPs indicate an uncongested network, not a tool limitation.
 
 ### Solver Comparison Analysis
 
-HiGHS outperforms GLPK by ~16x on this problem (3.91s vs 61.86s solver time). HiGHS used dual simplex with a warm-start basis from preprocessing (6,032 iterations), while GLPK used primal simplex from cold start (50,193 iterations). Both converged to the same optimal solution.
-
-**Improvement from v9:** In the v9 evaluation, GLPK hit the 300s time limit without finding an optimal solution. In this v10 run, GLPK converged in 61.86s. The difference may be due to JIT warm-up improving the model construction or solver configuration differences.
+HiGHS outperforms GLPK by ~17x on this problem (3.96s vs 67.35s solver time). HiGHS used dual simplex with a warm-start basis from preprocessing (6,032 iterations), while GLPK used primal simplex from cold start (50,193 iterations). Both converged to the same optimal solution.
 
 **Solver swap friction:** Swapping from HiGHS to GLPK requires only a one-line optimizer change -- no reformulation needed. The solver interface abstracts cleanly through JuMP/MathOptInterface.
 
@@ -72,20 +89,20 @@ HiGHS outperforms GLPK by ~16x on this problem (3.91s vs 61.86s solver time). Hi
 
 1. **Quadratic cost linearization:**
    - **What:** ACTIVSg10k uses polynomial cost model 2 (quadratic). `solve_dc_opf` passes these to the solver as QP. Costs were linearized by dropping the c2 coefficient for 1,130 generators.
-   - **Why:** PowerModels.jl does not warn users that quadratic costs trigger QP formulation. At MEDIUM scale, QP solve times are significantly longer than LP.
+   - **Why:** PowerModels.jl does not warn users that quadratic costs trigger QP formulation. GLPK cannot handle QP at all, and HiGHS QP performance at 10k-bus scale is slower than LP.
    - **Durability:** stable -- dropping c2 is a well-understood approximation. The linearized costs remain monotonically increasing (LP-valid) because the original quadratic terms are non-negative.
    - **Grade impact:** Moderate. The workaround changes the cost function structure but not network topology. Dispatch and LMPs are physically meaningful.
 
 ## Timing
 
-- **HiGHS wall-clock:** 6.34s (includes JuMP model build + solve)
-- **HiGHS solver time (pure LP solve):** 3.91s
-- **GLPK wall-clock:** 63.20s (includes JuMP model build + solve)
-- **GLPK solver time:** 61.86s
-- **Total wall-clock (both solvers + parse):** 72.45s
+- **HiGHS wall-clock:** 6.199s (includes JuMP model build + solve)
+- **HiGHS solver time (pure LP solve):** 3.957s
+- **GLPK wall-clock:** 68.50s (includes JuMP model build + solve)
+- **GLPK solver time:** 67.35s
+- **Total wall-clock (both solvers + parse):** 77.20s
 - **Timing source:** measured
-- **Peak memory:** 877.4 MB RSS
-- **CPU cores used:** 1 (single-threaded per solver-config.md)
+- **Peak memory:** 934.0 MB RSS
+- **CPU cores used:** 1 / 32 available
 
 ## Test Script
 
@@ -119,4 +136,7 @@ result_g = PowerModels.solve_dc_opf(data_glpk, glpk_opt;
 
 # LMP extraction (HiGHS)
 lmp = -result_h["solution"]["bus"][bus_id]["lam_kcl_r"] / base_mva  # $/MWh
+
+# Max branch loading check
+loading = abs(br_sol["pf"]) / data["branch"][br_id]["rate_a"]
 ```

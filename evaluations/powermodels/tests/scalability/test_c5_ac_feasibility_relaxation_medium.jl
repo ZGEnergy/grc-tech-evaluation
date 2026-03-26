@@ -199,7 +199,7 @@ function run(
             # Ipopt optimizer
             ipopt_opt = JuMP.optimizer_with_attributes(
                 Ipopt.Optimizer,
-                "max_iter" => 10000,
+                "max_iter" => 1000,
                 "tol" => 1e-6,
                 "acceptable_tol" => 1e-4,
                 "print_level" => 5,

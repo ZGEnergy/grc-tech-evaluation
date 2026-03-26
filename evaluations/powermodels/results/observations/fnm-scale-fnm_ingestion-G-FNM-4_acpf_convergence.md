@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-4
 tool: powermodels
 severity: medium
-timestamp: "2026-03-13T01:30:00Z"
+timestamp: "2026-03-24T12:30:00Z"
 ---
 
 # Observation: ACPF Diverges on 27,862-Bus FNM with ~7 GB Memory Consumption

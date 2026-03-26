@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:01:54Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "0697916b"
+test_hash: "4fd147b3"
 ---
 
 # F-4: Identify compiled components in execution path

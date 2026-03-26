@@ -3,9 +3,9 @@ test_id: B-6
 tool: powermodels
 dimension: extensibility
 network: N/A
-protocol_version: v10
-skill_version: v1
-test_hash: e256cf29
+protocol_version: v11
+skill_version: v2
+test_hash: c5345bab
 status: pass
 workaround_class: null
 blocked_by: null
@@ -14,9 +14,10 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: 2026-03-13T23:36:40Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # B-6: Code Architecture Audit
@@ -76,13 +77,28 @@ PowerModels.jl has **four clearly separated abstraction layers**:
                │                        │
                │                        └─ form/dcp.jl:            ← Layer 3b formulation
                │                             constraint_ohms_yt_from(pm::AbstractDCPModel, ...)
-               │                             → @constraint(pm.model, p_fr == (b+b_fr)/tap*(va_fr-va_to))
+               │                             → @constraint(pm.model, p_fr == -b*(va_fr - va_to))
                │
                └─ optimize_model!(pm, optimizer=optimizer)          ← Layer 4 solver
                     └─ JuMP.optimize!(pm.model)
                          └─ MOI interface → HiGHS/Ipopt/GLPK/...
 
 ```
+
+### Direct DCPF Path (`compute_dc_pf`)
+
+PowerModels also provides a direct matrix-based DCPF that bypasses JuMP entirely:
+
+```
+compute_dc_pf(data)                              ← direct entry point (prob/pf.jl)
+  ├─ reference_bus(data)                          — find slack bus
+  ├─ calc_bus_injection_active(data)              — net P injection per bus
+  ├─ calc_susceptance_matrix(data)                — B-matrix (AdmittanceMatrix struct)
+  └─ solve_theta(sm, ref_idx, bi_idx)             — Julia native linear solve (B\P)
+       └─ returns voltage angles directly, no optimizer
+```
+
+This path uses Julia's native sparse linear algebra (`\` operator) instead of JuMP/MOI, producing the same result as `solve_dc_pf` but without solver overhead. The `AdmittanceMatrix` struct wraps `SparseMatrixCSC` with bus-index mappings. [tool-specific: two DCPF paths offer flexibility but API surface is larger]
 
 ## Separation of Concerns
 
@@ -158,5 +174,7 @@ Source files audited:
 - `/opt/julia-depot/packages/PowerModels/VCmhH/src/core/base.jl`
 - `/opt/julia-depot/packages/PowerModels/VCmhH/src/core/types.jl`
 - `/opt/julia-depot/packages/PowerModels/VCmhH/src/core/constraint_template.jl`
+- `/opt/julia-depot/packages/PowerModels/VCmhH/src/core/admittance_matrix.jl`
 - `/opt/julia-depot/packages/PowerModels/VCmhH/src/form/dcp.jl`
 - `/opt/julia-depot/packages/PowerModels/VCmhH/src/prob/opf.jl`
+- `/opt/julia-depot/packages/PowerModels/VCmhH/src/prob/pf.jl`
