@@ -3,8 +3,8 @@ tag: api-friction
 source_dimension: expressiveness
 source_test: A-11
 tool: gridcal
-severity: medium
-timestamp: "2026-03-13T00:00:00Z"
+severity: high
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: Distributed slack option exists in PF but is ignored by OPF

@@ -3,61 +3,74 @@ test_id: F-7
 tool: gridcal
 dimension: supply_chain
 network: N/A
-status: informational
+status: pass
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "49227e98"
-timestamp: "2026-03-13T23:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T18:00:00Z"
 ---
 
 # F-7: Air-Gap Installability
 
+## Result: PASS
+
 ## Finding
 
-Air-gap installation is feasible but requires significant effort due to 62 packages with 360 compiled extensions across platform-specific binaries. The pure-Python nature of VeraGridEngine itself simplifies the core package, but its heavy compiled dependencies (scipy, numpy, numba, scikit-learn, opencv-python, pyarrow, h5py) make offline wheel bundling a multi-platform challenge.
+Air-gap installation is feasible but requires significant effort due to 62 packages with compiled extensions across 25 dependency packages. VeraGridEngine itself is pure Python (no compiled code), simplifying the core package. Its heavy compiled dependencies (scipy, numpy, numba, scikit-learn, opencv-python, pyarrow, h5py) require platform-specific wheel bundling. No runtime network access is required for core power flow functionality.
 
 ## Evidence
 
-**Total packages required:** 62 (including VeraGridEngine)
+**Offline installation procedure:**
 
-**Packages with compiled extensions (require platform-specific wheels):**
-
-| Package | .so Files | Wheel Availability |
-|---------|-----------|-------------------|
-| scipy | 109 | manylinux, macOS, Windows wheels on PyPI |
-| scikit-learn | 69 | manylinux, macOS, Windows wheels on PyPI |
-| pandas | 45 | manylinux, macOS, Windows wheels on PyPI |
-| h5py | 25 | manylinux, macOS wheels; Windows may need HDF5 lib |
-| pyarrow | 24 | manylinux, macOS, Windows wheels on PyPI |
-| numpy | 19 | manylinux, macOS, Windows wheels on PyPI |
-| numba/llvmlite | 14+1 | manylinux, macOS, Windows wheels; llvmlite requires LLVM |
-| pyproj | 10 | manylinux, macOS wheels; bundles PROJ library |
-| matplotlib | 8 | manylinux, macOS, Windows wheels on PyPI |
-| Pillow | 8 | manylinux, macOS, Windows wheels on PyPI |
-| pymoo | 7 | manylinux wheels on PyPI |
-| highspy | 1 | manylinux, macOS, Windows wheels on PyPI |
-| opencv-python | 2 | manylinux, macOS, Windows wheels on PyPI |
-
-**Air-gap installation procedure:**
-
-1. On an internet-connected machine:
+1. On an internet-connected machine (matching target platform):
    ```bash
-   pip download veragridengine --dest ./offline-packages/ --platform manylinux2014_x86_64 --python-version 3.12
+   pip download veragridengine --dest ./offline-packages/ \
+       --platform manylinux2014_x86_64 --python-version 3.12
    ```
-2. Transfer `offline-packages/` to air-gapped system
+2. Transfer `offline-packages/` directory to air-gapped system
 3. Install: `pip install --no-index --find-links ./offline-packages/ veragridengine`
 
 **Complications:**
-- **VeraGridEngine is sdist-only** on PyPI (no wheels), so the air-gapped system needs build tools (setuptools, wheel) or the sdist must be pre-built on the connected system
-- **llvmlite** requires LLVM shared libraries at runtime; the wheel bundles these but they are platform-specific
-- **pyproj** bundles PROJ data files; the wheel is ~20 MB
-- **opencv-python** is ~60 MB and pulls in system libraries (libGL, etc.)
-- **Total download size estimate:** ~500-700 MB for the full wheel bundle (one platform)
+- VeraGridEngine is **sdist-only** on PyPI, so building requires setuptools/wheel on the target or pre-building the sdist into a wheel on the connected machine
+- 25 packages require platform-specific compiled wheels (see F-4)
+- Estimated total download size: ~500-700 MB for the full wheel bundle (single platform)
+
+**Packages with compiled extensions requiring platform-specific wheels:**
+
+| Package | Wheel Availability (PyPI) |
+|---------|--------------------------|
+| scipy | manylinux, macOS, Windows |
+| scikit-learn | manylinux, macOS, Windows |
+| pandas | manylinux, macOS, Windows |
+| numpy | manylinux, macOS, Windows |
+| h5py | manylinux, macOS |
+| pyarrow | manylinux, macOS, Windows |
+| numba/llvmlite | manylinux, macOS, Windows |
+| highspy | manylinux, macOS, Windows |
+| opencv-python | manylinux, macOS, Windows |
+| pyproj | manylinux, macOS |
+
+All major compiled dependencies publish pre-built wheels for common platforms on PyPI.
+
+**Runtime network access:**
+- Core power flow, OPF, and analysis functions: **no network access required**
+- `VeraGridEngine/IO/veragrid/remote.py` contains a `RemoteInstruction` class using `requests` for VeraGrid Server communication, but this is optional and guarded by `REQUESTS_AVAILABLE` flag
+- `websockets` dependency supports VeraGrid Server functionality, not core analysis
+- No telemetry, license validation, or phone-home behavior detected
 
 **Dependency reduction potential:**
-Many dependencies are not required for core power flow. An air-gap-optimized installation could potentially exclude: opencv-python, windpowerlib, pvlib, pymoo, scikit-learn, h5py, pyarrow, matplotlib, rdflib, websockets, brotli. This would reduce the package count from 62 to approximately 25-30 and eliminate many compiled extensions.
+Many dependencies are not required for core power flow: opencv-python, windpowerlib, pvlib, pymoo, scikit-learn, h5py, pyarrow, matplotlib, rdflib, websockets, brotli. Excluding these would reduce the package count to ~25-30 and significantly reduce the compiled extension footprint.
 
 ## Implications
 
-Air-gap installation is achievable but operationally heavy. The 62-package, 360-compiled-extension footprint requires careful platform targeting and substantial transfer bandwidth (~500-700 MB). The monolithic packaging of VeraGridEngine (no optional dependency groups for core vs. full features) means the air-gap bundle must include all dependencies even if only DCPF/DCOPF functionality is needed. A `veragridengine[core]` extra would significantly improve air-gap feasibility.
+Air-gap installation is achievable for all common platforms (Linux x86_64, macOS, Windows). The main friction is the large wheel bundle size (~500-700 MB) and the need to target the correct platform for 25 compiled packages. The lack of optional dependency groups means the air-gap bundle must include all 62 packages even if only DCPF/DCOPF is needed. No runtime network access is required for power flow functionality.

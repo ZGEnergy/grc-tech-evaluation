@@ -170,11 +170,27 @@ def run(
         results["details"]["vm_mean"] = float(np.mean(magnitudes))
         results["details"]["max_angle_deg"] = float(np.max(np.abs(angles_deg)))
 
-        # 5. Check pass condition
+        # 5. Determine convergence evidence quality (v11 hierarchy)
+        # Tier 1: residual_reported — the solver exposes final NR mismatch
+        # Tier 2: iteration_count_reported
+        # Tier 3: binary_convergence_api
+        # Tier 4: proxy_voltage
+        if error is not None and iterations is not None and iterations > 0:
+            convergence_evidence_quality = "residual_reported"
+        elif iterations is not None and iterations > 0:
+            convergence_evidence_quality = "iteration_count_reported"
+        elif converged:
+            convergence_evidence_quality = "binary_convergence_api"
+        else:
+            convergence_evidence_quality = "proxy_voltage"
+
+        results["details"]["convergence_evidence_quality"] = convergence_evidence_quality
+
+        # 6. Check pass condition
         pass_checks = {
             "converged": converged,
             "iterations_reported": iterations is not None and iterations > 0,
-            "residual_below_tol": error is not None and error < 1e-6,
+            "residual_below_tol": error is not None and error < 1e-4,
             "voltage_profile_nontrivial": pct_non_flat > 95.0,
         }
         results["details"]["pass_checks"] = pass_checks

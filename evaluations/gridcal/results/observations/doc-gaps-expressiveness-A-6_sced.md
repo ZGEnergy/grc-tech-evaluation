@@ -3,8 +3,8 @@ tag: doc-gaps
 source_dimension: expressiveness
 source_test: A-6
 tool: gridcal
-severity: low
-timestamp: "2026-03-13T00:00:00Z"
+severity: medium
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: No documented SCED workflow or commitment-fixing API

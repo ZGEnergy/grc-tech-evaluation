@@ -1,6 +1,6 @@
 """Gate tests for GridCal (VeraGridEngine): network ingestion and data quality checks.
 
-Tests G-1 (TINY), G-2 (SMALL), G-3 (MEDIUM) per protocol v10.
+Tests G-1 (TINY), G-2 (SMALL), G-3 (MEDIUM) per protocol v11.
 """
 
 from __future__ import annotations

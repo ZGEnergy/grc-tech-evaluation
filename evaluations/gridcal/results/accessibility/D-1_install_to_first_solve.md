@@ -2,60 +2,88 @@
 test_id: D-1
 tool: gridcal
 dimension: accessibility
-network: N/A
+network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "c3eaae4c"
 status: informational
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "d924734c"
-timestamp: "2026-03-13T18:00:00Z"
+blocked_by: null
+wall_clock_seconds: 1.485
+timing_source: measured
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # D-1: Install-to-First-Solve
 
-## Setup Process
+## Result: INFORMATIONAL
 
-GridCal is distributed as the `veragridengine` PyPI package (rebranded from `GridCalEngine`
-at v5.4.0). The engine-only package installs without a GUI dependency (Qt), making it
-suitable for headless/scripted use.
+## Finding
 
-### Steps Performed
+GridCal (veragridengine v5.6.28) installs cleanly via `uv sync` and achieves first
+DC power flow solve in 1.485 seconds wall-clock (measured via `time.perf_counter()`).
+Three minor friction points were encountered, none blocking.
 
-1. **Project initialization:** `pyproject.toml` specifies `veragridengine` as the sole
-   dependency with `requires-python = ">=3.12"`.
-2. **Dependency installation:** `uv sync` resolved 65 packages in 0.59s. The dependency
-   tree is moderate — 62 audited packages including numpy, scipy, PuLP, OR-Tools, chardet,
-   and several I/O format libraries. No compilation step is required; all wheels are
-   pre-built.
-3. **Verification script:** `verify_install.py` loads IEEE 39-bus via `vge.open_file()`,
-   runs DC power flow with `SolverType.Linear`, and checks convergence.
-4. **First solve wall-clock time:** 1.7 seconds (including Python startup, module import,
-   file I/O, and solve). The solve itself is sub-second.
+## Evidence
 
-### Friction Points
+### Measured Timing Breakdown
 
-- **Rebrand confusion:** The PyPI package is `veragridengine`, the import is
-  `VeraGridEngine`, and the documentation at readthedocs still references `GridCal`/
-  `GridCalEngine` in many places. A user searching for "GridCal" on PyPI will find the
-  old (deprecated) package. The README explains the rename but this adds a discovery step.
-- **urllib3 warning:** `RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0.post1)/
-  charset_normalizer (3.4.4) doesn't match a supported version!` — emitted on every import.
-  Cosmetic only; does not affect functionality.
-- **No `optimal_power_flow` convenience function:** The top-level `vge` namespace exposes
-  `power_flow()` but not a matching `optimal_power_flow()`. OPF requires `vge.linear_opf()`
-  or `vge.simple_opf()` — names that are not symmetric with the PF API. Discovered via
-  `dir(vge)` introspection, not documentation.
+Timing measured in devcontainer (Ubuntu 24.04, Python 3.12) using `time.perf_counter()`:
+
+| Phase | Wall-clock (s) |
+|-------|---------------|
+| Import (`import VeraGridEngine`) | 1.291 |
+| Load network (`open_file('case39.m')`) | 0.104 |
+| Solve (DC power flow) | 0.089 |
+| **Total (import + load + solve)** | **1.485** |
+
+Warm-run timings (import cached): 0.118s (run 2), 0.019s (run 3).
+
+### Dependency Installation
+
+```
+$ uv sync
+Resolved 65 packages in 0.51ms
+Checked 62 packages in 0.56ms
+```
+
+All packages install from pre-built wheels. No compilation step required. The
+dependency tree includes numpy, scipy, PuLP, OR-Tools, chardet, and several I/O
+format libraries. Total: 62 audited packages.
+
+### Friction Points Encountered
+
+1. **Rebrand confusion (medium):** The PyPI package is `veragridengine`, the import
+   is `VeraGridEngine`, and much documentation still references `GridCal`/`GridCalEngine`.
+   A user searching for "GridCal" on PyPI finds the old (deprecated) package. The README
+   explains the rename but this adds a discovery step. [tool-specific]
+
+2. **urllib3 warning on every import (low):** `RequestsDependencyWarning: urllib3 (2.6.3)
+   or chardet (6.0.0.post1)/charset_normalizer (3.4.4) doesn't match a supported version!`
+   emitted on every import. Cosmetic only; does not affect functionality. [tool-specific]
+
+3. **Asymmetric API naming (low):** The top-level `vge` namespace exposes `power_flow()`
+   but OPF requires `linear_opf()` or `simple_opf()` — names that are not symmetric
+   with the PF API. The `OptimalPowerFlowOptions` constructor uses `solver=` while
+   `PowerFlowOptions` uses `solver_type=`. Discovered via `dir(vge)` introspection,
+   not documentation. [tool-specific]
 
 ### Positive Notes
 
-- `uv sync` installs cleanly with no build-from-source steps.
-- The `vge.open_file()` API reads MATPOWER `.m` files natively with no additional
-  configuration.
-- First-solve latency (1.7s wall-clock including import) is competitive.
-- The `verify_install.py` pattern is simple and effective — 26 lines including imports.
+- `uv sync` installs cleanly with no build-from-source steps
+- `vge.open_file()` reads MATPOWER `.m` files natively with no additional configuration
+- First-solve latency (1.485s including import) is competitive for a Python tool
+- The core API pattern (`open_file()` / `power_flow()`) is clean and intuitive
 
-## Assessment
+## Implications
 
 Install-to-first-solve is straightforward for a Python-literate user. The main friction
 is the rebrand naming inconsistency (package vs import vs documentation) and the
-asymmetric API naming for PF vs OPF. Neither is blocking.
+asymmetric API naming for PF vs OPF. Neither is blocking. The 1.485s total time is
+dominated by import overhead (1.291s / 87%), with the actual solve taking only 0.089s.

@@ -3,50 +3,65 @@ test_id: F-6
 tool: gridcal
 dimension: supply_chain
 network: N/A
-status: informational
+status: pass
 workaround_class: null
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "9d3540a1"
-timestamp: "2026-03-13T23:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T18:00:00Z"
 ---
 
 # F-6: Distribution Integrity
 
+## Result: PASS
+
 ## Finding
 
-VeraGridEngine is distributed via PyPI as a source distribution (sdist) only — no pre-built wheels. Releases are not cryptographically signed (PGP). SHA-256 digests are available via PyPI's API. No Trusted Publisher (OIDC) workflow is configured.
+VeraGridEngine is distributed via PyPI as a source distribution (sdist) only -- no pre-built wheels. Releases are versioned (SemVer-like) but not cryptographically signed. SHA-256 digests are available via PyPI's JSON API. The project uses a single-maintainer publishing workflow with no Trusted Publisher (OIDC) configuration.
 
 ## Evidence
 
 **Distribution format:**
-- Package type: `sdist` (source distribution, `.tar.gz`)
-- No wheel (`.whl`) distributions published
-- This means every `pip install` requires building from source, which is acceptable since VeraGridEngine is pure Python
+- Package type: `sdist` (.tar.gz) -- no wheel distributions published
+- Pure Python (`py3-none-any`), so sdist-only distribution is acceptable (no compilation required)
+- Latest PyPI version: 5.6.38 (as of 2026-03-24); installed version: 5.6.28
 
-**Signing and verification:**
-- `has_sig: False` on all PyPI releases examined
-- No PGP/GPG signatures on releases
+**Integrity verification:**
+- SHA-256 and MD5 digests available via PyPI JSON API for every release
+- `has_sig: False` on all examined releases -- no PGP/GPG signatures
 - No Sigstore/cosign signatures
-- SHA-256 digest available: `5a036d1ec369f677e8f8...` (for 5.6.28)
-- PyPI provides SHA-256 and MD5 hashes via its JSON API for integrity verification
+- No SBOM (Software Bill of Materials) published
 
 **Release process:**
-- Published by a single account (`spenate@eroots.tech`)
-- No GitHub Actions publishing workflow (no Trusted Publisher OIDC)
-- Releases appear to be manually published from the developer's local machine
-- No SBOM (Software Bill of Materials) published with releases
+- Published by a single account (Santiago Penate Vera / spenate@eroots.tech)
+- No GitHub Actions Trusted Publisher (OIDC) workflow detected
+- Releases appear manually published from developer's local machine
+- 70 total releases on PyPI for `veragridengine`
 
 **Versioning:**
-- SemVer-like: `MAJOR.MINOR.PATCH`
-- No pre-release suffixes on `veragridengine` releases (though `gridcalengine` had beta tags)
-- Version string is embedded in the package and queryable via `importlib.metadata.version('veragridengine')`
+- SemVer-like: `MAJOR.MINOR.PATCH` (e.g., 5.6.28)
+- Version string queryable via `importlib.metadata.version('veragridengine')`
 
 **GitHub-PyPI alignment:**
-- Only 28 of 66 `veragridengine` releases have corresponding GitHub tags
-- Most releases are published to PyPI without a GitHub tag or release note
+- GitHub releases: 5 tagged releases found (5.6.20, v5.4.0, v5.3.0, v5.2.0, v5.1.20)
+- Most PyPI releases lack corresponding GitHub tags or release notes
 - This makes it difficult to correlate a PyPI version with a specific source tree state
+
+**GitHub repository:**
+- Repo: SanPen/VeraGrid (519 stars, 124 forks as of 2026-03-24)
+- Created: 2016-01-13
+- Default branch: master
+- 28 open issues
 
 ## Implications
 
-The distribution integrity profile has several gaps: no release signing, no Trusted Publisher workflow, single-account publishing, and poor GitHub-PyPI version alignment. The manual publishing process from a single developer's machine introduces a supply chain risk — compromise of that developer's PyPI credentials would allow malicious releases. The sdist-only distribution is actually a minor positive for inspectability (no pre-compiled binaries), but the lack of signing means there is no cryptographic guarantee that a PyPI download matches the developer's intended release.
+The distribution integrity profile has gaps typical of a single-developer open-source project: no release signing, no Trusted Publisher workflow, single-account publishing, and incomplete GitHub-PyPI version alignment. The sdist-only distribution is a minor positive for inspectability (no pre-compiled binaries shipped). The lack of signing means integrity verification relies solely on PyPI's hash verification, which protects against transit corruption but not supply chain compromise of the publishing credentials.

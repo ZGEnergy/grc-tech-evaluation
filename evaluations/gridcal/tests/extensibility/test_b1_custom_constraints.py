@@ -247,7 +247,8 @@ def run(
         )
 
         if all(pass_checks.values()):
-            results["status"] = "qualified_pass"
+            # Fragile workaround -> partial_pass (not qualified_pass)
+            results["status"] = "partial_pass"
         else:
             failing = [k for k, v in pass_checks.items() if not v]
             results["errors"].append(f"Failed checks: {failing}")

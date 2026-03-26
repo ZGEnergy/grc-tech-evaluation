@@ -1,3 +1,7 @@
+# GridCal — Research Context (Merged)
+
+# Section 1: API & Formulations
+
 # gridcal — Research: API & Formulations
 
 ## Key Findings
@@ -396,33 +400,171 @@ GridCal was renamed to VeraGrid. The old `GridCal` / `GridCalEngine` PyPI packag
 
 Source: [GitHub SanPen/VeraGrid](https://github.com/SanPen/VeraGrid), [PyPI GridCalEngine](https://pypi.org/project/GridCalEngine/), [PyPI VeraGridEngine](https://pypi.org/project/veragridengine/)
 
+### Programmatic Grid Construction (Verified)
+
+Grids can be built entirely from code without loading files. The constructor parameter names differ from the old GridCal docs (e.g., `vset` not `Vset` for generators, `voltage_module` was old API). Verified working pattern (v5.6.28):
+
+```python
+import VeraGridEngine as vge
+
+grid = vge.MultiCircuit()
+
+b1 = vge.Bus(name="Bus1", Vnom=20)
+b2 = vge.Bus(name="Bus2", Vnom=20)
+grid.add_bus(b1)
+grid.add_bus(b2)
+b1.is_slack = True
+
+gen = vge.Generator(name="Gen1", P=100, vset=1.0, Pmin=0, Pmax=200,
+                    Cost=1.0, Cost2=0.01, Cost0=0.2)
+grid.add_generator(b1, gen)
+
+load = vge.Load(name="Load1", P=40, Q=20)
+grid.add_load(b2, load)
+
+line = vge.Line(bus_from=b1, bus_to=b2, name="L1-2", r=0.05, x=0.11, b=0.02, rate=100)
+grid.add_line(line)
+
+battery = vge.Battery(name="Batt1", P=0, Pmin=-50, Pmax=50, Enom=200,
+                      charge_efficiency=0.9, discharge_efficiency=0.9,
+                      min_soc=0.3, max_soc=0.99, soc=0.8)
+grid.add_battery(b2, battery)
+```
+
+Source: Verified by execution in devcontainer against VeraGridEngine v5.6.28.
+
+### Time Series / Profile API (Verified)
+
+Time-varying data is attached to devices via `Profile` objects. Each device attribute `X` has a corresponding `X_prof` attribute:
+
+```python
+import pandas as pd
+import numpy as np
+
+# Set time axis on grid
+dates = pd.date_range("2024-01-01", periods=24, freq="h")
+grid.set_time_profile(dates)
+
+# Set load profile (creates array matching time axis length)
+load.P_prof.set(np.full(24, load.P) * np.random.uniform(0.8, 1.2, 24))
+load.Q_prof.set(np.full(24, load.Q) * np.random.uniform(0.8, 1.2, 24))
+
+# Run time-series power flow
+ts_results = vge.power_flow_ts(grid, options=opts)
+ts_results.voltage   # shape: (24, n_buses)
+ts_results.Sf        # shape: (24, n_branches)
+ts_results.loading   # shape: (24, n_branches)
+```
+
+Source: Verified by execution in devcontainer against VeraGridEngine v5.6.28.
+
+### Result DataFrame Export (Verified)
+
+Results objects provide `get_bus_df()`, `get_branch_df()`, `get_voltage_df()`, `get_current_df()` methods returning pandas DataFrames. Also `get_report_dataframe()`, `export_all()`, `to_json()`, and `get_dict()`. Example verified output:
+
+```
+Bus DataFrame columns: Vm, Va, P, Q
+Branch DataFrame columns: Pf, Qf, Pt, Qt, loading, Ploss, Qloss
+```
+
+Source: Verified by execution in devcontainer against VeraGridEngine v5.6.28.
+
+### Full Driver List (Verified)
+
+All 25 driver classes verified in v5.6.28:
+
+| Driver | Time-series variant | Purpose |
+|---|---|---|
+| `PowerFlowDriver` | `PowerFlowTimeSeriesDriver` | AC/DC power flow |
+| `PowerFlowDriver3Ph` | — | 3-phase unbalanced power flow |
+| `OptimalPowerFlowDriver` | `OptimalPowerFlowTimeSeriesDriver` | DC/AC OPF |
+| `LinearAnalysisDriver` | `LinearAnalysisTimeSeriesDriver` | PTDF/LODF computation |
+| `ContingencyAnalysisDriver` | `ContingencyAnalysisTimeSeriesDriver` | N-1 contingency analysis |
+| `ContinuationPowerFlowDriver` | — | Voltage stability (CPF) |
+| `ShortCircuitDriver` | — | Short circuit analysis |
+| `StateEstimationDriver` | — | WLS state estimation |
+| `StochasticPowerFlowDriver` | — | Monte Carlo / LHS power flow |
+| `SmallSignalStabilityDriver` | — | Eigenvalue analysis |
+| `SigmaAnalysisDriver` | — | One-shot stability |
+| `ReliabilityStudyDriver` | — | Monte Carlo reliability |
+| `AvailableTransferCapacityDriver` | `AvailableTransferCapacityTimeSeriesDriver` | ATC computation |
+| `OptimalNetTransferCapacityDriver` | `OptimalNetTransferCapacityTimeSeriesDriver` | NTC optimization |
+| `NodalCapacityTimeSeriesDriver` | — | Nodal capacity analysis |
+| `InvestmentsEvaluationDriver` | — | Investment optimization |
+| `ClusteringDriver` | — | Time series reduction |
+| `InputsAnalysisDriver` | — | Input data validation |
+| `NodeGroupsDriver` | — | Bus grouping analysis |
+| `RmsSimulationDriver` | — | RMS transient simulation |
+
+Source: `dir(VeraGridEngine)` filtered for `*Driver` classes, verified v5.6.28.
+
+### Nonlinear OPF Convergence (Verified)
+
+The custom IPS solver was tested on IEEE 39-bus. Converged in 16 iterations with error 5.57e-08. Produces LMPs (`lam_p`) ranging 0.13-0.14 $/MWh on the test case. This confirms the AC OPF is functional, though large-case robustness still needs testing.
+
+Source: Verified by execution in devcontainer against VeraGridEngine v5.6.28.
+
+### `run_linear_opf_ts` Detailed Signature (Verified)
+
+The time-series linear OPF function `run_linear_opf_ts()` exposes the full set of UC/SCUC features:
+
+```python
+run_linear_opf_ts(
+    grid: MultiCircuit,
+    time_indices: IntVec | None,
+    dispatch_mode: OpfDispatchMode = Normal,      # Normal, UnitCommitment, InterAreaRedispatch, etc.
+    solver_type: MIPSolvers = HIGHS,              # HiGHS, SCIP, CPLEX, Gurobi, etc.
+    zonal_grouping: ZonalGrouping = NoGrouping,    # NoGrouping, Area, All (copper plate)
+    skip_generation_limits: bool = False,
+    consider_contingencies: bool = False,          # LODF-based security constraints
+    contingency_groups_used: list[ContingencyGroup] | None = None,
+    ramp_constraints: bool = False,                # inter-temporal ramp limits
+    consider_time_up_down: bool = False,           # min up/down time constraints
+    area_spinning_reserve: bool = False,           # spinning reserve per area
+    lodf_threshold: float = 0.001,
+    energy_0: Vec | None = None,                   # initial battery SoC
+    fluid_level_0: Vec | None = None,              # initial hydro reservoir level
+    add_losses_approximation: bool = False,        # linear loss approximation
+    mip_framework: MIPFramework = PuLP,            # PuLP or OR-Tools
+    ...
+) -> Tuple[OpfVars, LpModel]
+```
+
+This confirms that SCUC functionality (binary commitment variables, ramp constraints, min up/down, startup/shutdown costs, spinning reserves) is available within the linear OPF framework, not as a separate named SCUC abstraction.
+
+Source: `VeraGridEngine/api.py` function `run_linear_opf_ts`, verified v5.6.28.
+
 ## Sources
 
 1. Installed package source: `.venv/lib/python3.12/site-packages/VeraGridEngine/` (v5.6.28)
 2. [VeraGrid README](https://github.com/SanPen/VeraGrid/blob/master/README.md) — GitHub
-3. [GridCal documentation](https://gridcal-wip.readthedocs.io/en/latest/) — ReadTheDocs (old naming)
-4. [GridCal code tutorials](https://gridcal-wip.readthedocs.io/en/latest/getting_started/code_tutorials.html)
-5. [SanPen/GridCal GitHub](https://github.com/sanpen/gridcal) — original repo (now archived)
-6. [SanPen/VeraGrid GitHub](https://github.com/SanPen/VeraGrid) — current repo
-7. [GridCal Wiki](https://github.com/SanPen/GridCal/wiki) — algorithm descriptions
-8. `evaluations/gridcal/verify_install.py` — working usage example in this repo
-9. `VeraGridEngine/enumerations.py` — all enum definitions (SolverType, MIPSolvers, EngineType, etc.)
-10. `VeraGridEngine/Simulations/OPF/Formulations/linear_opf_ts.py` — DC OPF formulation source
-11. `VeraGridEngine/Simulations/OPF/Formulations/ac_opf_problem.py` — AC OPF formulation source
+3. [GridCal documentation](https://gridcal-wip.readthedocs.io/en/latest/) — ReadTheDocs (old naming, v3.5.3)
+4. [GridCal code tutorials](https://gridcal-wip.readthedocs.io/en/latest/getting_started/code_tutorials.html) — old API examples
+5. [GridCal simulation theory](https://gridcal-wip.readthedocs.io/en/latest/theory/simulations.html) — power flow and OPF theory
+6. [SanPen/GridCal GitHub](https://github.com/sanpen/gridcal) — original repo (now archived)
+7. [SanPen/VeraGrid GitHub](https://github.com/SanPen/VeraGrid) — current repo
+8. [GridCal Wiki](https://github.com/SanPen/GridCal/wiki) — algorithm descriptions (HELM, etc.)
+9. `evaluations/gridcal/verify_install.py` — working usage example in this repo
+10. `VeraGridEngine/enumerations.py` — all enum definitions (SolverType, MIPSolvers, EngineType, etc.)
+11. `VeraGridEngine/Simulations/OPF/Formulations/linear_opf_ts.py` — DC OPF formulation source
+12. `VeraGridEngine/Simulations/OPF/Formulations/ac_opf_problem.py` — AC OPF formulation source
+13. Runtime introspection of v5.6.28 in devcontainer — constructor signatures, enum values, result attributes, DataFrame export methods
+14. Execution verification: ACPF (NR, 39-bus), DCPF (Linear, 39-bus), Linear OPF (39-bus), Nonlinear OPF (39-bus, IPS), programmatic grid construction, save/load round-trip, time-series profiles and TS power flow
 
 ## Gaps and Uncertainties
 
-- **No Ipopt/external NLP integration observed.** The AC OPF uses a custom interior-point solver. Need to verify during testing whether this produces reliable results on standard test cases (e.g., MATPOWER case validation).
-- **SCUC/SCED terminology:** Unit commitment exists as a dispatch mode within `linear_opf`, but it is unclear how mature the binary variable (on/off) formulation is for large systems. Needs testing.
-- **Proportional OPF** is listed in `SolverType` but not dispatched in `opf_driver.py` snapshot mode — may be time-series-only or deprecated.
-- **PSS/e export completeness** is uncertain. The README flags it as problematic; code exists in `raw_parser_writer.py` but quality is unknown.
-- **Engine backends** (Bentayga, NewtonPA, PGM, GSLV) are compiled-to but not installed. Need to confirm they are truly optional and that the default `VeraGrid` engine covers all documented formulations.
-- **Documentation is sparse and partially outdated.** The ReadTheDocs site references the old `GridCal.Engine` API (v3.5.3), while the installed version is 5.6.28. Source code is the authoritative reference.
-- **3-phase power flow** exists (`PowerFlowDriver3Ph`) but scope and limitations are not documented.
-- **Result export to DataFrame/CSV** — the `ResultsTemplate` base class likely has `to_df()` or similar methods, but this was not fully traced.
-- **Profile (time series) data format** — how time-varying data (load profiles, gen schedules) are attached to devices needs testing to confirm API patterns.
-
+- **No Ipopt/external NLP integration observed.** The AC OPF uses a custom interior-point solver. Converges on IEEE 39-bus (verified), but large-case robustness and numerical accuracy vs. MATPOWER reference values still need testing.
+- **SCUC/SCED terminology:** Unit commitment exists as a dispatch mode within `linear_opf`, but it is unclear how mature the binary variable (on/off) formulation is for large systems. Needs testing with explicit UC parameters (startup costs, min up/down times).
+- **Proportional OPF** is listed in `SolverType` but not dispatched in `opf_driver.py` snapshot mode -- may be time-series-only or deprecated.
+- **PSS/e export completeness** is uncertain. The [VeraGrid README](https://github.com/SanPen/VeraGrid/blob/master/README.md) lists `.raw` and `.rawx` as export formats; code exists in `raw_parser_writer.py` but quality/completeness is unknown.
+- **Engine backends** (Bentayga, NewtonPA, PGM, GSLV) are compiled-to but not installed. The default `VeraGrid` engine covers all documented formulations; external engines are performance/commercial options.
+- **Documentation is sparse and partially outdated.** The ReadTheDocs site references the old `GridCal.Engine` API (v3.5.3), while the installed version is 5.6.28. Source code and runtime introspection are the authoritative references.
+- **3-phase power flow** exists (`PowerFlowDriver3Ph`, `power_flow3ph()`) but scope and limitations are not documented. Returns `PowerFlowResults3Ph` with per-phase voltages.
+- **Constructor parameter names changed** between old GridCal docs and current VeraGrid API (e.g., `voltage_module` -> `vset`, `Sbranch` -> `Sf`). Old tutorial code from ReadTheDocs will not work without adaptation.
+- **RMS transient simulation** (`RmsSimulationDriver`) exists but dynamic model support scope is unclear -- `RmsModelTemplate`, `RmsEvent`, `RmsEventsGroup` classes exist but documentation is absent.
 ---
+
+# Section 2: Extensions & Architecture
 
 # gridcal -- Research: Extensions & Architecture
 
@@ -610,8 +752,9 @@ The `MultiCircuit`/`Assets` class is a large monolith with 100+ methods. While t
 - **Signal/callback system untested with real Qt.** The `DummySignal.connect()` method exists but its behavior when connected to real callbacks in headless mode needs verification.
 - **No event hooks for pre/post simulation.** There is no documented way to register callbacks that fire before or after a simulation run.
 - **Device-level DataFrame export not built-in.** While results have `to_df()`, the device model (buses, generators, etc.) does not provide a direct DataFrame export method -- users must iterate and construct manually.
-
 ---
+
+# Section 3: Limitations & Ecosystem
 
 # gridcal — Research: Limitations & Ecosystem
 
@@ -824,21 +967,24 @@ Source: `VeraGridEngine/Utils/ThirdParty/gslv/gslv_activation.py`
 - **Three-phase support:** Issue #425 (open) requests three-phase transformer modeling. A `PowerFlowDriver3Ph` exists but its completeness/correctness is uncertain.
 - **State estimation:** Issue #419 flags missing observability analysis features and pseudo-measurement handling.
 - **Dynamic simulation:** RMS simulation capability exists but GUI integration is incomplete (Issue #427). EMT capability is unclear — the GitHub topics include "emt" but no EMT solver type is visible in the enum.
-
 ---
+
+# Section 4: Version & Capabilities
+
+```yaml
+tool: gridcal
+installed_version: 5.6.28
+release_date: 2026-02-25
+latest_version: 5.6.38
+latest_release_date: 2026-03-18
+research_date: 2026-03-24
+```
 
 # gridcal — Version & Capability Report
 
-- **Tool:** gridcal
-- **Installed version:** 5.6.28
-- **Release date:** 2026-02-25
-- **Latest version:** 5.6.34
-- **Latest release date:** 2026-03-12
-- **Research date:** 2026-03-13
-
 ## Version Summary
 
-The installed version of GridCal (now rebranded as VeraGrid/VeraGridEngine) is **5.6.28**, released on 2026-02-25. The latest available version on PyPI is **5.6.34**, released 2026-03-12 — only 16 days and 6 patch releases behind. The 5.6.x series has seen rapid iteration with 15 releases between 2026-02-02 and 2026-03-12, primarily consisting of bug fixes and incremental improvements. There are no known breaking API changes between 5.6.28 and 5.6.34 based on available release information.
+The installed version of GridCal (rebranded as VeraGrid/VeraGridEngine since v5.4.0) is **5.6.28**, released on 2026-02-25. The latest available version on PyPI is **5.6.38**, released 2026-03-18 — 10 patch releases and 21 days behind. The 5.6.x series has seen extremely rapid iteration: between the installed version and the latest, there have been releases on 2026-03-03 (5.6.29), 03-06 (5.6.30), 03-09 (5.6.31), 03-11 (5.6.32, 5.6.33), 03-12 (5.6.34), 03-16 (5.6.35), 03-17 (5.6.36), and 03-18 (5.6.37, 5.6.38). None of these releases have tagged GitHub release notes; the GitHub commit history shows only generic "latest changes from eroots repo" merge messages, indicating development occurs in a private eRoots repository. Based on the patch-level versioning and absence of documented breaking changes, the risk of API incompatibility between 5.6.28 and 5.6.38 is low.
 
 The project underwent a significant rebrand from "GridCal" to "VeraGrid" at version 5.4.0 (February 2025) due to trademark conflicts. The Python package was renamed from `GridCalEngine` to `VeraGridEngine`, and the import namespace changed from `GridCalEngine` to `VeraGridEngine`. The core API surface, class names, and function signatures were preserved through the rename. The evaluation uses the `veragridengine` PyPI package with `import VeraGridEngine as vge`.
 
@@ -846,66 +992,80 @@ The project underwent a significant rebrand from "GridCal" to "VeraGrid" at vers
 
 | Feature | Supported | Since Version | Notes |
 |---------|-----------|---------------|-------|
-| DC Power Flow (DCPF) | yes | ~1.0 | `SolverType.Linear` provides DC approximation. Well-tested on all MATPOWER 8 benchmark grids. |
-| AC Power Flow (ACPF) | yes | ~1.0 | Multiple solvers: Newton-Raphson, Gauss-Seidel, HELM, Fast Decoupled, Iwamoto-NR, Continuation NR, LACPF. |
-| DC Optimal Power Flow (DC OPF) | yes | ~3.0 | `SolverType.LINEAR_OPF`. Supports MIP via HiGHS/SCIP/CPLEX/Gurobi/CBC through PuLP or OR-Tools frameworks. |
-| AC Optimal Power Flow (AC OPF) | yes | 5.1.0 | `SolverType.NONLINEAR_OPF` with Interior Point Solver. Three modes: standard, slacks, max injections. Enhanced in 5.1.0 with HVDC dispatch. |
-| Security-Constrained Unit Commitment (SCUC) | partial | ~5.0 | `OpfDispatchMode.UnitCommitment` exists with `consider_time_up_down` and `consider_ramps` options in OPF settings. However, this is a simplified UC formulation within the OPF framework — not a full ISO-grade SCUC with all standard constraints (startup costs, min up/down time profiles, etc.). |
-| Security-Constrained Economic Dispatch (SCED) | partial | ~5.0 | The linear OPF with contingency consideration (`consider_contingencies` option) approximates SCED functionality. No dedicated SCED solver or API exists. Dispatch is handled via `OpfDispatchMode.Normal` with security constraints. |
-| PTDF / Shift Factor Extraction | yes | 3.6.1 (empirical), 4.0.0 (analytical) | `LinearAnalysis` driver computes PTDF and LODF matrices. Version 4.0.0 replaced empirical method with analytical PTDF/LODF (orders of magnitude faster). Time-series variant available via `LinearAnalysisTimeSeriesDriver`. |
-| Contingency Analysis (N-1) | yes | 3.6.1 | `ContingencyAnalysisDriver` with both power-flow and LODF-based methods. Supports contingency groups and filtering. Time-series contingency analysis also available. |
-| Custom Constraint Injection | no | — | No public API for injecting arbitrary user-defined constraints into the OPF formulation. The OPF is formulated internally using PuLP/OR-Tools but the model construction is not exposed for user modification. |
-| Network Graph Access | yes | ~3.0 | `MultiCircuit.build_graph()` and `MultiCircuit.plot_graph()` provide network topology as a graph. `get_topology_data()` returns topology information. Island detection via `find_islands`. |
-| CSV Data Import | no | — | No native CSV import for network data. Supports Excel import (`interpret_excel_v3`), JSON, and proprietary `.gridcal` format. Profile data can be loaded from Excel. |
-| MATPOWER Case Import | yes | ~2.0 | `vge.open_file("case.m")` natively parses MATPOWER `.m` files. Tested against all MATPOWER 8 benchmark cases. Also supports PSS/e `.raw`/`.rawx`, DigSilent `.dgs`, PowerWorld `.epc`, CIM/CGMES, and PyPSA formats. |
-| Multi-Period / Time Series | yes | ~3.0 | `PowerFlowTimeSeriesDriver` and `OptimalPowerFlowTimeSeriesDriver` support temporal simulation. Time grouping options (monthly, weekly, daily, hourly) for OPF time series. Battery state-of-charge tracking across periods. Clustering driver available for representative period selection. |
-| Warm Start / Solution Reuse | yes | ~4.0 | `PowerFlowOptions.use_stored_guess` and `initialize_with_existing_solution` flags enable warm starting from previous solutions. OPF options include `ips_init_with_pf` to initialize AC OPF from power flow solution. |
-| Parallel Computation | partial | ~4.0 | Time series simulations support parallel execution via the `engine` parameter (VeraGrid, Bentayga, NewtonPA, PGM, GSLV engines). Parallel operation is limited to UNIX systems due to Python multiprocessing constraints on Windows. No GPU acceleration. |
+| DC Power Flow (DCPF) | yes | ~1.0 | `SolverType.Linear` provides DC approximation. Tested against all MATPOWER 8 benchmark grids. ([README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
+| AC Power Flow (ACPF) | yes | ~1.0 | Multiple solvers: Newton-Raphson, Gauss-Seidel, HELM, Fast Decoupled, Iwamoto-NR, Continuation NR, LACPF. Three-phase unbalanced power flow added in 5.x series. ([README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
+| DC Optimal Power Flow (DC OPF) | yes | ~3.0 | `SolverType.LINEAR_OPF`. MIP support via HiGHS (built-in since 4.5.0), plus SCIP/CPLEX/Gurobi/CBC through PuLP or OR-Tools frameworks. MIP auto-healing added in 5.0.2 ensures OPF simulations are always feasible. ([Changelog](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html), [OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| AC Optimal Power Flow (AC OPF) | yes | 5.1.0 | `SolverType.NONLINEAR_OPF` with Interior Point Solver. Three modes: standard, slacks, max injections. Enhanced in 5.1.0 with HVDC dispatch. Also offers "AC Linear OPF" mode between DC and full NL. ([GitHub release 5.1.0](https://github.com/SanPen/VeraGrid/releases/tag/5.1.0), [OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| Security-Constrained Unit Commitment (SCUC) | partial | ~5.0 | `OpfDispatchMode.UnitCommitment` exists with `consider_time_up_down` and `consider_ramps` options. Documentation shows multi-period 24-hour commitment examples using MIP via HiGHS. However, this is a simplified UC formulation within the OPF framework — not a full ISO-grade SCUC with all standard constraints (startup cost profiles, detailed min up/down time curves, reserve products). ([OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| Security-Constrained Economic Dispatch (SCED) | partial | ~5.0 | Linear OPF with `consider_contingencies` option approximates SCED functionality. No dedicated SCED solver or API. Dispatch is handled via `OpfDispatchMode.Normal` with security constraints. Quadratic cost curves with fixed/linear/quadratic coefficients supported. ([OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| PTDF / Shift Factor Extraction | yes | 3.6.1 (empirical), 4.0.0 (analytical) | `LinearAnalysis` driver computes PTDF and LODF matrices. Version 4.0.0 replaced empirical method with analytical PTDF/LODF (orders of magnitude faster). Time-series variant available via `LinearAnalysisTimeSeriesDriver`. Also supports VTDF (3.6.4+) and net transfer capacity calculation. ([Changelog 4.0.0](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html), [README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
+| Contingency Analysis (N-1) | yes | 3.6.1 | `ContingencyAnalysisDriver` with both power-flow and LODF-based methods. Supports contingency groups and filtering. Time-series contingency analysis also available. Contingency reports added to all OPF modes in 4.2.4. Branch contingency multiplier in 4.1.2. ([Changelog](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html), [README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
+| Custom Constraint Injection | no | — | No public API for injecting arbitrary user-defined constraints into the OPF formulation. The OPF is formulated internally using PuLP/OR-Tools but the model construction is not exposed for user modification. Flexible slack variables (load/generation shedding with cost weights) provide limited soft-constraint capability but not arbitrary linear constraints. ([OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| Network Graph Access | yes | ~3.0 | `MultiCircuit.build_graph()` and `MultiCircuit.plot_graph()` provide network topology as a graph. `get_topology_data()` returns topology information. Island detection via `find_islands`. Kron's reduction for network simplification. ([Modelling docs](https://veragrid.readthedocs.io/en/latest/md_source/modelling.html)) |
+| CSV Data Import | no | — | No native CSV import for network data. Supports Excel import (`interpret_excel_v3`), JSON, native `.veragrid` format, and equipment catalog databases. Profile data can be loaded from Excel. ([Modelling docs](https://veragrid.readthedocs.io/en/latest/md_source/modelling.html)) |
+| MATPOWER Case Import | yes | ~2.0 | `vge.open_file("case.m")` natively parses MATPOWER `.m` files. Tested against all MATPOWER 8 benchmark cases; README claims the continental USA case solves in ~1 second. Also supports PSS/e `.raw`/`.rawx` (v29-35), CGMES/CIM (2.4.15, 3.0), UCTE, DigSilent `.dgs` (partial), PSLF `.epc` (partial), and PyPSA formats. ([README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
+| Multi-Period / Time Series | yes | ~3.0 | `PowerFlowTimeSeriesDriver` and `OptimalPowerFlowTimeSeriesDriver` support temporal simulation. Time grouping (monthly, weekly, daily, hourly) for OPF time series. Battery state-of-charge tracking across periods. Clustering driver for representative period selection (4.1.0+). Results can be saved to files (4.2.0+). ([Changelog](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html), [OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| Warm Start / Solution Reuse | yes | ~4.0 | `PowerFlowOptions.use_stored_guess` and `initialize_with_existing_solution` flags enable warm starting from previous solutions. OPF options include `ips_init_with_pf` to initialize AC OPF from power flow solution. OPF verification workflow dispatches via linear optimization then validates with exact power flow. ([OPF docs](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html)) |
+| Parallel Computation | partial | ~4.0 | Time series simulations support parallel execution via the `engine` parameter (VeraGrid, Bentayga, NewtonPA, PGM, GSLV engines). Parallel operation limited to UNIX systems due to Python multiprocessing constraints on Windows. Bentayga and NewtonPA are proprietary/commercial add-ons from eRoots. No GPU acceleration. ([README](https://github.com/SanPen/VeraGrid/blob/master/README.md)) |
 
 ### Support Semantics
 
 - **yes** — Feature is fully supported in the installed version.
 - **no** — Feature is not available.
-- **partial** — Feature exists but with significant limitations. Notes column MUST explain.
+- **partial** — Feature exists but with significant limitations. Notes column explains.
 
 ## Breaking Changes
 
 | Version | Change | Impact on Evaluation |
 |---------|--------|----------------------|
-| 5.4.0 | Rebrand from GridCal to VeraGrid. Package renamed from `GridCalEngine` to `VeraGridEngine`. Import namespace changed accordingly. | Evaluation already uses `VeraGridEngine` — no impact. Any documentation or examples referencing `GridCalEngine` need import path updates. |
-| 5.3.0 | Topology processing overhaul: consolidated ConnectivityNodes, BusBars, and Buses into unified framework. FUBM converter approach integrated. | May affect how bus/branch topology is accessed programmatically. Improved AC/DC convergence properties are beneficial for evaluation. |
-| 5.1.0 | JSON-based file format replaced CSV for native `.gridcal` files. Sparse profile implementation changed memory layout. | No impact on MATPOWER import. Internal file format change does not affect evaluation protocol using `.m` files. |
-| 5.0.2 | "The great split" — GridCal split into GUI package (GridCal/VeraGrid) and engine package (GridCalEngine/VeraGridEngine). API naming unified. | Evaluation correctly depends only on `veragridengine` (engine-only package without Qt). |
+| 5.4.0 | Rebrand from GridCal to VeraGrid. Package renamed from `GridCalEngine` to `VeraGridEngine`. Import namespace changed accordingly. ([GitHub release v5.4.0](https://github.com/SanPen/VeraGrid/releases/tag/v5.4.0)) | Evaluation already uses `VeraGridEngine` — no impact. Any documentation or examples referencing `GridCalEngine` need import path updates. |
+| 5.3.0 | Topology processing overhaul: consolidated ConnectivityNodes, BusBars, and Buses into unified framework. FUBM converter approach integrated. ([GitHub release v5.3.0](https://github.com/SanPen/VeraGrid/releases/tag/v5.3.0)) | May affect how bus/branch topology is accessed programmatically. Improved AC/DC convergence properties are beneficial for evaluation. |
+| 5.2.0 | License changed from LGPL to MPLv2. ([GitHub release v5.2.0](https://github.com/SanPen/VeraGrid/releases/tag/v5.2.0)) | No API impact. License change relevant for supply chain evaluation dimension. |
+| 5.1.0 | JSON-based file format replaced CSV for native `.gridcal` files. Sparse profile implementation changed memory layout. First production-grade ACOPF. ([GitHub release 5.1.0](https://github.com/SanPen/VeraGrid/releases/tag/5.1.0)) | No impact on MATPOWER import. ACOPF capability is a significant addition for expressiveness tests. |
+| 5.0.2 | "The great split" — GridCal split into GUI package (GridCal/VeraGrid) and engine package (GridCalEngine/VeraGridEngine). API naming unified. MIP auto-healing for OPF feasibility. ([GitHub release 5.0.2](https://github.com/SanPen/VeraGrid/releases/tag/5.0.2)) | Evaluation correctly depends only on `veragridengine` (engine-only package without Qt). |
+| 4.0.0 | Multi-terminal AC/DC grids. Replaced empirical PTDF with analytical PTDF/LODF (orders of magnitude faster). Outer loop controls replaced with direct integration into numerical methods. ([GitHub release v4.0](https://github.com/SanPen/VeraGrid/releases/tag/v4.0)) | Analytical PTDF is the current implementation used in evaluation. |
 
 ## Changelog Analysis
 
-The 5.6.x series (installed range) has been a period of rapid stabilization:
+### Installed Version (5.6.28) to Latest (5.6.38)
 
-**Bug Fixes & Stability (5.6.20–5.6.34):** The only tagged GitHub release in this range (5.6.20) describes "countless bug fixes" and proper grid reduction functionality. Commits between 5.6.28 and 5.6.34 are unlabeled merges from the private eRoots development repository, suggesting internal bug fixes without major feature additions.
+No tagged GitHub releases exist between 5.6.20 and 5.6.38. The 10 releases from 5.6.29 to 5.6.38 span 2026-03-03 to 2026-03-18 (15 days). GitHub commit messages for this period are generic merges from the private eRoots development repository ("latest changes from eroots repo", version number bumps). Without detailed release notes, the specific changes cannot be enumerated. The rapid release cadence (10 releases in 15 days) and patch-level versioning suggest bug fixes and incremental improvements rather than feature additions.
 
-**File Format & UI (5.6.20):** File format export was reorganized from save-as menu to individual actions. Short circuits are no longer treated as variations. New substation creation capabilities from electrical patterns (breaker-and-a-half, double bar).
+### Key milestones in the 5.x series
 
-**Topology Improvements (5.3.0, Jan 2025):** Major improvements to topological processing and AC/DC power flow convergence via FUBM integration.
+**5.6.20 (2026-02-02, tagged release):** "Countless bug fixes," proper grid reduction, file format export reorganization, substation creation from electrical patterns (breaker-and-a-half, double bar). Short circuits no longer treated as variations.
 
-**AC OPF Maturation (5.1.0, Apr 2024):** First production-grade ACOPF with generation dispatch and HVDC. Sparse profiles reduced memory for time-series studies.
+**5.4.0 (2025-02-02):** Rebrand from GridCal to VeraGrid. Package rename. No functional changes.
 
-**Key themes across 5.x series:** The development trajectory shows GridCal/VeraGrid maturing from a primarily linear/DC analysis tool into one with nonlinear OPF capabilities, improved interoperability (CGMES, CIM), and enterprise-grade topology handling. The engine/GUI split in 5.0 enabled headless/programmatic use suitable for evaluation.
+**5.3.0 (2025-01-08):** Topology processing overhaul. FUBM integration for improved AC/DC convergence.
+
+**5.2.0 (2024-11-11):** License change from LGPL to MPLv2.
+
+**5.1.0 (2024-04-01):** First production-grade ACOPF with interior point solver. HVDC dispatch in OPF. Sparse profiles for memory-efficient time series.
+
+**5.0.2 (2023-11-18):** Engine/GUI split enabling headless operation. MIP auto-healing for OPF feasibility.
+
+### Features relevant to the 15 canonical capabilities
+
+The 5.x series brought two major capability additions: (1) AC OPF via interior point solver (5.1.0), and (2) improved topology handling for AC/DC grids (5.3.0). All other canonical features (DCPF, ACPF, DC OPF, PTDF, contingency analysis, MATPOWER import, time series, warm start) were already present in the 4.x series and have been incrementally improved. SCUC/SCED remain partial implementations within the OPF framework. Custom constraint injection and CSV import remain unsupported as of 5.6.38.
 
 ## Sources
 
-1. [VeraGridEngine on PyPI](https://pypi.org/project/VeraGridEngine/) — version history and release dates
+1. [VeraGridEngine on PyPI](https://pypi.org/project/VeraGridEngine/) — version history and release dates (confirmed 5.6.38 as latest, 2026-03-18)
 2. [VeraGrid GitHub Repository](https://github.com/SanPen/VeraGrid) — source code, releases, commit history
-3. [VeraGrid Documentation — Changelog](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html) — historical changelog (covers up to 5.0.2)
-4. [VeraGrid GitHub Releases](https://github.com/SanPen/VeraGrid/releases) — release notes for tagged versions
-5. [GridCal Documentation — PTDF Theory](https://gridcal.readthedocs.io/en/latest/rst_source/theory/linear/ptdf.html) — PTDF implementation details
-6. [VeraGrid README](https://github.com/SanPen/VeraGrid/blob/master/README.md) — feature list and file format support
-7. Runtime introspection of `VeraGridEngine` 5.6.28 API (enumerations, class signatures, options objects)
+3. [VeraGrid GitHub Releases](https://github.com/SanPen/VeraGrid/releases) — release notes for tagged versions (5.6.20 and earlier only)
+4. [VeraGrid Documentation — Changelog](https://veragrid.readthedocs.io/en/stable/rst_source/change_log.html) — historical changelog (covers up to 5.0.2 only)
+5. [VeraGrid Documentation — OPF](https://veragrid.readthedocs.io/en/latest/md_source/optimal_power_flow.html) — OPF capabilities, dispatch modes, solver support (v5.6.31 docs)
+6. [VeraGrid Documentation — Modelling](https://veragrid.readthedocs.io/en/latest/md_source/modelling.html) — element types, file formats, topology (v5.6.31 docs)
+7. [VeraGrid README](https://github.com/SanPen/VeraGrid/blob/master/README.md) — feature list, file format support, MATPOWER compatibility
+8. Runtime introspection of `VeraGridEngine` 5.6.28 API via devcontainer (`importlib.metadata.version('veragridengine')`)
 
 ## Gaps and Uncertainties
 
-- **Changelog gap for 5.1–5.6:** The official changelog on ReadTheDocs only covers up to version 5.0.2. Versions 5.1 through 5.6 have no detailed public changelog. Development occurs in a private eRoots repository with periodic merges to the public GitHub repo, making it difficult to track individual changes.
-- **SCUC/SCED depth unclear:** The `OpfDispatchMode.UnitCommitment` mode exists but its exact constraint set (startup costs, min up/down time enforcement, reserve requirements) could not be fully determined from the public API alone. Testing is needed to verify the scope of the UC formulation.
-- **Custom constraint injection:** No public API was found, but it may be possible to modify the PuLP/OR-Tools model objects if they are accessible through internal attributes. This would be undocumented and fragile.
-- **Parallel computation scope:** The `engine` parameter suggests pluggable compute backends, but the actual parallelization behavior (thread vs. process, degree of parallelism) is not documented. The Bentayga and NewtonPA engines may provide additional parallel capabilities but are proprietary/commercial add-ons.
+- **Changelog gap for 5.6.21–5.6.38:** No tagged GitHub releases exist after 5.6.20. Versions 5.6.21 through 5.6.38 have no public release notes. Development occurs in a private eRoots repository with periodic merges to the public GitHub repo, making it impossible to track individual changes between 5.6.28 and 5.6.38.
+- **SCUC/SCED depth unclear:** The `OpfDispatchMode.UnitCommitment` mode exists and the documentation shows 24-hour commitment examples, but its exact constraint set (startup cost profiles, min up/down time enforcement, reserve products, ramp rate modeling fidelity) could not be fully determined from the public API and documentation alone. Testing is needed to verify the scope of the UC formulation.
+- **Custom constraint injection:** No public API was found. It may be possible to modify the PuLP/OR-Tools model objects if they are accessible through internal attributes, but this would be undocumented and fragile. The flexible slack variables (load/generation shedding with costs) provide limited soft-constraint capability but not arbitrary linear constraint injection.
+- **Parallel computation scope:** The `engine` parameter suggests pluggable compute backends, but actual parallelization behavior (thread vs. process, degree of parallelism) is not documented. Bentayga and NewtonPA engines are proprietary/commercial add-ons from eRoots — their availability and capabilities are unclear for evaluation purposes.
 - **"Since Version" estimates:** Many "since version" entries are approximate, based on changelog analysis and feature availability in historical documentation. Exact version provenance could not be determined for features that predate the 3.6.1 changelog entries.
-- **5.6.28 to 5.6.34 delta:** The specific changes between the installed version (5.6.28) and latest (5.6.34) could not be determined — commits are unlabeled merges from the private eRoots repo. Risk of breaking changes is low given the patch-level versioning.
+- **Documentation version lag:** The latest ReadTheDocs documentation is for version 5.6.31, while the latest PyPI release is 5.6.38. The changelog on ReadTheDocs only covers up to 5.0.2. There may be undocumented capability additions in recent versions.
+- **5.6.28 to 5.6.38 delta risk assessment:** The 10-release gap with no documented changes presents low but non-zero risk. All are patch-level bumps within 15 days, suggesting bug fixes. No evidence of breaking API changes, but this cannot be confirmed without source-level comparison.

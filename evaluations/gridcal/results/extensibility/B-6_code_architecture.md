@@ -3,20 +3,21 @@ test_id: B-6
 tool: gridcal
 dimension: extensibility
 network: N/A
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "0f337d8d"
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.12
+wall_clock_seconds: 1.13
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 332
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-6: Qualitative assessment of DCPF solve path source code architecture
@@ -50,7 +51,7 @@ vge.power_flow(grid, options)           [api.py:101-118]
 | L1: API | api.py | 503 | Convenience functions wrapping Driver pattern |
 | L2: Driver | power_flow_driver.py | 252 | Engine selection, QThread support, logging |
 | L3: Worker | power_flow_worker.py | 1031 | Island decomposition, solver dispatch (14 algorithms) |
-| L4: Results | power_flow_results.py | ~400 | Typed results with DataFrame export |
+| L4: Results | power_flow_results.py | 1016 | Typed results with DataFrame export, JSON serialization |
 | L5: Data Model | multi_circuit.py + assets.py + numerical_circuit.py | 12,058 | Device-oriented model -> matrix-oriented model |
 
 ### Separation of Concerns
@@ -73,7 +74,7 @@ vge.power_flow(grid, options)           [api.py:101-118]
 | assets.py | 576 | 473 | 82% |
 | numerical_circuit.py | 34 | 25 | 74% |
 
-The data model layer has good documentation coverage (74-82%). The simulation layer has poor docstring coverage (12-14%), though the code uses descriptive parameter names and inline comments.
+The data model layer has good documentation coverage (74-82%). The simulation layer has poor docstring coverage (12-14%), though the code uses descriptive parameter names and inline comments with mathematical notation (e.g., Bdc, Sbus, Sf).
 
 ### Numerical Method Implementations
 
@@ -88,6 +89,17 @@ The data model layer has good documentation coverage (74-82%). The simulation la
 | linearized_power_flow.py | 491 | DC (Linear) PF |
 | powell_fx.py | 196 | Powell Dog-Leg |
 
+### PF Formulations
+
+| File | LOC |
+|------|-----|
+| pf_basic_formulation.py | 316 |
+| pf_advanced_formulation.py | 874 |
+| pf_generalized_formulation.py | 2001 |
+| pf_full_acdc_with_negative_poles.py | 2597 |
+| pf_basic_formulation_3ph.py | 1220 |
+| pf_formulation_template.py | 228 |
+
 ### Architecture Concerns
 
 1. **Monolithic OPF formulation:** `linear_opf_ts.py` (3146 LOC) contains the entire LP formulation as a single procedural function. All dispatch modes (Normal, UC, Redispatch, GEP, NodalCapacity) are handled via if/else branches within the same function. No hook points for user-defined constraints.
@@ -99,6 +111,14 @@ The data model layer has good documentation coverage (74-82%). The simulation la
 4. **Engine extensibility:** PowerFlowDriver supports 5 compute engines via EngineType enum, but adding a new engine requires modifying the driver's `run()` method (no plugin pattern).
 
 5. **Internal interface documentation:** Worker functions use double-underscore prefix (`__solve_island_limited_support`) indicating they are private. The public API surface is narrow (api.py), which is good for stability but limits extensibility.
+
+### Total LOC in DCPF Path
+
+| Component | LOC |
+|-----------|-----|
+| DCPF solve path (api + driver + worker + results + numerical_circuit) | 3,990 |
+| Data model (multi_circuit + assets + numerical_circuit) | 12,058 |
+| OPF formulation (linear_opf_ts.py) | 3,146 |
 
 ## Implications
 

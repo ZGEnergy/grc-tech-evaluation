@@ -3,29 +3,30 @@ test_id: B-1
 tool: gridcal
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "fececf15"
-status: qualified_pass
+status: partial_pass
 workaround_class: fragile
 blocked_by: null
-wall_clock_seconds: 1.41
+wall_clock_seconds: 1.43
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 268
 solver: HiGHS
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-1: Add flow gate limit to DC OPF, read dual value
 
-## Result: QUALIFIED PASS
+## Result: PARTIAL PASS
 
 ## Approach
 
-GridCal (VeraGridEngine 5.6.28) has **no public API for custom constraint injection** into the OPF formulation. The OPF is formulated internally using PuLP as the LP modeling framework, and the `run_linear_opf_ts` function builds, solves, and returns `(OpfVars, LpModel)` in one call.
+GridCal (VeraGridEngine 5.6.28) has **no public API for custom constraint injection** into the OPF formulation [tool-specific: no custom constraint API]. The OPF is formulated internally using PuLP as the LP modeling framework, and `run_linear_opf_ts` builds, solves, and returns `(OpfVars, LpModel)` in one call.
 
 The workaround intercepts the PuLP model **before** the solve step by monkey-patching `PulpLpModel.solve`:
 
@@ -34,10 +35,10 @@ The workaround intercepts the PuLP model **before** the solve step by monkey-pat
 3. **Inject the constraint** via `self.model.addConstraint()` before delegating to the original `solve`.
 4. **Extract the dual value** via PuLP's `constraint.pi` attribute after solve completes.
 
-Both binding and non-binding flowgate tests were executed:
+Both binding and non-binding flowgate cases were executed per v11 requirements:
 
-- **Binding test:** Flowgate FG_01 (branches 2-3 and 2-30) with 400 MW limit
-- **Non-binding test:** Same flowgate with 900 MW limit
+- **Non-binding test:** Flowgate FG_01 (branches 2-3 and 2-30) with 900 MW limit (verify dual = 0)
+- **Binding test:** Same flowgate with 400 MW limit (~82% of unconstrained flow, verify dual != 0)
 
 ## Output
 
@@ -50,25 +51,27 @@ Both binding and non-binding flowgate tests were executed:
 | Converged | Yes | Yes | Yes |
 
 The binding constraint:
-- Enforces the 400 MW limit exactly
+- Enforces the 400 MW limit exactly (flow = 400.0 MW)
 - Increases objective by 9.44 (cost of re-dispatch)
 - Has non-zero dual value (-60.1, indicating $60.1/MWh marginal cost of tightening)
 - Dual correctly reflects binding status
 
 The non-binding constraint:
-- Does not alter the optimal solution
-- Has zero dual value (as expected)
+- Does not alter the optimal solution (objective matches base case)
+- Has zero dual value (as expected for slack constraint)
+- Slack = 4.13 pu confirming non-binding status
 
 ## Workarounds
 
 - **What:** Monkey-patched `PulpLpModel.solve` to inject a PuLP constraint before the LP solve. Extracted branch flow LP expressions from internal constraint naming convention (`br_flow_upper_lim_0_<idx>`).
 - **Why:** GridCal has no public API for adding user-defined constraints to the OPF. The OPF formulation is monolithic -- `run_linear_opf_ts` builds and solves in one call with no hook points.
 - **Durability:** fragile -- Relies on: (1) internal constraint naming convention `br_flow_upper_lim_0_<idx>`, (2) internal `PulpLpModel` class in `VeraGridEngine.Utils.MIP.pulp_interface`, (3) constraint LHS structure containing flow expression + slack variables. Any refactoring of the OPF formulation would break this.
-- **Grade impact:** The workaround is achievable without source patching, but depends entirely on undocumented internals. This limits the extensibility grade.
+- **Grade impact:** The workaround is achievable without source patching, but depends entirely on undocumented internals. `workaround_class: fragile` maps to `partial_pass` per the v11 five-tier outcome system. This limits the extensibility grade.
+- **Version tested:** VeraGridEngine 5.6.28
 
 ## Timing
 
-- **Wall-clock:** 1.41 seconds (three solves: base, binding, non-binding)
+- **Wall-clock:** 1.43 seconds (three solves: base, binding, non-binding)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver:** HiGHS via PuLP
@@ -81,7 +84,6 @@ Key code for constraint injection:
 
 ```python
 def patched_solve(self, robust=False, show_logs=False, progress_text=None):
-    var_dict = {v.name: v for v in self.model.variables()}
     fg_expr = pulp.LpAffineExpression()
     for br_idx, weight in zip(fg_branch_indices, fg_weights):
         cst = self.model.constraints[f"br_flow_upper_lim_0_{br_idx}"]
