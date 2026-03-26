@@ -1,9 +1,9 @@
 # eval-config.yaml — gridcal
-# Auto-generated from Phase 1 Evaluation Rubric (v6) and Test Protocol (v10)
+# Auto-generated from Phase 1 Evaluation Rubric (v11) and Test Protocol (v11)
 # Tool: gridcal
 
-protocol_version: "v10"
-rubric_version: "v6"
+protocol_version: "v11"
+rubric_version: "v11"
 tool: gridcal
 
 # =============================================================================
@@ -107,6 +107,7 @@ dimensions:
     consumes:
       - solver-issues
       - convergence-quality
+      - formulation-difference
 
   - name: accessibility
     criterion_number: 4
@@ -274,16 +275,23 @@ tests:
     functional_network: TINY
     grade_network: TINY
     pass_condition: >-
-      Converges. Convergence residual must be reported and below the tool's stated tolerance.
-      Number of NR iterations must be reported. Voltage magnitudes must differ from flat-start
-      defaults (1.0 pu) on >95% of buses. Bus voltage magnitudes and angles, line P/Q flows,
-      and losses accessible as structured output. If the tool cannot report iteration count or
-      residual, document this as a diagnostic quality finding.
+      Converges. AC solve convergence must be verified by checking max bus power mismatch
+      < 1e-4 p.u. Convergence evidence must be documented at the highest tier achievable:
+      (1) residual value reported and below tool's stated tolerance (preferred),
+      (2) NR iteration count via any API including log capture,
+      (3) binary convergence indicator via return type or exception,
+      (4) voltage profile proxy as last resort.
+      Record convergence_evidence_quality in frontmatter: residual_reported,
+      iteration_count_reported, binary_convergence_api, or proxy_voltage.
+      Voltage magnitudes must differ from flat-start defaults (1.0 pu) on >95% of buses.
+      Bus voltage magnitudes and angles, line P/Q flows, and losses accessible as
+      structured output. Tools that can only provide proxy-level convergence evidence
+      receive a documented diagnostic quality finding in the Accessibility dimension.
     solver: "Ipopt"
-    recorded_metrics: [pass_fail, wall_clock, loc, convergence_residual, nr_iterations]
+    recorded_metrics: [pass_fail, wall_clock, loc, convergence_residual, nr_iterations, convergence_evidence_quality]
     converges_ac: true
     depends_on: []
-    test_hash: "fca7353e"
+    test_hash: "eb349d9c"
 
   - id: A-3
     slug: dcopf
@@ -294,13 +302,19 @@ tests:
     pass_condition: >-
       Converges. Optimal dispatch and LMPs/shadow prices extractable from solution. With
       differentiated costs and 70% derating, at least 2 branches have non-zero shadow prices
-      (binding flow constraints). Report max LMP spread across buses.
+      (binding flow constraints). Report max LMP spread across buses. Hard constraint
+      verification: No branch may exceed its derated thermal limit in the optimal solution
+      (max_loading <= 1.0 + 1e-4 p.u. tolerance). If the formulation uses soft branch flow
+      constraints (LP slack variables), classify as partial_pass and document the penalty
+      coefficient used. Soft-constraint DCOPF is not inherently wrong but must be explicitly
+      labeled and distinguished from hard-constraint DCOPF. Report max branch loading
+      achieved in the optimal solution.
     tiny_params: "differentiated costs from gen_temporal_params.csv, 70% branch derating"
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, loc, lmp_spread, binding_branch_count]
+    recorded_metrics: [pass_fail, wall_clock, loc, lmp_spread, binding_branch_count, max_branch_loading]
     converges_ac: false
     depends_on: []
-    test_hash: "45d4977c"
+    test_hash: "c579053e"
 
   - id: A-4
     slug: ac_feasibility
@@ -315,7 +329,6 @@ tests:
     recorded_metrics: [pass_fail, wall_clock, loc, voltage_violations, thermal_violations]
     converges_ac: true
     depends_on: [A-3]
-
     test_hash: "8531c61c"
 
   - id: A-5
@@ -325,14 +338,21 @@ tests:
     functional_network: TINY
     grade_network: TINY
     pass_condition: >-
-      Solves to feasibility (MIP gap <= 1%). At least 2 generators must cycle (commit/decommit)
+      Solves to feasibility (MIP gap <= 1%). MIP gap must be extractable from the solver
+      and reported in result frontmatter. At least 2 generators must cycle (commit/decommit)
       during the 24-hour horizon. Commitment schedule extractable as a time-indexed binary
-      matrix. Built-in constraint types vs. user-assembled noted.
+      matrix or equivalent. Built-in constraint types vs. user-assembled noted. Binding
+      verification (mandatory): Re-run SCUC with min_up_time=min_down_time=0 and compare
+      the commitment schedule to the baseline. At least one generator's commitment schedule
+      must change when temporal constraints are removed, confirming min up/down constraints
+      were binding in the baseline solution. Report whether the binary commitment variable
+      is directly readable from the solver model; if not, document this as a formulation
+      transparency finding.
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, loc, mip_gap, cycling_gen_count]
+    recorded_metrics: [pass_fail, wall_clock, loc, mip_gap, cycling_gen_count, binding_verification]
     converges_ac: false
     depends_on: []
-    test_hash: "f52c4d21"
+    test_hash: "1640c770"
 
   - id: A-6
     slug: sced
@@ -343,12 +363,21 @@ tests:
     pass_condition: >-
       Solves. Dispatch schedule extractable. UC and ED are cleanly separable as a two-stage
       workflow. Ramp rate constraints are demonstrably enforced between consecutive dispatch
-      intervals in the ED stage — not just inherited from the UC formulation.
+      intervals in the ED stage — not just inherited from the UC formulation. Ramp binding
+      evidence (mandatory): Re-run with ramp rates reduced to 10% of baseline values and
+      verify that at least one ramp constraint dual value > 0 (binding), with the generator
+      index, hour, and dual value reported. If ramp constraints cannot be tightened or dual
+      values cannot be extracted, document as a formulation transparency finding. SCED mode
+      classification: Record sced_mode in result frontmatter — full_sced (UC stage performed,
+      security constraints enforced), ed_with_security (no UC stage, security constraints
+      enforced), or ed_only (no UC stage, no security constraints). Only full_sced maps to
+      pass; ed_with_security maps to qualified_pass; ed_only maps to fail with context that
+      the tool does not support the UC stage.
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, loc]
+    recorded_metrics: [pass_fail, wall_clock, loc, sced_mode, ramp_binding_evidence]
     converges_ac: false
     depends_on: [A-5]
-    test_hash: "5577e704"
+    test_hash: "3343ccf1"
 
   - id: A-9
     slug: scopf
@@ -359,14 +388,17 @@ tests:
     pass_condition: >-
       Solves. Base-case dispatch respects all contingency flow limits simultaneously. Dispatch
       and cost differ from unconstrained DC OPF (A-3) — SCOPF should be more expensive.
-      Contingency constraints are part of the optimization, not checked post-hoc. If achievable
-      only by manually enumerating contingency constraints via B-1's custom constraint API,
-      document the effort and classify the workaround.
+      Contingency constraints are part of the optimization, not checked post-hoc.
+      Benders/iterative algorithm converges in >= 2 iterations, OR the evaluator demonstrates
+      the joint N-1 problem is feasible and solved optimally in 1 iteration with explicit
+      feasibility confirmation. If achievable only by manually enumerating contingency
+      constraints via B-1's custom constraint API, document the effort and classify the
+      workaround.
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, loc, objective_value]
+    recorded_metrics: [pass_fail, wall_clock, loc, objective_value, iterations]
     converges_ac: false
     depends_on: [A-3]  # inferred — compares cost to A-3
-    test_hash: "e3ccffc8"
+    test_hash: "f98c9cad"
 
   - id: A-10
     slug: lossy_dcopf_lmp
@@ -386,7 +418,7 @@ tests:
     recorded_metrics: [pass_fail, wall_clock, loc, total_losses_pct, lmp_decomposition]
     converges_ac: false
     depends_on: []
-    test_hash: "dae00140"
+    test_hash: "0a550931"
 
   - id: A-11
     slug: distributed_slack_opf
@@ -423,7 +455,7 @@ tests:
     recorded_metrics: [pass_fail, wall_clock, loc, congestion_hours, bess_arbitrage, soc_feasibility]
     converges_ac: false
     depends_on: []
-    test_hash: "4b7e1360"
+    test_hash: "bb8a8930"
 
   # ---------------------------------------------------------------------------
   # Suite B: Extensibility
@@ -524,18 +556,22 @@ tests:
   - id: B-8
     slug: reference_bus_config
     dimension: extensibility
-    description: "Solve DC OPF with three slack configurations and compare LMPs."
+    description: "Solve DC OPF with three slack configurations: default, different single slack, custom distributed."
     functional_network: TINY
     grade_network: TINY
     pass_condition: >-
-      Reference bus / slack formulation is configurable via API without model reconstruction.
-      LMP values change consistently across configurations. Evaluator documents the API calls
-      required and workaround durability.
+      The tool allows setting an arbitrary reference bus without error or model reconstruction.
+      All three configurations must complete without exception. For DC OPF: LMP values are
+      expected to be invariant across configurations (this is physically correct behavior for
+      lossless DC OPF — invariance is a pass, not a failure). For AC OPF (if supported): LMPs
+      may vary; document any variation. The test is primarily an API surface test — the key
+      evaluation point is whether the tool's API allows reference bus changes without model
+      reconstruction. Document the API calls required and workaround durability.
     solver: "HiGHS"
     recorded_metrics: [pass_fail, wall_clock, loc, workaround_class]
     converges_ac: false
     depends_on: []
-    test_hash: "8c18d155"
+    test_hash: "dad5cf97"
 
   - id: B-9
     slug: ptdf_extraction
@@ -567,7 +603,7 @@ tests:
     grade_network: MEDIUM
     pass_condition: "DCPF solves on MEDIUM."
     solver: null
-    recorded_metrics: [pass_fail, wall_clock, peak_memory]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [A-1]  # inferred — functional verification on TINY first
     test_hash: "9aaf33f3"
@@ -578,12 +614,14 @@ tests:
     description: "ACPF on MEDIUM — wall-clock time, peak memory, iterations."
     functional_network: MEDIUM
     grade_network: MEDIUM
-    pass_condition: "ACPF solves on MEDIUM."
+    pass_condition: >-
+      ACPF solves on MEDIUM. Convergence must be verified by checking max bus power mismatch
+      < 1e-4 p.u. Record convergence_evidence_quality using the same four-tier hierarchy as A-2.
     solver: "Ipopt"
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, iterations]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, iterations, convergence_evidence_quality, cpu_threads_used, cpu_threads_available]
     converges_ac: true
     depends_on: [A-2]  # inferred — functional verification on TINY first
-    test_hash: "bcf49161"
+    test_hash: "e04c4a98"
 
   - id: C-3
     slug: dcopf_scale
@@ -591,12 +629,14 @@ tests:
     description: "DC OPF on MEDIUM with HiGHS and GLPK."
     functional_network: MEDIUM
     grade_network: MEDIUM
-    pass_condition: "DC OPF solves on MEDIUM with HiGHS and GLPK."
+    pass_condition: >-
+      DC OPF solves on MEDIUM with HiGHS and GLPK. Max branch loading must be reported;
+      if >1.0 + 1e-4 p.u. in optimal solution, record as soft-constraint finding.
     solver: "HiGHS, GLPK"
-    recorded_metrics: [pass_fail, wall_clock_per_solver, peak_memory, objective_value]
+    recorded_metrics: [pass_fail, wall_clock_per_solver, peak_memory, objective_value, max_branch_loading, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [A-3]  # inferred — functional verification on TINY first
-    test_hash: "47a0bc24"
+    test_hash: "a89c9055"
 
   - id: C-4
     slug: scuc_scale
@@ -604,12 +644,14 @@ tests:
     description: "SCUC 24hr on SMALL with HiGHS and SCIP."
     functional_network: SMALL
     grade_network: SMALL
-    pass_condition: "SCUC 24hr solves on SMALL with HiGHS and SCIP."
+    pass_condition: >-
+      SCUC 24hr solves on SMALL with HiGHS and SCIP. Report both 1-thread and max-thread
+      timings if solver supports parallel execution.
     solver: "HiGHS, SCIP"
-    recorded_metrics: [pass_fail, wall_clock_per_solver, mip_gap, peak_memory]
+    recorded_metrics: [pass_fail, wall_clock_per_solver, wall_clock_1thread, wall_clock_maxthread, mip_gap, peak_memory, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [A-5]  # inferred — functional verification on TINY first
-    test_hash: "59241b39"
+    test_hash: "96084683"
 
   - id: C-5
     slug: ac_feasibility_progressive
@@ -619,12 +661,13 @@ tests:
     grade_network: MEDIUM
     pass_condition: >-
       AC Feasibility progressive relaxation on SMALL and MEDIUM. Record relaxation level
-      required (0%, 10%, 20%, or infeasible).
+      required (0%, 10%, 20%, or infeasible). All outcomes are diagnostic findings
+      (outcome: informational).
     solver: "Ipopt"
-    recorded_metrics: [pass_fail, wall_clock_per_attempt, relaxation_level, peak_memory]
+    recorded_metrics: [pass_fail, wall_clock_per_attempt, relaxation_level, peak_memory, cpu_threads_used, cpu_threads_available]
     converges_ac: true
     depends_on: [A-2, A-4]  # inferred — requires AC PF capability
-    test_hash: "0980f797"
+    test_hash: "a0120521"
 
   - id: C-7
     slug: solver_swap
@@ -636,7 +679,7 @@ tests:
       Solver swap on MEDIUM — whether solver swap requires reformulation or just a parameter
       change.
     solver: "HiGHS, GLPK, SCIP"
-    recorded_metrics: [pass_fail, wall_clock_per_solver, reformulation_required]
+    recorded_metrics: [pass_fail, wall_clock_per_solver, reformulation_required, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [C-3]
     test_hash: "1d6a794d"
@@ -644,16 +687,19 @@ tests:
   - id: C-8
     slug: scopf_scale
     dimension: scalability
-    description: "SCOPF (N-1, 50 contingencies) on SMALL and MEDIUM."
-    functional_network: SMALL
+    description: "SCOPF (N-1, 50 contingencies) on MEDIUM (load-scaled congested version)."
+    functional_network: MEDIUM
     grade_network: MEDIUM
     pass_condition: >-
-      SCOPF (N-1, 50 contingencies) solves on SMALL and MEDIUM.
+      SCOPF (N-1, 50 contingencies) solves on MEDIUM (load-scaled congested version). Pass
+      condition requires minimum redispatch magnitude: at least 5 MW aggregate dispatch change
+      vs base DCOPF, confirming security constraints are active. Iterative contingency
+      screening permitted. Report both 1-thread and max-thread timings.
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, binding_contingencies]
+    recorded_metrics: [pass_fail, wall_clock, wall_clock_1thread, wall_clock_maxthread, peak_memory, binding_contingencies, aggregate_dispatch_change_mw, cpu_threads_used, cpu_threads_available]
     converges_ac: false
-    depends_on: [A-9]  # inferred — requires SCOPF capability
-    test_hash: "3610913b"
+    depends_on: [A-9, C-3]  # inferred — requires SCOPF capability + C-3 MEDIUM DCOPF
+    test_hash: "e73dfb3f"
 
   - id: C-9
     slug: ptdf_scale
@@ -665,7 +711,7 @@ tests:
       PTDF matrix computation on MEDIUM. Phase-shifter correction terms applied per B-9
       requirements.
     solver: null
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, matrix_density]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, matrix_density, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [B-9]  # inferred — requires PTDF capability
     test_hash: "efb6f322"
@@ -678,7 +724,7 @@ tests:
     grade_network: MEDIUM
     pass_condition: "Distributed slack DC OPF on MEDIUM."
     solver: "HiGHS"
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, lmp_comparison]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, lmp_comparison, cpu_threads_used, cpu_threads_available]
     converges_ac: false
     depends_on: [A-11]  # inferred — requires distributed slack capability
     test_hash: "18f272b0"
@@ -693,13 +739,15 @@ tests:
     functional_network: TINY
     grade_network: N/A
     pass_condition: >-
-      Wall-clock time from start to successful DCPF solve recorded. Number and severity of
-      issues encountered documented.
+      Wall-clock time measured from actual execution using time.perf_counter() or equivalent
+      system clock. Timing must not be estimated or reconstructed retrospectively. Number and
+      severity of issues encountered documented. Results with timing_source: estimated are
+      flagged as incomplete and cannot support any scored outcome.
     solver: null
-    recorded_metrics: [wall_clock, issue_count, issue_severity]
+    recorded_metrics: [wall_clock, issue_count, issue_severity, timing_source]
     converges_ac: false
     depends_on: []
-    test_hash: "d924734c"
+    test_hash: "c3eaae4c"
 
   - id: D-2
     slug: documentation_audit
@@ -897,11 +945,13 @@ tests:
     grade_network: N/A
     pass_condition: >-
       All dependency licenses checked. Proprietary, unknown, or problematic licenses flagged.
+      For Julia JLL packages: record both wrapper and binary artifact licenses; binary license
+      governs supply chain classification.
     solver: null
     recorded_metrics: [problematic_license_count, flagged_packages]
     converges_ac: false
     depends_on: [F-2]
-    test_hash: "d65d77ee"
+    test_hash: "9f121feb"
 
   - id: F-4
     slug: compiled_extension_audit
@@ -965,11 +1015,13 @@ tests:
     grade_network: N/A
     pass_condition: >-
       Open-source solver compatibility confirmed. Any commercial solver dependencies flagged.
+      For Julia JLL solver packages: verify binary artifact license; binary license governs
+      deployment authorization.
     solver: null
     recorded_metrics: [solvers_tested, commercial_dependency_flag]
     converges_ac: false
     depends_on: []
-    test_hash: "6025d2ba"
+    test_hash: "29bce75b"
 
   - id: F-9
     slug: getting_started_integrity
@@ -1030,12 +1082,12 @@ tests:
     grade_network: LARGE
     pass_condition: >-
       Pass if all aggregate thresholds are met and no hard-fail condition is triggered, per the
-      dcpf section of pass_conditions.json.
+      dcpf section of pass_conditions.json. Bus injection power balance check must pass.
     solver: null
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, va_deviation_fraction, pf_deviation_fraction, input_path]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, va_deviation_fraction, pf_deviation_fraction, input_path, ingestion_path]
     converges_ac: false
     depends_on: [G-FNM-1]  # requires successful ingestion (PSS/E or MATPOWER fallback)
-    test_hash: "ffdde155"
+    test_hash: "344342c4"
 
   - id: G-FNM-4
     slug: fnm_acpf_convergence
@@ -1047,7 +1099,7 @@ tests:
       No hard pass/fail gate. All outcomes are diagnostic findings. Record
       relaxation_level_achieved: 0%, 10%, 20%, or infeasible.
     solver: "Ipopt"
-    recorded_metrics: [pass_fail, wall_clock, peak_memory, relaxation_level_achieved, dcpf_init_mean_deg, dcpf_init_max_abs_deg, input_path]
+    recorded_metrics: [pass_fail, wall_clock, peak_memory, relaxation_level_achieved, dcpf_init_mean_deg, dcpf_init_max_abs_deg, input_path, ingestion_path]
     converges_ac: true
     depends_on: [G-FNM-1]  # requires successful ingestion (PSS/E or MATPOWER fallback)
     test_hash: "4aa892c7"
@@ -1140,7 +1192,7 @@ execution_dag:
         test_ids: [G-FNM-1]
 
   # -------------------------------------------------------------------------
-  # Step 3: TINY functional — Expressiveness (batch 1: independent tests)
+  # Step 3: TINY expressiveness — independent tests (batch 1)
   # -------------------------------------------------------------------------
   - step: 3
     label: "TINY expressiveness — independent tests (batch 1)"
@@ -1150,7 +1202,7 @@ execution_dag:
         test_ids: [A-1, A-2, A-3, A-5]
 
   # -------------------------------------------------------------------------
-  # Step 4: TINY expressiveness (batch 2: dependent on batch 1)
+  # Step 4: TINY expressiveness — dependent tests (batch 2)
   # -------------------------------------------------------------------------
   - step: 4
     label: "TINY expressiveness — dependent tests (batch 2)"
@@ -1160,7 +1212,7 @@ execution_dag:
         test_ids: [A-4, A-6, A-9, A-10, A-11]
 
   # -------------------------------------------------------------------------
-  # Step 5: TINY expressiveness (batch 3: A-12 standalone)
+  # Step 5: TINY expressiveness — multi-period storage (batch 3)
   # -------------------------------------------------------------------------
   - step: 5
     label: "TINY expressiveness — multi-period storage (batch 3)"
@@ -1170,7 +1222,7 @@ execution_dag:
         test_ids: [A-12]
 
   # -------------------------------------------------------------------------
-  # Step 6: TINY extensibility (batch 1: independent tests)
+  # Step 6: TINY extensibility — independent tests (batch 1)
   # -------------------------------------------------------------------------
   - step: 6
     label: "TINY extensibility — independent tests (batch 1)"
@@ -1180,7 +1232,7 @@ execution_dag:
         test_ids: [B-1, B-2, B-4, B-5, B-6]
 
   # -------------------------------------------------------------------------
-  # Step 7: TINY extensibility (batch 2: dependent on B-2)
+  # Step 7: TINY extensibility — dependent tests (batch 2)
   # -------------------------------------------------------------------------
   - step: 7
     label: "TINY extensibility — dependent tests (batch 2)"
@@ -1212,7 +1264,9 @@ execution_dag:
         test_ids: [G-FNM-4, G-FNM-5]
 
   # -------------------------------------------------------------------------
-  # Step 10: Scalability SMALL tier (C-SMALL gate)
+  # Step 10: Scalability SMALL tier (C-SMALL gate for MILP)
+  # C-4 SCUC on SMALL gates MILP MEDIUM tests only.
+  # C-5 SMALL is diagnostic (informational).
   # -------------------------------------------------------------------------
   - step: 10
     label: "Scalability SMALL tier"
@@ -1220,61 +1274,94 @@ execution_dag:
     dimensions:
       - name: scalability
         tier: SMALL
-        test_ids: [C-4, C-5, C-8]
+        test_ids: [C-4, C-5]
 
   # -------------------------------------------------------------------------
-  # Step 11: Scalability MEDIUM tier (only if SMALL passes)
+  # Step 11: Scalability MEDIUM tier — LP/PF tests (run unconditionally)
+  # These are NOT gated by C-4 SCUC outcome.
   # -------------------------------------------------------------------------
   - step: 11
-    label: "Scalability MEDIUM tier (batch 1)"
+    label: "Scalability MEDIUM tier — LP/PF (unconditional, batch 1)"
     dimensions:
       - name: scalability
         tier: MEDIUM
         test_ids: [C-1, C-2, C-3, C-5]
+        milp_gated: false
 
   # -------------------------------------------------------------------------
-  # Step 12: Scalability MEDIUM tier (batch 2: dependent on C-3)
+  # Step 12: Scalability MEDIUM tier — LP/PF dependent + PTDF (unconditional)
+  # C-7 depends on C-3, C-8 depends on C-3 (LP-based SCOPF, not MILP-gated),
+  # C-9 and C-10 are LP/PF tests.
   # -------------------------------------------------------------------------
   - step: 12
-    label: "Scalability MEDIUM tier (batch 2)"
+    label: "Scalability MEDIUM tier — LP/PF dependent (unconditional, batch 2)"
     dimensions:
       - name: scalability
         tier: MEDIUM
-        test_ids: [C-7, C-8, C-9, C-10]
+        test_ids: [C-7, C-9, C-10]
+        milp_gated: false
+      - name: scalability
+        tier: MEDIUM
+        test_ids: [C-8]
+        milp_gated: false  # C-8 SCOPF is LP-based, gated only by C-3
 
   # -------------------------------------------------------------------------
-  # Step 13: Audit dimensions — accessibility, maturity, supply chain
-  # (can run in parallel with code dimensions once observation producers complete)
+  # Step 13: Scalability MEDIUM tier — MILP tests (gated by C-4 SMALL)
+  # Currently C-4 is the only MILP test; MEDIUM MILP step reserved for future.
+  # If C-4 fails at SMALL, skip MILP MEDIUM tests.
   # -------------------------------------------------------------------------
   - step: 13
+    label: "Scalability MEDIUM tier — MILP (gated by C-4 SMALL)"
+    dimensions:
+      - name: scalability
+        tier: MEDIUM
+        test_ids: []  # no MILP MEDIUM tests defined in v11; placeholder for future
+        milp_gated: true
+
+  # -------------------------------------------------------------------------
+  # Step 14: Audit dimensions — accessibility
+  # -------------------------------------------------------------------------
+  - step: 14
     label: "Audit dimensions — accessibility"
     dimensions:
       - name: accessibility
         tier: N/A
         test_ids: [D-1, D-2, D-3, D-4, D-5]
 
-  - step: 14
-    label: "Audit dimensions — maturity"
+  # -------------------------------------------------------------------------
+  # Step 15: Audit dimensions — maturity (batch 1)
+  # -------------------------------------------------------------------------
+  - step: 15
+    label: "Audit dimensions — maturity (batch 1)"
     dimensions:
       - name: maturity
         tier: N/A
         test_ids: [E-1, E-2, E-3, E-4, E-5]
 
-  - step: 15
+  # -------------------------------------------------------------------------
+  # Step 16: Audit dimensions — maturity (batch 2)
+  # -------------------------------------------------------------------------
+  - step: 16
     label: "Audit dimensions — maturity (batch 2)"
     dimensions:
       - name: maturity
         tier: N/A
         test_ids: [E-6, E-7]
 
-  - step: 16
+  # -------------------------------------------------------------------------
+  # Step 17: Audit dimensions — supply chain (batch 1)
+  # -------------------------------------------------------------------------
+  - step: 17
     label: "Audit dimensions — supply chain (batch 1)"
     dimensions:
       - name: supply_chain
         tier: N/A
         test_ids: [F-1, F-2, F-4, F-5, F-6]
 
-  - step: 17
+  # -------------------------------------------------------------------------
+  # Step 18: Audit dimensions — supply chain (batch 2)
+  # -------------------------------------------------------------------------
+  - step: 18
     label: "Audit dimensions — supply chain (batch 2)"
     dimensions:
       - name: supply_chain
@@ -1282,9 +1369,9 @@ execution_dag:
         test_ids: [F-3, F-7, F-8, F-9]
 
   # -------------------------------------------------------------------------
-  # Step 18: Phase 2 readiness findings (informational)
+  # Step 19: Phase 2 readiness findings (informational)
   # -------------------------------------------------------------------------
-  - step: 18
+  - step: 19
     label: "Phase 2 readiness findings"
     dimensions:
       - name: p2_readiness

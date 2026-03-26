@@ -6,9 +6,9 @@ network: SMALL
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "3610913b"
+protocol_version: "v11"
+skill_version: v2
+test_hash: "e73dfb3f"
 wall_clock_seconds: 9.73
 timing_source: measured
 peak_memory_mb: 374.23

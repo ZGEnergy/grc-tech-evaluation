@@ -3,20 +3,21 @@ test_id: A-9
 tool: gridcal
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "f98c9cad"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "e3ccffc8"
-wall_clock_seconds: 1.84
+wall_clock_seconds: 1.42
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 242
+convergence_evidence_quality: null
+loc: 234
 solver: "HiGHS"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-9: DC OPF with N-1 contingency constraints embedded in optimization on TINY
@@ -41,6 +42,23 @@ linear OPF within the optimization (not checked post-hoc). Contingencies are def
 **Comparison:** Also ran the base-case DCOPF (without contingencies) using the same network
 setup for direct comparison.
 
+### v11 Benders Iteration Info
+
+GridCal's SCOPF formulation is **not** a Benders decomposition. It uses a **joint formulation**
+where all contingency constraints (via LODF-based flow transfer factors) are included in a single
+LP and solved simultaneously. The LODF matrix pre-computes the flow redistribution for each
+contingency, and these are added as additional linear constraints to the base-case DC OPF.
+
+This means:
+- There is no iterative master-subproblem loop.
+- All N-1 contingency constraints are part of a single optimization solve.
+- The LP is solved in one shot by HiGHS.
+- Feasibility of the N-1 SCOPF is confirmed by the solver's optimal status.
+
+The pass condition allows: "the joint N-1 problem is feasible and solved optimally in 1
+iteration with explicit feasibility confirmation." HiGHS reports optimal status, and dispatch
+differs from the base case, confirming the contingency constraints are active and binding.
+
 ## Output
 
 | Metric | Base DCOPF | SCOPF | Difference |
@@ -50,7 +68,7 @@ setup for direct comparison.
 | LMP max ($/MWh) | 84.38 | 90.26 | +5.88 |
 | Max LMP diff | -- | -- | 7.11 |
 | Binding branches | 7 | 6 | -1 |
-| SCOPF solve time | -- | 0.067 s | -- |
+| SCOPF solve time | -- | 0.060 s | -- |
 
 **Dispatch changes** (generators with >1 MW difference):
 
@@ -67,7 +85,12 @@ avoid post-contingency violations.
 
 **SCOPF binding branches:** 2_3_1, 16_19_1, 10_32_1, 19_33_1, 22_35_1, 29_38_1 (6 branches
 at 100% loading). The base-case 6_11_1 branch is no longer binding in the SCOPF solution,
-while branch 2_3_1 is now at exactly 100% (vs 112% overloaded in base case).
+while branch 2_3_1 is now at exactly 100% (vs 112% overloaded in base case with soft constraints).
+
+**Note on soft constraints:** As documented in A-3, GridCal uses soft branch flow constraints
+in its linear OPF. In the SCOPF result, all binding branches show exactly 100% loading,
+suggesting the SCOPF formulation may handle constraints differently than the base DCOPF.
+The base-case overloads (112%) seen in A-3 are absent in the SCOPF result.
 
 ## Workarounds
 
@@ -77,8 +100,8 @@ the optimization via LODF-based reformulation.
 
 ## Timing
 
-- **Wall-clock:** 1.84 s (total including base-case comparison)
-- **SCOPF solve only:** 0.067 s
+- **Wall-clock:** 1.42 s (total including base-case comparison)
+- **SCOPF solve only:** 0.060 s
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1

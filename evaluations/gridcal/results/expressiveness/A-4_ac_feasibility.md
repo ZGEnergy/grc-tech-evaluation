@@ -3,20 +3,21 @@ test_id: A-4
 tool: gridcal
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: v2
+test_hash: "8531c61c"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "8531c61c"
-wall_clock_seconds: 2.78
+wall_clock_seconds: 2.25
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: 4.14e-11
 convergence_iterations: 4
-loc: 225
+convergence_evidence_quality: residual_reported
+loc: 226
 solver: "NR (native)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-4: Take DC OPF dispatch from A-3, run full ACPF on that dispatch
@@ -31,8 +32,8 @@ same grid object** (no export/reimport), fixed each generator's active power to 
 dispatch value via `gen.P = dispatch[i]` and ran Newton-Raphson ACPF via `vge.power_flow()`.
 
 The eval-config specifies Ipopt as solver, but GridCal has no Ipopt integration for ACPF. It uses
-its own Newton-Raphson implementation (`SolverType.NR`). This is an inherent tool limitation,
-not a workaround -- GridCal's native NR is the only available ACPF solver.
+its own Newton-Raphson implementation (`SolverType.NR`). This is an inherent tool characteristic,
+not a workaround -- GridCal's native NR is the only available ACPF solver. [tool-specific]
 
 ## Output
 
@@ -77,7 +78,7 @@ feasibility check within the same model context.
 
 ## Timing
 
-- **Wall-clock:** 2.78 s (includes both DCOPF and ACPF)
+- **Wall-clock:** 2.25 s (includes both DCOPF and ACPF)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **NR iterations:** 4
@@ -95,7 +96,7 @@ Key code showing the same-model-context workflow:
 opf_results = vge.linear_opf(grid, opf_opts)
 dispatch = opf_results.generator_power
 
-# Fix dispatch on same grid — no export/reimport
+# Fix dispatch on same grid -- no export/reimport
 for i, gen in enumerate(generators):
     gen.P = float(dispatch[i])
 

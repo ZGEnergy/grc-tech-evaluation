@@ -170,7 +170,28 @@ def run(
                 if abs(overloads[i]) > 1e-6
             }
 
-        # 6. Check pass condition
+        # 6. Check max branch loading for soft constraint detection (v11)
+        max_loading_abs = float(np.max(np.abs(loading)))
+        results["details"]["max_branch_loading"] = max_loading_abs
+        results["details"]["max_branch_loading_pct"] = f"{max_loading_abs * 100:.2f}%"
+
+        # Find which branch has max loading
+        max_idx = int(np.argmax(np.abs(loading)))
+        results["details"]["max_loading_branch"] = branch_names_all[max_idx]
+
+        # Soft constraint detection: if any branch exceeds 100% + 1e-4 tolerance
+        soft_constraint_detected = max_loading_abs > (1.0 + 1e-4)
+        results["details"]["soft_constraint_detected"] = soft_constraint_detected
+
+        if soft_constraint_detected:
+            results["details"]["soft_constraint_note"] = (
+                f"Branch {branch_names_all[max_idx]} has loading "
+                f"{max_loading_abs * 100:.2f}%, exceeding 100% + 1e-4 tolerance. "
+                "GridCal linear_opf uses soft branch flow constraints (LP slack variables). "
+                "[tool-specific: soft constraint formulation in linear_opf]"
+            )
+
+        # 7. Check pass condition
         pass_checks = {
             "converged": converged,
             "lmps_extractable": lmps is not None and len(lmps) > 0,
@@ -179,7 +200,17 @@ def run(
         results["details"]["pass_checks"] = pass_checks
 
         if all(pass_checks.values()):
-            results["status"] = "pass"
+            if soft_constraint_detected:
+                # v11: soft constraints -> partial_pass
+                results["status"] = "partial_pass"
+                results["workarounds"].append(
+                    "GridCal linear_opf uses soft branch flow constraints. "
+                    f"Max loading {max_loading_abs * 100:.2f}% exceeds hard limit. "
+                    "This is a legitimate numerical stabilization technique but "
+                    "must be labeled as soft-constraint DCOPF."
+                )
+            else:
+                results["status"] = "pass"
         else:
             failing = [k for k, v in pass_checks.items() if not v]
             results["errors"].append(f"Failed checks: {failing}")

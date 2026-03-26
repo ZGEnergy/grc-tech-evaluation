@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-4
 tool: gridcal
 severity: medium
-timestamp: 2026-03-13T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # Observation: ACPF fails to converge on FNM -- possible MATPOWER fallback data fidelity issue

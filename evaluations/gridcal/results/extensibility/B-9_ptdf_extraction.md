@@ -3,20 +3,20 @@ test_id: B-9
 tool: gridcal
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "d8e7210b"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.37
+wall_clock_seconds: 1.25
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
 loc: 169
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-9: PTDF matrix extraction and verification against DCPF flows
@@ -71,8 +71,8 @@ None required. PTDF extraction via `vge.linear_power_flow()` is a documented, on
 
 ## Timing
 
-- **Wall-clock:** 1.37 seconds (including network loading)
-- **PTDF computation:** 0.081 seconds
+- **Wall-clock:** 1.25 seconds (including network loading)
+- **PTDF computation:** 0.078 seconds
 - **Timing source:** measured
 - **Peak memory:** not measured
 

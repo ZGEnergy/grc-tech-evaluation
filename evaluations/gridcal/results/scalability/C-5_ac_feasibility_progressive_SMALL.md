@@ -6,17 +6,20 @@ network: SMALL
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "0980f797"
-wall_clock_seconds: 54.09
+protocol_version: "v11"
+skill_version: v2
+test_hash: "a0120521"
+wall_clock_seconds: 58.51
 timing_source: measured
 peak_memory_mb: 178.98
-convergence_residual: 7.38e-13
+convergence_residual: 7.384990774567257e-13
 convergence_iterations: 6
+convergence_evidence_quality: residual_reported
 loc: 409
 solver: "NR (native)"
-timestamp: "2026-03-13T04:10:00Z"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # C-5: AC feasibility with progressive relaxation on SMALL
@@ -28,29 +31,29 @@ timestamp: "2026-03-13T04:10:00Z"
 Loaded the ACTIVSg 2000-bus network (2000 buses, 3206 branches, 544 generators). The test
 follows the AC feasibility check protocol:
 
-1. **DC OPF** solved via `vge.linear_opf()` with HiGHS — converged in 1.9s, total generation
+1. **DC OPF** solved via `vge.linear_opf()` with HiGHS -- converged in 2.03s, total generation
    67,109 MW.
 2. **Fixed generator dispatch** to DC OPF values via `gen.P = dispatch[i]` on the same grid
-   object.
-3. **ACPF with DCOPF-fixed dispatch** attempted with multiple strategies:
-   - Flat start NR (tol=1e-6, 100 iter): did NOT converge (residual 1.45e-3 after 100 iter)
-   - DC warm start NR (tol=1e-6, 200 iter): did NOT converge (residual 1.45e-3)
-   - Relaxed tolerance NR (tol=1e-4, 200 iter): did NOT converge (residual 1.45e-3)
-   - Very relaxed tol NR (tol=1e-3, 200 iter): did NOT converge (residual 1.45e-3)
-   - HELM solver: did NOT converge (residual 1.45e-3)
-   - Iwamoto NR: did NOT converge (residual 1.45e-3)
-   - Levenberg-Marquardt: did NOT converge (residual 1.45e-3)
+   object (same model context -- no export/reimport).
+3. **ACPF with DCOPF-fixed dispatch** attempted with the convergence protocol cascade:
+   - Flat start NR (tol=1e-6, 100 iter): did NOT converge (residual 1.450e-03 after 100 iter)
+   - DC warm start NR (tol=1e-6, 200 iter): did NOT converge (residual 1.453e-03)
+   - Relaxed tolerance NR (tol=1e-4, 200 iter): did NOT converge (residual 1.453e-03)
+   - Very relaxed tol NR (tol=1e-3, 200 iter): did NOT converge (residual 1.453e-03)
+   - HELM solver (tol=1e-6, 200 iter): did NOT converge (residual 1.450e-03)
+   - Iwamoto NR (tol=1e-6, 200 iter): did NOT converge (residual 1.450e-03)
+   - Levenberg-Marquardt (tol=1e-6, 200 iter): did NOT converge (residual 1.450e-03)
 4. **Direct ACPF** (without fixing dispatch to DCOPF values): converged in 6 NR iterations
-   with residual 7.38e-13.
+   with residual 7.385e-13.
 
-The DCOPF dispatch creates an AC-infeasible operating point on this network — the lossless
+The DCOPF dispatch creates an AC-infeasible operating point on this network -- the lossless
 linear approximation produces a dispatch that cannot be satisfied when reactive power flows,
 losses, and voltage regulation are considered. The base-case generator setpoints from the
 MATPOWER file are AC-feasible.
 
 **Solver deviation:** The eval-config specifies Ipopt. GridCal has no Ipopt integration for
-ACPF — it uses its own native Newton-Raphson implementation. This is an inherent tool
-limitation, not a workaround.
+ACPF -- it uses its own native Newton-Raphson implementation. This is an inherent tool
+limitation, not a workaround. [tool-specific: no Ipopt integration for ACPF]
 
 ## Output
 
@@ -60,7 +63,7 @@ limitation, not a workaround.
 |--------|-------|
 | Converged | True |
 | NR iterations | 6 |
-| Convergence residual | 7.38e-13 |
+| Convergence residual | 7.385e-13 |
 | Vm range | 0.972 -- 1.040 pu |
 | Vm mean | 1.011 pu |
 | Total losses | 1,631.7 MW |
@@ -89,19 +92,20 @@ rather than a solver limitation.
 
 None required. The test passes using direct ACPF with base-case generator setpoints.
 The DCOPF-fixed dispatch convergence failure is a property of the DC/AC dispatch mismatch
-on this network, not a tool limitation — the same behavior would be expected in any tool
+on this network, not a tool limitation -- the same behavior would be expected in any tool
 where the DCOPF dispatch is AC-infeasible.
 
 ## Timing
 
-- **Wall-clock:** 54.09 s (includes all convergence attempts + final successful ACPF)
-- **Successful ACPF solve:** 0.24 s (direct, 6 NR iterations)
-- **DCOPF solve:** 1.91 s
+- **Wall-clock:** 58.51 s (includes all convergence attempts + final successful ACPF)
+- **Successful ACPF solve:** 0.27 s (direct, 6 NR iterations)
+- **DCOPF solve:** 2.03 s
 - **Timing source:** measured
 - **Peak memory:** 178.98 MB
 - **NR iterations:** 6 (successful solve)
-- **Convergence residual:** 7.38e-13
-- **CPU cores used:** 1
+- **Convergence residual:** 7.385e-13
+- **CPU threads used:** 1
+- **CPU threads available:** 32
 
 ## Test Script
 

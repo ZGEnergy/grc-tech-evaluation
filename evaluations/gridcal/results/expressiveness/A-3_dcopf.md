@@ -3,25 +3,26 @@ test_id: A-3
 tool: gridcal
 dimension: expressiveness
 network: TINY
-status: pass
+protocol_version: "v11"
+skill_version: v2
+test_hash: "c579053e"
+status: partial_pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: v1
-test_hash: "45d4977c"
-wall_clock_seconds: 1.37
+wall_clock_seconds: 1.27
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 200
+convergence_evidence_quality: null
+loc: 229
 solver: "HiGHS"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-3: Solve DC OPF with differentiated gen costs and 70% branch derating on TINY
 
-## Result: PASS
+## Result: PARTIAL PASS
 
 ## Approach
 
@@ -53,36 +54,46 @@ Results accessed via:
 | LMP max ($/MWh) | 84.38 |
 | LMP spread ($/MWh) | 79.38 |
 | LMP mean ($/MWh) | 48.03 |
-| Binding branches | 7 |
+| Binding branches (>= 99%) | 7 |
+| Max branch loading | 112.24% |
 
 **Binding branches** (loading >= 99%):
 
 | Branch | Loading |
 |--------|---------|
-| 2_3_1 | 112% (overloaded) |
-| 6_11_1 | 100% |
-| 16_19_1 | 100% |
-| 10_32_1 | 100% |
-| 19_33_1 | 100% |
-| 22_35_1 | 100% |
-| 29_38_1 | 100% |
+| 2_3_1 | 112.24% (overloaded -- soft constraint) |
+| 6_11_1 | 100.00% |
+| 16_19_1 | 100.00% |
+| 10_32_1 | 100.00% |
+| 19_33_1 | 100.00% |
+| 22_35_1 | 100.00% |
+| 29_38_1 | 100.00% |
+
+**Soft constraint detection (v11):** Branch 2_3_1 has loading of 112.24%, exceeding the
+100% + 1e-4 p.u. tolerance for hard constraint enforcement. The `overloads` result attribute
+reports -42.85 MW on this branch, confirming that GridCal's `linear_opf` uses soft branch
+flow constraints (LP slack variables with penalty costs). This is a known characteristic of
+GridCal's PTDF-based formulation. [tool-specific: soft constraint formulation in linear_opf]
 
 **LMP variation** shows strong congestion signal with prices ranging from $5/MWh at the
-hydro bus (30) to $84.38/MWh at bus 3 (behind the overloaded branch 2_3_1).
-
-**Note on branch 2_3_1:** This branch shows 112% loading -- the solver found a solution
-exceeding the derated limit. The `overloads` result attribute captures this with a value
-of -42.85 MW, confirming the branch shadow price mechanism works. This may indicate the
-PTDF-based formulation uses soft constraints or penalty functions rather than hard limits
-on some branches.
+hydro bus (30) to $84.38/MWh at bus 3 (behind the overloaded branch 2_3_1). The LMP spread
+of $79.38/MWh demonstrates that the cost differentiation and branch derating produce meaningful
+congestion in the OPF solution.
 
 ## Workarounds
 
-None required.
+None required for the API itself. The soft-constraint formulation is a design choice in
+GridCal's linear_opf, not a workaround. However, the lack of a hard-constraint mode means
+the tool cannot enforce strict thermal limits.
+
+- **What:** GridCal linear_opf uses soft branch flow constraints
+- **Why:** The PTDF-based formulation uses penalty variables rather than hard inequality constraints
+- **Durability:** N/A (this is a formulation design choice, not a workaround)
+- **Grade impact:** partial_pass per v11 protocol -- soft-constraint DCOPF must be labeled distinctly from hard-constraint DCOPF
 
 ## Timing
 
-- **Wall-clock:** 1.37 s
+- **Wall-clock:** 1.27 s
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1
@@ -112,4 +123,6 @@ opf_results = vge.linear_opf(grid, opf_opts)
 
 # LMPs directly accessible
 lmps = opf_results.bus_shadow_prices
+# Max branch loading: 112.24% (soft constraint detected)
+max_loading = np.max(np.abs(opf_results.loading))  # 1.1224
 ```

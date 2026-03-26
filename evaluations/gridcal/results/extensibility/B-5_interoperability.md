@@ -3,20 +3,21 @@ test_id: B-5
 tool: gridcal
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: v1
+protocol_version: "v11"
+skill_version: v2
 test_hash: "3d423124"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 1.24
+wall_clock_seconds: 1.16
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 129
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-5: Export DCPF results to pandas DataFrame and write to CSV
@@ -62,7 +63,7 @@ None required.
 
 ## Timing
 
-- **Wall-clock:** 1.24 seconds (includes network loading and DCPF solve)
+- **Wall-clock:** 1.16 seconds (includes network loading and DCPF solve)
 - **Timing source:** measured
 - **Peak memory:** not measured
 
