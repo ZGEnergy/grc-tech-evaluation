@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-12
 tool: gridcal
 severity: high
-timestamp: "2026-03-14T03:15:00Z"
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # Observation: Battery multi-period OPF requires source patch (blocking)
@@ -14,17 +14,20 @@ timestamp: "2026-03-14T03:15:00Z"
 GridCal's multi-period storage optimization produces physically incorrect results due
 to a sign error in the battery energy balance constraint. No public API workaround
 exists; fixing the issue would require modifying `linear_opf_ts.py` source code
-(blocking workaround class).
+(blocking workaround class). [tool-specific]
 
 ## Context
 
 The Battery device type is fully featured at the API level (Enom, Pmin/Pmax,
 charge/discharge efficiency, min/max SoC, soc_0). The `OptimalPowerFlowTimeSeriesDriver`
 correctly handles inter-temporal coupling. The constraint builder assembles the energy
-balance equation, but the sign is inverted. Since GridCal's OPF does not expose the
-internal LP model for user modification (`Custom Constraint Injection: no` per
-research-context.md), there is no way to correct the energy balance constraint from
-outside the library.
+balance equation, but the sign is inverted: `E[t] = E[t-1] + dt*(eta_dis*P_dis -
+eta_ch*P_ch)` instead of `E[t] = E[t-1] - P_dis*dt/eta_dis + P_ch*dt*eta_ch`.
+
+Since GridCal's OPF does not expose the internal LP model for user modification
+(`Custom Constraint Injection: no` per research-context.md), there is no way to correct
+the energy balance constraint from outside the library. Additionally, cyclic SoC
+(SoC[0] == SoC[T]) is not implemented.
 
 ## Implications
 

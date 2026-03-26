@@ -11,6 +11,12 @@ Tool: gridcal (VeraGrid) v5.6.28
 
 Input: MATPOWER fallback path (G-FNM-1 CSV ingestion failed).
 File: data/fnm/reference/cleaned/fnm_main_island.m
+
+v11 additions:
+- Bus exclusion per excluded_buses.json
+- Bus injection power balance cross-reference check
+- All deviation metrics in scientific notation (:.6e)
+- ingestion_path recorded in output
 """
 
 from __future__ import annotations
@@ -30,11 +36,17 @@ def angle_diff_deg(a: float, b: float) -> float:
     return ((d + 180) % 360) - 180
 
 
+def sci(value: float) -> str:
+    """Format a float in scientific notation with 6 decimal places."""
+    return f"{value:.6e}"
+
+
 def run(
     matpower_file: str = "/workspace/data/fnm/reference/cleaned/fnm_main_island.m",
     ref_bus_file: str = "/workspace/data/fnm/reference/dcpf/buses_dcpf.csv",
     ref_branch_file: str = "/workspace/data/fnm/reference/dcpf/branches_dcpf.csv",
     pass_conditions_file: str = "/workspace/data/fnm/reference/pass_conditions.json",
+    excluded_buses_file: str = "/workspace/data/fnm/reference/excluded_buses.json",
 ) -> dict:
     """Execute G-FNM-3 and return structured results.
 
@@ -84,12 +96,21 @@ def run(
         }
 
         # ----------------------------------------------------------------
+        # Load excluded buses
+        # ----------------------------------------------------------------
+        with open(excluded_buses_file) as f:
+            excl_data = json.load(f)
+        excluded_bus_set: set[int] = {b["bus_number"] for b in excl_data["excluded_buses"]}
+        results["details"]["excluded_bus_count"] = len(excluded_bus_set)
+
+        # ----------------------------------------------------------------
         # 1. Load network via MATPOWER fallback
         # ----------------------------------------------------------------
         import VeraGridEngine as vge
         from VeraGridEngine.enumerations import SolverType
 
         results["details"]["veragrid_version"] = getattr(vge, "__version__", "unknown")
+        results["details"]["ingestion_path"] = "matpower_raw"
         results["details"]["input_path"] = "matpower"
         results["details"]["matpower_file"] = matpower_file
 
@@ -141,6 +162,7 @@ def run(
             for r in reader:
                 ref_bus_data[int(r["bus_number"])] = {
                     "va_deg": float(r["va_deg"]),
+                    "pd_mw": float(r["pd_mw"]),
                     "base_kv": float(r["base_kv"]),
                     "bus_type": int(r["bus_type"]),
                 }
@@ -150,21 +172,32 @@ def run(
             reader = csv.DictReader(f)
             ref_branch_list = []
             for r in reader:
-                ref_branch_list.append((int(r["from_bus"]), int(r["to_bus"]), float(r["pf_mw"])))
+                ref_branch_list.append(
+                    {
+                        "from_bus": int(r["from_bus"]),
+                        "to_bus": int(r["to_bus"]),
+                        "pf_mw": float(r["pf_mw"]),
+                        "status": int(r["status"]),
+                    }
+                )
 
         results["details"]["ref_bus_count"] = len(ref_bus_data)
         results["details"]["ref_branch_count"] = len(ref_branch_list)
 
         # ----------------------------------------------------------------
-        # 4. Bus angle comparison
+        # 4. Bus angle comparison (excluding buses in excluded_buses.json)
         # ----------------------------------------------------------------
         bus_passing = 0
         bus_failing = 0
-        bus_angle_diffs = []
-        failing_bus_details = []
+        bus_angle_diffs: list[float] = []
+        failing_bus_details: list[dict] = []
+        buses_excluded_from_comparison = 0
 
         for i, bnum in enumerate(bus_codes):
             if bnum not in ref_bus_data:
+                continue
+            if bnum in excluded_bus_set:
+                buses_excluded_from_comparison += 1
                 continue
             ref_va = ref_bus_data[bnum]["va_deg"]
             gc_va = float(angles_deg[i])
@@ -179,7 +212,7 @@ def run(
                         "bus": bnum,
                         "gc_va": round(gc_va, 4),
                         "ref_va": round(ref_va, 4),
-                        "diff_deg": round(diff, 4),
+                        "diff_deg": sci(diff),
                         "base_kv": ref_bus_data[bnum]["base_kv"],
                     }
                 )
@@ -188,21 +221,89 @@ def run(
         bus_pass_frac = bus_passing / total_buses_compared if total_buses_compared > 0 else 0
         bus_fail_frac = bus_failing / total_buses_compared if total_buses_compared > 0 else 0
 
+        max_bus_diff = float(max(bus_angle_diffs)) if bus_angle_diffs else 0.0
+        mean_bus_diff = float(np.mean(bus_angle_diffs)) if bus_angle_diffs else 0.0
+
         results["details"]["bus_angle"] = {
             "total_compared": total_buses_compared,
+            "excluded": buses_excluded_from_comparison,
             "passing": bus_passing,
             "failing": bus_failing,
             "pass_fraction": round(bus_pass_frac, 6),
-            "mean_diff_deg": round(float(np.mean(bus_angle_diffs)), 6),
-            "median_diff_deg": round(float(np.median(bus_angle_diffs)), 6),
-            "p95_diff_deg": round(float(np.percentile(bus_angle_diffs, 95)), 6),
-            "p99_diff_deg": round(float(np.percentile(bus_angle_diffs, 99)), 6),
-            "max_diff_deg": round(float(max(bus_angle_diffs)), 6),
+            "mean_diff_deg": sci(mean_bus_diff),
+            "median_diff_deg": sci(float(np.median(bus_angle_diffs)))
+            if bus_angle_diffs
+            else sci(0.0),
+            "p95_diff_deg": sci(float(np.percentile(bus_angle_diffs, 95)))
+            if bus_angle_diffs
+            else sci(0.0),
+            "p99_diff_deg": sci(float(np.percentile(bus_angle_diffs, 99)))
+            if bus_angle_diffs
+            else sci(0.0),
+            "max_diff_deg": sci(max_bus_diff),
             "meets_threshold": bus_pass_frac >= min_bus_frac,
         }
 
         # ----------------------------------------------------------------
-        # 5. Branch flow comparison
+        # 5. Bus injection power balance cross-reference (v11)
+        # ----------------------------------------------------------------
+        # Compute net bus injection: P_gen - P_load for each bus from GridCal
+        # Compare against reference bus pd_mw to verify injection consistency
+        bus_code_to_idx = {bnum: i for i, bnum in enumerate(bus_codes)}
+
+        # Get generator injections per bus from GridCal
+        gc_bus_pgen = np.zeros(len(grid.buses))
+        for gen in grid.generators:
+            if gen.active:
+                bus_idx = bus_code_to_idx.get(int(gen.bus.code))
+                if bus_idx is not None:
+                    gc_bus_pgen[bus_idx] += gen.P  # MW
+
+        # Get load per bus from GridCal
+        gc_bus_pload = np.zeros(len(grid.buses))
+        for load in grid.loads:
+            if load.active:
+                bus_idx = bus_code_to_idx.get(int(load.bus.code))
+                if bus_idx is not None:
+                    gc_bus_pload[bus_idx] += load.P  # MW
+
+        total_gen_mw = float(np.sum(gc_bus_pgen))
+        total_load_mw = float(np.sum(gc_bus_pload))
+        gen_load_imbalance_mw = total_gen_mw - total_load_mw
+
+        # Compare load values against reference
+        load_match_count = 0
+        load_mismatch_count = 0
+        load_comparison_diffs: list[float] = []
+        for bnum, ref_info in ref_bus_data.items():
+            if bnum in excluded_bus_set:
+                continue
+            idx = bus_code_to_idx.get(bnum)
+            if idx is None:
+                continue
+            ref_pd = ref_info["pd_mw"]
+            gc_pd = gc_bus_pload[idx]
+            diff_mw = abs(gc_pd - ref_pd)
+            load_comparison_diffs.append(diff_mw)
+            if diff_mw < 0.01:  # 0.01 MW tolerance for floating-point comparison
+                load_match_count += 1
+            else:
+                load_mismatch_count += 1
+
+        results["details"]["power_balance"] = {
+            "total_generation_mw": round(total_gen_mw, 2),
+            "total_load_mw": round(total_load_mw, 2),
+            "gen_load_imbalance_mw": sci(gen_load_imbalance_mw),
+            "load_buses_compared": load_match_count + load_mismatch_count,
+            "load_match_count": load_match_count,
+            "load_mismatch_count": load_mismatch_count,
+            "max_load_diff_mw": sci(float(max(load_comparison_diffs)))
+            if load_comparison_diffs
+            else sci(0.0),
+        }
+
+        # ----------------------------------------------------------------
+        # 6. Branch flow comparison
         # ----------------------------------------------------------------
         branches_all = grid.get_branches()
         gc_active = [
@@ -213,8 +314,8 @@ def run(
 
         # Build reference lookup by (from, to) with consumption tracking
         ref_map: dict[tuple[int, int], list[float]] = defaultdict(list)
-        for f, t, pf in ref_branch_list:
-            ref_map[(f, t)].append(pf)
+        for br_ref in ref_branch_list:
+            ref_map[(br_ref["from_bus"], br_ref["to_bus"])].append(br_ref["pf_mw"])
         ref_map_idx: dict[tuple[int, int], int] = defaultdict(int)
 
         # Build transformer bus set for formulation difference analysis
@@ -262,7 +363,7 @@ def run(
                         "to_bus": t,
                         "gc_pf_mw": round(float(gc_pf), 2),
                         "ref_pf_mw": round(float(ref_pf), 2),
-                        "dev_pct": round(dev_pct, 1),
+                        "dev_pct": sci(dev_pct),
                         "branch_type": br_type,
                         "transformer_adjacent": is_xfmr_adj,
                     }
@@ -279,16 +380,16 @@ def run(
             "passing": br_passing,
             "failing": br_failing,
             "pass_fraction": round(br_pass_frac, 6),
-            "mean_dev_pct": round(float(np.mean(br_dev_pcts)), 4),
-            "median_dev_pct": round(float(np.median(br_dev_pcts)), 4),
-            "p95_dev_pct": round(float(np.percentile(br_dev_pcts, 95)), 4),
-            "p99_dev_pct": round(float(np.percentile(br_dev_pcts, 99)), 4),
-            "max_dev_pct": round(max_br_dev, 1),
+            "mean_dev_pct": sci(float(np.mean(br_dev_pcts))) if br_dev_pcts else sci(0.0),
+            "median_dev_pct": sci(float(np.median(br_dev_pcts))) if br_dev_pcts else sci(0.0),
+            "p95_dev_pct": sci(float(np.percentile(br_dev_pcts, 95))) if br_dev_pcts else sci(0.0),
+            "p99_dev_pct": sci(float(np.percentile(br_dev_pcts, 99))) if br_dev_pcts else sci(0.0),
+            "max_dev_pct": sci(max_br_dev),
             "meets_threshold": br_pass_frac >= min_br_frac,
         }
 
         # ----------------------------------------------------------------
-        # 6. Hard fail checks
+        # 7. Hard fail checks
         # ----------------------------------------------------------------
         hard_fail_bus = bus_fail_frac > hard_bus_thresh
         hard_fail_br_frac = br_fail_frac > hard_br_thresh
@@ -301,12 +402,12 @@ def run(
             "branch_fail_fraction_exceeded": hard_fail_br_frac,
             "branch_fail_fraction": round(br_fail_frac, 6),
             "extreme_branch_dev_exceeded": hard_fail_br_extreme,
-            "max_branch_dev_pct": round(max_br_dev, 1),
+            "max_branch_dev_pct": sci(max_br_dev),
             "any_triggered": any_hard_fail,
         }
 
         # ----------------------------------------------------------------
-        # 7. Formulation difference classification
+        # 8. Formulation difference classification
         # ----------------------------------------------------------------
         if br_failing > 0:
             xfmr_adj_count = sum(1 for d in failing_br_details if d["transformer_adjacent"])
@@ -325,8 +426,8 @@ def run(
                 "qualified": formulation_diff_qualified,
             }
 
-            # Sort failing branches by deviation and keep top 20 for reporting
-            failing_br_details.sort(key=lambda x: x["dev_pct"], reverse=True)
+            # Sort failing branches by deviation (parse from sci notation) and keep top 20
+            failing_br_details.sort(key=lambda x: float(x["dev_pct"]), reverse=True)
             results["details"]["top_failing_branches"] = failing_br_details[:20]
         else:
             formulation_diff_qualified = False
@@ -336,7 +437,7 @@ def run(
             }
 
         # ----------------------------------------------------------------
-        # 8. Determine status
+        # 9. Determine status
         # ----------------------------------------------------------------
         aggregate_pass = (bus_pass_frac >= min_bus_frac) and (br_pass_frac >= min_br_frac)
 
@@ -349,7 +450,7 @@ def run(
             results["status"] = "qualified_pass"
             results["details"]["qualification_reason"] = (
                 "Hard fail triggered by extreme_branch_flow_deviation "
-                f"(max={max_br_dev:.1f}%), but {xfmr_adj_count}/{len(failing_br_details)} "
+                f"(max={sci(max_br_dev)}), but {xfmr_adj_count}/{len(failing_br_details)} "
                 f"({xfmr_adj_frac * 100:.1f}%) failing branches are transformer-adjacent, "
                 "indicating a B-matrix formulation difference (simplified vs full "
                 "treatment of transformer tap ratios), not a data ingestion error."

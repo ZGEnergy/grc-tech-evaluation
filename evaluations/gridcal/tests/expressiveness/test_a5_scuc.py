@@ -236,7 +236,75 @@ def run(
             mip_gap = float(driver.mip_gap)
         results["details"]["mip_gap"] = mip_gap
 
-        # 7. Check pass conditions
+        # 7. Binding verification (v11): re-run with min_up_time=min_down_time=0
+        binding_verification = {"performed": False, "schedule_changed": False}
+        try:
+            # Save original values
+            original_min_up = {}
+            original_min_down = {}
+            for idx, gen in enumerate(generators):
+                original_min_up[idx] = gen.MinTimeUp
+                original_min_down[idx] = gen.MinTimeDown
+                gen.MinTimeUp = 0.0
+                gen.MinTimeDown = 0.0
+
+            # Re-run with relaxed constraints
+            driver_relaxed = OptimalPowerFlowTimeSeriesDriver(
+                grid=grid,
+                options=opf_opts,
+                time_indices=time_indices,
+            )
+            driver_relaxed.run()
+            relaxed_results = driver_relaxed.results
+
+            if relaxed_results is not None and relaxed_results.generator_power is not None:
+                relaxed_power = relaxed_results.generator_power
+                # Derive commitment from relaxed run
+                relaxed_commitment = np.zeros((n_hours, n_gens), dtype=int)
+                for t in range(n_hours):
+                    for g in range(n_gens):
+                        if relaxed_power[t, g] > 0.1:
+                            relaxed_commitment[t, g] = 1
+
+                # Compare schedules
+                schedule_diffs = []
+                for g in range(n_gens):
+                    baseline_sched = commitment_matrix[:, g]
+                    relaxed_sched = relaxed_commitment[:, g]
+                    if not np.array_equal(baseline_sched, relaxed_sched):
+                        diff_hours = int(np.sum(baseline_sched != relaxed_sched))
+                        schedule_diffs.append(
+                            {
+                                "gen_name": gen_names[g],
+                                "gen_index": g,
+                                "hours_different": diff_hours,
+                                "baseline_hours_on": int(np.sum(baseline_sched)),
+                                "relaxed_hours_on": int(np.sum(relaxed_sched)),
+                            }
+                        )
+
+                binding_verification["performed"] = True
+                binding_verification["schedule_changed"] = len(schedule_diffs) > 0
+                binding_verification["generators_with_changed_schedule"] = schedule_diffs
+                binding_verification["relaxed_commitment_matrix"] = relaxed_commitment.tolist()
+
+            # Restore original values
+            for idx, gen in enumerate(generators):
+                gen.MinTimeUp = original_min_up[idx]
+                gen.MinTimeDown = original_min_down[idx]
+
+        except Exception as e:
+            binding_verification["error"] = f"{type(e).__name__}: {e}"
+            # Restore on error
+            for idx, gen in enumerate(generators):
+                if idx in original_min_up:
+                    gen.MinTimeUp = original_min_up[idx]
+                if idx in original_min_down:
+                    gen.MinTimeDown = original_min_down[idx]
+
+        results["details"]["binding_verification"] = binding_verification
+
+        # 8. Check pass conditions
         pass_checks = {
             "converged": converged,
             "cycling_gens_ge_2": len(cycling_gens) >= 2,
@@ -251,13 +319,27 @@ def run(
                 "HiGHS default gap tolerance is 0.01 (1%)."
             )
 
+        # Binding verification check
+        if binding_verification["performed"]:
+            pass_checks["binding_constraints_confirmed"] = binding_verification["schedule_changed"]
+        else:
+            results["details"]["binding_verification_note"] = (
+                "Binding verification could not be performed."
+            )
+
         results["details"]["pass_checks"] = pass_checks
 
         if all(pass_checks.values()):
             results["status"] = "pass"
         elif converged and pass_checks.get("commitment_extractable", False):
-            # Qualified pass if it runs but doesn't cycle enough generators
-            if len(cycling_gens) < 2:
+            if len(cycling_gens) >= 2 and not binding_verification.get("schedule_changed", False):
+                results["status"] = "qualified_pass"
+                results["workarounds"].append(
+                    "Binding verification inconclusive: relaxed constraints did not change "
+                    "commitment schedule, suggesting min up/down constraints may not have "
+                    "been binding in baseline."
+                )
+            elif len(cycling_gens) < 2:
                 results["status"] = "qualified_pass"
                 results["workarounds"].append(
                     f"Only {len(cycling_gens)} generators cycled (need >=2). "

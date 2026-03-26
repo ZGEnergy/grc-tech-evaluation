@@ -1,12 +1,12 @@
 # .progress.yaml — gridcal evaluation
 tool: gridcal
-skill_version: v1
-protocol_version: "v10"
+skill_version: v2
+protocol_version: "v11"
 run_mode: fresh
 completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
 current_state: COMMIT
+timestamp: "2026-03-24T12:00:00Z"
 scale_cap: MEDIUM
-timestamp: "2026-03-13T06:30:00Z"
 skipped_tests: []
 stale_tests: []
 orphaned_files: []

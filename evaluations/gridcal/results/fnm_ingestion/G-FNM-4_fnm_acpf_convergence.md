@@ -3,24 +3,26 @@ test_id: G-FNM-4
 tool: gridcal
 dimension: fnm_ingestion
 network: LARGE
+protocol_version: v11
+skill_version: v2
+test_hash: "4aa892c7"
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 214.76
+wall_clock_seconds: 211.035
 timing_source: measured
 peak_memory_mb: 2042.5
-convergence_residual: 15.826
+convergence_residual: 1.583e+01
 convergence_iterations: 200
-loc: 346
+convergence_evidence_quality: residual_reported
+loc: 354
 solver: NR/LM/HELM
-timestamp: 2026-03-13T00:00:00Z
-protocol_version: "v10"
-skill_version: v1
-test_hash: "4aa892c7"
-input_path: matpower
+ingestion_path: matpower_raw
+test_category: null
 relaxation_level_achieved: "infeasible"
-dcpf_init_mean_deg: 110.2609
-dcpf_init_max_abs_deg: 179.9973
+dcpf_init_mean_deg: 1.102609e+02
+dcpf_init_max_abs_deg: 1.799973e+02
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # G-FNM-4: ACPF convergence test -- DCPF warm-start + progressive relaxation on FNM
@@ -44,7 +46,7 @@ MATPOWER fallback path was used: `data/fnm/reference/cleaned/fnm_main_island.m`
 
 ### DCPF warm-start
 
-DC power flow solved successfully in 2.39 seconds. The DCPF solution provided
+DC power flow solved successfully in 2.38 seconds. The DCPF solution provided
 initial voltage angles for the ACPF warm start. Initial conditions: VM=1.0 pu
 for all buses, VA from DCPF angles.
 
@@ -100,37 +102,37 @@ mismatches are identical across all relaxation levels.
 
 | Metric | Value |
 |--------|-------|
-| DCPF solve time | 2.39 seconds |
+| DCPF solve time | 2.38 seconds |
 | Nonzero-angle buses | 27,858 / 27,862 |
-| Mean |VA| | 110.26 deg |
-| Max |VA| | 179.997 deg |
+| Mean |VA| | 1.102609e+02 deg |
+| Max |VA| | 1.799973e+02 deg |
 
 ### ACPF convergence summary (0% relaxation)
 
 | Solver | Converged | Iterations | Final Residual | VM Range | Wall-clock |
 |--------|-----------|------------|----------------|----------|------------|
-| NR (no controls) | No | 200 | 614.95 | [0.001, 12.77] | 14.4s |
-| NR (with controls) | No | 200 | 614.95 | [0.001, 12.77] | 12.5s |
-| LM | No | 200 | 15.83 | [0.032, 1.57] | 28.3s |
-| HELM | No | 1 | 94,856 | [0.313, 299.75] | 2.5s |
+| NR (no controls) | No | 200 | 6.149531e+02 | [7.88e-04, 1.277e+01] | 14.4s |
+| NR (with controls) | No | 200 | 6.149531e+02 | [7.88e-04, 1.277e+01] | 12.3s |
+| LM | No | 200 | 1.582617e+01 | [3.172e-02, 1.567e+00] | 27.4s |
+| HELM | No | 1 | 9.485562e+04 | [3.131e-01, 2.998e+02] | 2.4s |
 
 ### ACPF convergence summary (10% relaxation -- identical results)
 
 | Solver | Converged | Iterations | Final Residual |
 |--------|-----------|------------|----------------|
-| NR (no controls) | No | 200 | 614.95 |
-| NR (with controls) | No | 200 | 614.95 |
-| LM | No | 200 | 15.83 |
-| HELM | No | 1 | 94,856 |
+| NR (no controls) | No | 200 | 6.149531e+02 |
+| NR (with controls) | No | 200 | 6.149531e+02 |
+| LM | No | 200 | 1.582617e+01 |
+| HELM | No | 1 | 9.485562e+04 |
 
 ### ACPF convergence summary (20% relaxation -- identical results)
 
 | Solver | Converged | Iterations | Final Residual |
 |--------|-----------|------------|----------------|
-| NR (no controls) | No | 200 | 614.95 |
-| NR (with controls) | No | 200 | 614.95 |
-| LM | No | 200 | 15.83 |
-| HELM | No | 1 | 94,856 |
+| NR (no controls) | No | 200 | 6.149531e+02 |
+| NR (with controls) | No | 200 | 6.149531e+02 |
+| LM | No | 200 | 1.582617e+01 |
+| HELM | No | 1 | 9.485562e+04 |
 
 ### Solver behavior notes
 
@@ -181,11 +183,11 @@ MATPOWER fallback is a diagnostic finding. Potential contributing factors:
 
 ## Timing
 
-- **Total wall-clock:** 214.76 seconds (all 12 attempts)
+- **Total wall-clock:** 211.035 seconds (all 12 attempts)
 - **Timing source:** measured
 - **Peak memory:** 2,042.5 MB
-- **DCPF solve time:** 2.39 seconds
-- **Best ACPF attempt:** LM, 28.3 seconds (200 iterations, residual 15.83)
+- **DCPF solve time:** 2.38 seconds
+- **Best ACPF attempt:** LM, 27.4 seconds (200 iterations, residual 1.583e+01)
 - **CPU cores used:** 1
 
 ## Test Script

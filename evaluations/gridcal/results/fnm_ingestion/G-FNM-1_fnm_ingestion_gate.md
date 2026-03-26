@@ -3,31 +3,33 @@ test_id: G-FNM-1
 tool: gridcal
 dimension: fnm_ingestion
 network: LARGE
+protocol_version: v11
+skill_version: v2
+test_hash: "7827a912"
 status: fail
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 15.32
+wall_clock_seconds: 12.86
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 155
+convergence_evidence_quality: null
+loc: 237
 solver: null
-timestamp: 2026-03-13T00:00:00Z
-protocol_version: "v10"
-skill_version: v1
-test_hash: "7827a912"
-input_path: csv
+ingestion_path: null
 failure_reason: psse_parse_error
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # G-FNM-1: Intermediate format ingestion gate
 
 ## Result: FAIL
 
-GridCal/VeraGrid cannot ingest the intermediate CSV tables. The tool has no native
-CSV import for network topology data. Sub-check (a) fails; sub-check (b) is not
-applicable.
+GridCal/VeraGrid v5.6.28 cannot ingest the intermediate CSV tables. The tool has
+no native CSV import for network topology data. Sub-check (a) fails with
+`failure_reason: psse_parse_error`; sub-check (b) is not applicable.
 
 ## Approach
 
@@ -35,30 +37,34 @@ applicable.
 
 Examined GridCal/VeraGrid v5.6.28's file I/O capabilities to determine whether
 it can parse the 17 intermediate CSV tables (bus.csv, branch.csv, transformer.csv,
-etc.) that contain PSS/e v31 record data in CSV form.
+etc.) that contain PSS/E v31 record data in CSV form.
 
-GridCal supports reading network data from: PSS/e `.raw`/`.rawx`, MATPOWER `.m`,
+GridCal supports reading network data from: PSS/E `.raw`/`.rawx`, MATPOWER `.m`,
 CGMES/CIM XML, DGS, EPC (PowerWorld), PyPSA, pandapower, UCTE, IIDM, DPX, IPA,
 and its native `.veragrid` format. The `.csv` handler in GridCal is limited to
 time-series profile data, not network topology.
 
-Additionally, GridCal's PSS/e RAW parser was tested against the source RAW file
-(`AUC_AN_2026_2026_S01_ON_NETWORK_MODEL.RAW`, v31 format). The parser failed with:
-`Exception: PSSe 35 load data came with 1 elements and 18 or 17 were expected :/`
-
-This indicates GridCal's PSS/e parser expects v35 format and cannot parse v31 RAW
-files either, representing a secondary compatibility gap.
+The intermediate CSV directory at `$FNM_PATH/intermediate/` was checked; 0 of 17
+expected CSV files were found (the FNM source data mount does not contain
+intermediate tables in this environment). Independent of file availability,
+GridCal's `open_file()` API has no code path for CSV-to-network import, confirmed
+by API analysis of the `FileOpen` and `open_file` functions.
 
 ### Sub-check (b): Record count fidelity
 
 Not applicable -- skipped because sub-check (a) failed.
 
-### Supplemental: MATPOWER fallback
+### MATPOWER fallback test
 
-GridCal successfully loaded the cleaned MATPOWER `.m` file
-(`data/fnm/reference/cleaned/fnm_main_island.m`), which contains the main-island
-subset of the FNM (type-4 isolated buses removed). This confirms the MATPOWER
-fallback path is available for G-FNM-3/4/5.
+GridCal was tested against the pre-cleaned MATPOWER case files:
+
+- **`fnm_main_island.mat`** (MATLAB binary format): `open_file()` returns `None`,
+  producing `AttributeError: 'NoneType' object has no attribute 'buses'`. GridCal
+  cannot parse MATLAB `.mat` binary format files.
+- **`fnm_main_island.m`** (MATPOWER text format): Loaded successfully in 12.86
+  seconds, producing a valid `MultiCircuit` with 27,862 buses.
+
+This confirms the MATPOWER `.m` fallback path is available for G-FNM-3/4/5.
 
 ## Output
 
@@ -67,37 +73,35 @@ fallback path is available for G-FNM-3/4/5.
 | Check | Result |
 |-------|--------|
 | CSV network import supported | No |
-| PSS/e RAW v31 parsing | Failed (expects v35 format) |
-| MATPOWER `.m` parsing | Success |
 | Intermediate CSVs found | 0 of 17 |
+| `.mat` binary format support | No (returns None) |
+| MATPOWER `.m` text format support | Yes |
 
-### Supplemental: MATPOWER fallback element counts
+### MATPOWER fallback element counts
 
-| Component | MATPOWER Ingested | RAW Reference | Notes |
-|-----------|------------------|---------------|-------|
-| Buses | 27,862 | 30,307 | Excludes 2,370 type-4 isolated + 75 other |
-| Generators | 5,741 | 5,768 | 27 fewer (on excluded buses) |
-| Lines (branches) | 23,125 | 24,117 | 992 fewer (connected to excluded buses) |
-| Transformers | 9,481 | 9,723 | 242 fewer (connected to excluded buses) |
-| Loads | 8,624 | 15,062 | MATPOWER aggregates multiple loads per bus |
-| Shunts | 3,110 | 3,114 | 4 fewer (on excluded buses) |
-| Areas | 0 | 49 | MATPOWER `.m` format lost area data |
-| Zones | 0 | 90 | MATPOWER `.m` format lost zone data |
-| baseMVA | 100.0 | 100.0 | Match |
-
-The MATPOWER fallback loads the main-island subset (type-4 buses filtered). Count
-differences are expected due to the main-island filtering applied during MATPOWER
-case preparation.
+| Component | MATPOWER Ingested | Notes |
+|-----------|------------------|-------|
+| Buses | 27,862 | Main-island subset (type-4 isolated buses excluded) |
+| Generators | 5,741 | |
+| Lines (branches) | 23,125 | |
+| Transformers (2W) | 9,481 | |
+| Loads | 8,624 | MATPOWER aggregates multiple loads per bus |
+| Shunts | 3,110 | |
+| Areas | 0 | MATPOWER `.m` format does not preserve area data |
+| Zones | 0 | MATPOWER `.m` format does not preserve zone data |
+| HVDC lines | 0 | Not in MATPOWER `.m` format |
+| baseMVA | 100.0 | Correct |
+| Slack bus | 1 ("CAPTJA 1") | Correctly identified |
 
 ## Workarounds
 
 None applied. The test records a failure because GridCal cannot parse the
-intermediate CSV format. The MATPOWER fallback path is available for downstream
-G-FNM-3/4/5 tests but does not change the G-FNM-1 result.
+intermediate CSV format. The MATPOWER `.m` fallback path is available for
+downstream G-FNM-3/4/5 tests but does not change the G-FNM-1 result.
 
 ## Timing
 
-- **Wall-clock:** 15.32 seconds (includes MATPOWER `.m` load for supplemental data)
+- **Wall-clock:** 12.86 seconds (includes MATPOWER `.m` load for fallback test)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **CPU cores used:** 1
@@ -107,5 +111,6 @@ G-FNM-3/4/5 tests but does not change the G-FNM-1 result.
 **Path:** `evaluations/gridcal/tests/fnm_ingestion/test_g_fnm_1_fnm_ingestion_gate.py`
 
 Key finding: GridCal's `open_file()` API accepts `.raw`, `.rawx`, `.m`, and other
-format-specific file extensions. There is no CSV-to-network import path. The PSS/e
-RAW parser is hardcoded to expect v35 format and cannot parse v31 files.
+format-specific file extensions. There is no CSV-to-network import path. The `.mat`
+binary format returns `None` rather than raising an error, which is a silent failure
+mode. Only the MATPOWER `.m` text format works for the FNM fallback.

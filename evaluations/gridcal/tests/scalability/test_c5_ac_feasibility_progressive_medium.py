@@ -21,6 +21,7 @@ Scales A-2 (ACPF) and A-4 (AC feasibility) to MEDIUM. The test:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -74,6 +75,8 @@ def run(
         results["details"]["branch_count"] = n_branches
         results["details"]["load_count"] = len(loads)
 
+        results["details"]["cpu_threads_available"] = os.cpu_count()
+        results["details"]["cpu_threads_used"] = 1  # NR + HiGHS both single-threaded
         results["details"]["solver_note"] = (
             "GridCal has no Ipopt integration. Using native NR solver (SolverType.NR). "
             "Protocol specifies Ipopt; this is an inherent tool limitation."

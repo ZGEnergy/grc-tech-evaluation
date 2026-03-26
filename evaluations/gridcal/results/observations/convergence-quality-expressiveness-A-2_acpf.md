@@ -4,18 +4,18 @@ source_dimension: expressiveness
 source_test: A-2
 tool: gridcal
 severity: low
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# Observation: Excellent AC convergence diagnostics from GridCal NR solver
+# Observation: Excellent AC convergence diagnostics -- Tier 1 (residual_reported)
 
 ## Finding
 
-GridCal's native Newton-Raphson solver provides full convergence diagnostics directly on
-the results object: `results.iterations` (int), `results.error` (float residual), and
-`results.converged` (bool). On the IEEE 39-bus case, flat-start convergence required only
-4 NR iterations with a final residual of 3.32e-11 -- six orders of magnitude below the
-1e-6 tolerance.
+GridCal's native Newton-Raphson solver achieves the highest convergence evidence tier
+(`residual_reported`). The `PowerFlowResults` object exposes `results.iterations` (int),
+`results.error` (float residual), and `results.converged` (bool) as first-class attributes.
+On the IEEE 39-bus case, flat-start convergence required only 4 NR iterations with a final
+residual of 3.32e-11 -- six orders of magnitude below the 1e-6 tolerance.
 
 ## Context
 
@@ -34,4 +34,5 @@ to verify AC convergence on larger networks. The solver appears robust on standa
 cases.
 
 For accessibility assessment: The direct availability of iteration count and residual on
-the results object is a positive API design choice -- no need to parse solver logs.
+the results object is a positive API design choice -- no need to parse solver logs or
+capture log output as required by some Julia tools.

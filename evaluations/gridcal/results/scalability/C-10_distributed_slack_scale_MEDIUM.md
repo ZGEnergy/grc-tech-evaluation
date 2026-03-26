@@ -3,20 +3,23 @@ test_id: C-10
 tool: gridcal
 dimension: scalability
 network: MEDIUM
+protocol_version: "v11"
+skill_version: v2
+test_hash: "18f272b0"
 status: fail
 workaround_class: blocking
 blocked_by: A-11
-protocol_version: "v10"
-skill_version: v1
-test_hash: "18f272b0"
 wall_clock_seconds: 0.0
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 66
+convergence_evidence_quality: null
+loc: 72
 solver: null
-timestamp: "2026-03-13T22:40:00Z"
+cpu_threads_used: 0
+cpu_threads_available: 32
+timestamp: 2026-03-24T18:00:00Z
 ---
 
 # C-10: Distributed slack DC OPF on MEDIUM
@@ -32,6 +35,7 @@ A-11 demonstrated that GridCal's linear OPF formulation hardcodes `distributed_s
 in its internal `LinearAnalysis` call (`linear_opf_ts.py`, line 3022). The
 `PowerFlowOptions.distributed_slack` flag is ignored by the OPF formulation entirely.
 Setting it to `True` produces results identical to `False`.
+[tool-specific: distributed_slack parameter ignored in OPF formulation]
 
 Since distributed slack OPF does not function on TINY (39-bus), it cannot be scaled to
 MEDIUM (10000-bus).
@@ -63,6 +67,8 @@ MEDIUM (10000-bus).
 - **Wall-clock:** 0.0 s (not executed)
 - **Timing source:** measured (trivial -- no computation performed)
 - **Peak memory:** not measured
+- **CPU threads used:** 0 (not executed)
+- **CPU threads available:** 32
 
 ## Test Script
 

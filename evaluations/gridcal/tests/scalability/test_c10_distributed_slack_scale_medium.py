@@ -17,6 +17,7 @@ This test does NOT attempt execution. It records the cascaded failure from A-11.
 from __future__ import annotations
 
 import json
+import os
 import time
 
 
@@ -34,6 +35,11 @@ def run(
     }
 
     start = time.perf_counter()
+
+    # Record CPU thread info even for cascaded failure
+    cpu_threads_available = os.cpu_count() or 1
+    results["details"]["cpu_threads_used"] = 0  # Not executed
+    results["details"]["cpu_threads_available"] = cpu_threads_available
 
     results["details"]["blocked_by"] = "A-11"
     results["details"]["cascaded_failure"] = True
