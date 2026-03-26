@@ -1,12 +1,71 @@
 tool: powermodels
-skill_version: v1
-protocol_version: "v10"
+skill_version: v2
+protocol_version: "v11"
 run_mode: fresh
 completed_states: [CONFIGURE, RESEARCH, GATE, EVALUATE, VALIDATE, SYNTHESIZE]
 current_state: COMMIT
-timestamp: "2026-03-14T05:00:00Z"
+timestamp: "2026-03-24T03:00:00Z"
 skipped_tests: []
-stale_tests: []
+stale_tests:
+  - A-1_dcpf_TINY.md
+  - A-2_acpf_TINY.md
+  - A-3_dcopf_TINY.md
+  - A-4_ac_feasibility_check_TINY.md
+  - A-5_scuc_TINY.md
+  - A-6_sced_TINY.md
+  - A-9_scopf_TINY.md
+  - A-10_lossy_dcopf_lmp_decomposition_TINY.md
+  - A-11_distributed_slack_opf_TINY.md
+  - A-12_multiperiod_dcopf_storage_TINY.md
+  - B-1_custom_constraints_TINY.md
+  - B-2_graph_access_TINY.md
+  - B-3_contingency_sweep_TINY.md
+  - B-4_stochastic_wrapping_TINY.md
+  - B-5_interoperability_TINY.md
+  - B-6_code_architecture.md
+  - B-8_reference_bus_config_TINY.md
+  - B-9_ptdf_extraction_TINY.md
+  - C-1_dcpf_scale_MEDIUM.md
+  - C-2_acpf_scale_MEDIUM.md
+  - C-3_dcopf_scale_MEDIUM.md
+  - C-4_scuc_scale_SMALL.md
+  - C-5_ac_feasibility_relaxation_MEDIUM.md
+  - C-7_solver_swap_MEDIUM.md
+  - C-8_scopf_scale_MEDIUM.md
+  - C-9_ptdf_scale_MEDIUM.md
+  - C-10_distributed_slack_scale_MEDIUM.md
+  - D-1_install_to_first_solve.md
+  - D-2_documentation_audit.md
+  - D-3_example_verification.md
+  - D-4_error_quality.md
+  - D-5_code_volume.md
+  - E-1_release_cadence.md
+  - E-2_commit_activity.md
+  - E-3_contributor_concentration.md
+  - E-4_funding_model.md
+  - E-5_issue_tracker_health.md
+  - E-6_ci_test_coverage.md
+  - E-7_operational_adoption.md
+  - F-1_core_license.md
+  - F-2_dependency_tree.md
+  - F-3_dependency_license_audit.md
+  - F-4_compiled_extension_audit.md
+  - F-5_code_inspectability.md
+  - F-6_distribution_integrity.md
+  - F-7_air_gap_installability.md
+  - F-8_solver_dependency_assessment.md
+  - F-9_getting_started_artifact_integrity.md
+  - G-1_ingest_tiny.md
+  - G-2_ingest_small.md
+  - G-3_ingest_medium.md
+  - G-FNM-1_intermediate_ingestion.md
+  - G-FNM-2_field_coverage_audit.md
+  - G-FNM-3_dcpf_verification.md
+  - G-FNM-4_acpf_convergence.md
+  - G-FNM-5_supplemental_csv_representability.md
+  - P2-1_psse_raw_parsing.md
+  - P2-2_piecewise_linear_costs.md
+  - P2-3_commitment_injection_workflow.md
 orphaned_files: []
 scale_cap: MEDIUM
 completed_dag_steps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]

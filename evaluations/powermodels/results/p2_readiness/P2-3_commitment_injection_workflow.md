@@ -8,7 +8,7 @@ workaround_class: null
 timestamp: "2026-03-13T23:30:00Z"
 protocol_version: v10
 skill_version: v1
-test_hash: "059e1be1"
+test_hash: "01475a3c"
 ---
 
 # P2-3: Commitment Injection Workflow

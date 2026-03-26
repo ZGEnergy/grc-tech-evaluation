@@ -3,20 +3,21 @@ test_id: A-4
 tool: powermodels
 dimension: expressiveness
 network: TINY
-protocol_version: v10
-skill_version: v1
-test_hash: fea70a1e
+protocol_version: v11
+skill_version: v2
+test_hash: ac6d8019
 status: pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 2.517
+wall_clock_seconds: 2.362
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: binary_convergence_api
 loc: 155
 solver: NLsolve (compute_ac_pf)
-timestamp: 2026-03-13T18:00:00Z
+timestamp: 2026-03-24T12:00:00Z
 ---
 
 # A-4: AC Feasibility Check
@@ -75,7 +76,7 @@ The entire workflow modifies `data` in-place. No file write or reimport occurs b
 | DC OPF objective | $215,211/h |
 | ACPF converged | true (Bool) |
 | ACPF wall clock | 0.0147s |
-| Total wall clock | 2.517s (includes Julia JIT) |
+| Total wall clock | 2.362s (includes Julia JIT) |
 | Vm range | 0.97951 -- 1.03902 pu |
 | Voltage violations | 0 buses |
 | Thermal violations | 4 branches |
@@ -123,7 +124,7 @@ Sample bus voltages:
 
 ## Timing
 
-- **Wall-clock:** 2.517s (first invocation, includes Julia JIT compilation)
+- **Wall-clock:** 2.362s (first invocation, includes Julia JIT compilation)
 - **ACPF solve only:** 0.0147s
 - **Timing source:** measured
 - **Peak memory:** not measured

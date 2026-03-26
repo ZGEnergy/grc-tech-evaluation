@@ -24,6 +24,8 @@ Notes:
 =#
 
 using PowerModels
+using Logging
+using Printf
 
 PowerModels.silence()
 
@@ -63,8 +65,14 @@ function run(
 
         # ------------------------------------------------------------------
         # 2. Solve AC Power Flow using Newton-Raphson (no JuMP, uses NLsolve)
+        #    Capture @info logs to check for iteration count per
+        #    cross-tool-watchpoints.md convergence diagnostics guidance
         # ------------------------------------------------------------------
-        result = PowerModels.compute_ac_pf(data)
+        log_buffer = IOBuffer()
+        result = with_logger(ConsoleLogger(log_buffer, Logging.Info)) do
+            PowerModels.compute_ac_pf(data)
+        end
+        log_output = String(take!(log_buffer))
 
         # termination_status is Bool for compute_ac_pf (not a JuMP enum)
         raw_status = result["termination_status"]
@@ -74,6 +82,15 @@ function run(
         # Check for diagnostic data — these are NOT present in v0.21
         nr_iterations = get(result, "iterations", nothing)
         final_mismatch = get(result, "final_mismatch", nothing)
+
+        # Try to parse iteration count from log output
+        if !isempty(log_output) && isnothing(nr_iterations)
+            # Look for patterns like "converged after N iterations"
+            m = match(r"(\d+)\s*iteration", log_output)
+            if !isnothing(m)
+                nr_iterations = parse(Int, m.captures[1])
+            end
+        end
 
         # ------------------------------------------------------------------
         # 3. Extract bus voltage magnitudes and angles
@@ -164,11 +181,62 @@ function run(
             "after merging solution voltages into data dict. This uses the documented " *
             "public calc_branch_flow_ac API — a stable workaround.",
         )
+        # ------------------------------------------------------------------
+        # 5b. Compute max bus power mismatch as convergence residual proxy
+        #     P_mismatch = sum(gen_p) - sum(load_p) - sum(branch_flows_out) per bus
+        #     Using calc_branch_flow_ac results to compute bus-level mismatches
+        # ------------------------------------------------------------------
+        bus_p_inject = Dict{String,Float64}()
+        bus_q_inject = Dict{String,Float64}()
+        for bus_id in keys(data["bus"])
+            bus_p_inject[bus_id] = 0.0
+            bus_q_inject[bus_id] = 0.0
+        end
+        # Add generator injections (from solution)
+        if haskey(result, "solution") && haskey(result["solution"], "gen")
+            for (gen_id, gen_sol) in result["solution"]["gen"]
+                bus_id = string(data["gen"][gen_id]["gen_bus"])
+                bus_p_inject[bus_id] += get(gen_sol, "pg", 0.0)
+                bus_q_inject[bus_id] += get(gen_sol, "qg", 0.0)
+            end
+        end
+        # Subtract loads
+        for (_, load) in data["load"]
+            if load["status"] == 1
+                bus_id = string(load["load_bus"])
+                bus_p_inject[bus_id] -= load["pd"]
+                bus_q_inject[bus_id] -= load["qd"]
+            end
+        end
+        # Subtract shunts
+        for (_, shunt) in get(data, "shunt", Dict())
+            bus_id = string(shunt["shunt_bus"])
+            vm = vm_values[bus_id]
+            bus_p_inject[bus_id] -= shunt["gs"] * vm^2
+            bus_q_inject[bus_id] += shunt["bs"] * vm^2
+        end
+        # Subtract branch flows (from bus perspective)
+        for (br_id, br_flows) in flow_data["branch"]
+            f_bus = string(data["branch"][br_id]["f_bus"])
+            t_bus = string(data["branch"][br_id]["t_bus"])
+            bus_p_inject[f_bus] -= get(br_flows, "pf", 0.0)
+            bus_p_inject[t_bus] -= get(br_flows, "pt", 0.0)
+            bus_q_inject[f_bus] -= get(br_flows, "qf", 0.0)
+            bus_q_inject[t_bus] -= get(br_flows, "qt", 0.0)
+        end
+        # Max bus power mismatch (in per-unit)
+        max_p_mismatch = maximum(abs.(values(bus_p_inject)))
+        max_q_mismatch = maximum(abs.(values(bus_q_inject)))
+        max_bus_mismatch = max(max_p_mismatch, max_q_mismatch)
+        max_mismatch_str = @sprintf("%.6e", max_bus_mismatch)
+        println("  Max bus power mismatch (p.u.): $max_mismatch_str")
+
         push!(
             results["workarounds"],
             "NR iteration count and convergence residual are not returned by compute_ac_pf. " *
-            "Convergence verified from Bool termination_status and voltage profile quality " *
-            "(>95%% buses differ from flat start). This is a diagnostic quality gap.",
+            "Convergence verified from Bool termination_status, voltage profile quality " *
+            "(>95%% buses differ from flat start), and computed max bus power mismatch. " *
+            "This is a diagnostic quality gap.",
         )
 
         # ------------------------------------------------------------------
@@ -317,7 +385,16 @@ function run(
             "solver" => "NLsolve (Newton-Raphson via compute_ac_pf, no JuMP)",
             "branch_flow_method" => "PowerModels.calc_branch_flow_ac after merging solution voltages",
             "diagnostic_gap" => "NR iterations and convergence residual not exposed by compute_ac_pf",
-            "loc" => 185,
+            "log_output" => log_output,
+            "max_bus_mismatch_pu" => max_mismatch_str,
+            "convergence_evidence_quality" => if !isnothing(nr_iterations)
+                "iteration_count_reported"
+            elseif converged
+                "binary_convergence_api"
+            else
+                "proxy_voltage"
+            end,
+            "loc" => 230,
         )
 
     catch e

@@ -4,7 +4,7 @@ source_dimension: fnm_ingestion
 source_test: G-FNM-3
 tool: powermodels
 severity: high
-timestamp: "2026-03-13T01:30:00Z"
+timestamp: "2026-03-24T12:00:00Z"
 ---
 
 # Observation: DCPPowerModel Simplified B-Matrix Causes 97.6% Bus Angle Failure on FNM

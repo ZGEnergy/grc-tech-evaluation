@@ -2,8 +2,8 @@
 Test C-3: DC OPF Scale — MEDIUM grade assessment (multi-solver)
 Dimension: scalability
 Network: MEDIUM (ACTIVSg 10000-bus, case_ACTIVSg10k.m)
-Pass condition: Wall-clock time per solver, peak memory, objective value (verify
-  consistency across solvers)
+Pass condition: Wall-clock time per solver, peak memory, objective value consistency.
+  Max branch loading reported. Note: MEDIUM has 19.4% branches with Inf rate_a.
 Tool: PowerModels.jl v0.21.5
 Solvers: HiGHS (primary), GLPK (secondary — per solver-config.md)
 
@@ -17,6 +17,7 @@ Preprocessing (per MEDIUM protocol):
 =#
 
 using PowerModels, JuMP, HiGHS, GLPK
+using Printf
 
 PowerModels.silence()
 
@@ -62,6 +63,33 @@ function linearize_costs!(data::Dict)
     return n_linearized
 end
 
+function compute_max_branch_loading(opf_result, data)
+    max_loading = 0.0
+    max_loading_branch = ""
+    n_over_100 = 0
+    base_mva = data["baseMVA"]
+
+    if !haskey(opf_result, "solution") || !haskey(opf_result["solution"], "branch")
+        return (max_loading=NaN, max_loading_branch="", n_over_100=0)
+    end
+
+    for (br_id, br_sol) in opf_result["solution"]["branch"]
+        pf = abs(get(br_sol, "pf", 0.0))
+        rate_a = data["branch"][br_id]["rate_a"]
+        if rate_a > 0.01  # skip zero-rated branches
+            loading = pf / rate_a  # both in p.u.
+            if loading > max_loading
+                max_loading = loading
+                max_loading_branch = br_id
+            end
+            if loading > 1.0 + 1e-4
+                n_over_100 += 1
+            end
+        end
+    end
+    return (max_loading=max_loading, max_loading_branch=max_loading_branch, n_over_100=n_over_100)
+end
+
 function solve_dcopf(data::Dict, optimizer, solver_name::String)
     println("Solving DC OPF with $solver_name...")
     t_solve_start = time()
@@ -73,8 +101,8 @@ function solve_dcopf(data::Dict, optimizer, solver_name::String)
     objective = get(opf_result, "objective", NaN)
     solver_time = get(opf_result, "solve_time", NaN)
     println(
-        "  $solver_name: status=$term_status  obj=$(round(objective,digits=2))  " *
-        "solve=$(round(solver_time,digits=2))s  wall=$(round(t_solve,digits=2))s",
+        "  $solver_name: status=$term_status  obj=$(@sprintf("%.6e", objective))  " *
+        "solve=$(@sprintf("%.6e", solver_time))s  wall=$(@sprintf("%.6e", t_solve))s",
     )
     return (
         term_status=term_status,
@@ -99,6 +127,9 @@ function run(
         "workarounds" => String[],
     )
 
+    cpu_threads_available = Sys.CPU_THREADS
+    cpu_threads_used = 1  # single-threaded per solver-config.md
+
     # Warm-up on case39 to eliminate JIT compilation from timing
     println("Warming up JIT on case39...")
     try
@@ -119,7 +150,7 @@ function run(
         t_parse_start = time()
         data_orig = PowerModels.parse_file(network_file)
         t_parse = time() - t_parse_start
-        println("Network parsed in $(round(t_parse, digits=2))s")
+        println("Network parsed in $(@sprintf("%.6e", t_parse))s")
 
         n_buses = length(data_orig["bus"])
         n_branches = length(data_orig["branch"])
@@ -166,14 +197,31 @@ function run(
         obj_diff = abs(highs_res.objective - glpk_res.objective)
         obj_pct = 100.0 * obj_diff / max(abs(highs_res.objective), 1.0)
         println("\nObjective comparison:")
-        println("  HiGHS:  $(round(highs_res.objective, digits=2)) \$/h")
-        println("  GLPK:   $(round(glpk_res.objective,  digits=2)) \$/h")
-        println("  Diff:   $(round(obj_diff, digits=2)) \$/h  ($(round(obj_pct, digits=4))%)")
+        println("  HiGHS:  $(@sprintf("%.6e", highs_res.objective)) \$/h")
+        println("  GLPK:   $(@sprintf("%.6e", glpk_res.objective)) \$/h")
+        println("  Diff:   $(@sprintf("%.6e", obj_diff)) \$/h  ($(@sprintf("%.6e", obj_pct))%)")
         if glpk_converged
             println("  Consistency: $(obj_pct < 0.01 ? "VERIFIED" : "MISMATCH")")
         else
             println("  Consistency: CANNOT VERIFY (GLPK did not converge)")
         end
+
+        # Max branch loading (hard constraint check)
+        highs_loading = compute_max_branch_loading(highs_res.result, data_highs)
+        println("\nMax branch loading (HiGHS):")
+        println(
+            "  Max loading: $(@sprintf("%.6e", highs_loading.max_loading)) p.u. (branch $(highs_loading.max_loading_branch))",
+        )
+        println("  Max loading pct: $(@sprintf("%.2f", highs_loading.max_loading * 100))%")
+        println("  Branches over 100%: $(highs_loading.n_over_100)")
+
+        glpk_loading = compute_max_branch_loading(glpk_res.result, data_glpk)
+        println("Max branch loading (GLPK):")
+        println(
+            "  Max loading: $(@sprintf("%.6e", glpk_loading.max_loading)) p.u. (branch $(glpk_loading.max_loading_branch))",
+        )
+        println("  Max loading pct: $(@sprintf("%.2f", glpk_loading.max_loading * 100))%")
+        println("  Branches over 100%: $(glpk_loading.n_over_100)")
 
         # Extract LMPs from HiGHS run
         lmp_values = Dict{String,Float64}()
@@ -188,7 +236,7 @@ function run(
         lmp_min = isempty(lmp_values) ? NaN : minimum(values(lmp_values))
         lmp_max = isempty(lmp_values) ? NaN : maximum(values(lmp_values))
         println(
-            "LMPs (HiGHS): min=$(round(lmp_min,digits=4))  max=$(round(lmp_max,digits=4)) \$/MWh"
+            "LMPs (HiGHS): min=$(@sprintf("%.6e", lmp_min))  max=$(@sprintf("%.6e", lmp_max)) \$/MWh",
         )
 
         # Count dispatched generators
@@ -249,9 +297,17 @@ function run(
             "lmp_min_dollars_per_mwh" => lmp_min,
             "lmp_max_dollars_per_mwh" => lmp_max,
             "lmp_count" => length(lmp_values),
+            "highs_max_branch_loading_pu" => highs_loading.max_loading,
+            "highs_max_loading_branch" => highs_loading.max_loading_branch,
+            "highs_branches_over_100pct" => highs_loading.n_over_100,
+            "glpk_max_branch_loading_pu" => glpk_loading.max_loading,
+            "glpk_max_loading_branch" => glpk_loading.max_loading_branch,
+            "glpk_branches_over_100pct" => glpk_loading.n_over_100,
             "t_parse_s" => t_parse,
             "peak_rss_mb_before" => rss_before,
             "peak_rss_mb_after" => rss_after,
+            "cpu_threads_used" => cpu_threads_used,
+            "cpu_threads_available" => cpu_threads_available,
             "timing_source" => "measured",
         )
 
@@ -265,8 +321,10 @@ function run(
     end
 
     println("\nStatus: $(results["status"])")
-    println("Wall clock: $(round(results["wall_clock_seconds"], digits=3))s")
+    println("Wall clock: $(@sprintf("%.6e", results["wall_clock_seconds"]))s")
     println("Peak RSS: $(peak_rss_mb()) MB")
+    println("cpu_threads_used: $cpu_threads_used")
+    println("cpu_threads_available: $cpu_threads_available")
 
     return results
 end
@@ -280,7 +338,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("errors:             $(result["errors"])")
     println("workarounds:        $(result["workarounds"])")
     println("--- details ---")
-    for (k, v) in result["details"]
+    for (k, v) in sort(collect(result["details"]); by=first)
         println("  $k: $v")
     end
 end
