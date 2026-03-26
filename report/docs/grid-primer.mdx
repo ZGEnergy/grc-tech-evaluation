@@ -11,22 +11,21 @@ import Placeholder from '@site/src/components/Placeholder';
 If you work in energy markets, you already understand that electricity prices emerge from the
 physical interaction between generators, transmission lines, and load. But the modeling tools
 evaluated in this report operate at a level of detail that can feel opaque without shared
-vocabulary. This primer exists to bridge that gap — to give energy market practitioners the
+vocabulary. This primer exists to bridge that gap: to give energy market practitioners the
 physical intuition needed to read the evaluation results and understand what each tool is
 actually doing when it solves a power flow or dispatches generation.
 
 This page is not a power systems textbook. It introduces exactly the concepts you need to
 interpret the evaluation criteria, and no more. The target audience is someone who trades
-energy, manages a portfolio, or builds analytics — someone comfortable with market mechanics
+energy, manages a portfolio, or builds analytics, someone comfortable with market mechanics
 but not necessarily with the transmission physics underneath. If you already build power flow
 models for a living, you can safely skip to the
 [evaluation results](/results/expressiveness).
 
 The primer is organized as six progressive stages. Each stage adds one new element to the
 grid, building cumulatively from the simplest possible system to full contingency analysis.
-Along the way, you will see references to specific evaluation test IDs (like A-1 or A-3) —
-these connect each concept to the criteria we used to evaluate the six modeling tools. Gray
-placeholder boxes mark spots where future interactive demonstrations will let you manipulate
+Along the way, you will see references to specific evaluation test IDs (like A-1 or A-3);
+these connect each concept to the criteria we used to evaluate the six modeling tools. Gray placeholder boxes mark spots where future interactive demonstrations will let you manipulate
 the grid directly.
 
 ## Stage 1: Single Generator, Single Load
@@ -38,7 +37,7 @@ which everything else in this primer is built.
 
 ![Stage 1 diagram showing a single bus with one generator and one load connected by power flow arrows](/img/grid-primer/stage-1_single-bus.svg)
 
-A bus is the fundamental node in a power system model — a point where equipment connects. In
+A bus is the fundamental node in a power system model, a point where equipment connects. In
 the simplest possible grid, a single bus has one generator (a source of power) and one load
 (a sink of power). There is no transmission network, no optimization, and no market. The only
 question is whether supply matches demand.
@@ -46,7 +45,7 @@ question is whether supply matches demand.
 This deceptively simple setup already exposes a key difference between electricity and other
 commodities: there is no inventory. Natural gas can be stored in pipelines; crude oil sits in
 tanks. Electricity must be produced and consumed simultaneously. When a generator's output
-does not match the load's demand, frequency deviates from its nominal value — a condition
+does not match the load's demand, frequency deviates from its nominal value, a condition
 that, if sustained, damages equipment and cascades into blackouts. Every modeling tool must
 enforce this balance constraint, and how faithfully it does so is the most basic test of
 correctness (this is what Expressiveness tests A-1 and A-2 verify).
@@ -54,7 +53,7 @@ correctness (this is what Expressiveness tests A-1 and A-2 verify).
 The bus concept also introduces the distinction between a physical substation and a model
 node. Real substations have switchgear, transformers, and multiple voltage levels. In a
 model, all of that collapses into a single bus with aggregate injection and withdrawal values.
-The art of power system modeling is choosing the right level of abstraction — enough detail
+The art of power system modeling is choosing the right level of abstraction: enough detail
 to capture the physics that matter, without drowning in complexity that does not.
 
 <Placeholder title="Set generator output and load demand; see real-time power balance" />
@@ -67,7 +66,7 @@ when we need to move power from where it is generated to where it is consumed?
 Adding a second bus and a transmission line between them introduces the physics that make
 power systems fundamentally different from other network optimization problems. Power does not
 flow like water through a pipe or data through a cable. It obeys Kirchhoff's laws, and its
-behavior is governed by a property of the line called impedance — the combination of
+behavior is governed by a property of the line called impedance, the combination of
 resistance (which dissipates energy as heat) and reactance (which stores and releases energy
 in electromagnetic fields).
 
@@ -85,7 +84,7 @@ magnitudes, and angles. It is accurate but computationally expensive, requiring 
 numerical methods like Newton-Raphson. The DC power flow (DCPF) linearizes the problem by
 assuming voltage magnitudes are all 1.0 per unit, angle differences are small, and line
 resistance is negligible compared to reactance. The result is a system of linear equations
-that can be solved directly — fast enough for real-time market clearing, accurate enough for
+that can be solved directly, fast enough for real-time market clearing and accurate enough for
 most energy trading applications (this is what Expressiveness tests A-1 and A-2 measure:
 A-1 for DCPF, A-2 for ACPF).
 
@@ -110,21 +109,21 @@ the foundation of shift factors used in market clearing.
 <Placeholder title="Adjust line impedance and see how power flow changes" />
 
 A two-bus system, while illustrative, has only one path for power to flow. Real grids are
-meshed — and that changes everything.
+meshed, and that changes everything.
 
 ## Stage 3: Meshed Network
 
 When a third bus joins the network and multiple paths connect the buses, power flow becomes
 genuinely non-trivial. Unlike a transportation network where a shipper chooses a route, power
 splits across all available paths simultaneously according to the impedance of each path. You
-cannot direct a megawatt to take the northern route instead of the southern one — physics
+cannot direct a megawatt to take the northern route instead of the southern one; physics
 makes that choice for you.
 
 ![Stage 3 diagram showing a meshed three-bus network with parallel paths and PTDF annotations](/img/grid-primer/stage-3_meshed-network.svg)
 
 This parallel-path behavior leads to one of power systems' most counterintuitive phenomena.
 Adding a new transmission line to a congested network can actually increase the loading on
-existing lines — a result known as Braess's paradox. The mechanism is straightforward once you
+existing lines, a result known as Braess's paradox. The mechanism is straightforward once you
 internalize the impedance-based flow distribution from Stage 2: a new line changes the
 impedance ratios of all parallel paths, redistributing flow in ways that may worsen
 bottlenecks even as total transfer capacity increases.
@@ -137,8 +136,8 @@ calculates whether a proposed trade would violate a transmission constraint, the
 trade quantity by the relevant PTDF to determine the trade's impact on each monitored line.
 
 For modeling tools, meshed networks are where the bus-branch formulation introduced in Stage 1
-proves its worth. The bus admittance matrix — a square matrix whose dimensions equal the
-number of buses — encodes the entire network topology and impedance structure. Solving the
+proves its worth. The bus admittance matrix (a square matrix whose dimensions equal the
+number of buses) encodes the entire network topology and impedance structure. Solving the
 power flow on a meshed network is fundamentally the same matrix operation as on two buses,
 just larger (this is what Expressiveness tests A-1 through A-3 validate across increasingly
 complex topologies).
@@ -146,13 +145,13 @@ complex topologies).
 <Placeholder title="Change injection at one bus and watch power redistribute across parallel paths" />
 
 So far, we have treated generators as fixed injections. In reality, someone must decide how
-much each generator produces — and that decision is an optimization problem.
+much each generator produces, and that decision is an optimization problem.
 
 ## Stage 4: Economic Dispatch and OPF
 
 Given a meshed network with multiple generators, each having a different cost to produce
 power, the operator must decide how much output to assign to each unit. The simplest version
-of this problem — economic dispatch — stacks generators in order of their marginal cost (the
+of this problem, economic dispatch, stacks generators in order of their marginal cost (the
 merit order) and dispatches them from cheapest to most expensive until total generation meets
 total demand. This is the optimization that runs every five minutes in organized electricity
 markets.
@@ -166,7 +165,7 @@ and 3: minimize total generation cost subject to power balance at every bus, gen
 limits, and transmission line flow limits. The solution tells you not just how much each
 generator produces, but also the shadow price of the power balance constraint at each bus.
 
-That shadow price is the Locational Marginal Price (LMP) — the cost of serving one additional
+That shadow price is the Locational Marginal Price (LMP), the cost of serving one additional
 megawatt of load at a specific bus. In an uncongested network, all LMPs are equal (every bus
 sees the same marginal generator). When transmission constraints bind, LMPs diverge: buses
 behind the congestion see higher prices because cheap remote generation cannot reach them.
@@ -204,7 +203,7 @@ limit?
 
 ## Stage 5: Transmission Limits and Congestion
 
-Every transmission line has a thermal rating — a maximum power flow determined by how much
+Every transmission line has a thermal rating, a maximum power flow determined by how much
 current the conductor can carry before it heats to the point of sagging into trees or losing
 tensile strength. When the OPF solution from Stage 4 pushes a line to this limit, the
 constraint binds, and the network is congested.
@@ -213,7 +212,7 @@ constraint binds, and the network is congested.
 
 Congestion is not a failure. It is the normal operating state of a stressed grid, and it is
 the mechanism that creates price separation between locations. Without congestion, the energy
-market would need no locational component — a single system-wide price would suffice. It is
+market would need no locational component; a single system-wide price would suffice. It is
 precisely because transmission capacity is scarce that LMPs differ across buses, creating the
 arbitrage opportunities that define energy trading.
 
@@ -222,7 +221,7 @@ system-wide marginal cost of generation), the loss component (the marginal cost 
 transmission losses to deliver power to that bus), and the congestion component (the marginal
 cost of the binding transmission constraints that affect delivery to that bus). In DC-OPF
 models, the loss component is typically zero because the DC approximation neglects resistance.
-The congestion component is what traders care about most — it determines the spread between
+The congestion component is what traders care about most: it determines the spread between
 source and sink prices that drives Congestion Revenue Rights (CRRs) and Point-to-Point (PTP)
 trading strategies.
 
@@ -235,13 +234,13 @@ tests A-5 and A-6 assess).
 
 <Placeholder title="Toggle line limits on and off; watch LMPs diverge as congestion binds" />
 
-In real operations, the grid must not only handle the current state — it must survive
+In real operations, the grid must not only handle the current state; it must survive
 unexpected equipment failures. That requirement is the subject of the final stage.
 
 ## Stage 6: Contingency Analysis and SCOPF
 
 The power grid operates under a principle called N-1 security: the system must remain stable
-and within limits if any single element — a generator, a transmission line, a transformer —
+and within limits if any single element (a generator, a transmission line, a transformer)
 trips offline unexpectedly. This is not a theoretical concern. Equipment failures happen daily
 on large grids, and the consequences of an unprepared system range from localized price spikes
 to cascading blackouts.
@@ -251,7 +250,7 @@ to cascading blackouts.
 Contingency analysis evaluates every credible N-1 scenario: for each element that could fail,
 re-solve the power flow with that element removed and check whether any remaining line exceeds
 its emergency rating. If a contingency would cause a violation, the operator must take
-preventive action — typically re-dispatching generation away from the pattern that Stage 4's
+preventive action, typically re-dispatching generation away from the pattern that Stage 4's
 OPF would otherwise choose. This preventive re-dispatch costs money, because it moves
 generation away from the economic optimum to maintain security.
 
@@ -259,7 +258,7 @@ Security-Constrained Optimal Power Flow (SCOPF) formalizes this tradeoff. It sol
 from Stage 4 while simultaneously enforcing the constraint that the solution must remain
 feasible under every contingency. The result is a dispatch that is more expensive than the
 unconstrained optimum but survives any single equipment failure. In organized markets, this
-is exactly what the system operator solves every five minutes — the LMPs that traders see
+is exactly what the system operator solves every five minutes; the LMPs that traders see
 already embed the cost of N-1 security.
 
 SCOPF is the most computationally demanding problem in this primer. A network with $L$ lines

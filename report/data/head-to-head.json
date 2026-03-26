@@ -1,99 +1,70 @@
 {
-    "_provenance": {
-        "source": "report/selection-report-v10.md",
-        "lines": "84-91",
-        "extracted": "2026-03-19"
-    },
     "capabilities": [
         {
-            "capability": "Preventive SCOPF",
-            "pypsa": true,
-            "powermodels": true,
-            "powersimulations": false,
-            "pandapower": false,
-            "gridcal": true,
-            "matpower": true,
-            "pypsa_detail": "Native optimize_security_constrained() (A-9)",
-            "powermodels_detail": "Workaround (~250 LOC user MILP)",
-            "powersimulations_detail": "Gap",
-            "pandapower_detail": "Gap",
-            "gridcal_detail": "Native (consider_contingencies=True, A-9)",
-            "matpower_detail": "Native MOST (A-9)"
+            "name": "Security-Constrained OPF (SCOPF)",
+            "tools": {
+                "pypsa": {"status": "Native", "notes": "Native SCOPF via extra_functionality with LODF-based contingency constraints; 50 contingencies on 10,000-bus network in 30s solver time (A-9, C-8)"},
+                "powermodels": {"status": "Extension", "notes": "Manual Benders cutting plane with LODF injection; functional but convergence not demonstrated on feasible instance (A-9)"},
+                "powersimulations": {"status": "Extension", "notes": "Manual LODF constraint injection into JuMP model; HiGHS crashes on 10,000-bus MEDIUM network (A-9, C-8)"},
+                "gridcal": {"status": "Native", "notes": "Native LODF-based SCOPF via consider_contingencies parameter; vacuous pass on uncongested 10,000-bus network (A-9, C-8)"},
+                "pandapower": {"status": "Gap", "notes": "No SCOPF capability; manual PTDF/LODF construction + external solver required, OOM at 10,000-bus scale (A-9, C-8)"},
+                "matpower": {"status": "Workaround", "notes": "Benders iteration with LODF constraint injection via mpc.A/l/u; N-1 infeasible on test case + MIPS numerical issues; blocking durability (A-9)"}
+            }
         },
         {
-            "capability": "Distributed Slack",
-            "pypsa": false,
-            "powermodels": false,
-            "powersimulations": false,
-            "pandapower": false,
-            "gridcal": false,
-            "matpower": true,
-            "pypsa_detail": "Gap (A-11; architecturally blocked in n.optimize())",
-            "powermodels_detail": "Gap (A-11 fail)",
-            "powersimulations_detail": "Gap (A-11 fail)",
-            "pandapower_detail": "Gap",
-            "gridcal_detail": "Gap (hardcoded off in OPF, A-11)",
-            "matpower_detail": "Native makePTDF weights (B-9)"
+            "name": "Distributed Slack OPF",
+            "tools": {
+                "pypsa": {"status": "Workaround", "notes": "Available in PF context but blocked in OPF; custom Linopy constraint needed (A-11)"},
+                "powermodels": {"status": "Workaround", "notes": "Requires ~150 LOC custom PTDF-based JuMP OPF; no built-in formulation (A-11)"},
+                "powersimulations": {"status": "Native", "notes": "Native distributed slack in power flow via PowerFlows.jl (A-11 pass)"},
+                "gridcal": {"status": "Gap", "notes": "Distributed slack hardcoded off in OPF; blocking limitation (A-11)"},
+                "pandapower": {"status": "Gap", "notes": "No distributed slack formulation available (A-11)"},
+                "matpower": {"status": "Native", "notes": "Post-processing distributed slack via makePTDF with slack_weights; stable workaround using documented API (A-11)"}
+            }
         },
         {
-            "capability": "PWL Cost Curves",
-            "pypsa": false,
-            "powermodels": true,
-            "powersimulations": true,
-            "pandapower": true,
-            "gridcal": false,
-            "matpower": true,
-            "pypsa_detail": "Gap (issue #1020)",
-            "powermodels_detail": "Native (convex PWL, no SOS2)",
-            "powersimulations_detail": "Native (SOS2, all formulations)",
-            "pandapower_detail": "Native (create_pwl_cost())",
-            "gridcal_detail": "Not tested",
-            "matpower_detail": "Native (P2-2)"
+            "name": "Piecewise-Linear Cost Curves",
+            "tools": {
+                "pypsa": {"status": "Workaround", "notes": "Generator tranche decomposition approximates PWL; no native SOS2 support (P2-2)"},
+                "powermodels": {"status": "Native", "notes": "First-class PWL support via SOS2 constraints across all solver backends (P2-2)"},
+                "powersimulations": {"status": "Native", "notes": "Native SOS2 formulation across all thermal formulations and MIP solvers (P2-2)"},
+                "gridcal": {"status": "Gap", "notes": "Only polynomial cost model; MATPOWER PWL costs fitted to quadratic on import (P2-2)"},
+                "pandapower": {"status": "Native", "notes": "Native create_pwl_cost() API; clean and documented (P2-2)"},
+                "matpower": {"status": "Native", "notes": "Native first-class support via gencost matrix with MODEL=1; auxiliary variable LP formulation (P2-2)"}
+            }
         },
         {
-            "capability": "PSS/E RAW Parsing",
-            "pypsa": false,
-            "powermodels": true,
-            "powersimulations": true,
-            "pandapower": false,
-            "gridcal": false,
-            "matpower": true,
-            "pypsa_detail": "Gap (no ingestion path, G-FNM-1 fail)",
-            "powermodels_detail": "Workaround (v33 only; 1–2d fix for v31)",
-            "powersimulations_detail": "Workaround (v33/35; 3–6wk for v31)",
-            "pandapower_detail": "Gap (no parser)",
-            "gridcal_detail": "Gap (v35 only; FNM is v31)",
-            "matpower_detail": "Native psse2mpc() Rev 23-33+ (P2-1)"
+            "name": "PSS/E RAW File Parsing",
+            "tools": {
+                "pypsa": {"status": "Gap", "notes": "No PSS/E import method of any kind (P2-1)"},
+                "powermodels": {"status": "Workaround", "notes": "Built-in parser supports v33 only; v31 fails on header mismatch (P2-1)"},
+                "powersimulations": {"status": "Workaround", "notes": "PowerSystems.jl PTI parser supports v33/v35 only; v31 absent (P2-1)"},
+                "gridcal": {"status": "Workaround", "notes": "Parser declares v29-v35 but hardcoded to v35 field layout; v31 fails (P2-1)"},
+                "pandapower": {"status": "Gap", "notes": "No PSS/E parser; converter would need 2-4 weeks to build (P2-1)"},
+                "matpower": {"status": "Native", "notes": "Native psse2mpc() supports RAW revisions 24-33+ with auto-detection; also has save2psse() for export (P2-1)"}
+            }
         },
         {
-            "capability": "Custom Constraints",
-            "pypsa": true,
-            "powermodels": true,
-            "powersimulations": true,
-            "pandapower": true,
-            "gridcal": true,
-            "matpower": true,
-            "pypsa_detail": "Native (extra_functionality callback, B-1)",
-            "powermodels_detail": "Native (two-level API, B-1)",
-            "powersimulations_detail": "Extension (2–3wk, internal APIs)",
-            "pandapower_detail": "Workaround (monkey-patch, B-1)",
-            "gridcal_detail": "Workaround (fragile monkey-patch only, B-1)",
-            "matpower_detail": "Native callbacks (B-1)"
+            "name": "Custom Constraint Injection",
+            "tools": {
+                "pypsa": {"status": "Native", "notes": "extra_functionality callback provides full Linopy model access; 8/8 extensibility tests pass (B-1)"},
+                "powermodels": {"status": "Native", "notes": "Two-level API enables constraint injection in 4 LOC with dual extraction (B-1)"},
+                "powersimulations": {"status": "Native", "notes": "JuMP model access via PSI internals; clean but requires package-internal knowledge (B-1)"},
+                "gridcal": {"status": "Workaround", "notes": "Monkey-patch PulpLpModel.solve relying on internal constraint naming conventions; fragile (B-1)"},
+                "pandapower": {"status": "Workaround", "notes": "Monkey-patch PYPOWER internals; fragile, depends on undocumented module references (B-1)"},
+                "matpower": {"status": "Native", "notes": "Documented mpc.A/l/u custom constraint API with dual extraction; stable workaround (B-1)"}
+            }
         },
         {
-            "capability": "UC/ED Pipeline",
-            "pypsa": false,
-            "powermodels": true,
-            "powersimulations": true,
-            "pandapower": false,
-            "gridcal": true,
-            "matpower": true,
-            "pypsa_detail": "Gap (SCUC SMALL timeout, C-4 fail)",
-            "powermodels_detail": "Workaround (~250 LOC user MILP, A-5)",
-            "powersimulations_detail": "Native (ThermalStandardUnitCommitment, A-5)",
-            "pandapower_detail": "Gap (no UC capability)",
-            "gridcal_detail": "Native (24hr SCUC with min up/down, A-5)",
-            "matpower_detail": "Native MOST (A-5, A-6)"
+            "name": "Unit Commitment / Economic Dispatch Pipeline",
+            "tools": {
+                "pypsa": {"status": "Native", "notes": "Native SCUC via pypsa.optimize with commitment constraints; SCED via bound manipulation (A-5, A-6)"},
+                "powermodels": {"status": "Gap", "notes": "No unit commitment capability; entirely outside the tool's scope (A-5)"},
+                "powersimulations": {"status": "Native", "notes": "Built-in ThermalStandardUnitCommitment with clean formulation hierarchy (A-5, A-6)"},
+                "gridcal": {"status": "Native", "notes": "SCUC via snapshot OPF orchestration; loses inter-temporal coupling at scale (A-5, A-6)"},
+                "pandapower": {"status": "Gap", "notes": "No unit commitment; SCED reduces to single-period ED only (A-5, A-6)"},
+                "matpower": {"status": "Native", "notes": "MOST provides built-in SCUC/multi-period/storage with CommitSched output for UC-to-ED transfer; GLPK exit flag bug blocks result extraction (A-5, A-6)"}
+            }
         }
     ]
 }

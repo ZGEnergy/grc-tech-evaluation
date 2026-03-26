@@ -5,178 +5,152 @@ title: "Head-to-Head Comparison"
 
 # Head-to-Head Comparison
 
-This page compares six capabilities critical to Phase 2 development across all six
-evaluated tools. Each capability is rated as **Native** (built-in support with no
-additional code), **Extension** (achievable with additional user code on top of the
-tool's API), or **Gap** (not feasible within the tool's architecture). The ratings
-reflect observed test outcomes and documented API capabilities from the evaluation
-protocol's A-series, B-series, and P2-series tests.
+This page compares six capabilities critical to Phase 2 development across the five
+candidate tools and the MATPOWER reference implementation. Each capability is rated
+as **Native** (built-in support with no additional code), **Extension** (achievable
+via the tool's public API with user-written code), **Workaround** (achievable only
+through fragile internal API access or monkey-patching), or **Gap** (not feasible
+within the tool's architecture). Ratings reflect observed test outcomes from the
+A-series, B-series, C-series, and P2-series tests.
 
-All six tools now have full primary evaluation evidence backing their ratings under
-protocol v10. Earlier protocol versions showed pandapower and GridCal with incomplete
-evidence; those gaps have been resolved through additional testing and principal review.
+MATPOWER is included for reference but excluded from the primary ranking because the
+customer requires inspectable source code, which precludes the compiled MATLAB runtime.
 
 ## Summary Table
 
-| Capability | PyPSA | PowerModels | PowerSim. | pandapower | GridCal | MATPOWER |
-|-----------|-------|-------------|-----------|------------|---------|----------|
-| Preventive SCOPF | **Native** | **Native** | **Gap** | **Gap** | **Native** | **Native** |
-| Distributed Slack | **Gap** | Extension | **Gap** | **Native** | **Gap** | Extension |
-| PWL Cost Curves | Extension | **Native** | **Native** | **Native** | Not tested | **Native** |
-| PSS/E RAW Parsing | Extension | **Native** | Extension | **Gap** | **Gap** | **Native** |
-| Custom Constraints | **Native** | **Native** | Extension | Workaround | Workaround | **Gap** |
-| UC/ED Pipeline | **Native** | Extension | **Native** | **Gap** | **Native** | Extension |
+| Capability | PyPSA | PowerModels | PowerSim. | pandapower | GridCal | MATPOWER* |
+|-----------|-------|-------------|-----------|------------|---------|-----------|
+| SCOPF | **Native** | Extension | Extension | Gap | **Native** | Extension |
+| Distributed Slack OPF | Workaround | Workaround | **Native** | Gap | Gap | Extension |
+| PWL Cost Curves | Workaround | **Native** | **Native** | **Native** | Gap | **Native** |
+| PSS/E RAW Parsing | Gap | Workaround | Workaround | Gap | Workaround | **Native** |
+| Custom Constraints | **Native** | **Native** | **Native** | Workaround | Workaround | Extension |
+| UC/ED Pipeline | **Native** | Gap | **Native** | Gap | **Native** | **Native** |
 
 ## Capability Details
 
-<details className="eval-details">
-<summary>Preventive SCOPF</summary>
+<details className="eval-details" open>
+<summary>Security-Constrained OPF (SCOPF)</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | **Native** | Built-in `optimize_security_constrained()` passes at TINY and SMALL (A-9) |
-| PowerModels | **Native** | `run_scopf()` with N-1 contingency list; extension of ~140 LOC JuMP for custom formulations |
-| PowerSimulations | **Gap** | No SCOPF formulation; UC/ED pipeline only. No contingency-constrained OPF available |
-| pandapower | **Gap** | No contingency-constrained optimization; A-9 fails (blocking). Iterative OPF loop is not a viable SCOPF substitute |
-| GridCal | **Native** | `consider_contingencies` flag confirmed functional under v10 testing; native SCOPF capability verified |
-| MATPOWER | **Native** | MOST framework supports SCOPF natively via `runopf_w_res()` with contingency struct (A-9) |
+SCOPF is required for N-1 security analysis in production market operations. A tool
+with native SCOPF avoids the need to build a custom contingency screening layer,
+reducing Phase 2 development effort significantly.
 
-**Phase 2 Relevance:** Preventive SCOPF is required for N-1 security analysis in
-production market operations. A tool that supports SCOPF natively avoids the need to build a custom
-contingency screening layer, which would add significant Phase 2 development time.
-
-**Evidence:** A-9 (SCOPF) outcomes: PyPSA passes at TINY and SMALL; PowerModels passes
-at TINY and SMALL via JuMP extension; GridCal's native SCOPF confirmed functional under
-v10 testing; PowerSimulations has no SCOPF formulation; pandapower fails A-9 (blocking
-gap); MATPOWER passes via MOST. A-10 and A-11 further differentiate security-constrained
-capability at larger scales.
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | **Native** | Native SCOPF via `extra_functionality` with LODF-based contingency constraints; 50 contingencies on 10,000-bus network solved in 30s solver time (A-9, C-8). |
+| PowerModels | Extension | Manual Benders cutting plane with LODF injection via the two-level JuMP API; functional but convergence not demonstrated on feasible 10,000-bus instance within the time budget (A-9, C-8). |
+| PowerSimulations | Extension | Manual LODF constraint injection into the JuMP model; HiGHS crashes with `OTHER_ERROR` on the 10,000-bus network (A-9, C-8). |
+| GridCal | **Native** | Native LODF-based SCOPF via `consider_contingencies` parameter; 50 contingencies on 10,000-bus network solved in 32s with 956 MW aggregate redispatch (A-9, C-8). |
+| pandapower | Gap | No SCOPF capability. Manual PTDF/LODF construction plus an external solver bypasses pandapower's OPF entirely; OOM at 10,000-bus scale (A-9, C-8). |
+| MATPOWER* | Extension | LODF constraint injection via `mpc.A/l/u` user constraint API; MIPS numerical issues on augmented KKT system at scale (A-9). |
 
 </details>
 
 <details className="eval-details">
-<summary>Distributed Slack</summary>
+<summary>Distributed Slack OPF</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | **Gap** | Distributed slack mechanism does not function as documented under v10 testing; A-11 reclassified |
-| PowerModels | Extension | Distributed slack achievable via API-level bus weight configuration |
-| PowerSimulations | **Gap** | No distributed slack mechanism; single reference bus only |
-| pandapower | **Native** | `distributed_slack=True` parameter in power flow; silently ignored in OPF (B-8) |
-| GridCal | **Gap** | Distributed slack in PF only; A-11 fails — OPF supports single slack only |
-| MATPOWER | Extension | `makePTDF` with generation shift factor weights enables distributed slack modeling (B-9) |
+Distributed slack modeling is essential for realistic loss allocation and LMP
+decomposition in large multi-area studies. A single-slack approximation introduces
+systematic bias in flow patterns and congestion pricing that compounds with network
+size.
 
-**Phase 2 Relevance:** Distributed slack modeling is essential for realistic loss
-allocation and LMP decomposition in large multi-area studies. A single-slack
-approximation introduces systematic bias in flow patterns and congestion pricing
-that compounds with network size.
-
-**Evidence:** A-2 (ACPF with slack configuration) and B-8 (slack bus reconfiguration)
-differentiate tools. pandapower supports distributed slack in PF natively, though
-`distributed_slack=True` is silently ignored in OPF (finding pandapower-F05).
-MATPOWER provides distributed slack via PTDF weight vectors (B-9). PyPSA's distributed
-slack mechanism did not function as documented under v10 testing. PowerSimulations and
-GridCal lack OPF-level distributed slack (A-11 fail for both).
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | Workaround | Available in power flow context (`n.pf(distribute_slack=True)`) but blocked in OPF; PyPSA's flow-based OPF formulation lacks angle variables, making distributed slack architecturally impossible in OPF (A-11). |
+| PowerModels | Workaround | Requires approximately 150 LOC of custom PTDF-based JuMP OPF code; no built-in distributed slack formulation exists across all 18 formulation types (A-11, B-8). |
+| PowerSimulations | **Native** | Native distributed slack in power flow via PowerFlows.jl (A-11). |
+| pandapower | Gap | No distributed slack formulation available in OPF; `distributed_slack=True` is silently ignored via `**kwargs` passthrough on `rundcopp()` (A-11). |
+| GridCal | Gap | Distributed slack hardcoded off in OPF formulation (`distributed_slack=False` at source level); silently ignored when set to True (A-11). |
+| MATPOWER* | Extension | Post-processing via `makePTDF(baseMVA, bus, branch, slack_weights)` with documented slack distribution vector; clean public API (A-11, B-9). |
 
 </details>
 
 <details className="eval-details">
-<summary>PWL Cost Curves</summary>
+<summary>Piecewise-Linear Cost Curves</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | Extension | SOS2 formulation via `extra_functionality` callback, ~50-100 LOC (P2-2) |
-| PowerModels | **Native** | Native piecewise-linear cost curve support (P2-2) |
-| PowerSimulations | **Native** | Native PWL cost representation in formulation library (P2-2) |
-| pandapower | **Native** | PWL cost curve support confirmed under v10 testing |
-| GridCal | Not tested | PWL cost curve capability not tested under v10 protocol |
-| MATPOWER | **Native** | Native PWL cost curves in MATPOWER case format (P2-2) |
+Production market clearing commonly uses piecewise-linear bid curves. A tool without
+native PWL support requires building the SOS2 formulation as an extension, adding
+development effort and a potential source of modeling error in the cost-to-dispatch
+mapping.
 
-**Phase 2 Relevance:** Production market clearing commonly uses piecewise-linear bid
-curves. A tool without native PWL support requires building the SOS2 formulation as an
-extension, adding development effort and a potential source of modeling error in the
-cost-to-dispatch mapping.
-
-**Evidence:** P2-2 (PWL cost curve readiness) outcomes: PowerModels, PowerSimulations,
-pandapower, and MATPOWER all pass natively. PyPSA requires an `extra_functionality`
-extension (~50-100 LOC) but the callback API is stable and documented (B-1). GridCal's
-PWL capability was not tested under the v10 protocol.
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | Workaround | Generator tranche decomposition approximates PWL; no native SOS2 support. The `extra_functionality` callback could support a custom SOS2 formulation but this has not been demonstrated (P2-2). |
+| PowerModels | **Native** | First-class PWL support via SOS2 constraints across all solver backends (P2-2). |
+| PowerSimulations | **Native** | Native SOS2 formulation across all thermal formulations and MIP solvers (P2-2). |
+| pandapower | **Native** | Native `create_pwl_cost()` API; clean and documented (P2-2). |
+| GridCal | Gap | Only polynomial cost model supported; MATPOWER PWL costs are fitted to quadratic on import, losing the piecewise structure (P2-2). |
+| MATPOWER* | **Native** | Native PWL cost curves in the MATPOWER case format with direct support in the OPF formulation (P2-2). |
 
 </details>
 
 <details className="eval-details">
-<summary>PSS/E RAW Parsing</summary>
+<summary>PSS/E RAW File Parsing</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | Extension | No native parser; bridge via grg-psse Python package, estimated 1-2 days integration (P2-1) |
-| PowerModels | **Native** | Native PSS/E v33 RAW parser (P2-1) |
-| PowerSimulations | Extension | Native v30/v32/v33 parsing via PowerSystems.jl; requires Julia ecosystem |
-| pandapower | **Gap** | PSS/E RAW parsing not natively supported under v10 testing |
-| GridCal | **Gap** | PSS/E RAW parsing not confirmed functional under v10 testing |
-| MATPOWER | **Native** | `psse2mpc()` supports Rev 23-33+ natively (P2-1) |
+The target full network model (FNM) is distributed in PSS/E RAW format. A tool with
+native RAW parsing avoids an error-prone format conversion step and preserves
+metadata (switched shunts, multi-section lines, area interchange) that may be lost
+in translation. Phase 2 requires support for at least PSS/E v31 format.
 
-**Phase 2 Relevance:** The target FNM is distributed in PSS/E RAW format. A tool with
-native RAW parsing avoids an error-prone format conversion step and preserves metadata
-(switched shunts, multi-section lines, area interchange) that may be lost in translation.
-
-**Evidence:** P2-1 (PSS/E RAW readiness) differentiates tools. PowerModels and MATPOWER
-provide native v33 parsing. PyPSA requires a Python bridge package (grg-psse).
-pandapower and GridCal PSS/E parsing was not confirmed functional under v10 testing.
-PowerSimulations accesses parsing through PowerSystems.jl in the Julia ecosystem.
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | Gap | No PSS/E import method of any kind. Six available import methods all expect tool-native formats. Phase 2 FNM ingestion requires building a custom converter (P2-1, G-FNM-1). |
+| PowerModels | Workaround | Built-in parser supports v33 only; v31 fails on header format mismatch. Parsing v31 files requires header adaptation or parser modification (P2-1, G-FNM-1). |
+| PowerSimulations | Workaround | PowerSystems.jl PTI parser supports v33/v35 only; v31 fixed-width column support is absent (P2-1, G-FNM-1). |
+| pandapower | Gap | No PSS/E parser of any kind. A production converter is estimated at 2-4 weeks of development effort (P2-1, G-FNM-1). |
+| GridCal | Workaround | Parser declares v29-v35 support but is hardcoded to v35 field layout; v31 files fail (P2-1, G-FNM-1). |
+| MATPOWER* | **Native** | `psse2mpc()` supports PSS/E Rev 23-33+ natively. The reference DCPF verification confirms correct FNM ingestion at 27,862 buses (P2-1, G-FNM-3). |
 
 </details>
 
 <details className="eval-details">
-<summary>Custom Constraints</summary>
+<summary>Custom Constraint Injection</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | **Native** | 2 LOC Linopy model split for direct constraint injection (B-1) |
-| PowerModels | **Native** | Two-level JuMP API exposes full optimization model for constraint addition (B-1) |
-| PowerSimulations | Extension | Constraint injection possible but requires deeper API engagement than PyPSA/PowerModels |
-| pandapower | Workaround | Dual values accessible via internal `_ppc` structure; constraint injection requires PYPOWER-level manipulation (B-1 qualified_pass) |
-| GridCal | Workaround | Custom constraint injection requires workaround via internal model access; no public API |
-| MATPOWER | **Gap** | Callback-based extension exists but LOC comparison shows higher friction than Python/Julia alternatives (B-1) |
+Custom constraints are required for modeling market-specific operational limits
+(interface flow limits, ramp rate constraints, zonal transfer caps) that are not
+part of standard OPF formulations. A tool that exposes the optimization model
+directly reduces the effort to add these constraints and extract dual values for
+economic analysis.
 
-**Phase 2 Relevance:** Custom constraints are required for modeling market-specific
-operational limits — interface flow limits, ramp rate constraints, and zonal transfer
-caps — that are not part of standard OPF formulations. A tool that exposes the
-optimization model directly reduces the effort to add these constraints.
-
-**Evidence:** B-1 (custom constraint injection) is the primary discriminator. PyPSA
-achieves constraint injection in 2 LOC via Linopy model split. PowerModels provides
-full JuMP model access. pandapower requires reaching into internal `_ppc` structures
-(fragile workaround). GridCal requires workaround via internal model access with no
-public API. MATPOWER uses callbacks with higher LOC overhead.
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | **Native** | `extra_functionality` callback provides full Linopy model access for constraint injection and dual extraction. All 8 extensibility tests pass through documented public APIs (B-1). |
+| PowerModels | **Native** | Two-level API (`instantiate_model` + `@constraint` + `optimize_model!`) enables constraint injection in 4 LOC with dual extraction. Clean architectural separation (B-1, B-6). |
+| PowerSimulations | **Native** | JuMP model access via `PSI.get_jump_model()` enables arbitrary constraint addition and dual extraction. Requires knowledge of PSI internal constraint naming conventions (B-1). |
+| pandapower | Workaround | Requires replicating `_optimal_powerflow`, monkey-patching module references, and capturing the PYPOWER result dict for dual access. Fragile; depends on undocumented internal structure (B-1). |
+| GridCal | Workaround | Monkey-patch of `PulpLpModel.solve` relying on internal constraint naming convention `br_flow_upper_lim_0_<idx>`. Fragile; no public API for constraint injection (B-1). |
+| MATPOWER* | Extension | Documented `mpc.A/l/u` custom constraint API with dual extraction at `results.lin.mu.u.usr`. MIPS fails with user constraints on QP problems, requiring GLPK (LP) with linearized costs (B-1). |
 
 </details>
 
 <details className="eval-details">
-<summary>UC/ED Pipeline</summary>
+<summary>Unit Commitment / Economic Dispatch Pipeline</summary>
 
-| Tool | Rating | Notes |
-|------|--------|-------|
-| PyPSA | **Native** | SCUC formulation exists but times out at 2k-bus with HiGHS single-threaded (A-5) |
-| PowerModels | Extension | SCUC requires user-assembled JuMP code, ~140 LOC average per formulation (A-5) |
-| PowerSimulations | **Native** | Rich SCUC/SCED formulation library with native multi-period dispatch (A-5, A-6) |
-| pandapower | **Gap** | No unit commitment capability; no SCUC/SCED formulation. A-5 and A-6 both fail (blocking) |
-| GridCal | **Native** | UC/ED pipeline confirmed functional under v10 testing once TapPhaseControl bug was addressed |
-| MATPOWER | Extension | MOST framework supports UC/ED but requires MATPOWER-specific formulation setup (A-5, A-6) |
+A unit commitment and economic dispatch pipeline is the core analytical workflow for
+day-ahead market modeling. The tool must support binary commitment variables, minimum
+up/down time constraints, and either native two-stage SCUC-then-SCED execution or a
+clean mechanism for commitment injection into a dispatch model.
 
-**Phase 2 Relevance:** A unit commitment / economic dispatch pipeline is the core
-analytical workflow for day-ahead market modeling. The tool must support binary
-commitment variables, minimum up/down time constraints, and sequential SCUC-then-SCED
-execution at the target FNM scale (~6,000 buses).
-
-**Evidence:** A-5 (SCUC) and A-6 (SCED) are the primary tests. PowerSimulations
-provides the richest native formulation library. PyPSA has native SCUC but hits
-scalability limits at SMALL scale (A-5 timeout with HiGHS). PowerModels requires
-~140 LOC JuMP assembly per formulation. pandapower has no UC capability (A-5/A-6
-fail). GridCal's UC/ED pipeline was confirmed functional under v10 testing once the
-TapPhaseControl bug was addressed. MATPOWER supports UC/ED through MOST.
+| Tool | Rating | Evidence |
+|------|--------|---------|
+| PyPSA | **Native** | Native SCUC via `pypsa.optimize` with committable generators, min up/down times, startup costs, and ramp limits as native attributes. SCED achievable via manual `p_min_pu`/`p_max_pu` bound manipulation to fix commitment schedule; stable workaround (A-5, A-6). |
+| PowerModels | Gap | No unit commitment capability. UC binary variables, min up/down times, and startup costs are entirely outside the tool's design scope. ED-only SCED is achievable via `replicate()` with ramp constraints (A-5, A-6). |
+| PowerSimulations | **Native** | Built-in `ThermalStandardUnitCommitment` formulation with the cleanest separation of concerns among all evaluated tools. UC-to-ED handoff requires manual JuMP variable fixing; no built-in two-stage API (A-5, A-6). |
+| pandapower | Gap | No unit commitment formulation. No binary variables, startup costs, or temporal coupling. Single-period economic dispatch only (A-5, A-6). |
+| GridCal | **Native** | SCUC via `OpfDispatchMode.UnitCommitment` with ramp rates and min up/down times. SCED achievable via Pmax/Pmin profile manipulation for decommitted generators; stable workaround. Time-series OPF driver is blocked by a TapPhaseControl enum bug in v5.6.28, requiring sequential snapshot execution that loses inter-temporal coupling (A-5, A-6, B-4). |
+| MATPOWER* | **Native** | MOST provides built-in SCUC with all constraint types (MinUp/MinDown, startup costs, ramp rates, reserves, storage). Clean two-stage UC/ED via GEN_STATUS toggling and per-period `rundcopf`. A GLPK exit flag integration bug prevents result extraction on non-trivial SCUC problems in the Octave environment (A-5, A-6, A-12). |
 
 </details>
+
+## Phase 2 Readiness Summary
+
+The head-to-head comparison reveals that no single tool covers all six capabilities natively. PyPSA and PowerSimulations each cover four of six natively, but their gaps differ: PyPSA lacks distributed slack OPF and PSS/E parsing, while PowerSimulations lacks SCOPF at scale and PSS/E v31 parsing. PowerModels covers two natively (PWL costs, custom constraints) but lacks UC entirely.
+
+For Phase 2, the critical path capabilities are SCOPF, custom constraint injection, and the UC/ED pipeline. PyPSA is the only tool that covers all three natively (A-9, B-1, A-5, A-6). PowerSimulations covers two of three natively (B-1, A-5/A-6) but requires fragile workarounds for SCOPF at 10,000-bus scale (C-8). PowerModels covers one of three natively (B-1) and requires significant extension code for SCOPF and UC.
+
+PSS/E v31 parsing is a universal gap: no evaluated tool parses v31 files correctly. Phase 2 will require either a custom converter or upstream parser contributions regardless of tool selection.
 
 ---
 
-[← Supply Chain](./supply-chain) | [Sweep Findings →](./sweep-findings)
+[← Supply Chain](./supply-chain)

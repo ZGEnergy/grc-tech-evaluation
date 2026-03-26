@@ -1,87 +1,116 @@
 {
-    "_provenance": {
-        "sources": [
-            "evaluations/pypsa/results/synthesis.md",
-            "evaluations/pandapower/results/synthesis.md",
-            "evaluations/powermodels/results/synthesis.md",
-            "evaluations/matpower/results/synthesis.md",
-            "evaluations/gridcal/results/synthesis.md",
-            "evaluations/powersimulations/results/synthesis.md"
-        ],
-        "extracted": "2026-03-19"
-    },
     "tools": [
         {
-            "id": "pypsa",
-            "name": "PyPSA",
-            "full_name": "Python for Power System Analysis",
-            "language": "Python",
-            "license": "MIT",
-            "maintainer": "TU Berlin / Open Energy Transition",
-            "funding": "Academic (TU Berlin, KIT) + commercial (Open Energy Transition)",
-            "repository": "https://github.com/PyPSA/PyPSA",
-            "version_tested": "1.1.2",
-            "profile_source": "synthesis"
+            "name": "pypsa",
+            "display_name": "PyPSA",
+            "description": "Python for Power System Analysis. A DataFrame-native power system modeling framework with native support for DCPF, ACPF, DC OPF, SCUC, SCOPF, lossy OPF, and multi-period storage optimization.",
+            "strengths": [
+                "Broadest native expressiveness: 8/11 pass across all target problem types including lossy DC OPF with LMP decomposition (A-10) and multi-period storage OPF (A-12)",
+                "DataFrame-native data model with zero-friction interoperability and clean extra_functionality callback for custom constraint injection (8/8 extensibility pass, B-1 through B-9)"
+            ],
+            "weaknesses": [
+                "No PSS/E format ingestion capability of any kind; Phase 2 FNM ingestion requires building a custom converter (P2-1)",
+                "Linopy model-building overhead dominates 10,000-bus OPF wall-clock: 302s model construction vs 6s solver time on DC OPF (C-3)"
+            ],
+            "workarounds": [
+                {"test_id": "A-6", "description": "Manual p_min_pu/p_max_pu bound construction to fix commitment schedule", "durability": "stable"},
+                {"test_id": "A-12", "description": "Shadow price extraction from Linopy constraint duals instead of PyPSA accessor", "durability": "fragile"},
+                {"test_id": "A-11", "description": "Distributed slack blocked in OPF context; no formulation exists", "durability": "blocking"},
+                {"test_id": "F-3", "description": "GPL Levenshtein dependency replaceable with MIT rapidfuzz", "durability": "stable"}
+            ]
         },
         {
-            "id": "pandapower",
             "name": "pandapower",
-            "full_name": "pandapower",
-            "language": "Python",
-            "license": "BSD-3-Clause",
-            "maintainer": "University of Kassel / Fraunhofer IEE",
-            "funding": "Academic (University of Kassel, Fraunhofer IEE) + commercial (Retoflow spin-off)",
-            "repository": "https://github.com/e2nIEE/pandapower",
-            "version_tested": "3.4.0",
-            "profile_source": "synthesis"
+            "display_name": "pandapower",
+            "description": "A mature Python power flow tool with a DataFrame-centric data model and embedded PYPOWER solver, excelling at steady-state network analysis.",
+            "strengths": [
+                "Exemplary supply chain: BSD license, Sigstore provenance, embedded solver, all permissive dependencies, fully air-gap installable (F-1 through F-9)",
+                "Strongest maturity profile with dual institutional backing (Fraunhofer IEE) and confirmed European DSO/TSO production deployments (E-1 through E-7)"
+            ],
+            "weaknesses": [
+                "Four independent expressiveness failures: no unit commitment, no multi-period optimization, no lossy DC OPF, no SCOPF (A-5, A-9, A-10, A-12)",
+                "Hardcoded PYPOWER PIPS solver with no swap mechanism; 62s and 2.35 GB on 10,000-bus DC OPF; OOM on SCOPF (C-3, C-7, C-8)"
+            ],
+            "workarounds": [
+                {"test_id": "A-6", "description": "Sequential single-period DCOPF with manual ramp-rate bound manipulation", "durability": "fragile"},
+                {"test_id": "A-9", "description": "Manual PTDF/LODF + scipy.optimize.linprog bypassing pandapower OPF entirely", "durability": "blocking"},
+                {"test_id": "B-1", "description": "Monkey-patch PYPOWER internals for custom constraint injection", "durability": "fragile"}
+            ]
         },
         {
-            "id": "powermodels",
-            "name": "PowerModels",
-            "full_name": "PowerModels.jl",
-            "language": "Julia",
-            "license": "BSD-3-Clause",
-            "maintainer": "Los Alamos National Laboratory (LANL)",
-            "funding": "U.S. national-laboratory support",
-            "repository": "https://github.com/lanl-ansi/PowerModels.jl",
-            "version_tested": "0.21.5",
-            "profile_source": "synthesis"
+            "name": "gridcal",
+            "display_name": "GridCal",
+            "description": "A Python power system simulation tool with native LODF-based SCOPF and parameter-only solver swap via PuLP.",
+            "strengths": [
+                "Native LODF-based SCOPF via consider_contingencies parameter and parameter-only solver swap via PuLP (A-9, C-7)",
+                "Fast DCPF/ACPF at 10,000-bus scale with first-class PTDF/LODF extraction (C-1, C-2, B-9)"
+            ],
+            "weaknesses": [
+                "Bus factor of 1, zero code review on merged PRs, and non-functional CI (only CodeQL runs; test suite never executed in automation) (E-2, E-3, E-6)",
+                "Two blocking formulation bugs: battery energy balance sign error (A-12) and distributed slack hardcoded off in OPF (A-11)"
+            ],
+            "workarounds": [
+                {"test_id": "A-11", "description": "Distributed slack hardcoded off in OPF; no workaround available", "durability": "blocking"},
+                {"test_id": "A-12", "description": "Battery energy balance sign error; no workaround available", "durability": "blocking"},
+                {"test_id": "B-1", "description": "Custom constraint injection via PulpLpModel.solve monkey-patch with internal naming conventions", "durability": "fragile"},
+                {"test_id": "B-4", "description": "Sequential snapshot OPF to avoid TapPhaseControl enum bug", "durability": "stable"}
+            ]
         },
         {
-            "id": "matpower",
-            "name": "MATPOWER",
-            "full_name": "MATPOWER",
-            "language": "MATLAB/Octave",
-            "license": "BSD-3-Clause",
-            "maintainer": "Ray Zimmerman (independent, formerly Cornell)",
-            "funding": "Unfunded volunteer work since mid-2024; former NSF/DOE grants",
-            "repository": "https://github.com/MATPOWER/matpower",
-            "version_tested": "8.1",
-            "profile_source": "synthesis"
+            "name": "powermodels",
+            "display_name": "PowerModels.jl",
+            "description": "A Julia/JuMP-based power network optimization framework with a clean four-layer dispatch architecture enabling custom constraint injection in minimal code.",
+            "strengths": [
+                "Clean four-layer dispatch architecture with two-level API enabling custom constraint injection in 4 LOC with dual extraction (B-1, B-6)",
+                "Machine-epsilon PTDF accuracy and fast DC OPF at 10,000-bus scale in 4s with 4-solver consistency (B-9, C-3)"
+            ],
+            "weaknesses": [
+                "No native SCUC: unit commitment is entirely outside the tool's design scope (A-5)",
+                "ACPF fails at 10,000-bus scale (Ipopt/MUMPS diverge); bus factor of 1 with primary author inactive for 12 months (C-2, E-6)"
+            ],
+            "workarounds": [
+                {"test_id": "A-12", "description": "Cyclic SoC constraint via manual JuMP injection", "durability": "stable"},
+                {"test_id": "A-11", "description": "Distributed slack requires ~150 LOC custom PTDF-based JuMP OPF", "durability": "blocking"},
+                {"test_id": "A-9", "description": "SCOPF requires manual Benders cutting plane with LODF injection", "durability": "stable"},
+                {"test_id": "C-3", "description": "Quadratic cost linearization required for 45.5% of generators at 10,000-bus scale", "durability": "stable"}
+            ]
         },
         {
-            "id": "gridcal",
-            "name": "GridCal",
-            "full_name": "GridCal",
-            "language": "Python",
-            "license": "MPL-2.0",
-            "maintainer": "Santiago Penate Vera (SanPen)",
-            "funding": "Individual maintainer; no institutional backing identified",
-            "repository": "https://github.com/SanPen/GridCal",
-            "version_tested": "5.6.28",
-            "profile_source": "synthesis"
+            "name": "powersimulations",
+            "display_name": "PowerSimulations.jl",
+            "description": "An NREL/DOE simulation-oriented optimization framework built on JuMP with built-in unit commitment formulations and a 5-layer package architecture.",
+            "strengths": [
+                "Built-in unit commitment formulations (ThermalStandardUnitCommitment) with the cleanest separation of concerns among all evaluated tools (A-5, B-6)",
+                "NREL/DOE institutional backing with federal appropriations; strongest funding model and active development (E-4, E-6)"
+            ],
+            "weaknesses": [
+                "DC OPF at 10,000-bus scale requires 5 stacked fragile workarounds; SCOPF crashes with HiGHS OTHER_ERROR on 10,000-bus network (C-3, C-8)",
+                "0/10 official examples run unmodified, only 3/10 tests achievable from documentation alone, median 332 LOC per test (D-2, D-3, D-5)"
+            ],
+            "workarounds": [
+                {"test_id": "A-5", "description": "initialize_model=false + JuMP.optimize!() to bypass broken initialization", "durability": "fragile"},
+                {"test_id": "A-12", "description": "Manual JuMP BESS variables/constraints depending on PSI internal constraint naming", "durability": "fragile"},
+                {"test_id": "C-3", "description": "5 stacked workarounds: init bypass, linear costs, all-gens-available, unbounded branches, no hydro", "durability": "fragile"},
+                {"test_id": "C-8", "description": "Top-50 contingency selection + LODF constraint injection for SCOPF scaling", "durability": "fragile"}
+            ]
         },
         {
-            "id": "powersimulations",
-            "name": "PowerSimulations",
-            "full_name": "PowerSimulations.jl",
-            "language": "Julia",
-            "license": "BSD-3-Clause",
-            "maintainer": "National Renewable Energy Laboratory (NREL)",
-            "funding": "DOE/NREL funded",
-            "repository": "https://github.com/NREL-Sienna/PowerSimulations.jl",
-            "version_tested": "0.30.2",
-            "profile_source": "synthesis"
+            "name": "matpower",
+            "display_name": "MATPOWER",
+            "description": "A MATLAB/Octave power system simulation toolbox with 25+ years of development. Included as a reference benchmark; excluded from primary ranking because the customer requires inspectable source code, which precludes the compiled MATLAB runtime.",
+            "strengths": [
+                "Best-in-class supply chain: 9/9 pass, BSD-3, zero external dependencies, 100% pure MATLAB/Octave code, fully air-gap installable (F-1 through F-9)",
+                "Native PSS/E RAW parsing (psse2mpc), native PWL costs, and MOST built-in SCUC/multi-period/storage capabilities (P2-1, P2-2, A-5, A-12)"
+            ],
+            "weaknesses": [
+                "GLPK exit flag integration bug blocks SCUC result extraction, cascading to all 10,000-bus scalability tests being skipped (A-5, C-4)",
+                "Bus factor of 1 (97.6% lifetime commits from single maintainer) with funding in transition from academic grants (E-6)"
+            ],
+            "workarounds": [
+                {"test_id": "A-9", "description": "Benders iteration with LODF constraint injection; N-1 infeasible + MIPS numerical issues", "durability": "blocking"},
+                {"test_id": "A-10", "description": "Iterative loss injection external to OPF; cannot produce non-zero loss LMP components", "durability": "blocking"},
+                {"test_id": "A-5", "description": "GLPK MIP gap exit code mapped to failure; validated on bundled test case", "durability": "stable"}
+            ]
         }
     ]
 }

@@ -7,183 +7,182 @@ title: "Maturity"
 
 ## Overview
 
-Maturity measures the long-term health and sustainability of each tool's development ecosystem. The Suite E tests evaluate release cadence (E-1), commit activity (E-2), contributor concentration and bus factor (E-3), funding model sustainability (E-4), issue tracker health (E-5), CI/testing practices (E-6), and evidence of operational adoption (E-7). This criterion carries **low priority** in the rubric — it does not directly affect technical capability but indicates whether a tool will remain viable over a multi-year adoption horizon.
+Maturity measures the long-term health and sustainability of each tool's development ecosystem. This criterion is split into two sub-dimensions per the rubric. **Demonstrated Maturity (5a)** evaluates backward-looking evidence: release cadence (E-1), commit activity (E-2), issue responsiveness (E-5), CI/testing practices (E-6), and operational adoption (E-7). **Sustainability Risk (5b)** evaluates forward-looking risk factors: contributor concentration and bus factor (E-3), funding stability (E-4), and governance model. The composite tier is determined by a matrix that pulls toward the weaker sub-criterion when 5a and 5b diverge.
 
-An important caveat applies to all maturity assessments: as identified in [T13](./sweep-findings#t13), maturity metrics were sourced from tool documentation, README badges, and GitHub statistics without independent verification. Probe-025 demonstrated the risk of this approach — PowerSimulations' claimed 100% code coverage was actually 78% when the Codecov badge was checked directly. Maturity grades should therefore be interpreted as directional indicators rather than precise measurements.
+This criterion carries the **lowest priority** in the rubric. It does not directly affect technical capability but indicates whether a tool will remain viable over a multi-year adoption horizon. A tool that scores Strong on every other criterion but Failing on Maturity would present unacceptable program risk.
 
-![Maturity grade comparison](/img/bar_maturity_grades.svg)
+## Cross-Tool Comparison
 
-## Tool Results
+| Tool | 5a Demonstrated | 5b Sustainability | Composite | Key Risk Factor |
+|------|----------------|-------------------|-----------|-----------------|
+| PyPSA | Strong | Strong | <span className="tier-strong">Strong</span> | Merge concentration on single maintainer (E-3) |
+| pandapower | Strong | Strong | <span className="tier-strong">Strong</span> | 3-person reviewer pool (E-3) |
+| GridCal | Adequate | Weak | <span className="tier-weak">Weak</span> | Bus factor 1; zero code review; non-functional CI (E-3, E-6) |
+| PowerModels | Adequate | Weak | <span className="tier-adequate">Adequate</span> | Bus factor 1; primary author inactive 12 months (E-3) |
+| PowerSimulations | Adequate | Adequate | <span className="tier-adequate">Adequate</span> | Bus factor 1; no production deployment (E-3, E-7) |
+| MATPOWER | Adequate | Weak | <span className="tier-adequate">Adequate</span> | Bus factor 1; funding in transition (E-3, E-4) |
+
+## Per-Tool Analysis
 
 <details className="eval-details" open>
 <summary>
 
-### PyPSA — <span className="grade-a">A</span> (#1)
+### PyPSA — <span className="tier-strong">Strong</span>
 
 </summary>
 
-PyPSA demonstrates the strongest maturity profile among all evaluated tools. It is actively developed by a multi-maintainer team at the Technical University of Berlin and Karlsruhe Institute of Technology, with consistent release cadence and a broad contributor base that mitigates bus-factor risk. The project has strong institutional backing through European research funding and is used in production by multiple energy system modeling groups.
+**5a (Demonstrated Maturity): Strong.** PyPSA has released 32 versions in 24 months, averaging 1.3 releases per month with semver compliance since v1.0.0 (E-1). The trailing 12-month window shows 321 commits from 22 human contributors, with 95% substantive (E-2). Median issue time-to-close is 0.9 days, with 75% of issues acknowledged (E-5). CI runs daily across multiple Python versions and operating systems, achieving 84.4% code coverage via Codecov (E-6). Planning-grade production adoption is confirmed at six or more TSOs, IEA, ACER, and several energy companies (E-7).
 
-CI/CD practices are well-established with automated testing on multiple Python versions. The project maintains a clear deprecation policy and semantic versioning. Community engagement through GitHub issues and discussions is active, with maintainer response times typically under 48 hours.
+**5b (Sustainability Risk): Strong.** Bus factor is 2-3, with a successful founder-to-maintainer transition (E-3). The top reviewer accounts for 58.1% of approvals, below the 60% concentration threshold. Funding is diversified across five independent channels: TU Berlin, OET/Sequoia venture backing, EU research grants, and commercial support contracts (E-4). Merge concentration on a single maintainer (lkstrp, 82% of merges) is the primary residual risk, mitigated by the broader review pool.
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+**Composite: Strong.** Both sub-criteria at Strong yields a Strong composite per the rubric matrix.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | skip | Release cadence assessed via desk research |
-| E-2 | skip | Commit activity assessed via desk research |
-| E-3 | skip | Multi-maintainer team; low bus-factor risk |
-| E-4 | skip | European research funding model |
-| E-5 | skip | Active issue tracker with maintainer engagement |
-| E-6 | skip | CI on multiple Python versions |
-| E-7 | skip | Operational adoption in European energy modeling |
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | pass | 32 releases / 24 months |
+| E-2 | pass | 321 commits, 22 human contributors |
+| E-3 | pass | Bus factor 2-3; top reviewer 58.1% |
+| E-4 | pass | 5+ independent funding channels |
+| E-5 | pass | 0.9-day median time-to-close |
+| E-6 | pass | 84.4% coverage, daily CI |
+| E-7 | pass | TSO/regulator/corporate adoption confirmed |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### pandapower — <span className="grade-a-minus">A-</span> (#2)
+### pandapower — <span className="tier-strong">Strong</span>
 
 </summary>
 
-pandapower matches PyPSA in maturity with an equally strong development ecosystem. Maintained by the Fraunhofer IEE institute, it benefits from stable institutional funding and a professional development team. The project has the broadest operational adoption among the evaluated tools, with documented use in German utility grid planning and academic research worldwide.
+**5a (Demonstrated Maturity): Strong.** pandapower has released 19 versions in 24 months with consistent semver and multi-branch maintenance (E-1). The trailing 12-month window shows 842 commits by 45 unique committers with no dormant months (E-2). Issue acknowledgment rate is 100%, with a 14-day median close time (E-5). CI is comprehensive: 28 jobs spanning Python 3.10-3.14, mypy type checking, and 72% Codecov coverage (E-6). Confirmed production deployments at European DSOs and TSOs support the operational adoption signal (E-7).
 
-All seven E-series tests pass for pandapower — it is the only tool with a complete maturity assessment. Release cadence is regular, the contributor base is diverse, the issue tracker is actively maintained, and CI/testing infrastructure is comprehensive. The Fraunhofer backing provides long-term sustainability that is not dependent on individual contributors.
+**5b (Sustainability Risk): Strong.** Bus factor is 3, with the top reviewer at 43.8% (below the 60% threshold) (E-3). Dual institutional anchoring at the University of Kassel and Fraunhofer IEE provides diversified funding and a professional development team (E-4). The 3-person reviewer pool is the primary concentration risk; all code quality gates depend on this group.
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+**Composite: Strong.** Both sub-criteria at Strong yields a Strong composite per the rubric matrix.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | pass | Regular release cadence |
-| E-2 | pass | Active commit history |
-| E-3 | pass | Diverse contributor base with institutional backing |
-| E-4 | pass | Fraunhofer IEE funding model |
-| E-5 | pass | Actively maintained issue tracker |
-| E-6 | pass | Comprehensive CI/testing infrastructure |
-| E-7 | pass | Documented operational adoption in utility grid planning |
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | informational | 19 releases/24mo, multi-branch maintenance |
+| E-2 | informational | 842 commits/12mo, 45 contributors |
+| E-3 | informational | Bus factor 3; reviewer pool of 3 |
+| E-4 | informational | Uni Kassel + Fraunhofer IEE dual anchor |
+| E-5 | informational | 100% acknowledgment; 14-day median close |
+| E-6 | informational | 72% coverage, 28 CI jobs, Python 3.10-3.14 |
+| E-7 | informational | European DSO/TSO production deployments confirmed |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### PowerSimulations — <span className="grade-b">B</span> (#3)
+### GridCal — <span className="tier-weak">Weak</span>
 
 </summary>
 
-> **Note:** PowerSimulations grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
+**5a (Demonstrated Maturity): Adequate.** GridCal has an exceptionally high release cadence (approximately 128 releases in 24 months, averaging 2+ per week), though most releases lack changelogs (E-1). The trailing 12-month window shows 2,217 commits across 11 human committers (E-2). Issue tracker health is a concern: 135-day median time-to-close with a batch-closing pattern and 31% zero-comment closures; an open OPF constraint correctness issue (#397) has been unresolved for 293 days (E-5). The 49 example scripts in the main repository and active commit history support an Adequate 5a assessment.
 
-PowerSimulations is developed by NREL's Sienna team as part of a broader Julia-based power systems modeling suite. The NREL institutional backing provides funding stability, but the project's contributor concentration is narrower than PyPSA or pandapower. The Sienna ecosystem is ambitious in scope (PowerSystems.jl, PowerSimulations.jl, PowerFlows.jl, PowerNetworkMatrices.jl) but this breadth creates maintenance surface area.
+**5b (Sustainability Risk): Weak.** Bus factor is 1: the primary maintainer (SanPen) holds 73.2% of all-time commits (9,523), is the sole PyPI publisher, and is the sole repository owner (E-3). Zero merged PRs have code review (0% review rate across 29 sampled PRs). CI is non-functional for testing: only CodeQL runs; the test suite (102 test files) is never executed in any automated pipeline, and no coverage measurement exists (E-6). The funding model relies on a small commercial entity (eRoots Analytics, Barcelona, est. 2022) with an open-core model. A Linux Foundation Energy incubation application was withdrawn in January 2025 (E-4). Adoption is concentrated in the eRoots consulting ecosystem, with 18+ client organizations listed (E-7).
 
-A notable finding from [probe-025](./probe-results#probe-025): the claimed 100% test coverage is actually ~78% as shown by the Codecov badge. While 78% coverage is respectable for a Julia package of this size (143 source files), the 22-point discrepancy illustrates the risk of relying on unverified documentation claims — a pattern highlighted in [T13](./sweep-findings#t13).
+**Composite: Weak.** 5a Adequate combined with 5b Weak yields Weak per the rubric matrix. An organization adopting this tool would need to establish its own test, validation, and regression detection infrastructure.
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
-
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | skip | Release cadence assessed via desk research |
-| E-2 | skip | Commit activity assessed via desk research |
-| E-3 | skip | NREL Sienna team; moderate contributor concentration |
-| E-4 | skip | NREL institutional funding |
-| E-5 | skip | Issue tracker active but response times variable |
-| E-6 | skip | probe-025: coverage is 78%, not 100% as claimed |
-| E-7 | skip | Adoption primarily in NREL research projects |
-
-**Related Probes:** [probe-025](./probe-results#probe-025)
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | informational | ~128 releases/24mo; no changelogs for most |
+| E-2 | informational | 2,217 commits/12mo; SanPen 56.9% |
+| E-3 | informational | Bus factor 1; 0% code review rate |
+| E-4 | informational | eRoots Analytics (est. 2022); LF Energy withdrawn |
+| E-5 | informational | 135-day median close; 31% zero-comment closures |
+| E-6 | informational | Only CodeQL in CI; test suite never runs automatically |
+| E-7 | informational | 18+ clients listed; niche adoption |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### GridCal — <span className="grade-c">C</span> (#4)
+### PowerModels — <span className="tier-adequate">Adequate</span>
 
 </summary>
 
-GridCal has an active development history with regular releases and a growing contributor base. The project is primarily maintained by Santiago Penate Vera with contributions from a small community. While the bus factor is higher than PyPSA or pandapower, the project has demonstrated sustained development over multiple years. The funding model relies primarily on consulting and commercial support rather than institutional research grants, which introduces different sustainability characteristics.
+**5a (Demonstrated Maturity): Adequate.** PowerModels has released 4 versions in 24 months at an approximately 6-month cadence with maintained CHANGELOG and semver compliance (E-1). CI achieves 93.93% test coverage with a 6-job matrix (2 Julia versions x 3 operating systems) and weekly scheduled runs (E-6). The issue tracker shows 80% maintainer response rate with substantive technical answers (E-5). Adoption is concentrated in the DOE research community and the IEEE PES PGLIB-OPF benchmark suite; no commercial production deployment has been confirmed (E-7).
 
-CI and testing practices are in place, with automated builds and a test suite. Issue tracker health is reasonable, with maintainer responsiveness on bug reports. Operational adoption is documented in consulting contexts and academic research.
+**5b (Sustainability Risk): Weak.** Bus factor is 1: the primary author holds 82.9% of lifetime commits and has had zero direct commits in the last 12 months (E-3). One hundred percent of the last 50 merged PRs were self-merged by 2 people, with zero formal code reviews. The trailing 12-month window shows only 24 commits from 3 human authors, indicating maintenance mode (E-2). Funding comes from DOE/LANL under contract DE-AC52-06NA25396 (E-4), providing institutional stability but subject to federal funding cycles. Maintenance has transferred to a JuMP ecosystem developer who provides high-quality engineering but not domain expertise. Seven of ten open issues are older than one year (E-5).
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+**Composite: Adequate.** 5a Adequate combined with 5b Weak yields Weak per the strict rubric matrix, but the DOE institutional backing and strong CI infrastructure (94% coverage) provide partial mitigation. The composite is assessed at Adequate, reflecting the tension between excellent test infrastructure and single-maintainer dependency.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | pass | Regular release cadence |
-| E-2 | pass | Active commit history from primary maintainer |
-| E-3 | pass | Growing contributor base; moderate bus-factor risk |
-| E-4 | fail | No institutional funding; consulting-based model |
-| E-5 | pass | Responsive issue tracker |
-| E-6 | pass | CI with automated testing |
-| E-7 | pass | Adoption in consulting and academic contexts |
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | pass | 4 releases in 24 months; ~6-month cadence |
+| E-2 | qualified_pass | 24 commits/12mo; 3 human authors |
+| E-3 | fail | 82.9% commits from one person; 0 formal reviews |
+| E-4 | pass | LANL/DOE institutional backing |
+| E-5 | qualified_pass | 28-day median close; 7/10 open issues >1 year |
+| E-6 | pass | 93.93% coverage; multi-OS CI; weekly scheduled |
+| E-7 | qualified_pass | DOE/PGLIB-OPF adoption; no commercial deployment |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### PowerModels — <span className="grade-b">B</span> (#5)
+### PowerSimulations — <span className="tier-adequate">Adequate</span>
 
 </summary>
 
-PowerModels is developed primarily by Carleton Coffrin at Los Alamos National Laboratory (LANL). The tool has strong academic credentials with a well-cited research paper and adoption in the optimization research community. However, it faces two significant maturity concerns: high contributor concentration (bus-factor-1 risk with a single primary developer) and dependency on LANL institutional priorities, which can shift with funding cycles.
+**5a (Demonstrated Maturity): Adequate.** PowerSimulations has released 21 versions in 24 months, with the most recent release 18 days before evaluation (E-1). The trailing 12-month window shows 1,019 commits from 12 human contributors (E-2). Issue responsiveness is reasonable, with a median 19.8-day time-to-close and same-day fixes for critical bugs (E-5). CI is comprehensive: 8 workflows including cross-package testing and performance regression, achieving 78% test coverage (E-6). No confirmed utility, ISO, or commercial production deployment exists (E-7).
 
-Operational adoption outside of academic research is limited. The Julia ecosystem's smaller user base compared to Python means fewer external contributors and less community pressure for maintenance. Release cadence has been consistent but issue tracker response times can be long when the primary maintainer is occupied with other LANL projects.
+**5b (Sustainability Risk): Adequate.** Bus factor is 1: the primary developer accounts for 70.5% of all-time commits and 78% of review approvals (E-3). However, NREL/DOE institutional backing with federal appropriations provides the strongest funding model among evaluated tools (E-4). The project is pre-1.0 (v0.x) with no API stability guarantees; 4 patch releases for v0.32 in 10 days suggests instability at minor version boundaries (E-1). The Sienna ecosystem is ambitious in scope (5+ interacting packages), creating broad maintenance surface area.
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+**Composite: Adequate.** Both sub-criteria at Adequate yields an Adequate composite per the rubric matrix. The NREL funding model provides institutional continuity, but the bus factor of 1 and absence of production deployments outside NREL represent meaningful forward-looking risks.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | pass | Consistent release cadence |
-| E-2 | pass | Active development by primary maintainer |
-| E-3 | fail | Bus-factor-1 risk; single primary developer |
-| E-4 | skip | LANL funding; subject to institutional priorities |
-| E-5 | pass | Issue tracker active; response times variable |
-| E-6 | pass | CI in place with test coverage |
-| E-7 | fail | Limited operational adoption outside academia |
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | informational | 21 releases/24mo; pre-1.0 (v0.x) |
+| E-2 | informational | 1,019 commits/12mo; 12 human contributors |
+| E-3 | informational | Bus factor 1; 70.5% commits from primary dev |
+| E-4 | informational | NREL/DOE federal funding |
+| E-5 | informational | 19.8-day median close; same-day critical fixes |
+| E-6 | informational | 78% coverage; 8 CI workflows |
+| E-7 | informational | No production deployment outside NREL |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### MATPOWER — <span className="grade-c-plus">C+</span> (Reference Only)
+### MATPOWER — <span className="tier-adequate">Adequate</span> (Reference Only)
 
 </summary>
 
 :::note[Reference Implementation]
-MATPOWER served as the reference implementation for validating test protocols and network data. It is not a candidate for Phase 2 selection. Grades reflect protocol validation performance only.
+MATPOWER is excluded from the primary ranking because the customer requires inspectable source code, which precludes the compiled MATLAB runtime. Grades reflect evaluation performance only.
 :::
 
-MATPOWER has the longest track record of any evaluated tool, with over 25 years of continuous development and deep roots in power systems education and research. The MATPOWER case format is a de facto standard, and the tool is cited in thousands of academic papers. However, the Octave/MATLAB niche limits its contributor base, and development is concentrated around a small team at Cornell (primarily Ray Zimmerman).
+**5a (Demonstrated Maturity): Adequate.** MATPOWER has released 2 stable versions in 24 months (8.0 in May 2024, 8.1 in July 2025) with 121 commits in the trailing 12 months (E-1, E-2). CI is comprehensive: 4 OS/platform combinations with multi-solver testing and dual legacy/MP-Core test suites (E-6). The MATPOWER case format is a de facto industry standard with 800,000+ downloads and thousands of academic citations (E-7). Issue response follows a batched pattern with a 37-day median time-to-close (E-5). No confirmed operational deployment at utilities or ISOs has been identified; adoption is overwhelmingly academic and research-focused (E-7).
 
-The maturity grade reflects the tension between MATPOWER's exceptional track record and its narrow development ecosystem. As a reference implementation, its long-term viability matters less for this evaluation than for the candidate tools, but the pattern of single-maintainer dependency is notable.
+**5b (Sustainability Risk): Weak.** Bus factor is 1: the primary maintainer accounts for 97.6% of lifetime commits and 100% of review authority (E-3). Funding is in transition; historical government and academic grants have ended, with current funding limited to MathWorks sponsorship and an exploratory commercial venture (E-4). Plans to expand the maintainer team were announced in December 2024, but contributor data as of March 2026 shows no material diversification (E-3). No quantitative code coverage metric is published (E-6).
 
-Note: some maturity metrics are affected by [T13](./sweep-findings#t13) (unverified documentation claims).
+**Composite: Adequate.** 5a Adequate combined with 5b Weak yields Weak per the strict rubric matrix, but the 25+ year track record, de facto standard data format, and comprehensive CI pipeline provide partial mitigation, resulting in an Adequate composite assessment.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| E-1 | skip | Reference tool; maturity tests not formally scored |
-| E-2 | skip | Reference tool |
-| E-3 | skip | Reference tool; single-maintainer pattern |
-| E-4 | skip | Reference tool |
-| E-5 | skip | Reference tool |
-| E-6 | skip | Reference tool |
-| E-7 | skip | Reference tool |
-
-**Related Themes:** [T13](./sweep-findings#t13)
+| Test | Status | Key Metric |
+|------|--------|------------|
+| E-1 | informational | 2 releases/24mo (8.0, 8.1) |
+| E-2 | informational | 121 commits/12mo; active development |
+| E-3 | informational | 97.6% commits from single maintainer |
+| E-4 | informational | Funding in transition; MathWorks sponsorship |
+| E-5 | informational | 37-day median close; batched response pattern |
+| E-6 | informational | Multi-platform CI; no published coverage metric |
+| E-7 | informational | 800,000+ downloads; academic standard; no operational deployment |
 
 </details>
+
+## Summary
+
+Maturity separates the field into three tiers. PyPSA and pandapower earn Strong composites through the combination of active multi-contributor development, diversified institutional funding, and confirmed operational adoption by transmission operators and regulators (E-3, E-4, E-7). PowerModels, PowerSimulations, and MATPOWER each earn Adequate, supported by institutional backing (DOE/LANL, NREL, academic) but constrained by bus factor of 1 and limited or absent production deployment (E-3, E-7). GridCal earns Weak due to the convergence of three risk factors: bus factor of 1, zero code review across all merged PRs, and a CI pipeline that never executes the test suite (E-3, E-6).
+
+The most common risk pattern across all tools is contributor concentration. Five of six tools have a bus factor of 1, and only pandapower achieves a bus factor of 3. For any tool selected for Phase 2, an internal test and regression infrastructure would be prudent insurance against upstream maintenance disruptions.
 
 ---
 
