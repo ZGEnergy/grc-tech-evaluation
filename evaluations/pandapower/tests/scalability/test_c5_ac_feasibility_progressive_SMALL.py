@@ -10,6 +10,7 @@ Tool: pandapower 3.4.0
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import traceback
@@ -69,20 +70,34 @@ def _collect_violations(net) -> dict:
     return violations
 
 
-def _try_acpf(net, init: str = "dc", max_iteration: int = 50) -> tuple[bool, float]:
+def _get_cpu_info() -> tuple[int, int]:
+    """Return (threads_used, threads_available). pandapower NR is single-threaded."""
+    available = os.cpu_count() or 1
+    return 1, available
+
+
+def _try_acpf(
+    net,
+    init: str = "dc",
+    max_iteration: int = 50,
+    use_lightsim2grid: bool = False,
+) -> tuple[bool, float]:
     """Attempt ACPF and return (converged, solve_seconds)."""
     import pandapower as pp
 
+    kwargs: dict = {
+        "algorithm": "nr",
+        "init": init,
+        "calculate_voltage_angles": True,
+        "tolerance_mva": 1e-8,
+        "max_iteration": max_iteration,
+    }
+    if use_lightsim2grid:
+        kwargs["lightsim2grid"] = True
+
     t0 = time.perf_counter()
     try:
-        pp.runpp(
-            net,
-            algorithm="nr",
-            init=init,
-            calculate_voltage_angles=True,
-            tolerance_mva=1e-8,
-            max_iteration=max_iteration,
-        )
+        pp.runpp(net, **kwargs)
         elapsed = time.perf_counter() - t0
         return bool(net.converged), elapsed
     except Exception:
@@ -119,6 +134,11 @@ def run(
         # STEP 1: Load network and run DCPF baseline
         # =========================================================
         net = load_pandapower(network_file)
+
+        # Thread reporting
+        threads_used, threads_available = _get_cpu_info()
+        results["details"]["cpu_threads_used"] = threads_used
+        results["details"]["cpu_threads_available"] = threads_available
 
         results["details"]["base_mva"] = float(net.sn_mva)
         results["details"]["bus_count"] = len(net.bus)

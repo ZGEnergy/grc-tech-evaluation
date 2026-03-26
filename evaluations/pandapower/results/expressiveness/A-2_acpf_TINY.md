@@ -3,23 +3,24 @@ test_id: A-2
 tool: pandapower
 dimension: expressiveness
 network: TINY
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "eb349d9c"
 status: pass
 workaround_class: null
 blocked_by: null
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "fca7353e"
-wall_clock_seconds: 2.02
+wall_clock_seconds: 17.23
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: 4
-loc: 190
+convergence_evidence_quality: iteration_count_reported
+loc: 181
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# A-2: Solve ACPF (Newton-Raphson)
+# A-2: Solve ACPF (Newton-Raphson) on TINY (case39)
 
 ## Result: PASS
 
@@ -29,11 +30,13 @@ Loaded the IEEE 39-bus network using the shared `load_pandapower` loader. Ran AC
 
 The flat start (`init='flat'`) initializes all voltage magnitudes to 1.0 pu and all angles to 0.0 degrees, per the convergence protocol. pandapower's Newton-Raphson solver converged in 4 iterations without requiring a DC warm start.
 
-Convergence diagnostics extracted from `net._ppc`:
-- Iteration count: accessible via `net._ppc["iterations"]` (returns 4)
-- Success flag: `net._ppc["success"]` (returns True)
+**Convergence diagnostics:**
+- Iteration count: accessible via `net._ppc["iterations"]` (returns 4). This uses a private attribute but provides the actual NR iteration count.
+- Success flag: `net._ppc["success"]` (returns True).
+- Public convergence flag: `net.converged` (returns True).
+- Convergence evidence quality: `iteration_count_reported` -- iteration count extracted from `net._ppc["iterations"]`.
 
-**Note on tolerance_mva:** pandapower documents this parameter as MVA but internally compares against per-unit mismatches (known bug #2750, unfixed in v3.4.0). The solver converges to this tolerance regardless of the unit interpretation.
+**Note on tolerance_mva:** pandapower documents this parameter as MVA but internally compares against per-unit mismatches. The solver converges to this tolerance. The final residual scalar is not directly accessible as a stored result attribute.
 
 ## Output
 
@@ -43,11 +46,11 @@ Convergence diagnostics extracted from `net._ppc`:
 | DC warm start needed | No |
 | NR iterations | 4 |
 | Buses differing from flat start | 100% (39/39) |
-| Vm range | 0.982 - 1.064 pu |
+| Vm range | 0.982 -- 1.064 pu |
 | Vm mean / std | 1.026 / 0.022 pu |
 | Total P losses | 43.64 MW |
 | Total Q losses | -112.16 Mvar |
-| Solve time | 1.03 s |
+| Solve time | 8.84 s |
 
 All 39 buses have voltage magnitudes differing from the 1.0 pu flat start, satisfying the >95% threshold. Bus results include both voltage magnitudes and angles. Line results include P/Q flows and losses (`pl_mw`, `ql_mvar`).
 
@@ -64,11 +67,11 @@ All 39 buses have voltage magnitudes differing from the 1.0 pu flat start, satis
 
 None required.
 
-**Diagnostic quality note:** The convergence residual (final power mismatch) is not directly accessible as a scalar from the public API. The solver converges when the mismatch falls below `tolerance_mva`, but the final residual value is not stored in a result attribute. Iteration count is accessible via the internal `net._ppc["iterations"]` attribute, which uses a private (underscore-prefixed) attribute. This is a minor diagnostic quality limitation but does not affect the pass condition since convergence is verified through voltage profile divergence from flat start.
+**Diagnostic quality note:** The convergence residual (final power mismatch scalar) is not directly accessible from the public API. The solver converges when the mismatch falls below `tolerance_mva`, but the final residual value is not stored in a result attribute. Iteration count is accessible via the internal `net._ppc["iterations"]` attribute (private, underscore-prefixed). This is a minor diagnostic quality limitation (convergence evidence quality = `iteration_count_reported`), not a test failure. Convergence is additionally verified through 100% voltage profile divergence from flat start.
 
 ## Timing
 
-- **Wall-clock:** 2.02 s (includes network loading; solve-only: 1.03 s)
+- **Wall-clock:** 17.23 s (includes network loading; solve-only: 8.84 s)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** 4

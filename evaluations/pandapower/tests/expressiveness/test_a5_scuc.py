@@ -21,7 +21,7 @@ def run(
     network_file: str = "data/networks/case39.m",
     timeseries_dir: str | None = "data/timeseries/case39",
 ) -> dict:
-    """Execute SCUC test — expected to fail: pandapower has no native SCUC."""
+    """Execute SCUC test -- expected to fail: pandapower has no native SCUC."""
     results: dict = {
         "status": "fail",
         "wall_clock_seconds": 0.0,
@@ -38,7 +38,7 @@ def run(
         results["details"]["failure_reason"] = "unsupported_in_installed_version"
         results["details"]["explanation"] = (
             "pandapower 3.4.0 is a steady-state network analysis tool. "
-            "It has no unit commitment formulation — no binary on/off decision "
+            "It has no unit commitment formulation -- no binary on/off decision "
             "variables, no startup/shutdown costs, no minimum up/down time constraints, "
             "and no multi-period optimization framework for SCUC. "
             "The OPF functions (rundcopp, runopp) solve single-period continuous "
@@ -50,8 +50,8 @@ def run(
 
         # Document what pandapower CAN do related to UC
         results["details"]["available_opf_functions"] = [
-            "pp.rundcopp() — DC OPF (continuous, single-period)",
-            "pp.runopp() — AC OPF (continuous, single-period)",
+            "pp.rundcopp() -- DC OPF (continuous, single-period)",
+            "pp.runopp() -- AC OPF (continuous, single-period)",
         ]
         results["details"]["missing_uc_capabilities"] = [
             "Binary commitment variables",

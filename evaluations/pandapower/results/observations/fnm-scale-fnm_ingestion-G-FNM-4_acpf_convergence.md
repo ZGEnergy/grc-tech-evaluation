@@ -3,41 +3,35 @@ tag: fnm-scale
 source_dimension: fnm_ingestion
 source_test: G-FNM-4
 tool: pandapower
-severity: high
-timestamp: 2026-03-13T12:00:00Z
+severity: medium
+timestamp: 2026-03-24T12:00:00Z
 ---
 
-# Observation: ACPF infeasible on 27,862-bus FNM via MATPOWER import path
+# Observation: pandapower ACPF non-convergence on 27,862-bus FNM
 
 ## Finding
 
-pandapower's Newton-Raphson ACPF solver fails to converge on the
-27,862-bus FNM main island network at all relaxation levels (0%, 10%,
-20%). Five different algorithms were attempted (nr, iwamoto_nr, fdbx,
-fdxb, gs); none converged.
+pandapower's internal Newton-Raphson solver fails to converge on the 27,862-bus FNM main
+island at all three progressive relaxation levels (0%, 10%, 20%). The network is
+numerically ill-conditioned for ACPF, with DCPF angles reaching 536.9 degrees maximum
+absolute value.
 
 ## Context
 
-G-FNM-4 loads the pre-cleaned FNM main island MATPOWER case via
-`matpowercaseframes` + `from_ppc` and attempts ACPF with DCPF
-warm-start. The DCPF converges successfully but the ACPF diverges
-regardless of algorithm choice, tolerance relaxation, or thermal limit
-relaxation. The Iwamoto-NR algorithm showed step-length multipliers
-decaying to 1e-25, confirming numerical ill-conditioning.
+G-FNM-4 attempted ACPF convergence using DCPF warm-start (`init="results"`) followed by
+progressive thermal limit relaxation. pandapower uses its own internal Newton-Raphson
+implementation (PYPOWER heritage), not an external NLP solver like Ipopt. The solver
+reaches 100 iterations without convergence at all relaxation levels. Contributing factors
+include: (1) PPC import path data loss (flattened transformer data), (2) localized topology
+anomalies identified in G-FNM-3, and (3) possible Q-limit misinterpretation (QT=0/QB=0
+treated as zero reactive capability).
 
-Contributing factors include: (1) the MATPOWER PPC import path loses
-transformer-specific AC data (tap control modes, winding impedance
-details, switched shunt discrete steps), (2) the localized cluster of
-~101 buses with 14-21 degree systematic DCPF deviations identified in
-G-FNM-3 likely creates Jacobian ill-conditioning, and (3) pandapower
-uses its internal NR implementation (not Ipopt) for ACPF, which may
-have less robust convergence on ill-conditioned large-scale networks.
+This is an informational finding with no gate consequence per the protocol.
 
 ## Implications
 
-This finding establishes that pandapower cannot solve ACPF on the LARGE
-(FNM) network via the MATPOWER import path. For the scalability
-dimension, this means AC power flow scalability cannot be assessed at
-the LARGE tier for pandapower. The limitation is primarily an ingestion
-fidelity issue (MATPOWER format loses AC-critical data) rather than a
-solver weakness, since the DCPF solves successfully on the same network.
+The ACPF non-convergence is consistent across all pandapower NR algorithm variants. Tools
+with access to Ipopt (PowerModels.jl) or with richer data ingestion paths (preserving
+switched shunt and transformer tap control data) may achieve convergence on this network.
+The finding is relevant to the Scalability dimension as evidence of pandapower's large-network
+ACPF robustness limitations.

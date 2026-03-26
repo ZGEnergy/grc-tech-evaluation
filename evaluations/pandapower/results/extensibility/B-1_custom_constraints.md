@@ -3,25 +3,26 @@ test_id: B-1
 tool: pandapower
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "fececf15"
-status: qualified_pass
+status: partial_pass
 workaround_class: fragile
 blocked_by: null
-wall_clock_seconds: 0.95
+wall_clock_seconds: 1.11
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 396
+convergence_evidence_quality: null
+loc: 401
 solver: "PYPOWER interior-point (bundled)"
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-1: Add flow gate limit to DC OPF and assert on dual value
 
-## Result: QUALIFIED PASS
+## Result: PARTIAL PASS
 
 ## Approach
 
@@ -62,13 +63,13 @@ The dual correctly reflects binding status: zero when non-binding, nonzero when 
 ## Workarounds
 
 - **What:** Replicated pandapower's internal `_optimal_powerflow` function to inject a PYPOWER `userfcn` callback and capture the PYPOWER result dict (containing constraint duals). Required monkey-patching `pandapower.run._optimal_powerflow`.
-- **Why:** pandapower does not expose the PYPOWER userfcn mechanism in its public API. The `add_userfcn` call is only made internally for dcline constraints. Additionally, pandapower discards the PYPOWER result dict containing constraint duals (`mu`, `lin`, `var`) during result extraction.
+- **Why:** pandapower does not expose the PYPOWER userfcn mechanism in its public API. The `add_userfcn` call is only made internally for dcline constraints. Additionally, pandapower discards the PYPOWER result dict containing constraint duals (`mu`, `lin`, `var`) during result extraction. [tool-specific: no public custom constraint API]
 - **Durability:** fragile -- The workaround depends on the internal structure of `_optimal_powerflow` (undocumented private function), the PYPOWER `opf_model.add_constraints` interface, and the internal result dict structure. Any refactoring of the OPF pipeline would break this approach.
-- **Grade impact:** The constraint injection mechanism works correctly and the PYPOWER userfcn system is well-documented in PYPOWER itself, but accessing it through pandapower requires replicating internal functions and capturing results that are normally discarded. This is a significant API gap.
+- **Grade impact:** Full capability is demonstrated (constraint injection + dual extraction both work correctly), but the mechanism requires replicating an internal function and monkey-patching a private module reference. This is a fragile workaround, resulting in partial_pass rather than qualified_pass.
 
 ## Timing
 
-- **Wall-clock:** 0.95 s (3 OPF solves: baseline + non-binding + binding)
+- **Wall-clock:** 1.11 s (3 OPF solves: baseline + non-binding + binding)
 - **Timing source:** measured
 - **Peak memory:** not measured
 - **Solver iterations:** not reported by PYPOWER DC OPF

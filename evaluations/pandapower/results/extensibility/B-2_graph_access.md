@@ -3,20 +3,21 @@ test_id: B-2
 tool: pandapower
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "5068a626"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.86
+wall_clock_seconds: 0.94
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 156
+convergence_evidence_quality: null
+loc: 152
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-2: BFS to depth 3 from a chosen bus
@@ -41,7 +42,7 @@ No workarounds were needed. The entire workflow uses documented public APIs.
 - Graph type: `MultiGraph` (allows parallel edges)
 - Nodes: 39 (all buses)
 - Edges: 46 (35 lines + 11 transformers)
-- Graph creation time: 0.4 ms
+- Graph creation time: 0.5 ms
 
 **BFS from bus 0, depth limit 3:**
 - Nodes discovered: 12
@@ -66,10 +67,10 @@ None required. `pandapower.topology.create_nxgraph()` is a documented public API
 
 ## Timing
 
-- **Wall-clock:** 0.86 s (includes network loading)
+- **Wall-clock:** 0.94 s (includes network loading)
 - **Timing source:** measured
-- **Graph creation:** 0.4 ms
-- **BFS execution:** 0.3 ms
+- **Graph creation:** 0.5 ms
+- **BFS execution:** 0.4 ms
 - **Peak memory:** not measured
 - **CPU cores used:** 1
 

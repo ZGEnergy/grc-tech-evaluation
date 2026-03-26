@@ -10,7 +10,9 @@
 - **Multiple solver backends**: Power flow supports NumPy/SciPy (default), Numba JIT acceleration, lightsim2grid (C++ backend, ~20x speedup), and power-grid-model (C++ steady-state solver). These are selected via `runpp()` kwargs, not a formal backend abstraction.
 - **Rich serialization**: Networks can be saved/loaded as JSON, pickle, Excel, SQLite, PostgreSQL, and MATPOWER `.mat` files. JSON serialization handles custom controllers via `JSONSerializableClass`.
 - **Converter ecosystem**: Bidirectional converters exist for PYPOWER/MATPOWER format, CIM (IEC 61970), PowerFactory (DIgSILENT), UCTE-DEF, and PowerModels.jl (via PandaModels.jl). pandapipes provides multi-energy coupling.
-- **Architecture is modular but tightly coupled**: The codebase is organized into clear subpackages (control, topology, timeseries, opf, estimation, protection, etc.), but the power flow pipeline (`runpp` → `_powerflow` → `_pd2ppc` → `_run_pf_algorithm` → `_extract_results`) has hardcoded element-type handling throughout, limiting extensibility for new element types.
+- **Architecture is modular but tightly coupled**: The codebase is organized into clear subpackages (control, topology, timeseries, opf, estimation, protection, etc.), but the power flow pipeline (`runpp` -> `_powerflow` -> `_pd2ppc` -> `_run_pf_algorithm` -> `_extract_results`) has hardcoded element-type handling throughout, limiting extensibility for new element types.
+- **Time-series data sources are extensible**: The `DataSource` base class (`timeseries/data_source.py`) can be subclassed to provide custom time-series inputs. The `OutputWriter` class (`timeseries/output_writer.py`) accepts custom logging functions for arbitrary result extraction during simulations.
+- **User power flow options allow persistent configuration**: `set_user_pf_options(net, ...)` stores options in `net.user_pf_options` that override internal defaults for all subsequent `runpp()` calls, enabling per-network persistent configuration without modifying function calls.
 - **No Graphs.jl interop**: pandapower is pure Python. There is no Julia graph library interop beyond the PowerModels.jl OPF integration (which serializes to JSON, not graph objects).
 
 ## Detailed Notes
@@ -169,15 +171,32 @@ These are not a pluggable backend abstraction — each requires specific code pa
 - `to_sqlite()` / `from_sqlite()` — SQLite database
 - `to_postgresql()` / `from_postgresql()` — PostgreSQL database
 
-**Format converters** (`converter/` package):
+**Format converters** (`converter/` package, 7 subpackages in v3.4.0):
 - **MATPOWER**: `from_mpc()` / `to_mpc()` — reads `.mat` and `.m` files via `matpowercaseframes` or `scipy.io`
 - **PYPOWER**: `from_ppc()` / `to_ppc()` — direct ppc dict conversion
 - **CIM** (IEC 61970): `from_cim()` with full CGMES profile support (detailed converter classes per element type)
-- **PowerFactory**: `export_pfd_to_pp()` — DIgSILENT PowerFactory export
+- **PowerFactory**: `export_pfd_to_pp()` — DIgSILENT PowerFactory export (requires PowerFactory Engine mode or GUI tool)
 - **UCTE-DEF**: `from_ucte()` — European transmission network format
-- **PowerModels.jl**: `to_pm()` / `from_pm()` — JSON-based bridge to Julia
+- **JAO**: JAO Static Grid Model converter (European grid operator data format)
+- **PowerModels.jl**: `to_pm()` / `from_pm()` — JSON-based bridge to Julia (PandaModels.jl)
 
 **Source:** `pandapower/file_io.py`; `pandapower/sql_io.py`; `pandapower/converter/` subpackages
+
+### Time-Series Extensibility
+
+The time-series framework (`timeseries/`) has two extensible components:
+
+1. **DataSource** (`timeseries/data_source.py`): Abstract base class (inherits `JSONSerializableClass`) with a `get_time_step_value(time_step, profile_name, scale_factor)` method. Users can subclass to provide custom data feeds (e.g., from databases, APIs, or simulation models). The built-in `DFData` class wraps a pandas DataFrame as the default data source.
+
+2. **OutputWriter** (`timeseries/output_writer.py`): Stores results during time-series runs. Beyond the standard `log_variable(table, column)` for logging result table values, it accepts custom functions via `output_list` that are called at each time step. Custom functions can perform arbitrary computations on the network state (e.g., compute max line loading, aggregate costs).
+
+**Source:** `pandapower/timeseries/data_source.py`; `pandapower/timeseries/output_writer.py`
+
+### User Power Flow Options
+
+`set_user_pf_options(net, ...)` provides persistent per-network power flow configuration stored in `net.user_pf_options`. These options (tolerance, algorithm, solver backend, etc.) override internal defaults but are themselves overridden by explicit `runpp()` keyword arguments. Non-standard parameters are accepted with a warning, allowing custom options to be passed through to extension code.
+
+**Source:** `pandapower/run.py` lines 28-65
 
 ### Multi-Energy Coupling (pandapipes)
 
@@ -232,12 +251,18 @@ Since all element data lives in pandas DataFrames, interoperability is seamless:
 16. `pandapower/file_io.py` — JSON/pickle/Excel serialization
 17. `pandapower/sql_io.py` — SQLite/PostgreSQL I/O
 18. `pandapower/converter/` — MATPOWER, CIM, PYPOWER, PowerFactory, UCTE converters
-19. [pandapower documentation](https://pandapower.readthedocs.io/en/latest/)
-20. [pandapower GitHub](https://github.com/e2nIEE/pandapower)
-21. [Building a Controller tutorial](https://github.com/e2nIEE/pandapower/blob/develop/tutorials/building_a_controller.ipynb)
-22. [pandapipes Multi-Energy Networks](https://pandapipes.readthedocs.io/en/latest/multi_energy_nets.html)
-23. [lightsim2grid benchmarks](https://lightsim2grid.readthedocs.io/en/latest/benchmarks.html)
-24. [pandapower AC power flow docs](https://pandapower.readthedocs.io/en/latest/powerflow/ac.html)
+19. `pandapower/timeseries/data_source.py` — DataSource base class
+20. `pandapower/timeseries/output_writer.py` — OutputWriter class
+21. [pandapower documentation](https://pandapower.readthedocs.io/en/latest/)
+22. [pandapower GitHub](https://github.com/e2nIEE/pandapower)
+23. [Building a Controller tutorial](https://github.com/e2nIEE/pandapower/blob/develop/tutorials/building_a_controller.ipynb)
+24. [Internal Data Structure tutorial](https://github.com/e2nIEE/pandapower/blob/develop/tutorials/internal_datastructure.ipynb)
+25. [pandapipes Multi-Energy Networks](https://pandapipes.readthedocs.io/en/latest/multi_energy_nets.html)
+26. [lightsim2grid benchmarks](https://lightsim2grid.readthedocs.io/en/latest/benchmarks.html)
+27. [pandapower AC power flow docs](https://pandapower.readthedocs.io/en/latest/powerflow/ac.html)
+28. [Converter documentation](https://pandapower.readthedocs.io/en/latest/converter.html)
+29. [Save and Load Networks docs](https://pandapower.readthedocs.io/en/latest/file_io.html)
+30. [Optimization with PandaModels.jl docs](https://pandapower.readthedocs.io/en/v2.10.1/opf/powermodels.html)
 
 ## Gaps and Uncertainties
 

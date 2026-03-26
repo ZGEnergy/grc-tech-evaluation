@@ -5,72 +5,63 @@ dimension: maturity
 network: N/A
 status: informational
 workaround_class: null
-timestamp: "2026-03-13T18:00:00Z"
-protocol_version: "v10"
-skill_version: "v1"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: estimated
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+convergence_evidence_quality: null
+loc: null
+solver: null
+timestamp: "2026-03-24T00:00:00Z"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "b75da9be"
 ---
 
-# E-6: CI/CD and Test Coverage — pandapower
+# E-6: CI/CD and Test Coverage
 
-## Sub-criterion
-5a (Demonstrated Maturity)
+## Result: INFORMATIONAL
 
-## Method
-Examined GitHub Actions workflow configuration (`.github/workflows/github_test_action.yml`),
-recent CI run results via `gh api`, and verified test coverage percentage by fetching
-the Codecov badge SVG directly (not relying on README badge rendering).
+## Finding
 
-## CI/CD Configuration
+pandapower maintains a comprehensive GitHub Actions CI pipeline with ~28 jobs per push,
+multi-version Python testing (3.10-3.14), and independently verified Codecov coverage
+of 72% on both master and develop branches. All core test jobs pass consistently; the
+workflow-level "failure" status is caused by non-core jobs (downstream compatibility,
+deprecation warnings), not by pandapower's own test suite.
 
-pandapower uses GitHub Actions with a comprehensive multi-job workflow triggered on every
-push and pull request:
+## Evidence
+
+### CI Configuration
+
+Source: `.github/workflows/github_test_action.yml` on the `develop` branch
+(https://github.com/e2nIEE/pandapower/blob/develop/.github/workflows/github_test_action.yml)
 
 | Job | Purpose | Matrix |
 |-----|---------|--------|
-| **build** | Core test suite (pytest-split into 2 groups) | Python 3.10 - 3.14 (5 versions x 2 groups = 10 jobs) |
+| **build** | Core test suite (pytest-split into 2 groups) | Python 3.10-3.14 (5 versions x 2 groups = 10 jobs) |
 | **numpy1-support** | Backward compat with numpy 1.x | Python 3.14 x 2 groups |
 | **opf** | OPF tests with Julia/PandaModels backend | Python 3.14, Julia 1.10 |
-| **upload-coverage** | Merges coverage XML, uploads to Codecov + Codacy | — |
+| **upload-coverage** | Merges coverage XML, uploads to Codecov + Codacy | -- |
 | **warnings** | pytest `-W error` (treat warnings as errors) | Python 3.14 x 2 groups |
-| **relying** | Downstream package tests (pandapipes, simbench) | Python 3.10 - 3.14 |
+| **relying** | Downstream package tests (pandapipes, simbench) | Python 3.10-3.14 |
 | **linting** | flake8 syntax and style checks | Python 3.10 |
 | **postgresql** | SQL I/O tests against live PostgreSQL 16 | Python 3.14 |
-| **tutorial_tests** | Notebook execution via `nbmake` | — |
-| **tutorial_warnings_tests** | Notebook execution with `-W error` | — |
-| **docs_check** | Sphinx docs build with `-W` (warnings-as-errors) | — |
+| **tutorial_tests** | Notebook execution via `nbmake` | -- |
+| **tutorial_warnings_tests** | Notebook execution with `-W error` | -- |
+| **docs_check** | Sphinx docs build with `-W` (warnings-as-errors) | -- |
 | **typing** | mypy static type checking | Python 3.14 |
-
-**Total CI jobs per push:** ~28 (across all matrix combinations).
 
 The workflow uses `pytest-split` for test parallelization and `concurrency` groups to
 cancel superseded runs on the same PR.
 
-## Test Suite Structure
+### Latest develop Branch CI (2026-03-24)
 
-Tests reside in `pandapower/test/` with subdirectories covering:
+Verified via `gh api repos/e2nIEE/pandapower/actions/runs/23498302967/jobs`:
 
-- `api/` (file I/O, SQL)
-- `loadflow/`
-- `opf/`
-- `shortcircuit/`
-- `estimation/` (state estimation)
-- `contingency/`
-- `control/`
-- `converter/`
-- `grid_equivalents/`
-- `networks/`
-- `plotting/`
-- `protection/`
-- `timeseries/`
-- `toolbox/`
-- `topology/`
-
-## CI Pass Status (develop branch, 2026-03-11)
-
-The latest develop-branch run shows the following job-level results:
-
-- **All 14 core `build` jobs: PASS** (Python 3.10-3.14, both split groups)
+- **All 10 core `build` jobs: PASS** (Python 3.10-3.14, both split groups)
 - **numpy1-support: PASS** (both groups)
 - **opf: PASS**
 - **typing (mypy): PASS**
@@ -80,46 +71,50 @@ The latest develop-branch run shows the following job-level results:
 - **postgresql: PASS**
 - **Sphinx docs check: PASS**
 - **upload-coverage: PASS**
-- **warnings: FAIL** (Python 3.14 — deprecation warnings in dependencies)
-- **relying: FAIL** (downstream pandapipes/simbench compatibility issues)
+- **warnings (3.14, 1): FAIL** (deprecation warnings in dependencies)
+- **warnings (3.14, 2): CANCELLED**
+- **relying (3.12): FAIL** (downstream pandapipes/simbench compatibility)
+- **relying (other versions): CANCELLED**
 
 The workflow-level conclusion is "failure" because GitHub Actions reports failure if any
-job fails. However, all 14 core test jobs (the `build` matrix) pass on all Python versions.
-The failures are in non-core jobs: `warnings` (third-party deprecation warnings treated as
-errors) and `relying` (downstream package compatibility), not in pandapower's own tests.
+job fails. The failures are exclusively in non-core jobs (`warnings` and `relying`), not
+in pandapower's own test suite.
 
-**Note:** The `pandapower` workflow has zero all-green runs in recent history because the
-`relying` and `warnings` jobs have been persistently failing. This is a CI hygiene issue
-(these jobs should arguably be `continue-on-error: true` or in a separate workflow), but
-it does not indicate that pandapower's own test suite is broken.
+### Test Coverage
 
-## Test Coverage
+Codecov badge SVGs fetched directly (2026-03-24):
+- `https://codecov.io/github/e2nIEE/pandapower/coverage.svg?branch=master` -- **72%**
+- `https://codecov.io/github/e2nIEE/pandapower/coverage.svg?branch=develop` -- **72%**
 
-**Codecov badge (master branch):** 72%
-**Codecov badge (develop branch):** 72%
+Badge SVG confirmed by parsing the XML: `>72%<` appears in the text elements.
 
 Coverage is measured on the Python 3.10 build jobs using `pytest-cov`, with XML reports
 uploaded to both Codecov and Codacy. The coverage figure excludes OPF tests (run in a
 separate job with Julia dependencies) and may therefore undercount actual coverage.
 
-The badge SVG was fetched directly at:
-- `https://codecov.io/github/e2nIEE/pandapower/coverage.svg?branch=master` → **72%**
-- `https://codecov.io/github/e2nIEE/pandapower/coverage.svg?branch=develop` → **72%**
+### Test Suite Structure
 
-Both Codecov and Codacy integrations are active, providing dual code-quality tracking.
+Tests reside in `pandapower/test/` with subdirectories: `api/`, `loadflow/`, `opf/`,
+`shortcircuit/`, `estimation/`, `contingency/`, `control/`, `converter/`,
+`grid_equivalents/`, `networks/`, `plotting/`, `protection/`, `timeseries/`,
+`toolbox/`, `topology/`.
 
-## Assessment
+### CI Hygiene Observation
 
-pandapower has a mature, comprehensive CI pipeline with:
-- Multi-version Python testing (3.10 through 3.14)
-- Parallel test splitting for faster feedback
+pandapower has zero all-green workflow runs in recent history because `relying` and
+`warnings` jobs have been persistently failing. This is a CI hygiene issue -- these
+jobs should arguably be `continue-on-error: true` or in a separate workflow -- but it
+does not indicate that pandapower's own test suite is broken.
+
+## Implications
+
+pandapower demonstrates strong CI maturity:
+- Multi-version Python testing across 5 Python versions
 - Dedicated OPF testing with Julia integration
-- PostgreSQL integration testing against a live database
-- Tutorial notebook execution testing
-- Static type checking (mypy), linting (flake8), and docs build verification
-- Downstream package compatibility testing
+- PostgreSQL integration testing, tutorial notebook execution, mypy type checking
+- Dual code quality platforms (Codecov + Codacy)
+- 72% test coverage is moderate -- adequate for a research-origin tool but below
+  industry best practice (80%+)
 
-The 72% coverage is moderate. Core test jobs pass consistently on all supported Python
-versions. The workflow-level "failure" status is a cosmetic issue caused by non-core jobs
-(downstream compatibility, deprecation warnings) rather than test failures in pandapower
-itself.
+The persistent CI "failures" from non-core jobs are a minor hygiene concern but do not
+affect the reliability of pandapower's own test suite.

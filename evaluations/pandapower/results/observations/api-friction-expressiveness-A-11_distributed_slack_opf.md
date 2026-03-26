@@ -4,7 +4,7 @@ source_dimension: expressiveness
 source_test: A-11
 tool: pandapower
 severity: medium
-timestamp: "2026-03-13T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # Observation: rundcopp() silently ignores distributed_slack parameter

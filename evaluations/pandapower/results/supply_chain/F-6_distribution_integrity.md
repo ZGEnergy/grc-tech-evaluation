@@ -6,8 +6,8 @@ network: N/A
 status: informational
 workaround_class: null
 timestamp: 2026-03-13T00:00:00Z
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: v11
+skill_version: v2
 test_hash: "3d597872"
 ---
 

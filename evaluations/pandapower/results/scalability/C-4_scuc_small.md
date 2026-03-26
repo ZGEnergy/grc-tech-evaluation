@@ -3,9 +3,9 @@ test_id: C-4
 tool: pandapower
 dimension: scalability
 network: SMALL
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "3b1bad17"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "7adff329"
 status: fail
 workaround_class: blocking
 blocked_by: A-5
@@ -14,22 +14,25 @@ timing_source: estimated
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-timestamp: "2026-03-13T00:00:00Z"
+cpu_threads_used: null
+cpu_threads_available: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # C-4: SCUC 24hr on SMALL
 
 ## Result: FAIL
 
-**Failure reason:** `blocked_by_prerequisite`
+**Failure reason:** `unsupported_in_installed_version` | `cascaded-failure` from A-5
 
 ## Approach
 
 C-4 requires solving a 24-hour Security-Constrained Unit Commitment (SCUC) on the ACTIVSg2000 network. This test depends on A-5 (SCUC on TINY), which failed because pandapower 3.4.0 does not support unit commitment.
 
-pandapower is a steady-state network analysis tool. Its OPF functions (`rundcopp`, `runopp`) solve single-period continuous optimization only. The capabilities required for SCUC are absent:
+pandapower is a steady-state network analysis tool. Its OPF functions (`rundcopp`, `runopp`) solve single-period continuous optimization only. The capabilities required for SCUC are absent [tool-specific]:
 
 - No binary commitment variables
 - No startup/shutdown cost modeling
@@ -55,6 +58,7 @@ No output produced. Test was not executed.
 - **Wall-clock:** null (not executed)
 - **Timing source:** estimated
 - **Peak memory:** null
+- **CPU cores used:** null
 
 ## Test Script
 

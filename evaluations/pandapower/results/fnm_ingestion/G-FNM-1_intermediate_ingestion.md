@@ -3,111 +3,88 @@ test_id: G-FNM-1
 tool: pandapower
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "87873808"
-status: pass
-workaround_class: stable
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "ad14fbd0"
+status: fail
+workaround_class: blocking
 blocked_by: null
-wall_clock_seconds: 0.232
+wall_clock_seconds: 3.149
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 250
+convergence_evidence_quality: null
+loc: 115
 solver: null
-timestamp: 2026-03-14T03:00:00Z
+ingestion_path: matpower_fallback
+timestamp: 2026-03-24T12:00:00Z
 ---
 
-# G-FNM-1: Intermediate Format Ingestion (FNM Gate)
+# G-FNM-1: Intermediate Format Ingestion (Two-Check Gate)
 
-## Result: PASS
+## Result: FAIL
 
-All primary component counts match the expected values from the intermediate
-manifest. Bus count (30,307), merged branch total (33,840), and baseMVA (100.0)
-all match exactly. No records were lost during ingestion.
+pandapower 3.4.0 has no native PSS/E CSV parser. Sub-check (a) -- PSS/E format
+compatibility -- fails because the tool cannot ingest the intermediate CSV tables
+(bus.csv, branch.csv, transformer.csv, etc.) that represent PSS/E v31 record
+types. Sub-check (b) -- post-ingestion fidelity checks -- is skipped because no
+network model is produced from sub-check (a).
+
+The tool's supported import paths are MATPOWER .m/.mat (via `from_mpc` /
+`from_ppc`) and pandapower's own JSON/pickle serialization. Neither path can
+consume PSS/E-derived CSV tables directly.
 
 ## Approach
 
-1. Load the MATPOWER `.mat` file (`mpc_case.mat`) via `scipy.io.loadmat` because
-   pandapower's native `from_mpc()` fails on this file (missing `version` field
-   in the MATPOWER struct).
-2. Manually construct a PYPOWER PPC dict with keys `version`, `baseMVA`, `bus`,
-   `gen`, `branch`.
-3. Pre-process branches: set 28 branches with zero RATE_A to 9999 to work around
-   a bug in pandapower 3.4.0's `from_ppc()` (variable name collision between
-   transformer and impedance blocks causes an IndexError).
-4. Import into pandapower with `from_ppc(ppc, f_hz=60)`.
-5. Count ingested components and compare against intermediate manifest expectations.
+1. Loaded `data/fnm/manifest.json` to confirm the expected intermediate format
+   structure (17 CSV tables, one per PSS/E v31 record type).
+2. Checked for the existence of intermediate CSV files in `data/fnm/intermediate/`.
+   No CSV data files exist (only JSON Schema definitions).
+3. Scanned pandapower's public API (`dir(pp)` and `dir(pp.converter)`) for any
+   function name containing "psse", "pss_e", "raw", or "csv_import". The only
+   match was `get_raw_data_from_pickle`, which loads pandapower's own pickle
+   format -- not PSS/E RAW or CSV data.
+4. Concluded that pandapower cannot ingest the intermediate CSV format.
+   Sub-check (a) fails with `failure_reason: psse_parse_error`.
+5. Sub-check (b) skipped because no network model was produced.
 
 ## Output
 
-| Component | Manifest Expected | pandapower Ingested | Match |
-|-----------|------------------|---------------------|-------|
-| Buses | 30,307 | 30,307 | PASS |
-| Generators | 5,768 | 5,823 (gen=4,668 + sgen=1,151 + ext_grid=4) | note |
-| Branches (merged) | 33,840 | 33,840 (line=24,165 + trafo=2,393 + impedance=7,282) | PASS |
-| Loads | 15,062 | 8,576 | note |
-| Switched Shunts | 3,114 | 3,110 | note |
-| baseMVA | 100.0 | 100.0 | PASS |
+| Sub-Check | Description | Result |
+|-----------|-------------|--------|
+| (a) | PSS/E intermediate CSV ingestion | FAIL |
+| (b) | Post-ingestion fidelity checks | SKIP (blocked by (a)) |
 
-**Notes on structural differences:**
+**pandapower version:** 3.4.0
 
-- **Generators:** pandapower creates 55 extra sgen elements from 56 buses with
-  negative active power (Pd < 0). The PPC import treats negative load as
-  static generation. Additionally, 4 slack bus generators become ext_grid
-  elements. The total (5,823) exceeds the manifest (5,768) by the 55 negative-Pd
-  sgens. No generator records are lost; the difference is additive.
+**PSS/E-related APIs found:** `get_raw_data_from_pickle` (not a PSS/E parser)
 
-- **Branch/transformer split:** The intermediate format classifies branches by
-  tap ratio (branch = tap==0, transformer = tap!=0), while pandapower classifies
-  by voltage level (line = same kV buses, trafo = different kV buses,
-  impedance = same kV + non-unity tap). The merged total (33,840) matches
-  exactly. pandapower's split: 24,165 lines + 2,393 trafos + 7,282 impedances.
-  Intermediate format's split: 24,117 branches + 9,723 transformers.
+**Intermediate CSV files found:** 0 of 17 expected tables (no CSV data files
+present in `data/fnm/intermediate/`; only JSON Schema definitions exist)
 
-- **Loads:** The PPC import path aggregates multiple loads at the same bus into a
-  single load entry (one per bus with nonzero Pd/Qd), producing 8,576 loads vs
-  the expected 15,062 individual load records. This is a known limitation of the
-  MATPOWER/PYPOWER import path, which does not preserve per-load granularity.
-
-- **Switched shunts:** 3,110 imported via bus Bs columns; 4 fewer than the
-  manifest count of 3,114. The missing 4 are likely shunts with zero Bs values
-  that are not created during import.
+**Ingestion path:** `matpower_fallback` -- G-FNM-3/4/5 proceed via MATPOWER
+.mat import, which is a separate and functional ingestion path.
 
 ## Workarounds
 
-1. **`from_mpc()` failure** (stable):
-   - **What:** pandapower's `from_mpc()` function expects a `version` field in the
-     MATPOWER `.mat` struct, which this case file lacks. Used `scipy.io.loadmat()`
-     to extract the PPC arrays and manually constructed the PYPOWER dict.
-   - **Why:** The `.mat` file was exported without the `version` field that
-     pandapower's MATPOWER converter requires.
-   - **Durability:** stable -- `scipy.io.loadmat` and the PPC dict format are mature,
-     well-documented APIs. Both `from_ppc` and `scipy.io` are public API.
-   - **Grade impact:** Minor inconvenience. The PPC import path is the standard
-     programmatic entry point for MATPOWER data.
-   - **Version tested:** pandapower 3.4.0
-
-2. **`from_ppc()` IndexError on zero RATE_A** (stable):
-   - **What:** pandapower 3.4.0's `_from_ppc_branch` function has a variable naming
-     bug: the impedance processing block computes `sn_is_zero` from its own `sn_mva`
-     array but then indexes into the transformer block's `sn` array (different size),
-     causing an IndexError. Pre-setting zero RATE_A values to 9999.0 before calling
-     `from_ppc()` avoids triggering the bug.
-   - **Why:** 28 branches in the FNM have RATE_A = 0 (no thermal limit specified).
-   - **Durability:** stable -- the workaround is deterministic pre-processing on the
-     input data. The actual bug is likely to be fixed in a future pandapower release,
-     at which point the workaround becomes a no-op (setting already-nonzero values).
-   - **Grade impact:** Minor. A one-line pre-processing step.
-   - **Version tested:** pandapower 3.4.0
+- **What:** No workaround available for PSS/E CSV ingestion. pandapower's
+  architecture does not include a PSS/E parser of any kind (RAW, CSV, or
+  otherwise).
+- **Why:** The tool was designed around MATPOWER-compatible data formats and
+  its own JSON serialization. PSS/E format support was never implemented.
+- **Durability:** blocking -- No API path (public or private) exists to achieve
+  PSS/E CSV ingestion. Would require implementing a custom CSV-to-pandapower
+  converter or adding PSS/E parsing to the tool's source code.
+- **Grade impact:** G-FNM-1 fails. G-FNM-2 is blocked. G-FNM-3/4/5 proceed
+  via MATPOWER fallback path, which is a separate evaluation track.
 
 ## Timing
 
-- **Wall-clock:** 0.232 s (load + convert + count)
+- **Wall-clock:** 3.149 s (manifest load + API scan)
 - **Timing source:** measured (time.perf_counter)
-- **Peak memory:** not measured
-- **Solver iterations:** N/A (no solver used)
+- **Peak memory:** not measured (no network loaded)
+- **Solver iterations:** N/A
 - **Convergence residual:** N/A
 - **CPU cores used:** 1
 
