@@ -3,20 +3,21 @@ test_id: A-3
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "0ab69b36"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "dcb5d18b"
 status: pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.077
+wall_clock_seconds: 0.102
 timing_source: measured
-peak_memory_mb: 1386.2
+peak_memory_mb: 1484.6
 convergence_residual: null
 convergence_iterations: null
-loc: 271
+convergence_evidence_quality: null
+loc: 388
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-3: DCOPF with Differentiated Costs and 70% Branch Derating
@@ -27,7 +28,7 @@ timestamp: "2026-03-14T00:00:00Z"
 
 Built a `DecisionModel` with `DCPPowerModel` network formulation (angle-based DC OPF),
 `ThermalDispatchNoMin` device model, and `NodalBalanceActiveConstraint` duals to extract
-bus-level LMPs. Solver: HiGHS 1.21.1 (single-threaded, presolve on).
+bus-level LMPs. Solver: HiGHS 1.21.1 (single-threaded, presolve on, time_limit=300s).
 
 **Cost differentiation:** Read `gen_temporal_params.csv` to map each generator's
 `tech_class_key` to a marginal cost (hydro $5, nuclear $10, coal $25, gas CC $40 per
@@ -45,6 +46,10 @@ for all loads to satisfy this constraint.
 **LMP extraction:** Nodal balance duals from `read_dual(res, "NodalBalanceActiveConstraint__ACBus")`.
 The raw dual values are in internal units (per-unit basis); conversion to $/MWh requires
 dividing by `base_power` (100 MVA) and negating per shadow price sign convention.
+
+**v11 hard constraint verification:** Checked all 46 branches (Line, Transformer2W,
+TapTransformer) for loading percentage. No flow slack variables found in the JuMP model.
+Maximum loading = 100.00%, confirming hard constraint enforcement.
 
 ## Output
 
@@ -79,16 +84,32 @@ capacity due to network congestion limiting power transfer from bus 30.
 The LMP at bus 30 (hydro) equals its marginal cost: 5 + 2 x 0.005 x 275.6 = $7.76/MWh.
 Bus 3 has the highest LMP due to congestion on branch 2-3.
 
-**Binding branches:**
+**Binding branches (5 total, exceeds >= 2 threshold):**
 
-| Branch | Flow (MW) | Rating (MW) | Loading |
-|--------|----------|-----------|---------|
-| bus-2-bus-3-i_3 | 350.0 | 350.0 | 100% |
-| bus-16-bus-19-i_27 | 420.0 | 420.0 | 100% |
+| Branch | Type | Flow (MW) | Rating (MW) | Loading |
+|--------|------|----------|-----------|---------|
+| bus-2-bus-3-i_3 | Line | 350.0 | 350.0 | 100.00% |
+| bus-16-bus-19-i_27 | Line | 420.0 | 420.0 | 100.00% |
+| bus-10-bus-32-i_20 | TapTransformer | 630.0 | 630.0 | 100.00% |
+| bus-29-bus-38-i_46 | TapTransformer | 840.0 | 840.0 | 100.00% |
+| bus-22-bus-35-i_37 | TapTransformer | 630.0 | 630.0 | 100.00% |
 
-Two branches bind at their derated ratings, meeting the >= 2 threshold.
+**v11 hard constraint enforcement:**
+
+| Metric | Value |
+|--------|-------|
+| Max loading (%) | 100.00 |
+| Threshold (%) | 100.01 (= 100 + 1e-4 p.u.) |
+| Hard constraints enforced | Yes |
+| Flow slack variables | None found |
+| Branches checked | 46 |
+
+DCPPowerModel with `StaticBranch` device model enforces branch flow limits as hard
+constraints via the JuMP LP formulation. No slack variables are introduced for branch
+flows. This confirms genuine hard-constraint DCOPF. [tool-specific]
 
 **Objective:** $215,211.33/h total production cost.
+**Termination status:** OPTIMAL
 
 ## Workarounds
 
@@ -105,9 +126,9 @@ Two branches bind at their derated ratings, meeting the >= 2 threshold.
 
 ## Timing
 
-- **Wall-clock:** 0.077 s (second run, after JIT warm-up; includes build + solve)
+- **Wall-clock:** 0.102 s (second run, after JIT warm-up; includes build + solve)
 - **Timing source:** measured
-- **Peak memory:** 1386.2 MB (Julia process RSS, includes JIT compilation cache)
+- **Peak memory:** 1484.6 MB (Julia process RSS, includes JIT compilation cache)
 - **Solver iterations:** not separately reported (HiGHS simplex)
 - **CPU cores used:** 1
 
@@ -128,29 +149,30 @@ set_rating!(line, get_rating(line) * 0.7)
 add_time_series!(sys, load, SingleTimeSeries("max_active_power", ...))
 transform_single_time_series!(sys, Hour(1), Hour(1))
 
-# Model
+# Model with hard constraints (StaticBranch)
 template = ProblemTemplate(NetworkModel(DCPPowerModel;
     duals=[NodalBalanceActiveConstraint]))
 set_device_model!(template, ThermalStandard, ThermalDispatchNoMin)
+set_device_model!(template, Line, StaticBranch)
 model = DecisionModel(template, sys; optimizer=solver)
 build!(model; output_dir=mktempdir()); solve!(model)
 
-# LMPs
-nodal_dual = read_dual(res, "NodalBalanceActiveConstraint__ACBus")
-lmp_mwh = -raw_dual / base_power
+# Hard constraint verification
+jm = PowerSimulations.get_jump_model(PowerSimulations.get_optimization_container(model))
+all_vars = [JuMP.name(v) for v in JuMP.all_variables(jm)]
+flow_slacks = filter(n -> occursin("Slack", n) && occursin("Flow", n), all_vars)
+# flow_slacks is empty → hard constraints confirmed
 ```
 
 ## Observations
 
 - **api-friction:** PowerSimulations requires time series data even for single-snapshot
   OPF. The `DecisionModel` constructor refuses to build without deterministic forecasts.
+  Severity: medium.
 - **unit-mismatch:** `read_variable` returns dispatch in MW (natural units), but
   `read_dual` returns shadow prices in internal per-unit-based units. Converting LMP
   duals to $/MWh requires dividing by `base_power` and negating. This is not documented.
-- **api-friction:** PTDFPowerModel with `use_slacks=true` produced an infeasible/nonsensical
-  model (dispatch exceeded generator Pmax by 100x). Switched to DCPPowerModel which
-  works correctly. The root cause of the PTDFPowerModel failure was not diagnosed but may
-  relate to unit conversion in the slack variable formulation.
+  Severity: medium.
 - **workaround-needed:** Time series boilerplate is required for every single-snapshot
   test using PowerSimulations. Time series value is a multiplier on `max_active_power`
-  (not the absolute MW value), which is undocumented and discovered empirically.
+  (not the absolute MW value), which was discovered empirically. Severity: low.

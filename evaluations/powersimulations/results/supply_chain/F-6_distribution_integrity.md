@@ -3,12 +3,20 @@ test_id: F-6
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "9b2cbfb5"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "34d044d2"
 status: informational
 workaround_class: null
-timestamp: "2026-03-14T00:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+loc: null
+solver: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-6: Distribution Integrity
@@ -77,7 +85,7 @@ download sha256 = "3bf8ba4b53be90f8a36d6ad12fdb09ab6ebe572aaa3ea405509daf7c2e10d
 - **Hash algorithm:** SHA-256
 - **Verification:** Automatic on artifact download
 - **Coverage:** All solver JLLs (HiGHS, GLPK, Ipopt, SCIP) and all transitive
-  binary dependencies (52 JLL packages total)
+  binary dependencies (41 JLL packages total)
 
 ### 3. Manifest.toml Lock File
 
@@ -133,3 +141,9 @@ detection. The absence of cryptographic signatures (GPG/Sigstore) is a gap
 compared to ecosystems like Python (PEP 740) or Rust (crates.io transparency log),
 but is standard for the Julia ecosystem. The Manifest.toml lock file provides
 reproducible installs from verified content hashes.
+
+## Data Source
+
+- Julia General Registry `Versions.toml` for PowerSimulations.jl (accessed 2026-03-24)
+- Manifest.toml in evaluation project (accessed 2026-03-24)
+- HiGHS_jll Artifacts.toml SHA-256 hashes (accessed 2026-03-24)

@@ -62,7 +62,13 @@ end
 
 The `DefaultDecisionProblem` abstract type (parent of `GenericOpProblem`) uses the standard template-based build pipeline. Custom problem types bypass this entirely, giving full control over model construction.
 
-Source: `/opt/julia-depot/packages/PowerSimulations/89s3Q/src/core/operation_model_abstract_types.jl`, `/opt/julia-depot/packages/PowerSimulations/89s3Q/src/operation/decision_model.jl` (lines 339-410)
+Two levels of customization are available:
+- **`PSI.DecisionProblem`**: Full control — fewer checks, fewer validations, maximum flexibility
+- **`PSI.DefaultDecisionProblem`**: More structure — uses the standard template-based build pipeline with PSI's validation checks
+
+Optional method overloads for custom problems: `validate_template`, `validate_time_series!`, `reset!`, `solve_impl!`.
+
+Source: `/opt/julia-depot/packages/PowerSimulations/89s3Q/src/core/operation_model_abstract_types.jl`, `/opt/julia-depot/packages/PowerSimulations/89s3Q/docs/src/tutorials/adding_new_problem_model.md`
 
 ### Two-Stage Device Construction Pattern
 
@@ -125,12 +131,15 @@ jump_model = PSI.get_jump_model(model)  # Returns JuMP.Model
 Users can add custom constraints directly to the JuMP model after `build!` but before `solve!`. The `OptimizationContainer` also provides structured access:
 
 - `PSI.get_optimization_container(model)` — Returns the container with all variables, constraints, parameters
-- `PSI.add_variable_container!()` — Register custom variables in PSI's container
-- `PSI.add_constraints!()` — Extensible via dispatch for custom constraint types
+- `PSI.add_variable_container!(container, VarType(), DeviceType, names, time_steps)` — Register custom variables
+- `PSI.add_constraints_container!(container, ConType(), DeviceType, names, time_steps; meta="ub")` — Register custom constraints (the `meta` kwarg enables reusing a constraint type for e.g. upper/lower bounds)
+- `PSI.get_variable(container, VarType(), DeviceType)` — Retrieve previously registered variables for use in constraints
 
 For the "register a variable in a custom operation model" pattern, users override `PSI.build_model!` and use `PSI.get_optimization_container()` to access the container, then use JuMP anonymous variables/constraints registered into PSI's container system.
 
-Source: https://nrel-sienna.github.io/PowerSimulations.jl/latest/how_to/register_variable/
+The PSI docs explicitly require anonymous JuMP variables/constraints (not named ones) registered into PSI's container system for simulation-level features (inter-model coordination, results post-processing) to work.
+
+Source: https://nrel-sienna.github.io/PowerSimulations.jl/latest/how_to/register_variable/, `/opt/julia-depot/packages/PowerSimulations/89s3Q/docs/src/tutorials/adding_new_problem_model.md`
 
 ### Network Graph Access
 
@@ -150,7 +159,9 @@ PowerSimulations.jl does **not** use Graphs.jl. Network topology is accessed thr
 
 There is no way to get a `Graphs.SimpleGraph` or similar directly from the Sienna ecosystem. Users would need to construct one manually from the adjacency matrix or bus/branch data.
 
-Source: `/opt/julia-depot/packages/PowerNetworkMatrices/XXeBY/src/adjacency_matrix.jl`
+The `find_subnetworks` function uses a custom DFS implementation operating on `SparseArrays.SparseMatrixCSC` via `SparseArrays.nzrange` and `SparseArrays.rowvals` — it does not depend on any graph library.
+
+Source: `/opt/julia-depot/packages/PowerNetworkMatrices/XXeBY/src/adjacency_matrix.jl`, `/opt/julia-depot/packages/PowerNetworkMatrices/XXeBY/src/common.jl`
 
 ### Interoperability: DataFrames and Serialization
 
@@ -174,7 +185,11 @@ Source: `/opt/julia-depot/packages/PowerNetworkMatrices/XXeBY/src/adjacency_matr
 
 **No direct NetworkX interop** — the ecosystem is Julia-native. Python interop would require manual conversion (e.g., exporting bus/branch data to CSV, then loading in Python).
 
-Source: `/opt/julia-depot/packages/PowerSimulations/89s3Q/src/core/store_common.jl`, https://nrel-sienna.github.io/PowerSimulations.jl/latest/how_to/read_results/
+For simulation results, `read_variable` returns a `SortedDict{DateTime, DataFrame}` with one DataFrame per simulation step. `read_realized_variable` concatenates across steps into a single DataFrame.
+
+Internal conversion from JuMP arrays to DataFrames uses `to_dataframe()` in `utils/dataframes_utils.jl`, supporting both `DenseAxisArray` and `SparseAxisArray` types.
+
+Source: `/opt/julia-depot/packages/PowerSimulations/89s3Q/src/utils/dataframes_utils.jl`, `/opt/julia-depot/packages/PowerSimulations/89s3Q/docs/src/modeler_guide/read_results.md`
 
 ### Service Model Extension
 

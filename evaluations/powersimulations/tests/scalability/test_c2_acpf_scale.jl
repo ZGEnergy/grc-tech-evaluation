@@ -129,24 +129,38 @@ function run(network_file::String="/workspace/data/networks/case_ACTIVSg10k.m")
             end
         end
 
-        # Timed ACPF solve (second invocation — JIT cached)
+        # Timed ACPF solve (second invocation — JIT cached) with log capture
         println(stderr, "Timed ACPF solve...")
+        timed_log = IOBuffer()
         t0 = time()
         pf_result = nothing
         converged = false
         acpf_error = nothing
         try
-            pf_result = solve_powerflow(ACPowerFlow(), sys)
-            converged = pf_result !== nothing
+            with_logger(ConsoleLogger(timed_log, Logging.Info)) do
+                pf_result = solve_powerflow(ACPowerFlow(), sys)
+                converged = pf_result !== nothing
+            end
         catch e
             acpf_error = string(typeof(e), ": ", sprint(showerror, e))
         end
         elapsed = time() - t0
+        timed_log_str = String(take!(timed_log))
         println(stderr, "ACPF solve: converged=$converged in $(round(elapsed, digits=3))s")
+        println(stderr, "Log output: $timed_log_str")
 
         results["wall_clock_seconds"] = round(elapsed; digits=3)
         results["details"]["peak_memory_mb"] = peak_rss_mb()
         results["details"]["converged"] = converged
+        results["details"]["solver_log"] = timed_log_str
+
+        # Extract NR iteration count from log
+        nr_iterations = nothing
+        m = match(r"converged after (\d+) iterations", timed_log_str)
+        if m !== nothing
+            nr_iterations = parse(Int, m.captures[1])
+        end
+        results["details"]["nr_iterations"] = nr_iterations
 
         if acpf_error !== nothing
             results["details"]["acpf_error"] = acpf_error

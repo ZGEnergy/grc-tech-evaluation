@@ -3,8 +3,8 @@ test_id: A-10
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "0a550931"
 status: fail
 workaround_class: blocking
@@ -14,9 +14,10 @@ timing_source: measured
 peak_memory_mb: 581.1
 convergence_residual: null
 convergence_iterations: null
-loc: 339
+convergence_evidence_quality: null
+loc: 364
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-10: Lossy DCOPF with LMP Decomposition
@@ -29,12 +30,12 @@ Investigated all DC OPF formulations available through PowerModels.jl (accessed 
 `PowerSimulations.PM`) for loss-approximation capability.
 
 **Formulations checked:**
-- `DCPPowerModel` — angle-based lossless DC OPF
-- `DCMPPowerModel` — matrix-based lossless DC OPF
-- `NFAPowerModel` — network flow approximation (lossless)
-- `PTDFPowerModel` — PTDF-based lossless DC OPF
-- `DCPLLPowerModel` — DC Power with Linearized Losses
-- `LPACCPowerModel` — Linear Programming AC approximation
+- `DCPPowerModel` -- angle-based lossless DC OPF
+- `DCMPPowerModel` -- matrix-based lossless DC OPF
+- `NFAPowerModel` -- network flow approximation (lossless)
+- `PTDFPowerModel` -- PTDF-based lossless DC OPF
+- `DCPLLPowerModel` -- DC Power with Linearized Losses
+- `LPACCPowerModel` -- Linear Programming AC approximation
 
 **DCPLLPowerModel discovered:** PowerModels.jl does provide a `DCPLLPowerModel` formulation
 that includes linearized losses. However, this formulation uses **quadratic constraints**
@@ -45,12 +46,12 @@ build time because HiGHS (an LP/MILP/QP solver) does not support quadratic const
 (only quadratic objectives). The error is:
 
 ```
-Constraints of type MathOptInterface.ScalarQuadraticFunction{Float64}-in-
-MathOptInterface.GreaterThan{Float64} are not supported by the solver.
+build! of the DecisionModel{GenericOpProblem} failed: ModelBuildStatus.FAILED
 ```
 
 This requires a solver supporting SOCP or general quadratic constraints (e.g., Gurobi, CPLEX,
 or potentially SCIP). The evaluation protocol specifies HiGHS as the solver.
+[mixed: formulation exists in PowerModels but requires solver with QCP support; HiGHS only supports QP objectives]
 
 **Lossless baseline established:** A standard DCPPowerModel solve completed successfully
 (replicating A-3 results) with objective $215,211.33 and LMP range $7.76-$290.11/MWh.
@@ -69,7 +70,13 @@ or potentially SCIP). The evaluation protocol specifies HiGHS as the solver.
 - LMP range: $7.76 - $290.11/MWh
 - 2 binding branches at 70% derating
 
-**DCPLLPowerModel attempt:** Build failed — quadratic constraints not supported by HiGHS.
+**DCPLLPowerModel attempt:** Build failed -- quadratic constraints not supported by HiGHS.
+
+**v11 pass condition assessment:**
+- (a) Loss component signs: Not testable (solve failed)
+- (b) Losses 0.5-3% of total load: Not testable
+- (c) Lossy objective > lossless objective: Not testable
+- (d) LMP decomposition (energy + loss + congestion = total): Not testable
 
 ## Workarounds
 
@@ -78,13 +85,13 @@ or potentially SCIP). The evaluation protocol specifies HiGHS as the solver.
   quadratic constraints.
 - **Why:** The linearized loss formulation in PowerModels uses quadratic power-flow
   constraints, which are architecturally incompatible with LP/MILP/QP-only solvers.
-- **Durability:** blocking — The formulation exists but cannot be used with the evaluation
+- **Durability:** blocking -- The formulation exists but cannot be used with the evaluation
   solver stack (HiGHS, SCIP, GLPK). A commercial solver (Gurobi, CPLEX) or a solver
   supporting SOCP (Mosek, SCS) would be needed. Alternatively, Ipopt could be used but
   it is an NLP solver, not the specified solver for this test.
 - **Grade impact:** The tool has a lossy DC formulation but it is unusable with open-source
   LP/MILP solvers. LMP decomposition into energy + loss + congestion components is not
-  achievable. This is a partial tool capability — the formulation exists but the solver
+  achievable. This is a partial tool capability -- the formulation exists but the solver
   ecosystem is mismatched.
 
 ## Timing
@@ -103,6 +110,7 @@ or potentially SCIP). The evaluation protocol specifies HiGHS as the solver.
 - **solver-issues:** HiGHS supports QP objectives but not quadratic constraints. DCPLLPowerModel
   uses `ScalarQuadraticFunction-in-GreaterThan` constraints for the linearized Ohm's law,
   which HiGHS rejects. This is a fundamental solver-formulation mismatch.
+  [mixed: tool provides formulation but requires solver not in eval stack]
 - **doc-gaps:** The DCPLLPowerModel formulation's solver requirements are not documented.
   The error only appears at build time, after the model is constructed.
 - **api-friction:** There is no way to check solver compatibility with a formulation before

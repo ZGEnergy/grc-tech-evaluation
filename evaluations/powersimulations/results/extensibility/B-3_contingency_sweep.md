@@ -3,20 +3,26 @@ test_id: B-3
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: "f4d4e1ba"
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.41
+wall_clock_seconds: 0.43
 timing_source: measured
-peak_memory_mb: 822.9
+peak_memory_mb: 814.5
 convergence_residual: null
 convergence_iterations: null
-loc: 369
+convergence_evidence_quality: null
+loc: 392
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-3: N-M Contingency Sweep (x=3, m=3, all 46 branches)
@@ -41,7 +47,7 @@ LODF superposition: `flow_post[l] = flow_base[l] + sum_k(LODF[l,k] * flow_base[k
 Note: LODF superposition is exact for single contingencies (M=1) but approximate for
 M>1. Exact multi-outage analysis would require the Woodbury formula on the PTDF matrix,
 which PowerNetworkMatrices.jl does not provide natively. The superposition approximation
-is standard practice for fast screening.
+is standard practice for fast screening. [tool-specific: no built-in Woodbury correction]
 
 ## Output
 
@@ -86,7 +92,7 @@ is standard practice for fast screening.
 
 - **What:** Entire N-M contingency sweep pipeline assembled from separate packages:
   PowerFlows.jl (base DCPF), PowerNetworkMatrices.jl (LODF), manual branch adjacency
-  graph, Combinatorics.jl (enumeration). No built-in contingency analysis in PSI.
+  graph, Combinatorics.jl (enumeration). No built-in contingency analysis in PSI. [tool-specific]
 - **Why:** PowerSimulations.jl is a production-cost simulation tool, not a reliability
   analysis tool. N-M contingency sweeps are outside its design scope.
 - **Durability:** stable -- all components use documented public APIs: `LODF(sys)`,
@@ -98,10 +104,10 @@ is standard practice for fast screening.
 
 ## Timing
 
-- **Wall-clock:** 0.41s (second invocation, post-JIT)
+- **Wall-clock:** 0.43s (second invocation, post-JIT)
 - **Timing source:** measured
-- **Peak memory:** 823 MB
-- **Per-contingency time:** ~0.32 ms (1,299 contingencies in 0.41s)
+- **Peak memory:** 815 MB
+- **Per-contingency time:** ~0.33 ms (1,299 contingencies in 0.43s)
 
 ## Test Script
 
@@ -124,12 +130,3 @@ for out_line in outage_set
     post_flow += lodf[mon_line, out_line] * base_flows[out_line]
 end
 ```
-
-<!-- observation:arch-quality B-3: The LODF matrix from PowerNetworkMatrices.jl enables
-LODF-based contingency screening without model reconstruction. However, no built-in
-multi-outage correction (Woodbury) exists, limiting accuracy for M>1 analyses. -->
-
-<!-- observation:api-friction B-3: No built-in contingency analysis in PSI ecosystem.
-User must assemble LODF screening, branch adjacency graphs, and combinatorial enumeration
-from separate packages. This is architecturally clean but requires significant domain
-knowledge. -->

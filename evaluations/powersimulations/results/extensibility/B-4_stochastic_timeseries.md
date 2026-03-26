@@ -3,20 +3,21 @@ test_id: B-4
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "9eebb1b8"
 status: pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 2.128
+wall_clock_seconds: 2.534
 timing_source: measured
-peak_memory_mb: 1188.8
+peak_memory_mb: 1284.8
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 297
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-4: Stochastic Timeseries (20 Scenarios, 12h Multi-Period DCOPF)
@@ -40,8 +41,7 @@ application + branch derating + renewable addition with scenario-specific time s
 load profile + `transform_single_time_series!` + model build + solve. Time series data
 is immutable once attached to a System, so in-place modification is not possible.
 
-**Solver:** HiGHS with linear costs (quadratic costs cause HiGHS failures on
-multi-period models, as discovered in A-12).
+**Solver:** HiGHS with linear costs, single-threaded, presolve on.
 
 ## Output
 
@@ -51,10 +51,10 @@ multi-period models, as discovered in A-12).
 
 | Metric | Value |
 |--------|-------|
-| Mean time per scenario | 0.106 s |
-| Min time per scenario | 0.077 s |
-| Max time per scenario | 0.493 s (scenario 1, includes residual JIT) |
-| Total wall-clock (20 scenarios) | 2.128 s |
+| Mean time per scenario | 0.127 s |
+| Min time per scenario | 0.088 s |
+| Max time per scenario | 0.593 s (scenario 1, includes residual JIT) |
+| Total wall-clock (20 scenarios) | 2.534 s |
 
 **Cross-scenario results:**
 
@@ -69,20 +69,18 @@ multi-period models, as discovered in A-12).
 
 **Observation:** The LMP mean and spread are identical across all 20 scenarios. This
 is because linear costs produce flat marginal cost curves, so LMPs are determined
-entirely by which branches bind — and with the same load profile and similar renewable
+entirely by which branches bind -- and with the same load profile and similar renewable
 output across scenarios (multipliers are within +/-15%), the same branches bind in all
 cases. The objective varies (~1%) because different renewable output levels shift
-the dispatch mix. Quadratic costs would produce scenario-differentiated LMPs, but
-HiGHS cannot solve the resulting multi-period QP (A-12 finding).
+the dispatch mix. [solver-specific: HiGHS QP limitations prevent quadratic cost usage
+that would differentiate LMPs across scenarios]
 
 **Sample scenario results:**
 
 | Scenario | Objective ($) | Total Gen (MWh) | Status |
 |----------|--------------|----------------|--------|
 | 1 | 701,029 | 53,517 | OPTIMAL |
-| 6 | 707,108 | 53,746 | OPTIMAL |
-| 9 | 699,386 | 53,447 | OPTIMAL |
-| 12 | 706,911 | 53,752 | OPTIMAL |
+| 10 | 701,931 | 53,567 | OPTIMAL |
 | 20 | 700,537 | 53,555 | OPTIMAL |
 
 ## Workarounds
@@ -92,21 +90,22 @@ HiGHS cannot solve the resulting multi-period QP (A-12 finding).
   System via `add_time_series!()`. There is no `set_time_series!()` or
   `update_time_series!()` API. To change renewable profiles for a new scenario,
   the entire System must be rebuilt from the MATPOWER file.
-- **Durability:** stable — the time series immutability is a design choice in
+- **Durability:** stable -- the time series immutability is a design choice in
   InfrastructureSystems.jl (the underlying infrastructure layer). The workaround
   (System reconstruction per scenario) is reliable and produces correct results.
+  The `add_time_series!` API is documented and stable.
 - **Grade impact:** The per-scenario overhead is dominated by System construction
-  and model building (~0.08-0.09 s), not by the solve (~0.01 s). For larger networks
+  and model building (~0.09 s), not by the solve (~0.01 s). For larger networks
   or many scenarios, this overhead would be more significant. A `Simulation` with
   `Scenarios` forecast type could potentially handle this natively, but that interface
   was not tested.
 
 ## Timing
 
-- **Total wall-clock:** 2.128 s (20 scenarios)
-- **Mean per scenario:** 0.106 s (build + solve)
+- **Total wall-clock:** 2.534 s (20 scenarios)
+- **Mean per scenario:** 0.127 s (build + solve)
 - **Timing source:** measured (after JIT warm-up)
-- **Peak memory:** 1188.8 MB (Julia process RSS, single-threaded)
+- **Peak memory:** 1284.8 MB (Julia process RSS, single-threaded)
 
 ## Test Script
 
@@ -140,14 +139,12 @@ end
 - **api-friction:** Time series immutability forces full System reconstruction per
   scenario. This is the primary ergonomic cost of stochastic wrapping in PSI. The
   `Simulation` API with `Scenarios` forecast type may avoid this but adds significant
-  setup complexity.
+  setup complexity. [tool-specific]
 - **api-friction:** The `initialize_model=false` + `JuMP.optimize!()` pattern is
   needed to avoid PSI's internal initialization failures on multi-period models with
   renewables. This bypasses PSI's `solve!()` method and directly calls JuMP.
-- **solver-issues:** Linear costs produce identical LMPs across scenarios when the
-  same branches bind. Quadratic costs would differentiate LMPs but HiGHS fails on
-  multi-period QP (A-12 finding). Ipopt would work but is not the specified solver.
-- **workaround-needed:** The System reconstruction overhead (~80ms per scenario on
+  [tool-specific]
+- **workaround-needed:** The System reconstruction overhead (~90ms per scenario on
   TINY) is acceptable for 20 scenarios but would scale poorly for Monte Carlo studies
   with 1000+ scenarios on larger networks. The lack of in-place time series modification
-  is a genuine API limitation.
+  is a genuine API limitation. [tool-specific]

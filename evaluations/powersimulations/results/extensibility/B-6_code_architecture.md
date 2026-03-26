@@ -3,8 +3,8 @@ test_id: B-6
 tool: powersimulations
 dimension: extensibility
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "0f337d8d"
 status: pass
 workaround_class: null
@@ -14,9 +14,11 @@ timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 100
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+sced_mode: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-6: Code Architecture (Qualitative Assessment of DCPF Solve Path)
@@ -44,7 +46,7 @@ variants are available:
 | `PTDFDCPowerFlow()` | `PTDFPowerFlowData` | Full PTDF matrix |
 | `vPTDFDCPowerFlow()` | `vPTDFPowerFlowData` | Virtual (lazy) PTDF |
 
-Returns `Dict{String, Dict{String, DataFrame}}` — keyed by timestep, containing
+Returns `Dict{String, Dict{String, DataFrame}}` -- keyed by timestep, containing
 `"bus_results"` and `"flow_results"` DataFrames.
 
 ### Layer 2: Data Model (PowerSystems.jl v4.6.2)
@@ -86,7 +88,7 @@ Internal caching layer over the KLU sparse direct solver. The solve sequence is:
 
 1. Create factorization cache: `KLULinSolveCache(ABA_matrix)`
 2. Compute full factorization: `full_factor!(cache, ABA_matrix)`
-3. Solve: `solve!(cache, Pinj)` — overwrites Pinj with solution angles
+3. Solve: `solve!(cache, Pinj)` -- overwrites Pinj with solution angles
 
 For DCPF, the complete mathematical operation is:
 ```
@@ -114,43 +116,43 @@ contain zeros/ones (preserving structural consistency with AC results).
 
 ```
 User: solve_powerflow(DCPowerFlow(), sys)
-  → PowerFlows.jl: construct PowerFlowData(DCPowerFlow(), sys)
-      → PowerNetworkMatrices.jl: build ABA_Matrix(sys)
-          → PowerSystems.jl: iterate components, extract topology
-      → PowerNetworkMatrices.jl: build BA_Matrix(sys)
-      → Extract bus injections/withdrawals from System components
-      → Identify reference bus (excluded from solve)
-  → PowerFlows.jl: solve_powerflow!(data::ABAPowerFlowData)
-      → KLU: factor ABA matrix
-      → KLU: solve ABA * theta = Pinj
-      → Compute: flow = BA' * theta
-      → Mark converged = true
-  → PowerFlows.jl: write_results(data, sys)
-      → Map arrays to bus numbers and branch names
-      → Construct bus_results DataFrame
-      → Construct flow_results DataFrame
-  → Return Dict of DataFrames
+  -> PowerFlows.jl: construct PowerFlowData(DCPowerFlow(), sys)
+      -> PowerNetworkMatrices.jl: build ABA_Matrix(sys)
+          -> PowerSystems.jl: iterate components, extract topology
+      -> PowerNetworkMatrices.jl: build BA_Matrix(sys)
+      -> Extract bus injections/withdrawals from System components
+      -> Identify reference bus (excluded from solve)
+  -> PowerFlows.jl: solve_powerflow!(data::ABAPowerFlowData)
+      -> KLU: factor ABA matrix
+      -> KLU: solve ABA * theta = Pinj
+      -> Compute: flow = BA' * theta
+      -> Mark converged = true
+  -> PowerFlows.jl: write_results(data, sys)
+      -> Map arrays to bus numbers and branch names
+      -> Construct bus_results DataFrame
+      -> Construct flow_results DataFrame
+  -> Return Dict of DataFrames
 ```
 
 ## Separation of Concerns
 
 | Concern | Package | Clean boundary? |
 |---------|---------|----------------|
-| Data model (types, I/O, topology) | PowerSystems.jl | Yes — independent package |
-| Time series management | InfrastructureSystems.jl | Yes — generic, not power-specific |
-| Network matrix computation | PowerNetworkMatrices.jl | Yes — pure linear algebra |
-| Power flow solution | PowerFlows.jl | Yes — consumes System + matrices |
-| Optimization / OPF | PowerSimulations.jl | Yes — adds JuMP layer on same data model |
-| Results output | DataFrames.jl + CSV.jl | Yes — standard Julia ecosystem |
+| Data model (types, I/O, topology) | PowerSystems.jl | Yes -- independent package |
+| Time series management | InfrastructureSystems.jl | Yes -- generic, not power-specific |
+| Network matrix computation | PowerNetworkMatrices.jl | Yes -- pure linear algebra |
+| Power flow solution | PowerFlows.jl | Yes -- consumes System + matrices |
+| Optimization / OPF | PowerSimulations.jl | Yes -- adds JuMP layer on same data model |
+| Results output | DataFrames.jl + CSV.jl | Yes -- standard Julia ecosystem |
 
 The package dependency graph is a clean DAG:
 ```
 InfrastructureSystems.jl
-    ↓
+    |
 PowerSystems.jl
-    ↓
+    |
 PowerNetworkMatrices.jl
-    ↓
+    |
 PowerFlows.jl          PowerSimulations.jl (adds JuMP/MOI)
 ```
 
@@ -177,7 +179,7 @@ PowerNetworkMatrices.jl for PTDF without PowerFlows or PowerSimulations).
    a new solve method means defining a new type (e.g., `MyCustomPowerFlow`) and
    implementing `solve_powerflow(::MyCustomPowerFlow, sys)`.
 
-3. **DCPF has zero external solver dependency** — uses KLU sparse direct solver only.
+3. **DCPF has zero external solver dependency** -- uses KLU sparse direct solver only.
    The OPF path adds JuMP/MathOptInterface, introducing solver dependency.
 
 4. **Parametric type dispatch** (`PowerFlowData{MatrixType}`) allows different matrix
@@ -189,9 +191,9 @@ PowerNetworkMatrices.jl for PTDF without PowerFlows or PowerSimulations).
    construction (`OptimizationContainer`, `get_jump_model()`), bringing the total to 7
    layers for OPF.
 
-6. **No circular dependencies** between packages — clean DAG structure.
+6. **No circular dependencies** between packages -- clean DAG structure.
 
-7. **Internal interfaces are type-safe** — Julia's type system prevents passing
+7. **Internal interfaces are type-safe** -- Julia's type system prevents passing
    wrong data types between layers at compile time.
 
 ## Observations
@@ -205,7 +207,7 @@ PowerNetworkMatrices.jl for PTDF without PowerFlows or PowerSimulations).
 - **doc-gaps:** Internal interfaces (KLULinSolveCache, PowerFlowData construction) are
   not documented in the public API. Users extending the framework need to read source code.
 - **arch-quality:** The DAG dependency structure means users can import only what they
-  need — e.g., `PowerNetworkMatrices.jl` alone for PTDF computation without pulling in
+  need -- e.g., `PowerNetworkMatrices.jl` alone for PTDF computation without pulling in
   the simulation framework.
 
 ## Test Script

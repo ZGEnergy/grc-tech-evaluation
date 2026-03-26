@@ -3,8 +3,8 @@ test_id: F-2
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "8b638f83"
 status: informational
 workaround_class: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-2: Dependency Tree
@@ -36,30 +36,31 @@ The PowerSimulations.jl project (as configured in our evaluation environment wit
 | Total resolved packages | 184 |
 | Direct dependencies | 15 |
 | Transitive dependencies | 169 |
-| Packages with newer version available (⌃) | 7 |
-| Packages constrained below latest (⌅) | 15 |
+| Packages with newer version available (⌃) | 3 (HiGHS, JuMP, PowerSimulations) |
+| Packages constrained below latest (⌅) | 5 (InfrastructureSystems, JSON, PowerFlows, PowerNetworkMatrices, PowerSystems, TimeSeries) |
 | Julia stdlib packages included | ~30 |
-| JLL (binary wrapper) packages | ~30 |
+| JLL (binary wrapper) packages | 41 |
+| Manifest Julia version | 1.10.7 |
 
 ### Direct Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| PowerSimulations | v0.30.2 | Core evaluation target |
-| PowerSystems | v4.6.2 | Power system data model |
-| PowerFlows | v0.9.0 | Power flow calculations |
-| PowerNetworkMatrices | v0.12.1 | Network matrix computations |
-| InfrastructureSystems | v2.6.0 | Shared infrastructure layer |
-| JuMP | v1.29.4 | Mathematical optimization modeling |
-| HiGHS | v1.21.1 | LP/MIP solver (open-source) |
-| Ipopt | v1.14.1 | Nonlinear optimization solver |
-| GLPK | v1.2.1 | LP/MIP solver (GNU) |
-| SCIP | v0.12.8 | Constraint integer programming solver |
-| DataFrames | v1.8.1 | Tabular data manipulation |
-| CSV | v0.10.16 | CSV file I/O |
-| JSON | v0.21.4 | JSON serialization |
-| TimeSeries | v0.24.2 | Time series data structures |
-| Combinatorics | v1.1.0 | Combinatorial utilities |
+| Package | Version | Status | Purpose |
+|---------|---------|--------|---------|
+| PowerSimulations | v0.30.2 | ⌃ | Core evaluation target |
+| PowerSystems | v4.6.2 | ⌅ | Power system data model |
+| PowerFlows | v0.9.0 | ⌅ | Power flow calculations |
+| PowerNetworkMatrices | v0.12.1 | ⌅ | Network matrix computations |
+| InfrastructureSystems | v2.6.0 | ⌅ | Shared infrastructure layer |
+| JuMP | v1.29.4 | ⌃ | Mathematical optimization modeling |
+| HiGHS | v1.21.1 | ⌃ | LP/MIP solver (open-source) |
+| Ipopt | v1.14.1 | | Nonlinear optimization solver |
+| GLPK | v1.2.1 | | LP/MIP solver (GNU) |
+| SCIP | v0.12.8 | | Constraint integer programming solver |
+| DataFrames | v1.8.1 | | Tabular data manipulation |
+| CSV | v0.10.16 | | CSV file I/O |
+| JSON | v0.21.4 | ⌅ | JSON serialization |
+| TimeSeries | v0.24.2 | ⌅ | Time series data structures |
+| Combinatorics | v1.1.0 | | Combinatorial utilities |
 
 ### Key Transitive Dependencies
 
@@ -76,30 +77,28 @@ The PowerSimulations.jl project (as configured in our evaluation environment wit
 | SQLite | v1.8.0 | SQLite database for simulation stores |
 | Tables | v1.12.1 | Abstract table interface |
 
-### Constrained Packages (⌅)
+### JLL Binary Wrappers (41 packages)
 
-These packages cannot be upgraded due to compatibility bounds in the dependency graph:
+The dependency tree includes 41 JLL (Julia Binary Builder) packages that wrap precompiled native libraries:
 
-AppleAccelerate v0.4.5, DataStructures v0.18.22, HDF5_jll v1.14.2+1, InfrastructureSystems v2.6.0, IntelOpenMP_jll v2024.2.1+0, Ipopt_jll v300.1400.1900+0, JSON v0.21.4, MKL v0.7.0, MKL_jll v2024.2.0+0, MUMPS_seq_jll v500.800.100+0, NLSolversBase v7.10.0, OpenBLAS32_jll v0.3.24+0, Pardiso v0.5.7, PowerFlows v0.9.0, PowerNetworkMatrices v0.12.1, PowerSystems v4.6.2, PrecompileTools v1.2.1, PrettyTables v2.4.0, SPRAL_jll v2025.5.20+0, TimeSeries v0.24.2, XML2_jll v2.13.9+0
-
-### JLL Binary Wrappers
-
-The dependency tree includes ~30 JLL (Julia Binary Builder) packages that wrap precompiled native libraries:
-
-- Solver backends: `HiGHS_jll`, `Ipopt_jll`, `GLPK_jll`, `SCIP_jll`, `SCIP_PaPILO_jll`
-- Linear algebra: `MKL_jll`, `OpenBLAS_jll`, `OpenBLAS32_jll`, `SuiteSparse_jll`
-- I/O: `HDF5_jll`, `SQLite_jll`
-- Compression: `Blosc_jll`, `Bzip2_jll`, `Zstd_jll`, `Lz4_jll`
-- System: `OpenSSL_jll`, `GMP_jll`, `MPFR_jll`
+- **Solver backends:** `HiGHS_jll`, `Ipopt_jll`, `GLPK_jll`, `SCIP_jll`, `SCIP_PaPILO_jll`
+- **Solver transitive:** `ASL_jll`, `MUMPS_seq_jll` (v500.800.100+0), `SPRAL_jll` (v2025.5.20+0), `METIS_jll`, `bliss_jll`, `boost_jll`
+- **Linear algebra:** `MKL_jll` (v2024.2.0+0), `OpenBLAS_jll`, `libblastrampoline_jll`, `SuiteSparse_jll`, `IntelOpenMP_jll`
+- **I/O:** `HDF5_jll`, `SQLite_jll`
+- **Compression:** `Blosc_jll`, `Zstd_jll`
+- **System:** `OpenSSL_jll`, `GMP_jll`, `MPFR_jll`, `Zlib_jll`
+- **MPI (platform-specific):** `MPICH_jll`, `MPItrampoline_jll`, `MicrosoftMPI_jll`, `OpenMPI_jll`
+- **Other:** `CompilerSupportLibraries_jll`, `Hwloc_jll`, `oneTBB_jll`, `Ncurses_jll`, `Readline_jll`, `Libiconv_jll`, `LibCURL_jll`, `MozillaCACerts_jll`, `MbedTLS_jll`, `LLVMOpenMP_jll`, `OpenLibm_jll`, `OpenSpecFun_jll`, `Xorg_libpciaccess_jll`, `libaec_jll`
 
 ### Data Source
 
-- `.devcontainer/dc-exec -C /workspace/evaluations/powersimulations julia --project=. -e 'using Pkg; Pkg.status(mode=Pkg.PKGMODE_MANIFEST)'` (accessed 2026-03-14)
-- `.devcontainer/dc-exec -C /workspace/evaluations/powersimulations julia --project=. -e 'using Pkg; Pkg.dependencies()'` (accessed 2026-03-14)
+- `docker exec ... julia --project=. -e 'using Pkg; Pkg.status(mode=Pkg.PKGMODE_PROJECT)'` (accessed 2026-03-24)
+- `grep -c '^\[\[deps\.' Manifest.toml` = 184 (accessed 2026-03-24)
+- `grep '^\[\[deps\.*_jll\]\]' Manifest.toml` = 41 JLL packages (accessed 2026-03-24)
 
 ## Implications
 
 1. **Large dependency tree:** 184 packages is substantial. This is typical for Julia projects that bundle solver bindings (each solver adds its own JLL chain). Without solvers, the count would be significantly lower.
-2. **Version pinning pressure:** 15+ packages are constrained below their latest version, indicating tight compatibility coupling within the Sienna ecosystem. Upgrading any single package may require coordinated updates across PowerSystems, InfrastructureSystems, and PowerSimulations.
-3. **Native binary dependencies:** The JLL packages distribute precompiled binaries for solver backends (HiGHS, Ipopt, GLPK, SCIP) and linear algebra (MKL, OpenBLAS). These are built by BinaryBuilder.jl and are platform-specific, adding supply chain surface area.
+2. **Version pinning pressure:** 6 packages are constrained below their latest version (⌅), indicating tight compatibility coupling within the Sienna ecosystem. Upgrading any single package may require coordinated updates across PowerSystems, InfrastructureSystems, and PowerSimulations.
+3. **Native binary dependencies:** The 41 JLL packages distribute precompiled binaries for solver backends (HiGHS, Ipopt, GLPK, SCIP) and linear algebra (MKL, OpenBLAS). These are built by BinaryBuilder.jl and are platform-specific, adding supply chain surface area.
 4. **Solver modularity:** The four solvers (HiGHS, Ipopt, GLPK, SCIP) are direct dependencies of our evaluation project, not of PowerSimulations.jl itself. In production, only the needed solver(s) would be included, reducing the tree.
