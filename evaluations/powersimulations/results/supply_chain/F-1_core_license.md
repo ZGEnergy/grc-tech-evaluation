@@ -3,9 +3,9 @@ test_id: F-1
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "aa399551"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "64a1874e"
 status: informational
 workaround_class: null
 blocked_by: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-1: Core License
@@ -33,7 +33,7 @@ PowerSimulations.jl and all companion Sienna ecosystem packages are licensed und
 
 - **License:** BSD 3-Clause
 - **Copyright:** 2018, 2023 Alliance for Sustainable Energy, LLC and The Regents of the University of California
-- **Source:** `LICENSE` file in repo root, verified via `gh api repos/NREL-Sienna/PowerSimulations.jl/contents/LICENSE`
+- **Source:** `LICENSE` file in repo root, verified via `gh api repos/NREL-Sienna/PowerSimulations.jl`
 - **GitHub API SPDX:** `BSD-3-Clause`
 
 ### Companion Sienna Packages
@@ -64,8 +64,7 @@ No copyleft, no patent grant, no network-use (AGPL-style) clauses.
 
 ### Data Source
 
-- `gh api repos/NREL-Sienna/PowerSimulations.jl/contents/LICENSE` (accessed 2026-03-14)
-- `gh api repos/NREL-Sienna/{PowerSystems,PowerFlows,PowerNetworkMatrices,InfrastructureSystems}.jl --jq '.license.spdx_id'` (accessed 2026-03-14)
+- `gh api repos/NREL-Sienna/PowerSimulations.jl` — `.license.spdx_id` = `BSD-3-Clause` (accessed 2026-03-24)
 
 ## Implications
 

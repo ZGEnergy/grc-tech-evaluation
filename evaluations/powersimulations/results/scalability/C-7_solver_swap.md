@@ -3,26 +3,28 @@ test_id: C-7
 tool: powersimulations
 dimension: scalability
 network: MEDIUM
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "7f1a1ad3"
 status: pass
 workaround_class: fragile
 blocked_by: null
-wall_clock_seconds: 95.895
+wall_clock_seconds: 129.863
 wall_clock_per_solver:
-  highs_seconds: 11.488
-  glpk_seconds: 50.697
-  scip_seconds: 24.050
-  ipopt_seconds: 9.659
+  highs_seconds: 11.612
+  glpk_seconds: 54.898
+  scip_seconds: 26.424
+  ipopt_seconds: 36.930
 timing_source: measured
-peak_memory_mb: 2003.6
-loc: 370
+peak_memory_mb: 1823.6
+loc: 367
 solver: HiGHS, GLPK, SCIP, Ipopt
-timestamp: "2026-03-14T00:00:00Z"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
-# C-7: Solver Swap on MEDIUM — DCOPF with 4 Open-Source Solvers
+# C-7: Solver Swap on MEDIUM -- DCOPF with 4 Open-Source Solvers
 
 ## Result: PASS
 
@@ -41,10 +43,10 @@ StaticBranchUnbounded, no hydro).
 
 | Solver | Status | Wall-clock | Objective ($) | Peak RSS | Notes |
 |--------|--------|------------|---------------|----------|-------|
-| HiGHS | OPTIMAL | 11.5 s | 3,659,662.46 | 1,515 MB | LP solver |
-| GLPK | OPTIMAL | 50.7 s | 3,659,662.46 | 1,595 MB | LP solver |
-| SCIP | OPTIMAL | 24.1 s | 3,659,662.46 | 1,859 MB | MIP solver (LP mode) |
-| Ipopt | LOCALLY_SOLVED | 9.7 s | 3,659,662.38 | 2,004 MB | NLP solver (LP mode) |
+| HiGHS | OPTIMAL | 11.6 s | 3,659,662.46 | 1,636 MB | LP solver |
+| GLPK | OPTIMAL | 54.9 s | 3,659,662.46 | 1,701 MB | LP solver |
+| SCIP | OPTIMAL | 26.4 s | 3,659,662.46 | 1,773 MB | MIP solver (LP mode) |
+| Ipopt | LOCALLY_SOLVED | 36.9 s | 3,659,662.38 | 1,824 MB | NLP solver (LP mode) |
 
 ### Objective Consistency
 
@@ -54,7 +56,7 @@ interior-point NLP solver applied to an LP.
 
 | Metric | Value |
 |--------|-------|
-| Max pairwise difference | 0.0000% |
+| Max pairwise difference | < 0.0001% |
 | Consistent (< 1%) | Yes |
 
 ### Problem Size
@@ -95,31 +97,38 @@ This is the only reformulation constraint across the four solvers.
 ## Workarounds
 
 Same as C-3:
-1. `initialize_model=false` + `JuMP.optimize!()`
-2. Linear cost override (GLPK QP limitation)
-3. All generators set available (hydro deficit)
-4. `StaticBranchUnbounded` (numerical infeasibility at 10K)
-5. HydroDispatch omitted (no PSI formulation)
+1. `initialize_model=false` + `JuMP.optimize!()` -- PSI's internal `solve!` pathway triggers
+   initialization errors at 10k scale [tool-specific]
+2. Linear cost override -- GLPK QP limitation [solver-specific: GLPK]
+3. All generators set available -- hydro deficit workaround [tool-specific]
+4. `StaticBranchUnbounded` -- numerical infeasibility with branch flow limits at 10K [tool-specific]
+5. HydroDispatch omitted -- no PSI formulation [tool-specific]
+
+- **What:** Five workarounds inherited from C-3 DCOPF baseline
+- **Why:** PSI v0.30.2 cannot solve a standard DCOPF on ACTIVSg10k without these modifications
+- **Durability:** fragile -- `initialize_model=false` + `JuMP.optimize!()` bypasses PSI's
+  internal solve pipeline using undocumented internal API (`PSI.get_optimization_container`,
+  `PSI.get_jump_model`)
+- **Grade impact:** Fragile workaround caps at B- range
 
 ## Timing
 
-- **Wall-clock (total, all 4 solvers):** 95.9 s
-- **Fastest solver:** Ipopt (9.7 s) — interior-point method on LP
-- **Slowest solver:** GLPK (50.7 s)
+- **Wall-clock (total, all 4 solvers):** 129.9 s
+- **Fastest solver:** HiGHS (11.6 s) -- simplex LP solver
+- **Slowest solver:** GLPK (54.9 s)
 - **Timing source:** measured
-- **Peak memory:** 2,004 MB (cumulative RSS after all 4 solves)
+- **Peak memory:** 1,824 MB (cumulative RSS after all 4 solves)
 - **CPU cores used:** 1 (32 available)
 
 ### Speed Ranking
 
-1. Ipopt: 9.7 s (interior-point, NLP solver on LP problem)
-2. HiGHS: 11.5 s (simplex, native LP solver)
-3. SCIP: 24.1 s (branch-and-cut, MIP solver on LP)
-4. GLPK: 50.7 s (simplex, LP solver)
+1. HiGHS: 11.6 s (simplex, native LP solver)
+2. SCIP: 26.4 s (branch-and-cut, MIP solver on LP)
+3. Ipopt: 36.9 s (interior-point, NLP solver on LP problem)
+4. GLPK: 54.9 s (simplex, LP solver)
 
-Ipopt's speed advantage is surprising — its interior-point method converges faster than
-HiGHS's simplex on this 24K-variable LP. SCIP (designed for MIP) is faster than GLPK
-(designed for LP) on this problem.
+HiGHS is the fastest solver on this 24K-variable LP at 10k-bus scale. SCIP (designed for MIP)
+outperforms both Ipopt and GLPK. GLPK is the slowest by a factor of 4.7x vs HiGHS.
 
 ## Test Script
 
@@ -127,9 +136,9 @@ HiGHS's simplex on this 24K-variable LP. SCIP (designed for MIP) is faster than 
 
 ## Observations
 
-- **solver-issues:** Ipopt (NLP interior-point) is the fastest solver on this DCOPF LP at 10K
-  scale (9.7s vs HiGHS 11.5s). This is counterintuitive — interior-point methods typically
-  have higher per-iteration cost but converge in fewer iterations on well-structured LPs.
+- **solver-issues:** HiGHS is the fastest solver for this DCOPF LP at 10K scale (11.6s). SCIP
+  (26.4s) outperforms Ipopt (36.9s) and GLPK (54.9s). The speed ranking is HiGHS > SCIP > Ipopt
+  > GLPK, consistent with solver architectural expectations for LP problems.
 - **api-friction:** Solver-specific parameter names are completely different across solvers
   (e.g., time limit: `time_limit` vs `tm_lim` vs `limits/time` vs `max_wall_time`). JuMP's
   `optimizer_with_attributes` abstraction handles this, but users must look up each solver's

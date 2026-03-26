@@ -3,20 +3,26 @@ test_id: B-1
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: v10
-skill_version: v1
+protocol_version: v11
+skill_version: v2
 test_hash: "fececf15"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.23
+wall_clock_seconds: 0.30
 timing_source: measured
-peak_memory_mb: 1235.1
+peak_memory_mb: 1263.9
 convergence_residual: null
 convergence_iterations: null
-loc: 360
+convergence_evidence_quality: null
+loc: 372
 solver: HiGHS
-timestamp: 2026-03-14T00:00:00Z
+cpu_threads_used: null
+cpu_threads_available: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # B-1: Custom Constraints (flow gate limit + dual extraction)
@@ -30,7 +36,7 @@ then accessed the underlying JuMP model via `PSI.get_optimization_container(mode
 `PSI.get_jump_model(oc)`. Added a flow gate constraint using JuMP's `@constraint` macro
 on flow variables found across multiple PSI variable containers (Lines and TapTransformers).
 
-Tested two scenarios per the cross-tool watchpoints:
+Tested two scenarios:
 
 1. **Non-binding constraint** (limit = 10,000 MW, far above actual flow of 74.4 MW)
 2. **Binding constraint** (limit = 50% of unconstrained flow = 37.18 MW)
@@ -81,22 +87,23 @@ Duals extracted directly from JuMP constraint references using `JuMP.dual()`.
 - Objective increases: **confirmed** ($1,653.97 increase)
 
 The negative sign on the upper constraint dual is consistent with a binding upper bound
-in a minimization problem (shadow price for relaxing the constraint).
+in a minimization problem (shadow price for relaxing the constraint). [tool-specific]
 
 ## Workarounds
 
 None required for the core constraint addition and dual extraction. JuMP model access
 via `PSI.get_optimization_container` + `PSI.get_jump_model` is the documented approach.
 
-Minor operational workaround: PowerSimulations.jl requires deterministic time series data
+Minor operational note: PowerSimulations.jl requires deterministic time series data
 even for single-snapshot DCOPF. Added 1-step forecast with multiplier=1.0 for all loads.
-This is the same requirement noted in A-3.
+This is the same requirement noted in A-3. This is not classified as a workaround because
+it is the standard API usage pattern for PowerSimulations.jl.
 
 ## Timing
 
-- **Wall-clock:** 0.23s (second invocation, post-JIT)
+- **Wall-clock:** 0.30s (second invocation, post-JIT)
 - **Timing source:** measured
-- **Peak memory:** 1,235 MB (includes JIT artifacts from warm-up)
+- **Peak memory:** 1,264 MB (includes JIT artifacts from warm-up)
 
 ## Test Script
 
@@ -125,7 +132,3 @@ JuMP.optimize!(jm)
 # Extract dual
 dual_value = JuMP.dual(con)
 ```
-
-<!-- observation:arch-quality B-1: JuMP model access is a genuine architectural strength.
-The ability to add arbitrary constraints and extract duals via standard JuMP API means
-PSI inherits the full expressiveness of JuMP/MathOptInterface for custom extensions. -->

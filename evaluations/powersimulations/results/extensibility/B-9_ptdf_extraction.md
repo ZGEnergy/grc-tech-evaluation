@@ -3,20 +3,21 @@ test_id: B-9
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "d8e7210b"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "3c9003ed"
 status: pass
 workaround_class: null
 blocked_by: null
 wall_clock_seconds: 0.001
 timing_source: measured
-peak_memory_mb: 944.5
+peak_memory_mb: 856.6
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 220
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-9: PTDF Matrix Extraction and Verification
@@ -49,15 +50,15 @@ Pbusinj/Pfinj corrections needed.
 |--------|-------|
 | Min element | -1.000000 |
 | Max element | 1.000000 |
-| Mean |element|| 0.151451 |
+| Mean |element| | 0.151451 |
 | Non-zero fraction (>1e-10) | 60.76% |
 
 **Flow comparison (46 branches):**
 
 | Metric | Value |
 |--------|-------|
-| Max error | 1.15e-14 p.u. (1.15e-12 MW) |
-| Mean error | 1.57e-15 p.u. (1.57e-13 MW) |
+| Max error | 1.155e-14 p.u. (1.155e-12 MW) |
+| Mean error | 1.568e-15 p.u. (1.568e-13 MW) |
 | Branches compared | 46 / 46 |
 
 All 46 branches match to machine precision. The max error of 1.15e-14 p.u. is 8 orders
@@ -65,7 +66,17 @@ of magnitude below the 1e-6 tolerance. This confirms that PowerNetworkMatrices.j
 PTDF computation and PowerFlows.jl's DCPF solve are mathematically consistent.
 
 **LODF also available:** `LODF(sys)` returns a 46x46 Line Outage Distribution Factor
-matrix in 0.011 s. Same one-line API pattern.
+matrix in 0.016 s. Same one-line API pattern.
+
+**Sample flow comparison (top 5 by error, all effectively zero):**
+
+| Branch | PTDF Flow (p.u.) | DCPF Flow (p.u.) | Error (p.u.) |
+|--------|------------------|-------------------|--------------|
+| bus-1-bus-2-i_1 | -1.78353726 | -1.78353726 | 0.0 |
+| bus-1-bus-39-i_2 | 0.80753726 | 0.80753726 | 0.0 |
+| bus-2-bus-3-i_3 | 3.33430081 | 3.33430081 | 0.0 |
+| bus-2-bus-25-i_4 | -2.61783807 | -2.61783807 | 0.0 |
+| bus-2-bus-30-i_5 | -2.50000000 | -2.50000000 | 0.0 |
 
 ## Workarounds
 
@@ -73,11 +84,11 @@ None required. PTDF extraction is a first-class feature of PowerNetworkMatrices.
 
 ## Timing
 
-- **PTDF computation:** 0.0002 s (second run, after JIT warm-up)
-- **DCPF solve:** 0.0006 s
-- **LODF computation:** 0.011 s
+- **PTDF computation:** 0.0003 s (second run, after JIT warm-up)
+- **DCPF solve:** 0.0008 s
+- **LODF computation:** 0.016 s
 - **Timing source:** measured
-- **Peak memory:** 944.5 MB (Julia process RSS)
+- **Peak memory:** 856.6 MB (Julia process RSS)
 
 ## Test Script
 
@@ -112,7 +123,7 @@ lodf = LODF(sys)                 # 46 x 46 Matrix{Float64}
   wrapped in a custom type that would require special access patterns. This means
   standard linear algebra operations (transpose, matrix-vector multiply) work directly.
 - The axes metadata (`ptdf.axes[1]` for buses, `ptdf.axes[2]` for branches) provides
-  clean mapping between matrix indices and physical component names — no manual index
+  clean mapping between matrix indices and physical component names -- no manual index
   bookkeeping required.
 - PowerNetworkMatrices.jl also offers `VirtualPTDF(sys)` for lazy/row-by-row computation
   on large networks (memory-efficient), and `VirtualLODF(sys)` for the same pattern

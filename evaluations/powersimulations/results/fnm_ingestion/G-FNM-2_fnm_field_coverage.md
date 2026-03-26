@@ -3,32 +3,36 @@ test_id: G-FNM-2
 tool: powersimulations
 dimension: fnm_ingestion
 network: LARGE
-status: fail
+protocol_version: v11
+skill_version: v2
+test_hash: be3122c0
+status: skip
 workaround_class: null
 blocked_by: G-FNM-1
-timestamp: "2026-03-14T13:15:56Z"
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "21c38623"
 wall_clock_seconds: null
-timing_source: estimated
+timing_source: null
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: null
 solver: null
-input_path: null
+ingestion_path: null
+sced_mode: null
+test_category: null
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # G-FNM-2: Field coverage audit against criticality matrix
 
-## Result: FAIL
+## Result: SKIP
 
 ## Finding
 
 G-FNM-2 is blocked by G-FNM-1 failure. PowerSystems.jl v4.6.2 cannot parse the
-PSS/E RAW v31 file, so field-level coverage against the criticality matrix cannot
-be evaluated on the native RAW ingestion path.
+PSS/E-derived intermediate CSV tables (no parser exists for this format), and PSS/E
+RAW v31 direct parsing also fails. Field-level coverage against the criticality matrix
+cannot be evaluated without successful ingestion of the intermediate format.
 
 Field coverage via the MATPOWER fallback path is not meaningful for this test because
 MATPOWER format already collapses many PSS/E-specific fields (e.g., switched shunt
@@ -37,7 +41,8 @@ discrete steps, transformer control modes, area interchange targets).
 ## Evidence
 
 - G-FNM-1 status: fail (psse_parse_error)
-- No PSS/E-parsed System object available for field inspection
+- failure_reason: PowerSystems.jl has no parser for PSS/E-derived intermediate CSV tables
+- No PSS/E-parsed or intermediate-CSV-parsed System object available for field inspection
 
 ## Implications
 

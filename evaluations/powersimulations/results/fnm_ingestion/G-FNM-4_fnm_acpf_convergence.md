@@ -3,23 +3,26 @@ test_id: G-FNM-4
 tool: powersimulations
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "bfd9783e"
+protocol_version: v11
+skill_version: v2
+test_hash: f1e2d021
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 46.55
+wall_clock_seconds: 145.25
 timing_source: measured
-peak_memory_mb: 1587.4
+peak_memory_mb: 1727.5
 convergence_residual: null
 convergence_iterations: null
-loc: 273
+convergence_evidence_quality: binary_convergence_api
+loc: 275
 solver: PowerFlows.ACPowerFlow (NewtonRaphson)
-timestamp: "2026-03-14T19:50:00Z"
-input_path: matpower
-dcpf_init_mean_deg: 212.01
-dcpf_init_max_abs_deg: 540.25
+ingestion_path: matpower_raw
+sced_mode: null
+test_category: null
+timestamp: "2026-03-24T22:00:00Z"
+dcpf_init_mean_deg: 2.120131e+02
+dcpf_init_max_abs_deg: 5.402463e+02
 relaxation_level_achieved: infeasible
 acpf_timeout_minutes: 30
 ---
@@ -34,7 +37,8 @@ Relaxation level achieved: **infeasible**.
 
 ## Approach
 
-1. **DCPF warm-start:** Loaded `fnm_main_island.m` and solved DCPF via
+1. **DCPF warm-start:** Loaded `fnm_main_island.m` (MATPOWER fallback, 27,862 buses) via
+   `PowerSystems.System(path; runchecks=false)`. Solved DCPF via
    `PowerFlows.solve_powerflow(DCPowerFlow(), sys)`. Extracted bus voltage angles
    from the DCPF solution.
 2. **Angle initialization:** Set bus angles from the DCPF solution on the System
@@ -51,9 +55,9 @@ Relaxation level achieved: **infeasible**.
 
 | Metric | Value |
 |--------|-------|
-| DCPF solve time | 2.73s |
-| Mean \|angle\| (non-zero buses) | 212.0 deg |
-| Max \|angle\| | 540.2 deg |
+| DCPF solve time | 10.51s |
+| Mean \|angle\| (non-zero buses) | 2.120131e+02 deg |
+| Max \|angle\| | 5.402463e+02 deg |
 | Non-zero angles | 27,858 / 27,862 |
 
 The large angle magnitudes (mean 212 deg) are expected for a large interconnected
@@ -65,18 +69,20 @@ a wide range of angular positions.
 | Metric | Value |
 |--------|-------|
 | Converged | No |
-| Wall-clock | 10.37s |
+| Wall-clock | 33.77s |
 | Solver | NewtonRaphsonACPowerFlow |
 | Max iterations | 100 |
 
-The Newton-Raphson solver ran 100 iterations without convergence.
+The Newton-Raphson solver ran 100 iterations without convergence. PowerFlows.jl
+emitted `Error: The PowerFlows.NewtonRaphsonACPowerFlow solver failed to converge.`
+at the `@error` log level.
 
 ### Step 3: ACPF at 10% Relaxation
 
 | Metric | Value |
 |--------|-------|
 | Converged | No |
-| Wall-clock | 9.28s |
+| Wall-clock | 18.46s |
 | Branch rating increase | 10% |
 
 ### Step 4: ACPF at 20% Relaxation
@@ -84,16 +90,16 @@ The Newton-Raphson solver ran 100 iterations without convergence.
 | Metric | Value |
 |--------|-------|
 | Converged | No |
-| Wall-clock | 9.00s |
+| Wall-clock | 28.75s |
 | Branch rating increase | 20% |
 
 ### Summary
 
 | Relaxation Level | Converged | Time (s) |
 |-----------------|-----------|----------|
-| 0% | No | 10.37 |
-| 10% | No | 9.28 |
-| 20% | No | 9.00 |
+| 0% | No | 33.77 |
+| 10% | No | 18.46 |
+| 20% | No | 28.75 |
 
 **Relaxation level achieved: infeasible**
 
@@ -113,13 +119,21 @@ The ACPF non-convergence on this 27,862-bus network is attributable to several f
    interpretation can trigger false convergence failure.
 
 3. **Formulation difference in warm-start:** The DCPF warm-start angles come from
-   PowerFlows.jl's simplified B-matrix, which differs from MATPOWER's full B-matrix
-   by ~2.7 degrees on average (from G-FNM-3). This offset degrades the warm-start
-   quality for the NR solver.
+   PowerFlows.jl's simplified B-matrix (see [G-FNM-3 formulation-difference observation](../observations/formulation-difference-fnm_ingestion-G-FNM-3_fnm_dcpf_verification.md)),
+   which ignores transformer tap ratios. On a network with 2,340 off-nominal-tap
+   transformers, this produces angle offsets of ~2.7 degrees mean that degrade the
+   warm-start quality for the NR solver.
 
 4. **Rating relaxation scope:** The branch rating relaxation (10%, 20%) affects thermal
    limits but does not address the voltage-reactive power convergence challenge, which
-   is the primary difficulty on large AC networks.
+   is the primary difficulty on large AC networks. Rating relaxation is more relevant
+   for OPF feasibility than for power flow convergence.
+
+5. **Convergence diagnostics limitation:** PowerFlows.jl returns only a boolean
+   `converged` flag and emits log messages at `@error` level on failure. It does not
+   expose the final NR mismatch residual or per-bus power balance residuals to the
+   caller. This limits root-cause analysis of convergence failures. Convergence
+   evidence quality is `binary_convergence_api` (tier 3 of 4).
 
 ## Workarounds
 
@@ -130,17 +144,19 @@ could potentially improve convergence (not tested):
 - Enabling `check_reactive_power_limits=true` to allow PV-to-PQ transitions
 - Manually widening generator Q-limits before solving
 - Using a flat start (VM=1.0, VA=0.0) instead of DCPF warm-start
+- Using the alternative `TrustRegionACPowerFlow` or `LevenbergMarquardtACPowerFlow` solvers
 
-These are left as future diagnostic paths since G-FNM-4 has no hard gate.
+These are left as future diagnostic paths since G-FNM-4 has no hard gate consequence.
 
 ## Timing
 
-- **Wall-clock:** 46.55s total (8.93s initial load + 2.73s DCPF + 10.37s ACPF-0% +
-  9.28s ACPF-10% + 9.00s ACPF-20% + overhead from reloads)
+- **Wall-clock:** 145.25s total (38.92s initial load + 10.51s DCPF + 33.77s ACPF-0% +
+  18.46s ACPF-10% + 28.75s ACPF-20% + overhead from reloads)
 - **Timing source:** measured
-- **Peak memory:** 1,587.4 MB
+- **Peak memory:** 1,727.5 MB (peak RSS)
 - **Solver iterations:** up to 100 per attempt (max iterations reached)
 - **Convergence residual:** not reported (solver returns boolean only)
+- **Convergence evidence quality:** binary_convergence_api
 - **CPU cores used:** 1
 
 ## Observations
@@ -150,17 +166,27 @@ These are left as future diagnostic paths since G-FNM-4 has no hard gate.
 PowerFlows.jl's Newton-Raphson ACPF solver cannot converge on the 27,862-bus FNM
 main island network even with DCPF warm-start and 20% branch rating relaxation.
 This is consistent with the expected behavior for large-scale AC power flow in
-open-source tools without specialized initialization heuristics. The solver does
-not expose convergence residual or iteration count diagnostics beyond a boolean
-converged/not-converged status, limiting root-cause analysis.
+open-source tools without specialized initialization heuristics. [tool-specific]
 
-### `fnm-data-model` -- No convergence diagnostics from PowerFlows.jl
+### `fnm-data-model` -- Limited convergence diagnostics from PowerFlows.jl
 
 PowerFlows.jl's `solve_powerflow!` returns only a boolean `converged` flag. It does
 not expose the final NR mismatch residual, iteration count, or per-bus power balance
-residuals to the caller. The internal `_run_powerflow_method` function does compute
-these values (and logs iteration count on success) but does not return them on failure.
-This limits diagnostic capability for large-network convergence studies.
+residuals to the caller via the API. On failure, it emits `@error` log messages
+including "The PowerFlows.NewtonRaphsonACPowerFlow solver failed to converge." The
+internal `_run_powerflow_method` function computes these values but does not return
+them. This achieves convergence evidence quality tier `binary_convergence_api` (3/4).
+[tool-specific]
+
+### `formulation-difference` -- DCPF warm-start degraded by simplified B-matrix
+
+The DCPF warm-start angles used for ACPF initialization are computed with
+PowerFlows.jl's simplified B-matrix (b = -1/x, ignoring tap ratios). On the FNM
+with 2,340 off-nominal-tap transformers, this produces mean angle deviations of
+~2.7 degrees versus a full B-matrix reference (from G-FNM-3). This systematic
+offset degrades the warm-start quality and may contribute to NR non-convergence,
+though the primary convergence challenge is the network scale and Q-limit
+interaction. [tool-specific]
 
 ## Test Script
 

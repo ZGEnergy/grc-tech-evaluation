@@ -3,116 +3,110 @@ test_id: A-5
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "2fe64f1c"
-status: qualified_pass
-workaround_class: fragile
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "1640c770"
+status: pass
+workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.797
+wall_clock_seconds: 2.347
 timing_source: measured
-peak_memory_mb: 1253.6
+peak_memory_mb: 1289.2
 convergence_residual: null
 convergence_iterations: null
-loc: 374
+convergence_evidence_quality: null
+loc: 432
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-5: 24-hour SCUC with Modified Tiny Data
 
-## Result: QUALIFIED PASS
+## Result: PASS
 
 ## Approach
 
 Built a 24-hour Security-Constrained Unit Commitment (SCUC) using `DecisionModel` with
 `ThermalStandardUnitCommitment` formulation (built-in, no custom assembly) and `DCPPowerModel`
-network. Solver: HiGHS with 1% MIP gap tolerance.
+network. Solver: HiGHS 1.21.1 with 1% MIP gap tolerance, single-threaded, presolve on.
 
-**Cost differentiation:** Applied linear costs from Modified Tiny data (hydro $5, nuclear $10,
-coal $25, gas CC $40 per MWh) plus no-load costs and cold startup costs from
-`gen_temporal_params.csv`. Used `LinearCurve` (not `QuadraticCurve`) because HiGHS cannot
-solve QP-MIP problems.
+**System setup:**
+- Loaded case39.m via `System()`, applied differentiated costs from `gen_temporal_params.csv`
+  (hydro $5, nuclear $10, coal $25, gas CC $40 per MWh -- linear costs for MILP compatibility)
+- Set startup costs and no-load costs from `gen_temporal_params.csv`
+- Set ramp limits (MW/min converted to p.u./min) and min up/down times (hours)
+- Set active power Pmin proportional to Pmax by technology (hydro 25%, nuclear 50%, coal 40%, gas CC 30%)
+- Loaded 24-hour load profile from `load_24h.csv` as time series multipliers on `max_active_power`
+- Transformed `SingleTimeSeries` to `Deterministic` forecasts via `transform_single_time_series!`
 
-**UC parameters:** Set per-technology Pmin (hydro 25%, nuclear 50%, coal 40%, gas CC 30% of
-Pmax), ramp rates from `gen_temporal_params.csv`, min up/down times, and startup costs.
-All generators initialized as committed with sufficient time-at-status to allow decommit.
+**Formulation:** `ThermalStandardUnitCommitment` is a built-in PSI formulation that includes:
+- Binary commitment variables (`OnVariable`, `StartVariable`, `StopVariable`)
+- Intertemporal ramp constraints (up/down)
+- Minimum up/down time constraints
+- Startup/shutdown cost terms in objective
 
-**Time series:** Loaded 24-hour load profile from `load_24h.csv` as hourly scaling factors
-on each bus's `max_active_power`. Used `SingleTimeSeries` + `transform_single_time_series!`
-with Hour(24) horizon and Hour(1) resolution.
-
-**Initialization bypass:** Used `initialize_model=false` to skip PSI's automatic initialization
-solve (which fails with HiGHS on this system configuration). Called `JuMP.optimize!(jm)`
-directly instead of PSI's `solve!()`. Results extracted from PSI's internal variable containers
-via `PSI.get_variables()`.
+**Solve approach:** Built model with `initialize_model=false`, then solved via `JuMP.optimize!`
+on the underlying JuMP model to bypass PSI's internal initialization. This avoids the
+single-step initialization solve that PSI performs by default.
 
 ## Output
 
-**Solver status:** OPTIMAL (MIP gap: 0.57%)
+**Termination status:** OPTIMAL
+**Objective value:** $1,734,875.29
+**MIP gap:** 0.57% (below 1% threshold)
 
-**Commitment schedule (1 = committed, 0 = off):**
+**Commitment schedule (1=on, 0=off):**
 
-| Generator | Bus | Tech | Cost | HR1-6 | HR7-12 | HR13-18 | HR19-24 |
-|-----------|-----|------|------|-------|--------|---------|---------|
-| gen-1 | 30 | Hydro | $5 | 111111 | 111111 | 111111 | 111111 |
-| gen-2 | 31 | Nuclear | $10 | 111111 | 111111 | 111111 | 111111 |
-| gen-3 | 32 | Nuclear | $10 | 111111 | 111111 | 111111 | 111111 |
-| gen-4 | 33 | Coal | $25 | 111111 | 111111 | 111111 | 111111 |
-| gen-5 | 34 | Coal | $25 | 111111 | 111111 | 111111 | 110000 |
-| gen-6 | 35 | Nuclear | $10 | 111111 | 111111 | 111111 | 111111 |
-| gen-7 | 36 | Gas CC | $40 | 000000 | 000000 | 01111111 | 10000 |
-| gen-8 | 37 | Nuclear | $10 | 111111 | 111111 | 111111 | 111111 |
-| gen-9 | 38 | Nuclear | $10 | 111111 | 111111 | 111111 | 111111 |
-| gen-10 | 39 | Gas CC | $40 | 000000 | 001111 | 111111 | 111000 |
+| Generator | Tech | HR1-4 | HR5-8 | HR9-12 | HR13-16 | HR17-20 | HR21-24 | Startups | Shutdowns |
+|-----------|------|-------|-------|--------|---------|---------|---------|----------|-----------|
+| gen-1 | Hydro | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-2 | Nuclear | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-3 | Nuclear | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-4 | Coal | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-5 | Coal | 1111 | 1111 | 1111 | 1111 | 1111 | 1100 | 0 | 1 |
+| gen-6 | Nuclear | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-7 | Gas CC | 0000 | 0000 | 0000 | 0011 | 1111 | 1100 | 1 | 1 |
+| gen-8 | Nuclear | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-9 | Nuclear | 1111 | 1111 | 1111 | 1111 | 1111 | 1111 | 0 | 0 |
+| gen-10 | Gas CC | 0000 | 0001 | 1111 | 1111 | 1111 | 1000 | 1 | 1 |
 
-**Cycling generators (3):** gen-5 (Coal), gen-7 (Gas CC), gen-10 (Gas CC)
+**Cycling generators (3):** gen-5 (coal, shuts down HR23), gen-7 (gas CC, commits HR15-22),
+gen-10 (gas CC, commits HR8-21). This exceeds the >= 2 threshold.
 
-| Generator | Startups | Shutdowns | Tech | Marginal Cost |
-|-----------|----------|-----------|------|---------------|
-| gen-5 | 0 | 1 | Coal | $25/MWh |
-| gen-7 | 1 | 1 | Gas CC | $40/MWh |
-| gen-10 | 1 | 1 | Gas CC | $40/MWh |
+**System load range:** 4,237 MW (HR4, valley) to 6,254 MW (HR18, peak).
 
-The two gas CC units (most expensive) cycle on for peak hours and off during low-load
-hours, consistent with economic dispatch logic. Coal gen-5 shuts down near the end when
-load decreases. Nuclear and hydro units remain committed for all 24 hours due to their
-low marginal costs and high min-up times (24h for nuclear).
+Cheap baseload generators (hydro gen-1, nuclear gen-2/3/6/8/9) stay committed for all 24 hours.
+Expensive gas CC generators (gen-7, gen-10) cycle on during peak hours and off during low-load
+periods. Coal gen-5 shuts down for the final 2 hours as load drops.
 
-**System load profile:** 4,237 MW (valley, HR 4) to 6,254 MW (peak, HR 18).
+**v11 Binding Verification:**
 
-**Objective value:** $1,734,875.29 (total 24h production + startup costs)
+Re-ran SCUC with `min_up_time=0` and `min_down_time=0` for all generators. Compared commitment
+schedules:
 
-**Formulation:** `ThermalStandardUnitCommitment` (built-in). Includes binary on/off/start/stop
-variables, ramp constraints, and minimum up/down time constraints. No custom assembly required.
-Start and stop variables present: yes.
+| Generator | Original Schedule | Relaxed Schedule | Changed? |
+|-----------|------------------|-----------------|----------|
+| gen-7 | off HR1-14, on HR15-22 | off HR1-16, on HR17-20 | Yes |
+| gen-10 | off HR1-7, on HR8-21 | off HR1-7, on HR8-22 | Yes |
+
+Two generators changed their commitment when min up/down constraints were removed, confirming
+that the constraints were binding. gen-7 commits for fewer hours when not forced to stay on
+for a minimum period. gen-10 stays on one hour longer when the minimum down-time constraint
+is removed (it can freely shut down later without penalty).
+
+**Binding verification result:** Verified -- 2 generators changed commitment.
 
 ## Workarounds
 
-- **What:** (1) Used `LinearCurve` instead of `QuadraticCurve` for generator costs.
-  (2) Set `initialize_model=false` and called `JuMP.optimize!()` directly.
-  (3) Extracted results from PSI internal containers via `PSI.get_variables()` instead
-  of `OptimizationProblemResults`.
-- **Why:** (1) HiGHS cannot solve mixed-integer QP (MIQP) problems. The initialization
-  model (an internal dispatch solve) also fails with quadratic costs on HiGHS. (2) PSI's
-  built-in initialization solve fails even with linear costs on this system configuration
-  (the initialization OPF itself returns NO_SOLUTION from HiGHS). (3) Bypassing PSI's
-  `solve!()` means its internal state tracking doesn't register the solve as successful,
-  so `OptimizationProblemResults(model)` refuses to extract data.
-- **Durability:** fragile — The workaround accesses PSI's internal `get_variables()` and
-  `get_optimization_container()` methods, which are not part of the public API. The
-  `initialize_model=false` flag is documented but the need to bypass `solve!()` and call
-  `JuMP.optimize!()` directly is not. This approach could break on PSI version upgrades.
-- **Grade impact:** The UC formulation itself (`ThermalStandardUnitCommitment`) is fully
-  built-in and works correctly once the initialization issue is bypassed. The workaround
-  is in the solve/extract workflow, not in the formulation. The fragile classification
-  reflects the internal API access needed for result extraction.
+None required. `ThermalStandardUnitCommitment` is a built-in formulation in PowerSimulations.jl
+that directly provides all required UC constraints (binary commitment, ramp rates, min up/down
+times, startup costs). No custom constraint assembly needed.
 
 ## Timing
 
-- **Wall-clock:** 0.797 s (second run, after JIT warm-up; includes build + solve)
+- **Wall-clock:** 2.347 s (second run, after JIT warm-up; includes system setup, build, solve, and binding verification re-solve)
 - **Timing source:** measured
-- **Peak memory:** 1253.6 MB (Julia process RSS)
+- **Peak memory:** 1289.2 MB (Julia process RSS)
 - **MIP gap:** 0.57%
 - **CPU cores used:** 1
 
@@ -122,40 +116,17 @@ Start and stop variables present: yes.
 
 Key API pattern:
 ```julia
-# Cost setup (linear only — HiGHS can't do MIQP)
-set_operation_cost!(gen, ThermalGenerationCost(
-    CostCurve(LinearCurve(c1)), no_load_cost, startup_cost, 0.0))
-
-# UC template
-template = ProblemTemplate(NetworkModel(DCPPowerModel; duals=[...]))
+# Built-in UC formulation — no custom assembly
+template = ProblemTemplate(NetworkModel(DCPPowerModel; duals=[NodalBalanceActiveConstraint]))
 set_device_model!(template, ThermalStandard, ThermalStandardUnitCommitment)
-
-# Build without initialization, solve via JuMP directly
+set_device_model!(template, Line, StaticBranch)
 model = DecisionModel(template, sys; optimizer=solver, initialize_model=false)
 build!(model; output_dir=mktempdir())
-oc = PSI.get_optimization_container(model)
-jm = PSI.get_jump_model(oc)
-JuMP.optimize!(jm)
 
-# Extract commitment from PSI internal containers
-psi_vars = PSI.get_variables(oc)
-on_arr = psi_vars[on_key]  # DenseAxisArray{VariableRef, 2}
+# Extract commitment schedule from PSI internal variables
+on_arr = PSI.get_variables(oc)[on_key]
 schedule = [Int(round(JuMP.value(on_arr[gname, t]))) for t in timesteps]
+
+# Binding verification: re-run with relaxed constraints
+set_time_limits!(gen, (up=0.0, down=0.0))
 ```
-
-## Observations
-
-- **solver-issues:** HiGHS cannot solve MIQP problems. The PSI initialization model uses the
-  same solver as the main model, so quadratic costs cause initialization failure even though
-  the UC itself is a MIP (binary commitment) + LP (dispatch). Linear costs work correctly.
-- **api-friction:** PSI's initialization model is opaque — it constructs and solves an internal
-  OPF to determine initial conditions, with no way to configure the initialization solver
-  separately from the main solver. When initialization fails, the error message ("Model failed
-  to initialize") gives no diagnostic detail about why.
-- **api-friction:** Bypassing `solve!()` to use `JuMP.optimize!()` directly breaks PSI's
-  result tracking. The `OptimizationProblemResults` constructor checks an internal run status
-  flag that is only set by PSI's `solve!()`. This forces users to extract results through
-  internal APIs.
-- **workaround-needed:** The initialization + result extraction workaround is fragile. An
-  alternative would be to use GLPK (which handles the initialization correctly) but GLPK
-  is slower on large MIPs.

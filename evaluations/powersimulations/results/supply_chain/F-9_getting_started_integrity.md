@@ -3,8 +3,8 @@ test_id: F-9
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "738f75e3"
 status: informational
 workaround_class: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-9: Getting-Started Artifact Integrity
@@ -118,3 +118,9 @@ supply-chain gap for reproducibility-sensitive deployments.
 A user following the tutorials at two different points in time could get different package
 versions, different test data, and potentially different results -- with no mechanism to
 detect or prevent this divergence.
+
+## Data Source
+
+- PowerSimulations.jl `docs/` directory on GitHub (accessed 2026-03-24)
+- PowerSystemCaseBuilder.jl source and data fetching mechanism (accessed 2026-03-24)
+- Documenter.jl `/stable/` URL behavior (accessed 2026-03-24)

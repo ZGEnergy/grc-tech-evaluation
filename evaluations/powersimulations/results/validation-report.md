@@ -1,55 +1,59 @@
 # Validation Report — PowerSimulations.jl
 
-## Summary
+**Generated:** 2026-03-24
+**Protocol version:** v11
+**Skill version:** v2
 
-- **Total result files:** 60
-- **Expected test IDs:** 58 (C-5 has SMALL + MEDIUM = 2 files)
-- **Gaps:** None
-- **Frontmatter violations:** None
-- **Naming violations:** None
+## Completeness
+
+| Category | Count |
+|----------|-------|
+| Tests in config | 59 |
+| Result files found | 60 (C-5 has SMALL + MEDIUM tier files) |
+| Gaps | 0 |
+| Orphaned files | 0 |
 
 ## Status Distribution
 
 | Status | Count |
 |--------|-------|
+| pass | 20 |
 | informational | 26 |
-| pass | 18 |
-| qualified_pass | 10 |
-| fail | 6 |
+| qualified_pass | 5 |
+| partial_pass | 2 |
+| constrained_pass | 1 |
+| fail | 5 |
+| skip | 1 |
 
-## Workaround Class Distribution
+## Dimension Coverage
 
-| Class | Count |
-|-------|-------|
-| null | 42 |
-| stable | 7 |
-| fragile | 7 |
-| blocking | 4 |
+| Dimension | Files | Notes |
+|-----------|-------|-------|
+| gate | 3 | G-1, G-2, G-3 all pass |
+| expressiveness | 10 | A-1 through A-12 |
+| extensibility | 8 | B-1 through B-9 |
+| scalability | 10 | C-1 through C-10 (C-5 has 2 tier files) |
+| accessibility | 5 | D-1 through D-5 |
+| maturity | 7 | E-1 through E-7 |
+| supply_chain | 9 | F-1 through F-9 |
+| fnm_ingestion | 5 | G-FNM-1 through G-FNM-5 |
+| p2_readiness | 3 | P2-1 through P2-3 |
 
 ## Frontmatter Validation
 
-All 60 result files contain required fields:
-- test_id: 60/60
-- tool: 60/60
-- status: 60/60
-- protocol_version: 60/60
-- skill_version: 60/60
-- test_hash: 60/60
+- **Violations:** 0
+- **Warnings:** 0
+- All required fields present in all files
+- All status values valid
+- All workaround_class values valid
+- All protocol_version = v11
+- All skill_version = v2
+- All test_hash values match config
 
-## Files by Dimension
+## Naming Validation
 
-| Dimension | Files | Test IDs |
-|-----------|-------|----------|
-| gate | 3 | G-1, G-2, G-3 |
-| expressiveness | 9 | A-1, A-2, A-3, A-4, A-5, A-6, A-9, A-10, A-11, A-12 |
-| extensibility | 8 | B-1, B-2, B-3, B-4, B-5, B-6, B-8, B-9 |
-| scalability | 10 | C-1, C-2, C-3, C-4, C-5 (×2), C-7, C-8, C-9, C-10 |
-| fnm_ingestion | 5 | G-FNM-1, G-FNM-2, G-FNM-3, G-FNM-4, G-FNM-5 |
-| accessibility | 5 | D-1, D-2, D-3, D-4, D-5 |
-| maturity | 7 | E-1, E-2, E-3, E-4, E-5, E-6, E-7 |
-| supply_chain | 9 | F-1, F-2, F-3, F-4, F-5, F-6, F-7, F-8, F-9 |
-| p2_readiness | 3 | P2-1, P2-2, P2-3 |
+All files follow `<test_id>_<slug>.md` or `<test_id>_<slug>_<TIER>.md` convention.
 
-## Warnings
+## Summary
 
-None.
+**No gaps, no violations, no warnings.** All 59 test IDs have corresponding result files with valid frontmatter. Ready for synthesis.
