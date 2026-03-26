@@ -3,12 +3,20 @@ test_id: F-7
 tool: powersimulations
 dimension: supply_chain
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "462a162d"
 status: informational
 workaround_class: null
-timestamp: "2026-03-14T00:00:00Z"
+blocked_by: null
+wall_clock_seconds: null
+timing_source: null
+peak_memory_mb: null
+convergence_residual: null
+convergence_iterations: null
+loc: null
+solver: null
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # F-7: Air-Gap Installability
@@ -19,44 +27,39 @@ timestamp: "2026-03-14T00:00:00Z"
 
 PowerSimulations.jl and its full dependency tree can be installed in an air-gapped
 environment using Julia's built-in offline capabilities. The approach requires
-pre-fetching 184 packages (including 52 JLL binary artifacts) and serving them from
-a local registry clone. No runtime network access is required after installation.
+pre-fetching 184 packages (including 41 JLL binary artifacts) and serving them from
+a local depot copy. No runtime network access is required after installation.
 
 ## Air-Gap Installation Methods
 
-### Method 1: Local Registry Mirror + Artifact Server
+### Method 1: Local Depot Copy
 
-Julia's package manager supports the `JULIA_PKG_SERVER` environment variable, which
-redirects all package and artifact downloads to a local server.
+Julia's package manager supports the `JULIA_PKG_OFFLINE` environment variable, which
+prevents all network access during package operations.
 
 **Steps:**
 
-1. **Clone the General Registry** on the connected side:
-   ```bash
-   git clone https://github.com/JuliaRegistries/General.git
-   ```
-
-2. **Pre-fetch all packages and artifacts** using the Manifest.toml:
+1. **Pre-fetch all packages and artifacts** on a connected machine using the Manifest.toml:
    ```julia
-   # On connected machine with identical Manifest.toml
+   # On connected machine with identical Project.toml + Manifest.toml
    using Pkg
    Pkg.instantiate()  # downloads everything
    ```
 
-3. **Copy the Julia depot** (`~/.julia/` or `$JULIA_DEPOT_PATH`) to the air-gapped
+2. **Copy the Julia depot** (`~/.julia/` or `$JULIA_DEPOT_PATH`) to the air-gapped
    machine. The depot contains:
    - `packages/` -- all package source code
    - `artifacts/` -- all JLL binary artifacts
    - `registries/` -- the General Registry clone
    - `compiled/` -- precompiled caches (architecture-specific)
 
-4. **Set environment variables** on the air-gapped machine:
+3. **Set environment variables** on the air-gapped machine:
    ```bash
    export JULIA_DEPOT_PATH=/path/to/copied/depot
    export JULIA_PKG_OFFLINE=true  # prevents any network access
    ```
 
-5. **Instantiate from Manifest:**
+4. **Instantiate from Manifest:**
    ```julia
    cd("evaluations/powersimulations")
    using Pkg
@@ -89,21 +92,18 @@ docker load < devcontainer.tar.gz
 
 | Category | Count | Approx. Size |
 |----------|-------|--------------|
-| Julia packages (source) | 132 | ~200 MB |
-| JLL binary packages | 52 | ~500 MB |
+| Julia packages (source) | 143 | ~200 MB |
+| JLL binary packages | 41 | ~500 MB |
 | Julia runtime | 1 | ~400 MB |
 | **Total depot size** | **184 packages** | **~1.1 GB** |
 
-The 52 JLL packages include binary artifacts for the target platform. Only the
+The 41 JLL packages include binary artifacts for the target platform. Only the
 platform-specific artifacts need to be fetched (e.g., Linux x86_64 glibc only).
 
 ## Runtime Network Access
 
-**No runtime network access is required.** Verified by scanning PowerSimulations.jl
-and PowerSystems.jl source code for HTTP/Downloads module references:
-
-- PowerSimulations source: **No HTTP or Downloads references found**
-- PowerSystems source: **No HTTP or Downloads references found**
+**No runtime network access is required.** PowerSimulations.jl and PowerSystems.jl
+source code contain no HTTP or Downloads module references in the computation path.
 
 The tool does not phone home, check for updates, validate licenses, or download
 data at runtime. All data is loaded from local files (MATPOWER .m files, CSV, etc.).
@@ -163,7 +163,13 @@ transfer. This is a one-time cost.
 ## Assessment
 
 Air-gap installation is **feasible but operationally heavy**. The 184-package
-dependency tree with 52 binary artifacts requires careful depot management. Julia's
+dependency tree with 41 binary artifacts requires careful depot management. Julia's
 `JULIA_PKG_OFFLINE=true` mode and depot-based architecture were designed for this
 use case. The container image approach (Method 3) is the most reliable path for
 production air-gap deployments.
+
+## Data Source
+
+- Dependency tree from Manifest.toml (184 packages, 41 JLL) (accessed 2026-03-24)
+- `JULIA_PKG_OFFLINE` behavior verified in Julia documentation (accessed 2026-03-24)
+- Runtime network scan of PowerSimulations.jl and PowerSystems.jl source (accessed 2026-03-24)

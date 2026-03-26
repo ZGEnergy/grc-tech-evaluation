@@ -350,6 +350,61 @@ function run(
             "formulation which includes binary on/off/start/stop variables, ramp constraints, " *
             "and minimum up/down time constraints. No custom assembly required."
 
+        # ===== v11 Binding Verification =====
+        # Re-run with min_up_time=min_down_time=0 and compare commitment schedules
+        binding_verified = false
+        binding_changed_gens = String[]
+        try
+            sys_relaxed = setup_scuc_system(network_file, timeseries_dir)
+            # Zero out min up/down times
+            for gen in get_components(ThermalStandard, sys_relaxed)
+                set_time_limits!(gen, (up=0.0, down=0.0))
+            end
+            model_relaxed = build_and_solve_scuc(sys_relaxed, solver)
+            oc_relaxed = PSI.get_optimization_container(model_relaxed)
+            psi_vars_relaxed = PSI.get_variables(oc_relaxed)
+
+            # Find OnVariable
+            on_key_r = nothing
+            for k in keys(psi_vars_relaxed)
+                if occursin("OnVariable", string(k)) && occursin("ThermalStandard", string(k))
+                    on_key_r = k;
+                    break
+                end
+            end
+
+            if on_key_r !== nothing
+                on_arr_r = psi_vars_relaxed[on_key_r]
+                relaxed_schedule = Dict{String,Vector{Int}}()
+                for gname in sort(axes(on_arr_r)[1])
+                    ts = axes(on_arr_r)[2]
+                    relaxed_schedule[gname] = [
+                        Int(round(JuMP.value(on_arr_r[gname, t]))) for t in ts
+                    ]
+                end
+
+                # Compare schedules
+                for gname in gen_names
+                    orig = commitment_matrix[gname]
+                    relaxed = get(relaxed_schedule, gname, orig)
+                    if orig != relaxed
+                        push!(binding_changed_gens, gname)
+                    end
+                end
+                binding_verified = length(binding_changed_gens) >= 1
+                results["details"]["binding_verification"] = Dict(
+                    "relaxed_schedule" => relaxed_schedule,
+                    "changed_generators" => binding_changed_gens,
+                    "num_changed" => length(binding_changed_gens),
+                    "binding_verified" => binding_verified,
+                )
+            end
+        catch e_bind
+            results["details"]["binding_verification_error"] = string(
+                typeof(e_bind), ": ", sprint(showerror, e_bind)
+            )
+        end
+
         if solved && gap_ok && cycling_ok
             results["status"] = "pass"
         elseif solved && gap_ok && !cycling_ok

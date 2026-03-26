@@ -3,20 +3,21 @@ test_id: B-5
 tool: powersimulations
 dimension: extensibility
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "3d423124"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.204
+wall_clock_seconds: 0.209
 timing_source: measured
-peak_memory_mb: 798.2
+peak_memory_mb: 858.5
 convergence_residual: null
 convergence_iterations: null
+convergence_evidence_quality: null
 loc: 126
 solver: null
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # B-5: Interoperability (Export DCPF Results to DataFrames.jl and CSV)
@@ -55,6 +56,14 @@ and compared to the originals. Bus number match: exact. Voltage angle match: exa
 Filtering generator buses (`filter(row -> row.P_gen > 0, bus_df)`) returns 10 gen buses.
 Summary statistics via `Statistics.mean()` work without conversion.
 
+**Bus angle statistics:**
+
+| Metric | Value |
+|--------|-------|
+| Mean angle | -5.9314 deg |
+| Min angle | -13.4611 deg |
+| Max angle | 7.4046 deg |
+
 ## Workarounds
 
 None required. DataFrames.jl is the native result format for both PowerFlows.jl and
@@ -63,11 +72,11 @@ directly with no serialization logic.
 
 ## Timing
 
-- **Wall-clock:** 0.204 s (second run; dominated by CSV write warm-up, not the solve)
-- **DCPF solve:** 0.0006 s
-- **CSV export:** 0.203 s (first-run JIT for CSV.write; subsequent calls are <1ms)
+- **Wall-clock:** 0.209 s (second run; dominated by CSV write warm-up, not the solve)
+- **DCPF solve:** 0.0007 s
+- **CSV export:** 0.208 s (first-run JIT for CSV.write; subsequent calls are <1ms)
 - **Timing source:** measured
-- **Peak memory:** 798.2 MB (Julia process RSS)
+- **Peak memory:** 858.5 MB (Julia process RSS)
 
 ## Test Script
 
@@ -93,5 +102,5 @@ CSV.write("flow_results.csv", flow_df)
 - **arch-quality:** The Julia ecosystem's composability means CSV.jl, DataFrames.jl, and
   PowerFlows.jl all work together without explicit integration code. This is a strength
   of the language-level design (multiple dispatch + shared abstract interfaces).
-- The 2 LOC count is well under the 5 LOC threshold. The pass is trivial — this is
+- The 2 LOC count is well under the 5 LOC threshold. The pass is trivial -- this is
   exactly the kind of interoperability that should be effortless.

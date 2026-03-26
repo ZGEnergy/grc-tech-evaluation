@@ -3,8 +3,8 @@ test_id: E-4
 tool: powersimulations
 dimension: maturity
 network: N/A
-protocol_version: "v10"
-skill_version: "v1"
+protocol_version: "v11"
+skill_version: "v2"
 test_hash: "21fed0a4"
 status: informational
 workaround_class: null
@@ -16,7 +16,7 @@ convergence_residual: null
 convergence_iterations: null
 loc: null
 solver: null
-timestamp: 2026-03-14T00:00:00Z
+timestamp: 2026-03-24T00:00:00Z
 ---
 
 # E-4: Funding Model
@@ -40,7 +40,7 @@ PowerSimulations.jl is developed and maintained by NREL (National Renewable Ener
 ### Sienna Ecosystem Context
 
 PowerSimulations.jl is part of the Sienna ecosystem, NREL's strategic open-source platform for power systems modeling. The ecosystem includes:
-- **PowerSystems.jl** — data model layer
+- **PowerSystems.jl** — data model layer (now at v5.6.1, indicating continued major investment)
 - **PowerSimulations.jl** — optimization/simulation
 - **PowerFlows.jl** — power flow analysis
 - **PowerNetworkMatrices.jl** — network matrix computations
@@ -62,13 +62,13 @@ The ecosystem has its own landing page (nrel-sienna.github.io) and documentation
 ### Risk Factors
 
 1. **Political risk:** DOE budgets are subject to congressional appropriations. Severe budget cuts could reduce NREL headcount, but this is a systemic risk affecting all DOE-funded research, not specific to Sienna.
-2. **Priority risk:** If NREL leadership deprioritizes Julia-based tools in favor of alternatives (e.g., Python-based tools), funding could be redirected. The recent PowerSystems.jl v5 release and active Sienna development suggest this is not currently happening.
+2. **Priority risk:** If NREL leadership deprioritizes Julia-based tools in favor of alternatives (e.g., Python-based tools), funding could be redirected. The recent PowerSystems.jl v5 major release (Nov 2025) and active v0.33.x development (Mar 2026) suggest this is not currently happening.
 3. **Personnel risk:** The core team is small (see E-3). Institutional backing does not prevent key-person departures; it only means positions can be backfilled.
 
 ### Data Source
 
-- NREL institutional information: https://www.nrel.gov/about/ (accessed 2026-03-14)
-- Sienna ecosystem: https://github.com/NREL-Sienna (accessed 2026-03-14)
+- NREL institutional information: https://www.nrel.gov/about/ (accessed 2026-03-24)
+- Sienna ecosystem: https://github.com/NREL-Sienna (accessed 2026-03-24)
 - BSD 3-Clause license with NREL copyright in all repositories
 
 ## Implications

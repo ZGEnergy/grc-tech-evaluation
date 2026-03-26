@@ -3,20 +3,23 @@ test_id: C-2
 tool: powersimulations
 dimension: scalability
 network: MEDIUM
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "a0a8dee4"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "e9e9d3e4"
 status: pass
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.638
+wall_clock_seconds: 0.777
 timing_source: measured
-peak_memory_mb: 1164.3
+peak_memory_mb: 784.8
 convergence_residual: null
-convergence_iterations: null
-loc: 222
+convergence_iterations: 4
+convergence_evidence_quality: iteration_count_reported
+loc: 239
 solver: PowerFlows.jl (built-in NR)
-timestamp: "2026-03-14T00:00:00Z"
+cpu_threads_used: 1
+cpu_threads_available: 32
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # C-2: ACPF on MEDIUM (ACTIVSg 10k)
@@ -26,21 +29,24 @@ timestamp: "2026-03-14T00:00:00Z"
 ## Approach
 
 Ran AC power flow on the ACTIVSg 10000-bus network using `solve_powerflow(ACPowerFlow(), sys)`
-from PowerFlows.jl. Applied DCPF warm-start (set voltage angles from DCPF, magnitudes to 1.0 pu)
-before the ACPF solve. Measured wall-clock on the second invocation (JIT warm-up on the first).
+from PowerFlows.jl v0.9.0. Applied DCPF warm-start (set voltage angles from DCPF, magnitudes
+to 1.0 pu) before the ACPF solve. Measured wall-clock on the second invocation (JIT warm-up
+on the first). Captured NR iteration count via Julia `Logging` module (`ConsoleLogger` at
+`Logging.Info` level).
 
-Note: PowerFlows.jl's built-in Newton-Raphson solver does not expose iteration count or convergence
-residual — these are not accessible from the API (per prior observation from C-5).
+PowerFlows.jl uses a built-in Newton-Raphson solver for ACPF -- no external NLP solver
+(e.g., Ipopt) is needed.
 
 ## Output
 
 | Metric | Value |
 |--------|-------|
-| Wall-clock (timed run) | 0.638 s |
-| Wall-clock (JIT warm-up) | 1.40 s |
-| Wall-clock (DCPF warm-start) | 2.30 s |
-| Peak memory (RSS) | 1,164 MB |
+| Wall-clock (timed run) | 0.777 s |
+| Wall-clock (JIT warm-up) | 5.00 s |
+| Wall-clock (DCPF warm-start) | 4.71 s |
+| Peak memory (RSS) | 785 MB |
 | Converged | Yes |
+| NR iterations | 4 |
 | Buses solved | 10,000 |
 | Branches solved | 12,706 |
 
@@ -76,30 +82,48 @@ The 1.7% loss level is realistic for a 10K-bus transmission network. 84% of buse
 non-flat voltage magnitudes, confirming genuine NR convergence. The 19 voltage violations
 (16 under, 3 over) are characteristic of the ACTIVSg 10k test case.
 
+## Convergence Evidence
+
+NR iteration count captured via Julia `@info` log message:
+
+```
+[ Info: The NewtonRaphsonACPowerFlow solver converged after 4 iterations.
+```
+
+PowerFlows.jl v0.9.0 does not expose the final NR convergence residual in any API path
+or log message. Evidence quality is therefore `iteration_count_reported` (tier 2 of 4).
+
+The warm-up (first) ACPF call logged a convergence failure:
+```
+Error: The NewtonRaphsonACPowerFlow solver failed to converge.
+```
+but the second (timed) call converged cleanly in 4 iterations with the same DCPF warm-start.
+This suggests JIT compilation interference on the first call, or NR internal state that
+benefits from prior execution.
+
 ## DCPF Warm-Start
 
 | Metric | Value |
 |--------|-------|
-| DCPF solve time | 2.30 s |
+| DCPF solve time | 4.71 s (includes JIT for DCPF) |
 | Angle range | -22.44 to +104.53 degrees |
-
-The warm-start NR solver on the first call logged a convergence warning (`NewtonRaphsonACPowerFlow
-solver failed to converge`) but still returned results. On the timed second call, convergence
-was clean. This suggests the warm-start helps with NR convergence stability at 10K scale.
 
 ## Workarounds
 
-- DCPF warm-start applied via `set_angle!` on each bus before ACPF. PowerFlows.jl uses built-in
-  Newton-Raphson for ACPF (no Ipopt needed — Ipopt is for ACOPF).
+None required. The DCPF warm-start is standard convergence practice per the convergence
+protocol, not a workaround. PowerFlows.jl handles ACPF with its built-in NR solver.
 
 ## Timing
 
-- **Wall-clock (ACPF, timed):** 0.638 s (JIT cached)
-- **Wall-clock (JIT warm-up):** 1.40 s
-- **Wall-clock (DCPF warm-start):** 2.30 s
+- **Wall-clock (ACPF, timed):** 0.777 s (JIT cached, second invocation)
+- **Wall-clock (JIT warm-up):** 5.00 s (first invocation)
+- **Wall-clock (DCPF warm-start):** 4.71 s
+- **System load time:** 20.12 s
 - **Timing source:** measured
-- **Peak memory:** 1,164 MB (Julia process RSS)
-- **CPU cores used:** 1 (32 available)
+- **Peak memory:** 785 MB (Julia process RSS)
+- **Solver iterations:** 4 (NR)
+- **CPU threads used:** 1
+- **CPU threads available:** 32
 
 ## Test Script
 
@@ -108,19 +132,22 @@ was clean. This suggests the warm-start helps with NR convergence stability at 1
 ```julia
 # DCPF warm-start
 dcpf_result = solve_powerflow(DCPowerFlow(), sys)
-dcpf_bus_df = dcpf_result["1"]["bus_results"]
 for bus in get_components(Bus, sys)
     set_magnitude!(bus, 1.0)
 end
 
-# ACPF — returns Dict{String, DataFrame} (flat, not nested like DCPF)
-pf_result = solve_powerflow(ACPowerFlow(), sys)
-bus_df = pf_result["bus_results"]
+# ACPF with log capture for NR iteration count
+timed_log = IOBuffer()
+with_logger(ConsoleLogger(timed_log, Logging.Info)) do
+    pf_result = solve_powerflow(ACPowerFlow(), sys)
+end
+timed_log_str = String(take!(timed_log))
+# Extract: "converged after 4 iterations"
 ```
 
 ## Observations
 
-- **convergence-quality:** PowerFlows.jl's NR solver does not expose iteration count or
-  convergence residual at any scale. First ACPF call at 10K logged a convergence warning
-  but still returned valid results; second call converged cleanly. This suggests the NR
-  implementation has internal retry logic.
+- **convergence-quality:** PowerFlows.jl's NR solver exposes iteration count via `@info` log
+  capture but does not expose convergence residual. Evidence quality is `iteration_count_reported`.
+  First ACPF call at 10K logged a convergence failure but the second call converged in 4
+  iterations -- suggesting NR benefits from prior JIT compilation or internal state.

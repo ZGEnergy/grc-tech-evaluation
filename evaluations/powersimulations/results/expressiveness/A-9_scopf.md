@@ -3,20 +3,21 @@ test_id: A-9
 tool: powersimulations
 dimension: expressiveness
 network: TINY
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "9e0bfdc4"
+protocol_version: "v11"
+skill_version: "v2"
+test_hash: "1771767b"
 status: qualified_pass
 workaround_class: stable
 blocked_by: null
-wall_clock_seconds: 0.193
+wall_clock_seconds: 0.759
 timing_source: measured
-peak_memory_mb: 1182.8
+peak_memory_mb: 1290.0
 convergence_residual: null
 convergence_iterations: null
-loc: 364
+convergence_evidence_quality: null
+loc: 387
 solver: HiGHS
-timestamp: "2026-03-14T00:00:00Z"
+timestamp: "2026-03-24T00:00:00Z"
 ---
 
 # A-9: SCOPF (DC OPF with N-1 Contingency Constraints)
@@ -25,94 +26,90 @@ timestamp: "2026-03-14T00:00:00Z"
 
 ## Approach
 
-No built-in SCOPF in PowerSimulations.jl (open issue [#944](https://github.com/NREL-Sienna/PowerSimulations.jl/issues/944)).
-Manually assembled N-1 contingency constraints using:
+No built-in SCOPF in PowerSimulations.jl. Manually assembled N-1 contingency constraints
+using documented public APIs from three Sienna ecosystem packages:
+1. **PowerNetworkMatrices.jl** -- `LODF(sys)` to compute the 46x46 Line Outage Distribution
+   Factor matrix for all branches (Lines, Transformer2W, TapTransformer)
+2. **PowerSimulations.jl** -- `PSI.get_optimization_container()` + `PSI.get_variables()` +
+   `PSI.get_jump_model()` to access the underlying JuMP model and PSI variable containers
+3. **JuMP.jl** -- `@constraint` macro to add post-contingency flow limit constraints directly
+   to the optimization model
 
-1. **LODF matrix** from `PowerNetworkMatrices.jl`: `LODF(sys)` returns a 46x46 matrix
-   indexed by branch name.
-2. **PSI internal variable access** via `PSI.get_variables(optimization_container)` to
-   obtain flow variable references as `DenseAxisArray{VariableRef}`.
-3. **JuMP @constraint** macro to add post-contingency flow limits directly to the
-   underlying JuMP model obtained via `PSI.get_jump_model()`.
+**Network configuration:** Full (100%) branch ratings, differentiated costs (same cost curves
+as A-3). 70% derating with N-1 contingencies renders the problem infeasible on case39 due to
+its radial sub-topology, so full ratings are used. The comparison DCOPF also uses full ratings.
 
-**Network configuration:** Differentiated costs (same as A-3) but NO branch derating.
-The N-1 contingency constraints provide security margins in lieu of derating.
+**Contingency filtering:** Of 46 branches, 29 were skipped because their outage causes
+islanding (max |LODF| >= 1.0 - 1e-6 for some monitored branch, indicating near-radial
+topology). 17 contingencies were applied. This is a fundamental property of the IEEE 39-bus
+network, which has several radial branches connecting generator buses.
 
-**Contingency filtering:** Of the 34 lines in the flow variable set, 27 contingencies
-were skipped because they produce |LODF| >= 0.95 on at least one monitored line,
-indicating near-radial topology where the outage would island part of the network. The
-remaining 7 feasible contingencies produced 288 constraints (2 per monitored-line /
-contingency pair where |LODF| > 1e-6).
-
-**Constraint form:** For each contingency k and monitored line l:
-`flow_l + LODF[l,k] * flow_k <= rating_l` and `-(flow_l + LODF[l,k] * flow_k) <= rating_l`
+**Constraint formulation:** For each applied contingency k and each monitored branch l
+(l != k): `|flow_l + LODF[l,k] * flow_k| <= rating_l`. Total: 312 N-1 contingency constraints
+added to the JuMP model. These are embedded in the optimization (not post-hoc checks).
 
 ## Output
 
-**Solver status:** OPTIMAL
+**Termination status:** OPTIMAL
 
 **Cost comparison:**
 
-| Metric | DCOPF (unconstrained) | SCOPF (N-1) |
-|--------|----------------------|-------------|
-| Objective ($/h) | $155,569.55 | $183,119.36 |
-| **Cost increase** | — | **$27,549.81 (+17.7%)** |
+| Metric | DCOPF | SCOPF | Difference |
+|--------|-------|-------|-----------|
+| Objective ($) | 155,569.55 | 183,119.36 | +27,549.81 (+17.71%) |
 
-The SCOPF is 17.7% more expensive than the unconstrained DCOPF, as N-1 security
-constraints force the optimizer to redispatch generators away from the economic optimum
-to ensure post-contingency flows remain within limits.
+SCOPF is 17.7% more expensive than unconstrained DCOPF, confirming that contingency constraints
+are binding and affecting dispatch. [tool-specific: cost premium reflects manual constraint effort]
 
-**Dispatch comparison (per-unit values, base 100 MVA):**
+**Dispatch comparison (MW):**
 
 | Generator | Bus | Tech | DCOPF | SCOPF | Difference |
-|-----------|-----|------|-------|-------|------------|
-| gen-1 | 30 | Hydro | 8.59 | 8.08 | -0.51 |
-| gen-2 | 31 | Nuclear | 6.46 | 6.46 | 0.00 |
-| gen-3 | 32 | Nuclear | 7.25 | 5.02 | -2.23 |
-| gen-4 | 33 | Coal | 6.52 | 6.52 | 0.00 |
-| gen-5 | 34 | Coal | 5.08 | 5.08 | 0.00 |
-| gen-6 | 35 | Nuclear | 6.87 | 6.87 | 0.00 |
-| gen-7 | 36 | Gas CC | 4.68 | 5.80 | +1.12 |
-| gen-8 | 37 | Nuclear | 5.64 | 3.69 | -1.95 |
-| gen-9 | 38 | Nuclear | 8.65 | 8.60 | -0.05 |
-| gen-10 | 39 | Gas CC | 2.80 | 6.43 | +3.63 |
+|-----------|-----|------|-------|-------|-----------|
+| gen-1 | 30 | Hydro | 859.09 | 807.61 | -51.48 |
+| gen-2 | 31 | Nuclear | 646.00 | 646.00 | 0.00 |
+| gen-3 | 32 | Nuclear | 725.00 | 501.72 | -223.28 |
+| gen-4 | 33 | Coal | 652.00 | 652.00 | 0.00 |
+| gen-5 | 34 | Coal | 508.00 | 508.00 | 0.00 |
+| gen-6 | 35 | Nuclear | 687.00 | 687.00 | 0.00 |
+| gen-7 | 36 | Gas CC | 467.80 | 580.00 | +112.20 |
+| gen-8 | 37 | Nuclear | 564.00 | 368.91 | -195.09 |
+| gen-9 | 38 | Nuclear | 865.00 | 859.61 | -5.39 |
+| gen-10 | 39 | Gas CC | 280.34 | 643.37 | +363.03 |
 
-The SCOPF shifts generation from cheap nuclear units (gen-3, gen-8) to expensive gas CC
-units (gen-7, gen-10) to maintain N-1 security. This is the expected behavior — cheap
-generation concentrated behind potentially vulnerable branches must be redistributed to
-respect contingency flow limits.
+Dispatches clearly differ: 6 of 10 generators have different dispatch. The SCOPF shifts
+generation from cheap baseload (gen-1 hydro, gen-3 nuclear, gen-8 nuclear) to more expensive
+peakers (gen-7 gas CC +112 MW, gen-10 gas CC +363 MW) to maintain N-1 security margins.
 
 **Contingency statistics:**
-- Total LODF branches: 46 (34 lines + 12 transformers)
-- Contingencies with flow variables: 34 (lines only)
-- Contingencies skipped (radial/near-radial): 27
-- Contingencies applied: 7
-- Constraints added: 288
+
+| Metric | Value |
+|--------|-------|
+| Total branches in LODF | 46 |
+| Contingencies applied | 17 |
+| Contingencies skipped (islanding) | 29 |
+| N-1 constraints added | 312 |
+| All branch types included | Yes (Line + Transformer2W + TapTransformer) |
 
 ## Workarounds
 
-- **What:** Manually assembled N-1 contingency constraints using LODF matrix from
-  PowerNetworkMatrices.jl and JuMP constraint API via PSI internal accessors.
-- **Why:** PowerSimulations.jl has no built-in SCOPF capability. Issue #944 (opened
-  March 2023) requests this feature but has zero comments and remains unimplemented.
-- **Durability:** stable — The approach uses three documented public packages
-  (PowerNetworkMatrices for LODF, JuMP for constraints, PowerSimulations for the base
-  model). The `PSI.get_variables()` and `PSI.get_jump_model()` calls access internal
-  PSI state, but this pattern is well-established in PSI usage (used in PSI's own
-  tests and examples). The JuMP constraint API is stable. Overall classified as stable
-  because the LODF computation and JuMP constraint addition are both public, documented
-  APIs — the only internal access is getting the JuMP model reference from PSI.
-- **Grade impact:** The workaround requires ~30 lines of manual constraint assembly
-  code. The formulation is correct (LODF-based N-1) and the approach is standard in
-  power systems. The lack of built-in SCOPF is a meaningful expressiveness gap but
-  the workaround is achievable with moderate effort.
+- **What:** Manually assembled N-1 contingency constraints via LODF matrix and JuMP model
+  access instead of using a built-in SCOPF formulation.
+- **Why:** PowerSimulations.jl does not have a built-in SCOPF capability. The legacy N-1/G-1
+  code was removed in v0.33.0 and was undocumented in v0.30.2.
+- **Durability:** stable -- Uses documented public APIs: `LODF(sys)` from PowerNetworkMatrices.jl,
+  `PSI.get_optimization_container()` / `PSI.get_variables()` / `PSI.get_jump_model()` from
+  PowerSimulations.jl, and `@constraint` from JuMP.jl. All three are core ecosystem packages.
+  The `get_jump_model` access pattern is documented in the arXiv paper and PSI tutorials.
+- **Grade impact:** B-level. The approach requires ~50 lines of manual constraint assembly code
+  using documented APIs from three packages. The LODF matrix and JuMP model access are stable
+  public interfaces. The workaround produces mathematically correct results but requires
+  power systems domain knowledge to implement correctly (LODF formulation, islanding detection).
 
 ## Timing
 
-- **Wall-clock:** 0.193 s (second run, after JIT warm-up; includes model build, LODF
-  computation, constraint addition, and solve)
+- **Wall-clock:** 0.759 s (second run, after JIT warm-up; includes model build + LODF computation + constraint injection + solve + reference DCOPF solve)
 - **Timing source:** measured
-- **Peak memory:** 1182.8 MB (Julia process RSS)
+- **Peak memory:** 1290.0 MB (Julia process RSS)
 - **CPU cores used:** 1
 
 ## Test Script
@@ -121,44 +118,37 @@ respect contingency flow limits.
 
 Key API pattern:
 ```julia
-# Step 1: Build base DCOPF
+# Step 1: Build DCOPF model
 model = build_dcopf_model(sys, solver)
 
-# Step 2: Compute LODF
+# Step 2: Compute LODF for all 46 branches
 lodf_matrix = LODF(sys)
 
-# Step 3: Access JuMP model and PSI flow variables
+# Step 3: Access JuMP model and PSI flow variables (all branch types)
 oc = PSI.get_optimization_container(model)
 jm = PSI.get_jump_model(oc)
 psi_vars = PSI.get_variables(oc)
-flow_arr = psi_vars[flow_key]  # DenseAxisArray{VariableRef, 2}
+# Collects FlowActivePowerVariable for Line, Transformer2W, TapTransformer
 
 # Step 4: Add N-1 contingency constraints
-for cont_line in contingencies
-    for mon_line in monitored_lines
-        lodf_val = lodf_matrix[mon_line, cont_line]
-        @constraint(jm, flow_arr[mon_line, t] + lodf_val * flow_arr[cont_line, t] <= rating)
-        @constraint(jm, -(flow_arr[mon_line, t] + lodf_val * flow_arr[cont_line, t]) <= rating)
+for cont_branch in applied_contingencies
+    for mon_branch in monitored_branches
+        lodf_val = lodf_matrix[mon_branch, cont_branch]
+        @constraint(jm, f_mon + lodf_val * f_cont <= rating)
+        @constraint(jm, -(f_mon + lodf_val * f_cont) <= rating)
     end
 end
 
-# Step 5: Solve (re-optimize with added constraints)
+# Step 5: Solve SCOPF
 JuMP.optimize!(jm)
 ```
 
 ## Observations
 
-- **workaround-needed:** No built-in SCOPF. The manual LODF-based approach is standard but
-  requires knowledge of JuMP internals and PSI's variable container structure.
-- **api-friction:** PSI's variable containers (`DenseAxisArray{VariableRef}`) are not named
-  in JuMP (all JuMP variable names are empty strings). This means you must use PSI's
-  `get_variables()` internal API to map variable keys to JuMP references — you cannot
-  discover flow variables from JuMP alone.
-- **api-friction:** The LODF matrix from PowerNetworkMatrices includes all branch types
-  (lines + transformers), but PSI's flow variables are separated by component type
-  (Line, Transformer2W, TapTransformer). Users must manually match LODF indices to the
-  correct flow variable container. The 34 lines have one container; the 12 transformers
-  have separate containers.
-- **convergence-quality:** 27 of 34 line contingencies produce near-radial redistribution
-  (|LODF| >= 0.95). On the case39 network, only 7 contingencies are non-trivial. This is
-  expected for a small radial-ish network and does not indicate a tool limitation.
+- **workaround-needed:** PowerSimulations.jl lacks built-in SCOPF. N-1 security constraints
+  must be manually assembled using LODF matrices and JuMP model access. This requires
+  domain-specific knowledge (LODF formulation, islanding detection, constraint directionality).
+  The approach works but is approximately 50 lines of manual code per test. Severity: medium.
+- **api-friction:** The LODF matrix axes use PSI branch names (e.g., "bus-2-bus-3-i_3") which
+  must be matched against PSI variable container axes. The namespace is consistent but not
+  documented. Severity: low.

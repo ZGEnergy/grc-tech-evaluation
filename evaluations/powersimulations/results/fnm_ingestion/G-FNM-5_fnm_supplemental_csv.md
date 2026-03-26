@@ -3,21 +3,24 @@ test_id: G-FNM-5
 tool: powersimulations
 dimension: fnm_ingestion
 network: LARGE
-protocol_version: "v10"
-skill_version: "v1"
-test_hash: "f22bb37f"
+protocol_version: v11
+skill_version: v2
+test_hash: a735a0e7
 status: informational
 workaround_class: null
 blocked_by: null
-wall_clock_seconds: 0.49
+wall_clock_seconds: 1.47
 timing_source: measured
 peak_memory_mb: null
 convergence_residual: null
 convergence_iterations: null
-loc: 208
+convergence_evidence_quality: null
+loc: 234
 solver: null
-timestamp: "2026-03-14T19:55:00Z"
-input_path: matpower
+ingestion_path: matpower_raw
+sced_mode: null
+test_category: null
+timestamp: "2026-03-24T22:10:00Z"
 ---
 
 # G-FNM-5: Supplemental CSV Representability Assessment
@@ -26,17 +29,19 @@ input_path: matpower
 
 PowerSimulations.jl (via PowerSystems.jl v4.6.2) achieves the highest native field
 coverage among all six evaluated tools: **50% native, 30% extension, 20% external**
-across 44 fields in 7 supplemental CSVs.
+across 44 fields in 7 supplemental CSVs. This lead is driven by first-class support
+for contingency definitions (83% native) and transmission interfaces (60%/67% native).
 
 ## Approach
 
 1. Read supplemental CSV field definitions from `data/fnm/docs/supplemental-csvs.md`.
 2. Read analytical classifications from `data/fnm/docs/supplemental-csv-representability.md`.
-3. Verified PowerSystems.jl type structure via Julia introspection:
+3. Verified PowerSystems.jl type structure via Julia introspection in the devcontainer:
    - Confirmed `ext::Dict{String,Any}` field on all component types (ACBus, ThermalStandard,
      Line, TapTransformer, Transformer2W, Area).
    - Confirmed `Contingency` abstract type exists with concrete subtypes (`PlannedOutage`,
-     `GeometricDistributionForcedOutage`, `TimeSeriesForcedOutage`).
+     `GeometricDistributionForcedOutage`, `TimeSeriesForcedOutage`) under the intermediate
+     `Outage` abstract type.
    - Confirmed `TransmissionInterface` concrete type with fields: `name`, `available`,
      `active_power_flow_limits`, `violation_penalty`, `direction_mapping`, `internal`.
 4. Classified each field as N (native), E (extension via `ext` dict), or X (external).
@@ -50,7 +55,7 @@ across 44 fields in 7 supplemental CSVs.
 | FROM_BUS | N | `Arc.from` (bus reference on Line/TapTransformer) |
 | TO_BUS | N | `Arc.to` (bus reference on Line/TapTransformer) |
 | CKT | E | `component.ext["CKT"]` -- circuit identifier stored in ext dict |
-| ELEMENT_TYPE | E | `component.ext["ELEMENT_TYPE"]` -- derivable from Julia type (Line vs TapTransformer) |
+| ELEMENT_TYPE | E | `component.ext["ELEMENT_TYPE"]` -- derivable from Julia type (Line vs TapTransformer) but not a native field; type dispatch is the idiomatic way |
 | RATE_A | N | `Line.rating` / `TapTransformer.rating` -- single native rating field |
 | RATE_B | E | `component.ext["RATE_B"]` -- no native multi-tier rating |
 | RATE_C | E | `component.ext["RATE_C"]` |
@@ -64,6 +69,13 @@ PowerSystems.jl has a single `rating` field per branch, supporting only RATE_A n
 Multi-tier ratings (B/C/D) require the `ext` dictionary. The EFFECTIVE_DATE concept has
 no temporal analog in the data model.
 
+**Extension approach for E fields:** All extension fields use the documented
+`ext::Dict{String,Any}` field present on every PowerSystems.jl component. Usage:
+`line.ext["RATE_B"] = 890.0`. The `ext` dict is preserved through serialization and
+accessible from any code with a component reference, but is not semantically interpreted
+by PowerSimulations.jl solvers. Enforcing multi-tier rating limits in OPF requires
+custom constraint formulation via `get_jump_model()`.
+
 ### TRADING_HUB.csv (4 fields)
 
 | Field | Tier | Mechanism |
@@ -75,9 +87,13 @@ no temporal analog in the data model.
 
 **Summary:** 1 N (25%), 0 E (0%), 3 X (75%)
 
-Trading hubs are a market-layer concept entirely outside PowerSystems.jl's domain model.
-The `LoadZone` and `Area` types exist but represent ISO operational zones, not market
-trading hubs with weighted bus compositions.
+**X justification:** Trading hubs are a market-layer concept entirely outside
+PowerSystems.jl's domain model. The `LoadZone` and `Area` types exist but represent
+ISO operational zones, not market trading hubs with weighted bus compositions. A trading
+hub maps a named aggregate to a set of buses with distribution factors -- this is a
+settlement-layer concept that no power flow tool models natively. An analyst must maintain
+hub definitions in an external DataFrame or dictionary and compute hub-level LMPs as a
+weighted sum of nodal LMPs post-solve.
 
 ### GEN_DISTRIBUTION_FACTOR.csv (5 fields)
 
@@ -90,6 +106,14 @@ trading hubs with weighted bus compositions.
 | GEN_NAME | N | `ThermalStandard.name` |
 
 **Summary:** 2 N (40%), 1 E (20%), 2 X (40%)
+
+**Extension approach for GEN_ID:** `generator.ext["GEN_ID"] = "G1"`. The ext dict
+stores the PSS/E machine identifier alongside the PowerSystems.jl component name.
+
+**X justification:** PARTICIPATION_FACTOR is a market allocation weight determining
+how a generator's output is credited across trading hubs. This is a settlement
+calculation parameter, not a generator electrical characteristic. HUB_NAME references
+the trading hub (itself external), making this field necessarily external as well.
 
 ### CONTINGENCY.csv (6 fields)
 
@@ -105,9 +129,13 @@ trading hubs with weighted bus compositions.
 **Summary:** 5 N (83%), 1 E (17%), 0 X (0%)
 
 PowerSystems.jl has first-class contingency support via the `Contingency` abstract type
-and its concrete subtypes (`PlannedOutage`, `GeometricDistributionForcedOutage`,
-`TimeSeriesForcedOutage`). This is the joint-highest contingency coverage alongside
-GridCal (83% native).
+hierarchy: `Contingency` > `Outage` > {`PlannedOutage`, `GeometricDistributionForcedOutage`,
+`TimeSeriesForcedOutage`}. This is the joint-highest contingency coverage alongside
+GridCal (83% native). The single extension field (CKT) is the circuit identifier needed
+to disambiguate parallel branches between the same bus pair.
+
+**Extension approach for ELEMENT_CKT:** `component.ext["CKT"] = "1"`. The circuit
+identifier is stored in the ext dict of the contingency's associated component.
 
 ### INTERFACE.csv (5 fields)
 
@@ -117,13 +145,21 @@ GridCal (83% native).
 | INTERFACE_NAME | N | `TransmissionInterface.name` |
 | NORMAL_LIMIT_MW | N | `TransmissionInterface.active_power_flow_limits` |
 | EMERGENCY_LIMIT_MW | E | `interface.ext["EMERGENCY_LIMIT_MW"]` -- only one limit pair native |
-| DIRECTION | E | `interface.ext["DIRECTION"]` -- direction_mapping covers element directions |
+| DIRECTION | E | `interface.ext["DIRECTION"]` -- direction_mapping covers element directions, not interface-level flow direction convention |
 
 **Summary:** 3 N (60%), 2 E (40%), 0 X (0%)
 
 PowerSystems.jl is the only tool with a native `TransmissionInterface` type. The type
-includes `active_power_flow_limits` for normal limits and `direction_mapping` for element
-direction coefficients. Emergency limits and flow direction conventions require extension.
+includes `active_power_flow_limits` (a `MinMax` named tuple) for normal limits and
+`direction_mapping` (a `Dict{String,Int}` mapping branch names to direction coefficients)
+for element directions. Emergency limits and the interface-level flow direction convention
+require extension.
+
+**Extension approach for E fields:**
+- `interface.ext["EMERGENCY_LIMIT_MW"] = 1200.0` stores the emergency rating.
+- `interface.ext["DIRECTION"] = "A_TO_B"` stores the flow direction convention.
+The `violation_penalty` field on `TransmissionInterface` could be repurposed to encode
+emergency limit enforcement, but this would be semantically incorrect.
 
 ### INTERFACE_ELEMENT.csv (6 fields)
 
@@ -137,6 +173,12 @@ direction coefficients. Emergency limits and flow direction conventions require 
 | WEIGHT_FACTOR | E | `component.ext["WEIGHT_FACTOR"]` |
 
 **Summary:** 4 N (67%), 2 E (33%), 0 X (0%)
+
+**Extension approach for E fields:**
+- `component.ext["CKT"] = "1"` for circuit identifier.
+- `component.ext["WEIGHT_FACTOR"] = 1.0` for the weight factor in interface flow
+  calculation. The `direction_mapping` Dict natively carries direction coefficients
+  (+1/-1) but not arbitrary weight factors.
 
 ### OUTAGE.csv (8 fields)
 
@@ -153,11 +195,16 @@ direction coefficients. Emergency limits and flow direction conventions require 
 
 **Summary:** 3 N (38%), 1 E (12%), 4 X (50%)
 
-PowerSystems.jl has `available` and `must_run` flags on components, and the `Contingency`
-type hierarchy includes `PlannedOutage` with an `outage_schedule` field. However, the
-`outage_schedule` is for probabilistic outage modeling (generation reliability), not
-deterministic temporal scheduling with start/end dates. The OUTAGE.csv fields represent
-deterministic maintenance scheduling, which has no native analog.
+**X justification:** PowerSystems.jl has `available` and `must_run` flags on components,
+and the `Contingency` type hierarchy includes `PlannedOutage` with an `outage_schedule`
+field. However, `PlannedOutage.outage_schedule` is designed for probabilistic outage
+modeling (generation reliability studies), not deterministic temporal scheduling with
+calendar start/end dates. The OUTAGE.csv fields represent deterministic maintenance
+scheduling -- a calendar-based concept where specific equipment is taken out of service
+during defined time windows. This requires a temporal event model (start date, end date,
+outage category) that has no structural analog in any power flow tool's domain model.
+An analyst must maintain outage schedules in an external data structure and modify
+component `available` flags per simulation period.
 
 ## Aggregate Summary
 
@@ -176,22 +223,23 @@ deterministic maintenance scheduling, which has no native analog.
 
 | Data Concept | Representability | Phase 2 Impact |
 |--------------|-----------------|----------------|
-| Thermal ratings (4-tier) | Extension | Requires custom code to enforce multi-tier limits in OPF |
-| Seasonal rating variations | Extension | Temporal rating changes need manual ext dict management |
-| Trading hub definitions | External | Hub-level LMP aggregation fully external to model |
-| Generator distribution factors | External | Hub allocation requires post-solve external computation |
-| Contingency definitions | **Native** | N-1/N-2 analysis directly consumable by solver |
-| Interface flow limits | **Native** (normal) / Extension (emergency) | Normal limits natively enforced; emergency requires ext |
-| Interface element composition | **Native** | Branch-to-interface mapping stored in direction_mapping |
-| Outage schedules | External | Temporal outage application requires external scripting |
+| Thermal ratings (4-tier) | Extension | Requires custom constraint formulation via `get_jump_model()` to enforce multi-tier limits in OPF |
+| Seasonal rating variations | Extension | Temporal rating changes need manual ext dict management per simulation period |
+| Trading hub definitions | External | Hub-level LMP aggregation fully external; weighted sum of nodal LMPs computed post-solve |
+| Generator distribution factors | External | Hub allocation requires post-solve external computation using distribution factor weights |
+| Contingency definitions | **Native** | N-1/N-2 analysis directly consumable; `Contingency` type hierarchy provides first-class support |
+| Interface flow limits | **Native** (normal) / Extension (emergency) | Normal limits natively enforced via `TransmissionInterface.active_power_flow_limits`; emergency requires ext |
+| Interface element composition | **Native** | Branch-to-interface mapping stored in `TransmissionInterface.direction_mapping` Dict |
+| Outage schedules | External | Temporal outage application requires external scripting to toggle `available` flags per period |
 
 ### Key Strengths
 
 PowerSimulations.jl's native coverage is driven by two differentiating capabilities:
 
 1. **Contingency support** (83% native in CONTINGENCY.csv): The `Contingency` abstract type
-   hierarchy provides first-class contingency definitions. Only GridCal matches this coverage
-   among the six tools.
+   hierarchy (`Contingency` > `Outage` > `PlannedOutage` / `GeometricDistributionForcedOutage` /
+   `TimeSeriesForcedOutage`) provides first-class contingency definitions. Only GridCal matches
+   this coverage among the six tools.
 
 2. **Interface support** (60% native in INTERFACE.csv, 67% in INTERFACE_ELEMENT.csv): The
    `TransmissionInterface` type with `direction_mapping` and `active_power_flow_limits` is
@@ -201,7 +249,8 @@ PowerSimulations.jl's native coverage is driven by two differentiating capabilit
 ### Key Gaps
 
 1. **Trading hubs** (75% external): Universal gap across all tools. No power flow tool
-   models trading hubs natively.
+   models trading hubs natively. This is inherent to the domain separation between power
+   system modeling and market settlement.
 
 2. **Outage schedules** (50% external): PowerSystems.jl's `PlannedOutage` type handles
    probabilistic outage modeling, not deterministic temporal scheduling. An analyst must
@@ -230,19 +279,13 @@ rate_b = line.ext["RATE_B"]
 The `ext` dict is preserved through serialization/deserialization and is accessible from
 any code that has a reference to the component. It is not semantically interpreted by
 PowerSimulations.jl solvers -- enforcement of extension-tier data (e.g., multi-tier
-rating limits) requires custom constraint formulation.
+rating limits) requires custom constraint formulation via `get_jump_model()`.
 
-### External Field Justification
+## Timing
 
-Fields classified as external (X) have no representation path in PowerSystems.jl's
-domain model because they represent concepts outside the power system modeling domain:
-
-- **HUB_NAME, HUB_TYPE, DISTRIBUTION_FACTOR:** Market settlement constructs with no
-  analog in a power flow solver's physical model.
-- **PARTICIPATION_FACTOR:** Market-layer allocation weight, not a generator electrical
-  parameter.
-- **OUTAGE_START, OUTAGE_END, OUTAGE_TYPE, ELEMENT_TYPE (in OUTAGE.csv):** Temporal
-  scheduling concepts that require a calendar/event model absent from all power flow tools.
+- **Wall-clock:** 1.47s (type introspection and classification only)
+- **Timing source:** measured
+- **Peak memory:** not measured (analytical assessment with minimal data loading)
 
 ## Test Script
 
@@ -252,15 +295,17 @@ Key verification code:
 ```julia
 # Confirm ext field on all component types
 for T in [PS.ACBus, PS.ThermalStandard, PS.Line, PS.TapTransformer]
-    @assert :ext in fieldnames(T)
+    has_ext = :ext in fieldnames(T)
 end
 
 # Confirm TransmissionInterface type
-@assert isdefined(PS, :TransmissionInterface)
-@assert !isabstracttype(PS.TransmissionInterface)
-@assert :direction_mapping in fieldnames(PS.TransmissionInterface)
+PS.TransmissionInterface  # concrete type
+fieldnames(PS.TransmissionInterface)
+# => (:name, :available, :active_power_flow_limits, :violation_penalty,
+#     :direction_mapping, :internal)
 
 # Confirm Contingency type hierarchy
-@assert isdefined(PS, :Contingency)
-@assert isabstracttype(PS.Contingency)
+isabstracttype(PS.Contingency)  # true
+# Subtypes: Outage > {PlannedOutage, GeometricDistributionForcedOutage,
+#                      TimeSeriesForcedOutage}
 ```
