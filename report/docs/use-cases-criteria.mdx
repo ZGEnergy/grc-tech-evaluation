@@ -7,16 +7,16 @@ title: "Use Cases & Criteria"
 
 ## Introduction
 
-This evaluation assesses six open-source power system modeling tools for a Phase 1 tool-selection effort. The goal is to select a tool for deployment by the sponsor's engineering team that can support production power grid analysis workflows — from basic power flow studies to full security-constrained unit commitment on production-scale networks.
+This evaluation assesses six open-source power system modeling tools for a Phase 1 tool-selection effort. The goal is to select a tool for deployment by the sponsor's engineering team that can support production power grid analysis workflows, from basic power flow studies to full security-constrained unit commitment on production-scale networks.
 
-These use cases and criteria operationalize the SOW's Task 1.1 requirements — "evaluate tools for suitability in grid modeling, including support for long-term forecasting and vulnerability identification" — into testable, reproducible evaluation dimensions. See [Contract Traceability](/contract-traceability) for the full SOW-to-report mapping.
+These use cases and criteria operationalize the SOW's Task 1.1 requirements ("evaluate tools for suitability in grid modeling, including support for long-term forecasting and vulnerability identification") into testable, reproducible evaluation dimensions. See [Contract Traceability](/contract-traceability) for the full SOW-to-report mapping.
 
 The audience for this evaluation includes the selection team making the decision and the engineering staff who will use the selected tool in connected and air-gapped environments. Both groups need confidence that the recommended tool can handle real operational workflows, not just academic toy problems.
 
 ## Use Cases
 
 ### UC-1: FNM Ingestion
-Parse, validate, and faithfully represent a ~6,000-bus PSS/E RAW Full Network Model (FNM) — the production network data format used by ISOs. The tool must ingest complex record types (3-winding transformers, switched shunts, multi-section lines) without data loss and produce valid power flow solutions on the ingested model.
+Parse, validate, and faithfully represent a ~6,000-bus PSS/E RAW Full Network Model (FNM), the production network data format used by ISOs. The tool must ingest complex record types (3-winding transformers, switched shunts, multi-section lines) without data loss and produce valid power flow solutions on the ingested model.
 
 ### UC-2: Power Flow Analysis
 Run DC and AC power flow on networks ranging from 39-bus test cases to 10,000+ bus production models. The tool must converge reliably, report meaningful diagnostics on failure, and expose results (bus voltages, line flows, losses) as structured outputs.
@@ -48,17 +48,12 @@ Deploy the tool as a portable, reproducible computational environment across bot
 
 ## Grading Scale
 
-| Letter | Numeric | Description |
-|--------|---------|-------------|
-| A | 4.0 | Strong native support, well-tested at scale |
-| A- | 3.7 | Strong overall, one minor caveat |
-| B+ | 3.3 | Mostly strong, one meaningful gap with workaround |
-| B | 3.0 | Supported with caveats, moderate friction |
-| B- | 2.7 | Functional but multiple workarounds needed |
-| C+ | 2.3 | Significant gaps but not disqualifying |
-| C | 2.0 | Weak, significant gaps |
-| D | 1.0 | Major deficiencies |
-| F | 0.0 | Non-functional or disqualifying |
+| Tier | Numeric | Description |
+|------|---------|-------------|
+| Strong | 4 | Fully capable, well-tested at scale, no meaningful gaps |
+| Adequate | 3 | Supported with caveats or moderate friction; workarounds may be needed |
+| Weak | 2 | Significant gaps that limit practical use |
+| Failing | 1 | Non-functional or disqualifying deficiencies |
 
 ## Evaluation Scope
 
@@ -70,18 +65,18 @@ All testing uses open-source solvers exclusively (HiGHS, SCIP, Ipopt, GLPK). All
 
 ### Supply Chain (Gate Criterion)
 
-A grade of C+ or below on Supply Chain is disqualifying regardless of performance on all other criteria. This reflects the program's primary requirement: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
+A grade of Weak or Failing on Supply Chain is disqualifying regardless of performance on all other criteria. This reflects the program's primary requirement: the evaluation cannot recommend a tool for restricted-environment deployment if any component in the execution stack is opaque, uninspectable, or legally encumbered.
 
 <details className="eval-details">
-<summary>Grading Standards — Supply Chain</summary>
+<summary>Grading Standards: Supply Chain</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | Fully open-source under permissive license (MIT, BSD, Apache). All dependencies inspectable. No binary-only components. Compatible with air-gapped deployment. Minimal runtime requirements. |
-| B+ / B / B- | Open-source but with caveats — some dependencies may be large or complex to audit. Air-gap deployment possible with effort. |
-| C+ / C | **Disqualifying.** Non-inspectable components, restrictive licensing, or runtime requirements incompatible with classified environments. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | Fully open-source under permissive license (MIT, BSD, Apache). All dependencies inspectable. No binary-only components. Compatible with air-gapped deployment. Minimal runtime requirements. |
+| Adequate | Open-source but with caveats; some dependencies may be large or complex to audit. Air-gap deployment possible with effort. |
+| Weak / Failing | **Disqualifying.** Non-inspectable components, restrictive licensing, or runtime requirements incompatible with classified environments. |
 
 **Sub-Questions**
 1. What license governs the tool and its dependencies?
@@ -94,18 +89,18 @@ A grade of C+ or below on Supply Chain is disqualifying regardless of performanc
 
 ### 1. Expressiveness (Highest Priority)
 
-Expressiveness measures the breadth and depth of power system analyses the tool can express natively — without fighting the abstraction or working around missing primitives. "Naturally" means the code reads like the problem, not like a workaround.
+Expressiveness measures the breadth and depth of power system analyses the tool can express natively, without fighting the abstraction or working around missing primitives. "Naturally" means the code reads like the problem, not like a workaround.
 
 <details className="eval-details">
-<summary>Grading Standards — Expressiveness</summary>
+<summary>Grading Standards: Expressiveness</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | All target problem types (DCPF, ACPF, DCOPF, SCUC, SCED, contingency, stochastic, SCOPF) expressible natively. Core constraints are built-in primitives. ACPF convergence verifiable. LMPs and structured outputs accessible. Loss-inclusive OPF and distributed slack supported. |
-| B+ / B / B- | Most problem types supported but one or two require companion packages or workarounds. SCOPF achievable through extension API. Loss approximation possible with effort. |
-| C+ / C | A target problem type is outside the tool's design scope or requires rebuilding core functionality from primitives. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | All target problem types (DCPF, ACPF, DCOPF, SCUC, SCED, contingency, stochastic, SCOPF) expressible natively. Core constraints are built-in primitives. ACPF convergence verifiable. LMPs and structured outputs accessible. Loss-inclusive OPF and distributed slack supported. |
+| Adequate | Most problem types supported but one or two require companion packages or workarounds. SCOPF achievable through extension API. Loss approximation possible with effort. |
+| Weak / Failing | A target problem type is outside the tool's design scope or requires rebuilding core functionality from primitives. |
 
 **Sub-Questions**
 1. DC Power Flow (A-1)
@@ -116,9 +111,9 @@ Expressiveness measures the breadth and depth of power system analyses the tool 
 6. SCED as warm-started dispatch (A-6)
 7. N-M Contingency Sweep (A-7)
 8. Stochastic Timeseries Optimization (A-8)
-9. Security-Constrained OPF (A-9) — Phase 2 readiness
-10. Lossy DC OPF and LMP Decomposition (A-10) — Phase 2 readiness
-11. Distributed Slack OPF (A-11) — Phase 2 readiness
+9. Security-Constrained OPF (A-9) (Phase 2 readiness)
+10. Lossy DC OPF and LMP Decomposition (A-10) (Phase 2 readiness)
+11. Distributed Slack OPF (A-11) (Phase 2 readiness)
 
 **Special Notes**
 
@@ -128,18 +123,18 @@ Sub-questions 9-11 are Phase 2 readiness indicators. They inform the grade narra
 
 ### 2. Extensibility
 
-Extensibility measures how hard it is to go beyond built-in problem types — adding custom constraints, querying the network graph, generating stochastic scenarios, or building a contingency sweep pipeline.
+Extensibility measures how hard it is to go beyond built-in problem types: adding custom constraints, querying the network graph, generating stochastic scenarios, or building a contingency sweep pipeline.
 
 <details className="eval-details">
-<summary>Grading Standards — Extensibility</summary>
+<summary>Grading Standards: Extensibility</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | Documented extension API for custom constraints. Network as traversable graph. Contingency loops without model reconstruction. Stochastic wrapping straightforward. Clean architecture. PTDF matrix accessible with phase-shifter corrections. |
-| B+ / B / B- | Extension possible but requires understanding internals. Graph access via workaround. Contingency looping with some overhead. Architecture partially structured. |
-| C+ / C | Extension requires forking or patching. No graph access. Full model rebuilds for contingencies. Monolithic architecture. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | Documented extension API for custom constraints. Network as traversable graph. Contingency loops without model reconstruction. Stochastic wrapping straightforward. Clean architecture. PTDF matrix accessible with phase-shifter corrections. |
+| Adequate | Extension possible but requires understanding internals. Graph access via workaround. Contingency looping with some overhead. Architecture partially structured. |
+| Weak / Failing | Extension requires forking or patching. No graph access. Full model rebuilds for contingencies. Monolithic architecture. |
 
 **Sub-Questions**
 1. Custom constraint injection (B-1)
@@ -156,18 +151,18 @@ Extensibility measures how hard it is to go beyond built-in problem types — ad
 
 ### 3. Scalability
 
-Scalability measures whether the tool performs at production-relevant scale — 10k+ buses, realistic contingency counts, operational time horizons — on the reference workstation with open-source solvers.
+Scalability measures whether the tool performs at production-relevant scale (10k+ buses, realistic contingency counts, operational time horizons) on the reference workstation with open-source solvers.
 
 <details className="eval-details">
-<summary>Grading Standards — Scalability</summary>
+<summary>Grading Standards: Scalability</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | Demonstrated performance on 10k+ bus networks. Solver interface cleanly abstracted. Contingency re-solves with warm-starting. Clear HPC path. |
-| B+ / B / B- | Adequate at 10k buses with caveats. Contingency sweeps require batching. HPC path exists but undocumented. |
-| C+ / C | Performance degrades significantly at 10k+ buses. No warm-start. Solver tightly coupled. No HPC path. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | Demonstrated performance on 10k+ bus networks. Solver interface cleanly abstracted. Contingency re-solves with warm-starting. Clear HPC path. |
+| Adequate | Adequate at 10k buses with caveats. Contingency sweeps require batching. HPC path exists but undocumented. |
+| Weak / Failing | Performance degrades significantly at 10k+ buses. No warm-start. Solver tightly coupled. No HPC path. |
 
 **Sub-Questions**
 1. Power flow at scale (C-1, C-2)
@@ -181,18 +176,18 @@ Scalability measures whether the tool performs at production-relevant scale — 
 
 ### 4. Accessibility
 
-Accessibility measures whether a new analyst on the team can pick up the tool, run scenarios, and trust the results — the learning curve, API quality, documentation, and error handling.
+Accessibility measures whether a new analyst on the team can pick up the tool, run scenarios, and trust the results, including the learning curve, API quality, documentation, and error handling.
 
 <details className="eval-details">
-<summary>Grading Standards — Accessibility</summary>
+<summary>Grading Standards: Accessibility</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | Clean API with realistic examples. Productive within days. Errors surface meaningfully. |
-| B+ / B / B- | Learnable but rough edges. Documentation covers basics with gaps. Learning curve in weeks. |
-| C+ / C | Steep learning curve. Documentation sparse or outdated. Errors fail silently. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | Clean API with realistic examples. Productive within days. Errors surface meaningfully. |
+| Adequate | Learnable but rough edges. Documentation covers basics with gaps. Learning curve in weeks. |
+| Weak / Failing | Steep learning curve. Documentation sparse or outdated. Errors fail silently. |
 
 **Sub-Questions**
 1. API design quality (D-1)
@@ -204,18 +199,18 @@ Accessibility measures whether a new analyst on the team can pick up the tool, r
 
 ### 5. Maturity
 
-Maturity measures whether the tool will still be maintained in three years — development history, community health, funding stability, and operational adoption.
+Maturity measures whether the tool will still be maintained in three years, including development history, community health, funding stability, and operational adoption.
 
 <details className="eval-details">
-<summary>Grading Standards — Maturity</summary>
+<summary>Grading Standards: Maturity</summary>
 
 **Grade Boundaries**
 
-| Grade Range | Requirements |
-|-------------|-------------|
-| A / A- | Disciplined releases with CI. Active contributor base. Durable institutional backing. Operational adoption beyond academia. |
-| B+ / B / B- | Regular releases but with gaps. Concentrated contributor base. Stable funding but limited adoption. |
-| C+ / C | Irregular releases. Bus factor of one. Funding uncertain. No operational adoption. |
+| Tier | Requirements |
+|------|-------------|
+| Strong | Disciplined releases with CI. Active contributor base. Durable institutional backing. Operational adoption beyond academia. |
+| Adequate | Regular releases but with gaps. Concentrated contributor base. Stable funding but limited adoption. |
+| Weak / Failing | Irregular releases. Bus factor of one. Funding uncertain. No operational adoption. |
 
 **Sub-Questions**
 1. Release engineering discipline (E-1)

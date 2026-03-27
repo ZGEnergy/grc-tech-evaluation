@@ -6,78 +6,36 @@ slug: /
 
 # Phase 1 Tool Selection Report
 
-Six open-source power system modeling tools — PyPSA, PowerModels, PowerSimulations,
-pandapower, GridCal, and MATPOWER — were evaluated against a six-criterion rubric
-(Expressiveness, Extensibility, Scalability, Accessibility, Maturity, Supply Chain) using
-standardized test suites on ACTIVSg 2k-bus and 10k-bus reference networks with open-source
-solvers only. Supply Chain serves as a gate criterion; the remaining five criteria are ranked
-by lexicographic priority with Expressiveness as the primary differentiator. MATPOWER is
-designated reference benchmark only and excluded from primary ranking due to its proprietary
-MATLAB runtime dependency.
+Six open-source power system modeling tools (PyPSA, PowerModels.jl, PowerSimulations.jl, pandapower, GridCal, and MATPOWER) were evaluated against a six-criterion rubric: Expressiveness, Extensibility, Scalability, Accessibility, Maturity, and Supply Chain. Testing used standardized test suites on 39-bus, 2,000-bus, and 10,000-bus ACTIVSg reference networks with open-source solvers only. MATPOWER served as a reference benchmark but is excluded from the primary ranking because the customer requires inspectable source code, which precludes MATLAB's compiled runtime.
 
-**We recommend PyPSA** as the selected tool for Phase 2 development. PyPSA wins decisively
-on the primary criterion: its Expressiveness grade of B+ is a full grade step above the B-
-shared by the next two eligible tools. Beyond this differentiator, PyPSA has the strongest
-balanced profile among all candidates — A- in both Extensibility and Accessibility,
-A in Maturity, and B+ in Supply Chain. It demonstrated first-class preventive SCOPF via
-`optimize_security_constrained()`, custom constraint injection in 2 lines of code via
-Linopy model split, and a mature multi-contributor development community backed by
-institutional funding at TU Berlin and KIT. The Python ecosystem ensures analysts can
-integrate PyPSA into existing workflows without adopting a niche language runtime.
-
-The recommendation is robust: PyPSA holds the #1 position in three of four alternative
-ranking scenarios tested (extensibility-first, maturity-gate, scalability-first); Scenario 3
-(Scalability as top priority) is the only exception, where PyPSA's C+ Scalability drops it to
-#4 behind GridCal — a tool whose C Maturity and blocking battery sign error make it unsuitable
-for recommendation regardless. Five risks require active mitigation in Phase 2, with PSS/E
-ingestion and PWL cost curve gaps rated HIGH severity.
-
-:::info Contract Context
-
-This report site constitutes Deliverable 1 (Technology Evaluation Report) under Task 1 of
-Contract FA714626C0006. The `selection-report-v10.md` document
-serves as the narrative backbone of the separately delivered white paper (Task 1.3). See the
-[Contract Traceability](./contract-traceability) page for a full mapping of SOW requirements
-to report content.
-
-:::
+**PyPSA is the recommended tool for Phase 2 development.** It is the only tool to earn Strong in Expressiveness, the primary differentiating criterion, and it holds the top position across all three sensitivity scenarios tested.
 
 ## Grade Comparison
+
+| Tool | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
+|------|:-:|:-:|:-:|:-:|:-:|:-:|
+| **PyPSA** | Strong | Strong | Adequate | Strong | Strong | Strong |
+| pandapower | Weak | Adequate | Weak | Adequate | Strong | Strong |
+| GridCal | Adequate | Adequate | Adequate | Weak | Weak | Strong |
+| PowerModels.jl | Adequate | Strong | Adequate | Adequate | Adequate | Adequate |
+| PowerSimulations.jl | Adequate | Strong | Adequate | Weak | Adequate | Adequate |
+| MATPOWER\* | Adequate | Strong | Weak | Adequate | Adequate | Strong |
+
+\*Reference benchmark only; excluded from ranking.
 
 ![Grade comparison heatmap across six tools and six criteria](/img/heatmap_grades.svg)
 
 ## Why PyPSA
 
-1. **Expressiveness leadership.** PyPSA's B+ Expressiveness is a full grade step above the
-   B- tier shared by PowerModels and PowerSimulations. It demonstrated native preventive
-   SCOPF (A-9), native PTDF/LODF matrix computation (B-9), and the broadest coverage of
-   standard power system analyses among all evaluated tools — without requiring user-assembled
-   solver code for each analysis type.
+1. **Expressiveness leadership.** PyPSA is the only tool graded Strong in Expressiveness. It demonstrated native preventive SCOPF via `optimize_security_constrained()` (A-9), native PTDF/LODF matrix computation (B-9), and the broadest coverage of standard power system analyses among all evaluated tools. No other candidate matched this breadth without requiring user-assembled solver code for each analysis type.
 
-2. **Balanced profile across non-primary criteria.** PyPSA earned A- in both Extensibility and
-   Accessibility, A in Maturity, and C+ in Scalability. The A- Extensibility reflects a clean
-   Linopy model-split API for custom constraints, and A Maturity reflects a healthy
-   multi-contributor development community with institutional backing. Scalability (C+) is the
-   known weak spot — driven by the HiGHS single-threaded MILP timeout on SCUC — and is
-   addressed in the risk register (R3).
+2. **Strong, balanced profile.** Beyond the primary criterion, PyPSA earned Strong in Extensibility, Accessibility, Maturity, and Supply Chain, with Adequate in Scalability. The Strong Extensibility reflects a clean extra_functionality callback for custom constraint injection (B-1). The Strong Maturity reflects a healthy multi-contributor development community with institutional backing. Scalability (Adequate) is the one area requiring active Phase 2 attention; Linopy model-building overhead at 10,000 buses (302 seconds vs. 6 seconds of solver time, C-3) is addressed in the risk register (R1).
 
-3. **Python ecosystem and analyst accessibility.** PyPSA is pure Python, built on the
-   pandas/numpy/scipy stack that many operational analysts already know. This eliminates the
-   language-adoption barrier that Julia (PowerModels, PowerSimulations) or MATLAB (MATPOWER)
-   would impose. Integration with existing data pipelines, visualization tools, and notebook
-   workflows is immediate rather than requiring bridge infrastructure.
+3. **Python ecosystem accessibility.** PyPSA is pure Python, built on the pandas/numpy/scipy stack. This eliminates the language-adoption barrier that Julia-based tools (PowerModels.jl, PowerSimulations.jl) would impose. Integration with existing data pipelines, visualization tools, and notebook workflows requires no bridge infrastructure.
 
-## Runner-Up: PowerModels
+## Runner-Up: PowerModels.jl
 
-PowerModels ranks second on the strength of its A- Extensibility and its JuMP foundation,
-which provides the most flexible constraint injection API among all evaluated tools. It
-demonstrated native PSS/E v33 parsing, native piecewise-linear cost curves, and PTDF
-computation with sub-1e-11 error at 10k-bus. However, PowerModels was not selected for three
-reasons: its B- Expressiveness reflects the cost of JuMP flexibility — 6 of 11 Suite A tests
-required user-assembled code averaging 269 lines per test; its B Maturity with a bus factor
-of 1 (82.4% of commits from a single contributor) signals sustainability risk; and Julia
-remains a niche language for many analyst teams. PowerModels should be reconsidered if
-PyPSA's SCUC scalability limitation proves unresolvable.
+PowerModels.jl ranks second on the strength of its Strong Extensibility and its JuMP foundation, which provides the most flexible constraint injection API among all evaluated tools (B-1). It demonstrated native piecewise-linear cost curves and PTDF computation with sub-1e-11 error at 10,000 buses (B-9). PowerModels.jl was not selected for three reasons: its Adequate Expressiveness reflects the cost of JuMP flexibility, with 6 of 11 Suite A tests requiring user-assembled code averaging 269 lines per test; its Adequate Maturity carries a bus factor of 1 (82.4% of commits from a single contributor), signaling sustainability risk; and Julia remains a niche language for many analyst teams. PowerModels.jl should be reconsidered if PyPSA's model-building overhead at production scale (R1) proves unresolvable.
 
 ![Grade radar overlay for all six tools](/img/radar_overlay.svg)
 
@@ -86,46 +44,53 @@ PyPSA's SCUC scalability limitation proves unresolvable.
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **R1 — No PSS/E RAW ingestion:** PyPSA has no PSS/E RAW ingestion path; the FNM is delivered in v31 format (G-FNM-1 fail). Phase 2 cannot start without a conversion pipeline. | HIGH | Develop a PSS/E v31 → MATPOWER .m converter in Phase 2 pre-work using the shared `matpower_loader` that already passes G-FNM-3. Estimated 1–2 weeks. Validate against the MATPOWER DCPF baseline before any PyPSA optimization run. |
-| **R2 — No native PWL cost curves:** PyPSA has no native PWL cost curve support (tracked as issue #1020). Accurate LMP decomposition requires convex piecewise-linear heat rates. | HIGH | Implement PWL costs via `extra_functionality` using SOS2 binary variables injected into the HiGHS MILP. Prototype and validate against PowerSimulations' native SOS2 output before committing to the architecture. Estimated 1–2 weeks. |
-| **R3 — SCUC SMALL timeout:** SCUC at SMALL scale fails due to HiGHS single-threaded MILP timeout (C-4). Production UC runs at the target scale will be larger. | MED | Evaluate Gurobi or CPLEX as a drop-in HiGHS replacement for MILP workloads — PyPSA's solver interface is a single parameter change. If a commercial solver is unavailable in the classified environment, implement a Lagrangian relaxation pre-solve to warm-start HiGHS. |
-| **R4 — Shadow price assignment bug:** `lines_t.mu_upper` and `lines_t.mu_lower` are silently empty after `n.optimize()`. Congestion pricing logic in Phase 2 depends on binding constraint duals. | MED | Use `n.statistics()` to extract shadow prices post-solve and validate against manually computed dual variables on a small reference network before integrating into LMP decomposition. File an upstream bug report. |
-| **R5 — Transformer b field dual semantics:** PyPSA's transformer `b` field carries dual semantics (susceptance vs. tap-ratio) that are undocumented. Incorrect FNM parameterization will produce silently wrong power flows. | LOW | Establish a transformer round-trip test: load FNM, run DCPF, compare branch flows to the MATPOWER baseline used in G-FNM-3. Enforce this as a regression gate before any production optimization run. |
+| **R1: Linopy model-building overhead at production scale.** PyPSA's Linopy layer takes 302 seconds to construct the optimization model for a 10,000-bus DC OPF (C-3), compared to 6 seconds of solver time. At production scale with repeated solves, this overhead may dominate wall-clock time. | HIGH | Profile Linopy model construction during Phase 2 development. If overhead is prohibitive, evaluate direct solver interface (HiGHS C API) for the inner loop, using PyPSA only for network data management and result post-processing. The solver-only time (6.2s on 10,000 buses) is competitive. |
+| **R2: No native PSS/E RAW file parser.** PyPSA has no PSS/E import capability (P2-1). Phase 2 requires ingesting the full network model distributed in PSS/E RAW format. A custom converter must be built or an existing parser must be adapted. | HIGH | Build a PSS/E RAW-to-PyPSA converter during Phase 2. The FNM intermediate format (CSV-based) already exists and was used for Phase 1 FNM testing. Alternatively, use an external parser as a preprocessing step and ingest via the existing MATPOWER .m importer. |
+| **R3: Distributed slack OPF not available in optimization context.** PyPSA supports distributed slack in power flow but not in OPF formulations (A-11, partial pass). LMP decomposition without distributed slack produces systematically different values from published data. | MED | Implement distributed slack as a custom Linopy constraint via PyPSA's `extra_functionality` callback. The PTDF formulation with load-proportional weights is well-documented. Estimated effort: weeks. |
+| **R4: Single-threaded HiGHS solver limits parallelism.** HiGHS simplex does not parallelize; SCOPF on a 10,000-bus network showed 0.92x speedup with 32 threads (C-8). Production contingency analysis will not benefit from multi-core hardware through solver-internal threading. | MED | Use process-level parallelism for independent contingency sub-problems rather than relying on solver-internal threading. PyPSA's architecture supports independent model instantiation per contingency group. |
+| **R5: Piecewise-linear cost curves require tranche workaround.** PyPSA does not natively support piecewise-linear cost curves (P2-2, partial). The workaround (generator tranche decomposition) approximates PWL behavior but introduces modeling complexity. | MED | Implement the generator tranche decomposition as a reusable utility during Phase 2. Validate against reference PWL solutions from a tool with native SOS2 support to ensure numerical fidelity. |
 
 </details>
 
 <details className="eval-details">
 <summary>Phase 2 Development Scope</summary>
 
-### Tool-Intrinsic Gaps
+### Tool-Intrinsic Gaps (effort: days to weeks)
 
 | Gap | Effort | Notes |
 |-----|--------|-------|
-| PWL cost curve injection via `extra_functionality` (SOS2) | weeks | No native support (issue #1020); must implement and validate against reference LMPs |
-| SCUC solver upgrade or warm-start strategy | weeks | HiGHS MILP timeout at SMALL scale (C-4 fail); evaluate Gurobi/CPLEX or Lagrangian relaxation pre-solve |
-| Shadow price extraction workaround | days | `lines_t.mu_upper/lower` silent after `n.optimize()`; use `n.statistics()` as interim path |
-| Transformer `b` field documentation and validation | days | Dual semantics undocumented; regression test against MATPOWER DCPF baseline required |
+| Linopy model-building overhead profiling and optimization | weeks | 302s model construction vs. 6s solve at 10,000 buses (C-3); may require direct solver interface for inner loop. |
+| PWL cost curve injection via generator tranche decomposition | weeks | No native support (P2-2, partial); must implement and validate against reference LMPs from a tool with native SOS2. |
+| Distributed slack in OPF formulations | weeks | Supported in power flow but not OPF (A-11, partial); implement via `extra_functionality` callback with PTDF formulation. |
+| Shadow price extraction validation | days | Confirm `n.statistics()` output against manually computed duals on small reference networks before integrating into LMP decomposition. |
 
-### Tool-Adjacent Engineering
-
-| Work Item | Effort | Notes |
-|-----------|--------|-------|
-| PSS/E v31 → MATPOWER .m converter | weeks | No PyPSA ingestion path (G-FNM-1 fail); extend shared `matpower_loader` used in G-FNM-3 |
-| FNM imputation and island resolution | weeks | Large network likely contains radial islands and missing impedance data; must stabilize before any OPF run |
-| PTDF calibration against FNM baseline | weeks | PyPSA SubNetwork PTDF API passes B-9; validate at full FNM scale before production use |
-| LMP decomposition validation harness | weeks | Compare PyPSA LMP components to MATPOWER reference; confirm energy/congestion/loss split |
-
-### Operational Workflow
+### Tool-Adjacent Engineering (effort: weeks)
 
 | Work Item | Effort | Notes |
 |-----------|--------|-------|
-| Scenario management framework | weeks | Parameterize contingency sets, load levels, and generator availability across study scenarios |
-| LMP validation loop | weeks | Automated comparison of PyPSA LMPs to reference solutions before each production run |
-| Solver environment configuration | days | Confirm HiGHS version and thread count in deployment environment; document solver swap path |
-| Result archival and reproducibility | weeks | Hash inputs + solver config + PyPSA version to produce reproducible study artifacts |
+| PSS/E RAW-to-PyPSA converter | weeks | No PyPSA ingestion path (P2-1); build or adapt an external parser, validate against MATPOWER DCPF baseline. |
+| FNM imputation and island resolution | weeks | The full network model likely contains radial islands and missing impedance data; must stabilize before any OPF run. |
+| PTDF calibration against FNM baseline | weeks | PyPSA SubNetwork PTDF API passes B-9; validate at full network model scale before production use. |
+| LMP decomposition validation harness | weeks | Compare PyPSA LMP components to reference solutions; confirm energy, congestion, and loss split. |
+
+### Operational Workflow (effort: weeks to months)
+
+| Work Item | Effort | Notes |
+|-----------|--------|-------|
+| Scenario management framework | weeks | Parameterize contingency sets, load levels, and generator availability across study scenarios. |
+| LMP validation loop | weeks | Automated comparison of PyPSA LMPs to reference solutions before each production run. |
+| Solver environment configuration | days | Confirm HiGHS version in deployment environment; document solver swap path for commercial alternatives if needed. |
+| Process-level parallelism for contingency analysis | weeks | Independent model instantiation per contingency group (C-8); required to leverage multi-core hardware. |
+| Result archival and reproducibility | weeks | Hash inputs, solver config, and PyPSA version to produce reproducible study artifacts. |
 
 </details>
 
 ---
 
-PyPSA holds #1 in three of four alternative ranking scenarios. See [Results Overview](./results) for the full sensitivity analysis.
+:::info Contract Context
+
+This report site constitutes Deliverable 1 (Technology Evaluation Report) under Task 1 of Contract FA714626C0006. See the [Contract Traceability](./contract-traceability) page for a full mapping of SOW requirements to report content.
+
+:::
+
+PyPSA holds the top position in all three alternative ranking scenarios tested. The ranking is stable because PyPSA is the only tool with Strong Expressiveness, which dominates regardless of criterion priority ordering. See [Results Overview](./results) for the full sensitivity analysis and per-tool findings.

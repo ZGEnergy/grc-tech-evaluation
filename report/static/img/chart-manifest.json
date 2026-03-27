@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-21T13:21:28.848287+00:00",
+  "generated_at": "2026-03-26T22:06:37.779036+00:00",
   "generator_version": "0.1.0",
   "chart_count": 31,
   "charts": [
@@ -12,7 +12,7 @@
         "png": "img/bar_expressiveness_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Expressiveness \u2014 Grade Comparison"
+      "title": "Expressiveness - Tier Comparison"
     },
     {
       "id": "bar_extensibility",
@@ -23,7 +23,7 @@
         "png": "img/bar_extensibility_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Extensibility \u2014 Grade Comparison"
+      "title": "Extensibility - Tier Comparison"
     },
     {
       "id": "bar_scalability",
@@ -34,7 +34,7 @@
         "png": "img/bar_scalability_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Scalability \u2014 Grade Comparison"
+      "title": "Scalability - Tier Comparison"
     },
     {
       "id": "bar_accessibility",
@@ -45,7 +45,7 @@
         "png": "img/bar_accessibility_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Accessibility \u2014 Grade Comparison"
+      "title": "Accessibility - Tier Comparison"
     },
     {
       "id": "bar_maturity",
@@ -56,7 +56,7 @@
         "png": "img/bar_maturity_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Maturity \u2014 Grade Comparison"
+      "title": "Maturity - Tier Comparison"
     },
     {
       "id": "bar_supply_chain",
@@ -67,7 +67,7 @@
         "png": "img/bar_supply_chain_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Supply Chain \u2014 Grade Comparison"
+      "title": "Supply Chain - Tier Comparison"
     },
     {
       "id": "heatmap_grades",
@@ -78,7 +78,7 @@
         "png": "img/heatmap_grades.png"
       },
       "data_source": "grades.json",
-      "title": "Grade Comparison Heatmap"
+      "title": "Tier Comparison Heatmap"
     },
     {
       "id": "matrix_test-results-gate",
@@ -191,28 +191,6 @@
       "title": "Radar \u2014 pandapower"
     },
     {
-      "id": "radar_powermodels",
-      "type": "radar",
-      "subject": "powermodels",
-      "files": {
-        "svg": "img/radar_powermodels.svg",
-        "png": "img/radar_powermodels.png"
-      },
-      "data_source": "grades.json",
-      "title": "Radar \u2014 powermodels"
-    },
-    {
-      "id": "radar_matpower",
-      "type": "radar",
-      "subject": "matpower",
-      "files": {
-        "svg": "img/radar_matpower.svg",
-        "png": "img/radar_matpower.png"
-      },
-      "data_source": "grades.json",
-      "title": "Radar \u2014 matpower"
-    },
-    {
       "id": "radar_gridcal",
       "type": "radar",
       "subject": "gridcal",
@@ -224,6 +202,17 @@
       "title": "Radar \u2014 gridcal"
     },
     {
+      "id": "radar_powermodels",
+      "type": "radar",
+      "subject": "powermodels",
+      "files": {
+        "svg": "img/radar_powermodels.svg",
+        "png": "img/radar_powermodels.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 powermodels"
+    },
+    {
       "id": "radar_powersimulations",
       "type": "radar",
       "subject": "powersimulations",
@@ -233,6 +222,17 @@
       },
       "data_source": "grades.json",
       "title": "Radar \u2014 powersimulations"
+    },
+    {
+      "id": "radar_matpower",
+      "type": "radar",
+      "subject": "matpower",
+      "files": {
+        "svg": "img/radar_matpower.svg",
+        "png": "img/radar_matpower.png"
+      },
+      "data_source": "grades.json",
+      "title": "Radar \u2014 matpower"
     },
     {
       "id": "radar_overlay",

@@ -48,8 +48,6 @@ DATA_FILES: dict[str, list[str]] = {
     "sensitivity.json": ["scenarios"],
     "risk-register.json": ["risks"],
     "head-to-head.json": ["capabilities"],
-    "sweep-themes.json": ["themes"],
-    "probe-results.json": ["probes"],
     "tool-profiles.json": ["tools"],
     "test-results.json": ["suites", "tools"],
 }
