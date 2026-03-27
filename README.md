@@ -1,5 +1,7 @@
 # GRC Tech Evaluation
 
+**[View the Phase 1 Tool Selection Report](https://zgenergy.github.io/grc-tech-evaluation/)**
+
 Reproducible evaluation environments for six power-system modeling packages,
 supporting the Phase 1 technology assessment.
 
