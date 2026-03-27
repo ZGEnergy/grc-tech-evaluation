@@ -7,249 +7,273 @@ title: "Scalability"
 
 ## Overview
 
-Scalability measures performance degradation as network size increases from TINY
-(5-bus) through SMALL (24-bus RTS) to MEDIUM (ACTIVSg10k). This criterion
-isolates tool overhead from solver performance by using the same solver (HiGHS)
-where possible across tools, and records wall-clock time, peak memory, and
-solver iterations at each scale tier. It is a **high priority** criterion,
-reflecting the requirement that a selected tool must handle realistic network
-sizes without prohibitive runtime or memory consumption.
+Scalability measures performance degradation as network size increases from
+TINY (39 buses) through SMALL (2,000 buses) to MEDIUM (10,000 buses). This
+criterion isolates tool overhead from solver performance by using the same
+solver (HiGHS) where possible across tools, and records wall-clock time, peak
+memory, and solver iterations at each scale tier. It is a high-priority
+criterion, reflecting the requirement that a selected tool must handle
+realistic network sizes without prohibitive runtime or memory consumption.
+All measurements were taken on the reference workstation (128 GB RAM, 16
+cores) using open-source solvers only.
 
 Tests C-1 through C-10 map to this criterion: DCPF scale (C-1), ACPF scale
-(C-2), DCOPF scale (C-3), SCUC scale (C-4), contingency sweep scale (C-5),
-stochastic scale (C-6), solver swap (C-7), SCOPF scale (C-8), PTDF scale (C-9),
-and distributed slack scale (C-10). Notable findings include
-[T04](./sweep-findings#t04) (estimated timings from documentation rather than
-measured), [T05](./sweep-findings#t05) (cascaded failures from solver timeouts),
-and C-8 SCOPF unanimous failure at MEDIUM scale
-([T13](./sweep-findings#t13)).
+(C-2), DC OPF scale (C-3), SCUC scale (C-4), AC feasibility with progressive
+relaxation (C-5), stochastic scale (C-6), solver swap (C-7), SCOPF scale
+(C-8), PTDF scale (C-9), and distributed slack scale (C-10).
 
-![Scalability benchmark — DCPF](/img/line_scalability-DCPF.svg)
+## Cross-Tool Comparison
 
-![Scalability benchmark — ACPF](/img/line_scalability-ACPF.svg)
+| Tool | Tier | Rationale |
+|------|------|-----------|
+| **PyPSA** | **Adequate** | DCPF, ACPF, DC OPF, SCOPF, and PTDF all complete at MEDIUM. Linopy model-building overhead dominates DC OPF wall-clock (302s construction vs 6s solve, C-3). SCUC constrained by HiGHS single-threaded MILP at SMALL (C-4). Distributed slack blocked (C-10). |
+| **pandapower** | **Weak** | Fastest power flow at MEDIUM (DCPF 1.0s, ACPF 2.5s). PYPOWER interior-point solver is slow for OPF (62s DC OPF, C-3) and hardcoded with no swap mechanism (C-7 fail). SCOPF fails with out-of-memory at MEDIUM (C-8). Three independent scalability failures. |
+| **GridCal** | **Adequate** | Competitive PF and OPF at MEDIUM (DCPF 1.1s, DC OPF 8.9s). SCOPF with 50 contingencies at MEDIUM in 32s (C-8). Parameter-only solver swap via PuLP (C-7). High memory for PTDF (7.6 GB) and SCOPF (5.9 GB). Distributed slack blocked (C-10). |
+| **PowerModels.jl** | **Adequate** | Strong LP scalability: DCPF in 0.23s, DC OPF in 4.0s at MEDIUM. PTDF computation (127M elements) in 2.8s (C-9). ACPF fails at MEDIUM (Ipopt/MUMPS diverge, C-2). SCOPF Benders did not converge within time budget at MEDIUM (C-8). |
+| **PowerSimulations.jl** | **Adequate** | Fastest DCPF (0.28s) and ACPF (0.64s) at MEDIUM among Julia tools. Only tool where SCUC passes at SMALL (C-4). DC OPF at MEDIUM requires 5 stacked fragile workarounds (C-3). SCOPF crashes with solver error on MEDIUM (C-8). |
+| **MATPOWER\*** | **Weak** | Strong PF at SMALL (DCPF 0.1s, ACPF 0.17s). FNM evidence confirms DCPF scales to 28K buses in 0.2s. GLPK integration bug blocks SCUC at SMALL (C-4), cascading to all MEDIUM tests being skipped. |
 
-![Scalability benchmark — DCOPF](/img/line_scalability-DCOPF.svg)
+:::note[MATPOWER Reference Status]
+MATPOWER served as the reference implementation for validating test protocols
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime.
+:::
 
-![Scalability benchmark — SCUC](/img/line_scalability-SCUC.svg)
+## Per-Tool Analysis
 
-![Scalability benchmark — Contingency](/img/line_scalability-Contingency.svg)
+### PyPSA (Adequate)
 
-![Scalability benchmark — SCOPF](/img/line_scalability-SCOPF.svg)
+PyPSA demonstrates adequate scalability for LP-based analyses at 10,000-bus
+scale. DCPF completes in 22s (C-1), ACPF converges in 5 NR iterations (C-2),
+and the HiGHS solver finishes the DC OPF LP in 6.2s (C-3). SCOPF with 50
+contingencies produces a 1.3M-row LP solved in 29.5s by HiGHS (C-8). PTDF
+computation on the full 12,706 x 10,000 matrix completes in 7.9s (C-9).
+Solver swap is a single-parameter change with no model reformulation (C-7).
 
-![Scalability benchmark — Solver Swap](/img/line_scalability-SolverSwap.svg)
+The dominant scalability bottleneck is linopy model construction overhead.
+On the MEDIUM DC OPF, linopy spends 302s building the model versus 6.2s for
+the HiGHS solve (C-3). This overhead also affects SCOPF timing (C-8).
 
-![Scalability benchmark — PTDF](/img/line_scalability-PTDF.svg)
+**Key findings:**
 
-![Scalability benchmark — Distributed Slack](/img/line_scalability-DistributedSlack.svg)
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | MEDIUM | pass | 22.2s | DCPF scales cleanly; 2.1 GB memory. |
+| C-2 | MEDIUM | pass | 21.7s | ACPF converges in 5 NR iterations. |
+| C-3 | MEDIUM | pass | 604s total | HiGHS solves in 6.2s; linopy overhead 302s. |
+| C-4 | SMALL | constrained | 1,837s | SCUC: 1.63% MIP gap (target 1%) with 32 threads. |
+| C-5 | MEDIUM | pass | 193s | AC feasibility converges at 0% relaxation. |
+| C-7 | MEDIUM | pass | varies | Solver swap: single parameter, no reformulation. |
+| C-8 | MEDIUM | pass | 315s | SCOPF: 50 contingencies, 1.3M-row LP. |
+| C-9 | MEDIUM | pass | 20.1s | PTDF: 12,706 x 10,000 matrix. |
+| C-10 | MEDIUM | partial | 698s | Distributed slack blocked by A-11. |
 
-![Scalability grade comparison](/img/bar_scalability_grades.svg)
+:::info
+PyPSA's linopy model-building overhead is a tool-specific bottleneck, not a
+solver limitation. The HiGHS solver itself is competitive at MEDIUM scale
+(6.2s for DC OPF), but the full `n.optimize()` call takes 50x longer due to
+model construction. This is the primary area where Phase 2 performance
+optimization would have the highest impact.
+:::
 
-## Tool Results
+### pandapower (Weak)
 
-<details className="eval-details" open>
-<summary>
+pandapower excels at power flow scalability. DCPF completes in 1.04s at
+MEDIUM with only 31 MB memory (C-1). ACPF completes in 2.53s with a DC warm
+start (C-2). Contingency sweep performance is strong: 10,000 cases with
+0.054s per case on the 10,000-bus network (C-5). PTDF computation on the
+12,706 x 10,000 matrix completes in 10.3s (C-9).
 
-### PyPSA — <span className="grade-c-plus">C+</span> (#1)
+The Weak tier reflects three independent scalability failures plus the
+cascaded effects of expressiveness gaps. The PYPOWER PIPS interior-point
+solver takes 62s and 2.35 GB for DC OPF at MEDIUM (C-3), and there is no
+mechanism to swap to a faster solver (C-7 fail). SCOPF at MEDIUM fails
+with out-of-memory at approximately 32 GB due to full N-1 constraint
+matrix construction (C-8 fail).
 
-</summary>
+**Key findings:**
 
-PyPSA demonstrates adequate scalability for LP-based analyses at 10k-bus scale:
-DCPF (36.8s), ACPF (22.1s), and DCOPF (19.9s HiGHS solve) all complete within
-budget. Stochastic DCOPF loop at SMALL (20 scenarios, 12h, 2000-bus) completes
-in 2,219s. Solver swap is a one-parameter change with no model reformulation
-(C-7). However, SCUC fails at SMALL due to HiGHS single-threaded MILP
-limitations, and linopy's shadow-price post-processing creates a 10+ minute
-overhead at 10k-bus that prevents SCOPF (C-8) from completing. The contingency
-sweep at MEDIUM is impractical (~65s per LPF solve, only 9 of 270 N-1 cases in
-600s).
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | MEDIUM | pass | 1.04s | DCPF: fastest among Python tools; 31 MB. |
+| C-2 | MEDIUM | pass | 2.53s | ACPF with DC warm start; 39 MB. |
+| C-3 | MEDIUM | pass | 62.4s | DC OPF: PYPOWER PIPS; 2,351 MB. |
+| C-4 | SMALL | fail | n/a | Blocked by A-5 (no SCUC capability). |
+| C-5 | MEDIUM | pass | 2.77s | AC feasibility converges at 0% relaxation. |
+| C-7 | MEDIUM | fail | n/a | No solver swap API; locked to PYPOWER PIPS. |
+| C-8 | MEDIUM | fail | >15 min | SCOPF: OOM at approximately 32 GB. |
+| C-9 | MEDIUM | pass | 289s | PTDF: 12,706 x 10,000; 5,404 MB. |
+| C-10 | MEDIUM | fail | n/a | Blocked by A-11 (no distributed slack OPF). |
 
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | 36.8s | DCPF scales cleanly |
-| C-2 | MEDIUM | pass | 22.1s | ACPF converges from flat start |
-| C-3 | MEDIUM | pass | 600s+ | DCOPF: 19.9s solve; linopy post-processing overhead |
-| C-4 | SMALL | **fail** | 700s | SCUC: HiGHS single-threaded timeout |
-| C-5 | MEDIUM | pass | 613s | Contingency: 9/270 cases in 600s; impractical |
-| C-6 | SMALL | pass | 2,219s | Stochastic: 20 scenarios x 12h at 2000-bus |
-| C-7 | MEDIUM | pass | varies | Solver swap: parameter-only, no reformulation |
-| C-8 | MEDIUM | **fail** | 600s+ | SCOPF: linopy post-processing timeout |
-| C-9 | MEDIUM | pass | 78.8s | PTDF: 12,706 x 10,000 matrix; 969 MB peak |
-| C-10 | MEDIUM | pass | 600s+ | Distributed slack: same OPF mechanism |
+:::warning
+pandapower's solver lock-in (C-7) is an architectural constraint, not a
+configuration issue. The PYPOWER PIPS solver is hardcoded with no parameter
+to select alternatives. This means performance at MEDIUM scale cannot be
+improved by swapping to a faster solver; the only path to better OPF
+performance is the optional `lightsim2grid` accelerator, which provides a
+19x speedup for ACPF but shows no benefit for DC OPF.
+:::
 
-</details>
+### GridCal (Adequate)
 
-<details className="eval-details">
-<summary>
+GridCal shows competitive power flow and single-period OPF scalability at
+MEDIUM. DCPF completes in 1.1s (C-1), ACPF in 3.4s with 5 NR iterations
+(C-2), and DC OPF in 8.9s with HiGHS (C-3). SCOPF with 50 N-1
+contingencies at MEDIUM completes in 32.1s with 956 MW aggregate
+redispatch, confirming active security constraints (C-8). Parameter-only
+solver swap is verified with both HiGHS and SCIP producing identical results
+(C-7). PTDF computation on the full matrix completes in 15.7s (C-9).
 
-### pandapower — <span className="grade-c-plus">C+</span> (#2)
+SCUC at SMALL requires a sequential snapshot workaround due to the
+`TapPhaseControl` enum bug and monolithic MILP intractability; this loses
+inter-temporal coupling (C-4 qualified pass). Memory usage for PTDF (7.6 GB)
+and SCOPF (5.9 GB) at MEDIUM is high due to dense matrix storage.
 
-</summary>
+**Key findings:**
 
-pandapower excels at power flow scalability with competitive times at 10k-bus:
-DCPF in 0.80s (C-1), ACPF in 2.52s with DC warm start (C-2), and contingency
-sweep at 10,000 cases with 0.054s/case (C-5). PTDF matrix computation (12,706 x
-10,000) completes in 15s (C-9). However, 4 of 10 scalability tests fail due to
-dependency on absent expressiveness features (SCUC, SCOPF, distributed slack),
-and the solver swap test (C-7) fails due to architectural lock-in to PYPOWER's
-interior point method. The stochastic scale test (C-6) shows only 2.1%
-convergence rate on SMALL, severely limiting practical utility.
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | MEDIUM | pass | 1.1s | DCPF scales cleanly; 82.6 MB. |
+| C-2 | MEDIUM | pass | 3.4s | ACPF: 5 NR iterations, residual 2.7e-07. |
+| C-3 | MEDIUM | qualified | 8.9s | DC OPF with HiGHS; identical results with SCIP. |
+| C-4 | SMALL | qualified | 301s | SCUC: sequential snapshot workaround; loses temporal coupling. |
+| C-5 | MEDIUM | pass | 3.2s | AC feasibility converges at both SMALL and MEDIUM. |
+| C-7 | MEDIUM | qualified | 8.9s | Solver swap: HiGHS and SCIP verified; GLPK/CBC not in enum. |
+| C-8 | MEDIUM | pass | 32.1s | SCOPF: 50 contingencies; 956 MW redispatch; 5.9 GB. |
+| C-9 | MEDIUM | pass | 15.7s | PTDF: 12,706 x 10,000; 7.6 GB peak. |
+| C-10 | MEDIUM | fail | n/a | Blocked by A-11 (distributed slack hardcoded off). |
 
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | 0.80s | DCPF scales well; 323 MB |
-| C-2 | MEDIUM | pass | 2.52s | ACPF with DC warm start |
-| C-3 | MEDIUM | pass | 8.49s | DCOPF: single solver only |
-| C-4 | SMALL | **fail** | — | Blocked by A-5 (no SCUC) |
-| C-5 | MEDIUM | pass | 541.6s | Contingency: 10K cases, 0.054s/case |
-| C-6 | SMALL | pass | 314.4s | Stochastic: 2.1% convergence rate |
-| C-7 | MEDIUM | **fail** | — | No solver swap API; locked to PYPOWER |
-| C-8 | MEDIUM | **fail** | — | Blocked by A-9 (no SCOPF) |
-| C-9 | MEDIUM | pass | 15.0s | PTDF: 4,916 MB peak |
-| C-10 | MEDIUM | **fail** | — | Blocked by A-11 (no distributed slack OPF) |
+### PowerModels.jl (Adequate)
 
-</details>
+PowerModels demonstrates strong scalability for DC formulations. DCPF at
+MEDIUM completes in 0.23s via direct linear solve (C-1). DC OPF achieves
+OPTIMAL status in 4.0s with HiGHS, with objective consistency across 4
+solvers (C-3, C-7). PTDF computation for the full 127M-element matrix
+completes in 2.8s with max error of 2.18e-11 (C-9). Distributed slack
+scales to MEDIUM in 12.2s (C-10, blocked by A-11 at the formulation level
+but the PTDF-based computation itself scales). Solver swap is parameter-only,
+verified with HiGHS, GLPK, SCIP, and Ipopt (C-7).
 
-<details className="eval-details">
-<summary>
+ACPF convergence fails at MEDIUM (C-2). Both Ipopt and NLsolve diverge on
+the pure-feasibility NLP formulation at 10,000 buses, with MUMPS memory
+exhaustion. The convergence boundary lies between 2,000 and 10,000 buses.
+SCOPF at MEDIUM via Benders algorithm did not converge within the time
+budget (one iteration in 2,837s, C-8 constrained pass).
 
-### PowerModels — <span className="grade-b-minus">B-</span> (#3)
+**Key findings:**
 
-</summary>
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | MEDIUM | qualified | 2.09s | DCPF: 0.23s solve plus branch flow post-processing. |
+| C-2 | MEDIUM | fail | 67s | ACPF: Ipopt/NLsolve diverge; MUMPS memory exhaustion. |
+| C-3 | MEDIUM | qualified | 77.2s | DC OPF: HiGHS 4.0s solve; cost linearization required. |
+| C-4 | SMALL | fail | n/a | Blocked by A-5 (no SCUC capability). |
+| C-5 | SMALL | pass | 1.5s | AC feasibility: 0% relaxation converges at SMALL. |
+| C-7 | MEDIUM | qualified | 134.7s | Solver swap: 4 solvers verified; SCIP dual crash handled. |
+| C-8 | MEDIUM | constrained | 2,837s | SCOPF: Benders, 1 iteration; CPU-contended. |
+| C-9 | MEDIUM | pass | 8.3s | PTDF: 127M elements; max error 2.18e-11. |
+| C-10 | MEDIUM | fail | n/a | Blocked by A-11 (no distributed slack formulation). |
 
-PowerModels demonstrates strong scalability for core LP problems: DCPF at
-10k-bus in 1.85s (C-1), DCOPF with Ipopt in 3.1s (C-3), and PTDF computation
-for 127M elements in 3.7s (C-9). Distributed slack scales to 10k-bus in 12.2s
-(C-10). Solver swap is a one-line API change with 4 solvers tested at MEDIUM
-(C-7). However, 4 of 10 scalability tests fail: ACPF (NLsolve does not
-converge at 10k-bus), SCUC (HiGHS MIP timeout at SMALL), contingency sweep
-(combinatorial explosion at MEDIUM), and SCOPF (problem size exceeds solver
-capacity at MEDIUM). These are a mix of tool limitations and open-source solver
-limitations at scale.
+### PowerSimulations.jl (Adequate)
 
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | 1.85s | DCPF: direct linear solve |
-| C-2 | MEDIUM | **fail** | 67.0s | ACPF: NLsolve diverges at 10k-bus |
-| C-3 | MEDIUM | pass | 3.1s | DCOPF: Ipopt required (HiGHS QP too slow) |
-| C-4 | SMALL | **fail** | 494.5s | SCUC: HiGHS MIP timeout |
-| C-5 | MEDIUM | **fail** | — | Contingency: combinatorial explosion |
-| C-6 | SMALL | pass | 281.6s | Stochastic: 20 scenarios x 12 periods |
-| C-7 | MEDIUM | pass | varies | Solver swap: one-line API change; 4 solvers tested |
-| C-8 | MEDIUM | **fail** | — | SCOPF: problem size exceeds solver capacity ([T13](./sweep-findings#t13)) |
-| C-9 | MEDIUM | pass | 6.7s | PTDF: 127M elements; 2,452 MB |
-| C-10 | MEDIUM | pass | 12.2s | Distributed slack: PTDF-based OPF |
+PowerSimulations shows clean power flow scaling to MEDIUM with no
+workarounds. DCPF completes in 0.28s (C-1), ACPF converges in 0.64s with
+DCPF warm-start (C-2), and AC feasibility passes at 0% relaxation on both
+SMALL and MEDIUM (C-5). PTDF computation finishes in 1.6s for the full
+10,000 x 12,700 matrix (C-9). Solver swap is a single-parameter change
+across 4 solvers with consistent objectives (C-7).
 
-**Related Themes:** [T04](./sweep-findings#t04) (estimated timings)
+PowerSimulations is the only tool where SCUC passes the scalability test at
+SMALL (C-4), reflecting its native UC formulation advantage. HiGHS solves
+the SMALL SCUC in 404s.
 
-</details>
+However, DC OPF at MEDIUM requires 5 stacked workarounds (initialization
+bypass, linear costs, all-generators-available, unbounded branches, no
+hydro), classified as fragile (C-3). SCOPF at MEDIUM crashes with HiGHS
+`OTHER_ERROR` on the 474K-constraint LP (C-8).
 
-<details className="eval-details">
-<summary>
+**Key findings:**
 
-### GridCal — <span className="grade-b">B</span> (#4)
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | MEDIUM | pass | 0.28s | DCPF: fastest among all tools at MEDIUM. |
+| C-2 | MEDIUM | pass | 0.64s | ACPF: converges with DCPF warm-start. |
+| C-3 | MEDIUM | qualified | 11.3s (HiGHS) | DC OPF: 5 stacked fragile workarounds required. |
+| C-4 | SMALL | qualified | 404s (HiGHS) | SCUC: only tool passing; fragile init bypass. |
+| C-5 | MEDIUM | pass | 1.57s | AC feasibility: 0% relaxation, both scales. |
+| C-7 | MEDIUM | pass | 9.7-50.7s | Solver swap: 4 solvers, consistent objectives. |
+| C-8 | MEDIUM | qualified | 449-602s | SCOPF: HiGHS crashes on MEDIUM; SMALL times out. |
+| C-9 | MEDIUM | pass | 1.6s | PTDF: fastest among all tools. |
+| C-10 | MEDIUM | fail | n/a | Blocked by A-11 (no distributed slack). |
 
-</summary>
+:::info
+PowerSimulations' SCUC scalability result (C-4) is the strongest evidence
+that the tool's native UC formulations provide a genuine advantage. No other
+tool successfully solves SCUC at SMALL scale with open-source solvers within
+the time budget.
+:::
 
-GridCal shows competitive power flow scalability with DCPF and ACPF passing at
-MEDIUM scale. DCOPF passes but produces uniform LMPs with no binding branches
-on the 10k-bus network ([gridcal-F05](./sweep-findings#gridcal-f05)). PTDF
-computation passes but with significant flow prediction mismatch at MEDIUM (743
-MW max error, [gridcal-F04](./sweep-findings#gridcal-f04)). SCUC and stochastic
-tests fail due to the TapPhaseControl bug cascade
-([gridcal-F02](./sweep-findings#gridcal-f02)), and SCOPF and distributed slack
-fail due to absent expressiveness features.
-
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | — | DCPF scales |
-| C-2 | MEDIUM | pass | — | ACPF converges |
-| C-3 | MEDIUM | pass | — | DCOPF: no binding branches on MEDIUM ([gridcal-F05](./sweep-findings#gridcal-f05)) |
-| C-4 | SMALL | **fail** | — | Blocked by TapPhaseControl bug ([gridcal-F02](./sweep-findings#gridcal-f02)) |
-| C-5 | MEDIUM | pass | — | Contingency sweep converges |
-| C-6 | SMALL | **fail** | — | Blocked by TapPhaseControl bug |
-| C-7 | MEDIUM | pass | — | Solver swap |
-| C-8 | MEDIUM | **fail** | — | No SCOPF capability ([T13](./sweep-findings#t13)) |
-| C-9 | MEDIUM | pass | — | PTDF: 743 MW mismatch ([gridcal-F04](./sweep-findings#gridcal-f04)) |
-| C-10 | MEDIUM | **fail** | — | No distributed slack OPF |
-
-**Related Themes:** [gridcal-F02](./sweep-findings#gridcal-f02) (TapPhaseControl cascade), [T13](./sweep-findings#t13) (SCOPF MEDIUM fail)
-
-</details>
-
-<details className="eval-details">
-<summary>
-
-### PowerSimulations — <span className="grade-b-minus">B-</span> (#5)
-
-</summary>
-
-> **Note:** PowerSimulations grades were reconstructed from sweep findings and
-> secondary test evidence. Primary synthesis was not conducted for this tool.
-
-PowerSimulations shows pass on DCPF and DCOPF at MEDIUM scale. Notably, it is
-the only tool where SCUC passes the scalability test (C-4 at SMALL), reflecting
-its native UC formulation advantage. Solver swap (C-7) works via JuMP's solver
-interface. However, ACPF fails at MEDIUM, SCOPF fails at MEDIUM
-([T13](./sweep-findings#t13)), and distributed slack fails. Four scalability
-tests (C-3, C-4, C-5, C-6) report only estimated timings without actual
-measurement ([T04](./sweep-findings#t04)), substantially weakening the
-evidentiary basis of the scalability grade.
-
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | — | DCPF scales |
-| C-2 | MEDIUM | **fail** | — | ACPF fails at MEDIUM |
-| C-3 | MEDIUM | pass | estimated | DCOPF: timing estimated, not measured ([T04](./sweep-findings#t04)) |
-| C-4 | SMALL | pass | estimated | SCUC: native formulation; timing estimated ([T04](./sweep-findings#t04)) |
-| C-5 | MEDIUM | pass | — | Contingency sweep |
-| C-6 | SMALL | pass | estimated | Stochastic: timing estimated ([T04](./sweep-findings#t04)) |
-| C-7 | MEDIUM | pass | — | Solver swap via JuMP interface |
-| C-8 | MEDIUM | **fail** | — | SCOPF fails at MEDIUM ([T13](./sweep-findings#t13)) |
-| C-9 | MEDIUM | pass | — | PTDF extraction |
-| C-10 | MEDIUM | **fail** | — | Distributed slack fails |
-
-**Related Themes:** [T04](./sweep-findings#t04) (estimated timings), [T13](./sweep-findings#t13) (SCOPF MEDIUM fail)
-
-</details>
-
-<details className="eval-details">
-<summary>
-
-### MATPOWER — <span className="grade-c-plus">C+</span> (Reference Only)
-
-</summary>
+### MATPOWER (Weak, Reference Only)
 
 :::note[Reference Implementation]
 MATPOWER served as the reference implementation for validating test protocols
-and network data. It is not a candidate for Phase 2 selection. Grades reflect
-protocol validation performance only.
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime. Grades reflect protocol validation performance only.
 :::
 
-MATPOWER demonstrates strong scalability for most analysis types at MEDIUM
-scale, with DCPF, ACPF, and DCOPF all passing. The contingency sweep (C-5)
-passes but is dominated by Octave `containers.Map` overhead (2,400s of 2,476s
-total, [matpower-F02](./sweep-findings#matpower-f02)) — the actual screening
-performance (50s for 28K cases) is strong. SCUC (C-4) and stochastic (C-6) fail
-at scale. The distributed slack test (C-10) shows anomalous timing (66 min vs
-expected ~30s, [matpower-F01](./sweep-findings#matpower-f01)), likely due to
-dense matrix formulation in the manual `opt_model` construction.
+MATPOWER demonstrates strong scalability for power flow at SMALL scale:
+DCPF in 0.10s (C-1), ACPF in 0.17s (C-2), DC OPF in 0.51s (C-3). FNM
+evidence confirms DCPF scales to the 27,862-bus network in 0.22s,
+suggesting MEDIUM PF performance would be competitive. However, the Weak
+tier reflects a cascading failure: the GLPK exit flag integration bug
+blocks SCUC result extraction at SMALL (C-4 fail), which triggers the
+Suite C SMALL gate and causes all 9 MEDIUM-tier tests to be skipped.
 
-| Test ID | Scale | Result | Time | Notes |
-|---------|-------|--------|------|-------|
-| C-1 | MEDIUM | pass | — | DCPF reference baseline |
-| C-2 | MEDIUM | pass | — | ACPF reference baseline |
-| C-3 | MEDIUM | pass | 9.7s | DCOPF via MIPS |
-| C-4 | SMALL | **fail** | — | SCUC: MOST loadmd() ingestion failure |
-| C-5 | MEDIUM | pass | 2,476s | Contingency: 97% Octave overhead ([matpower-F02](./sweep-findings#matpower-f02)) |
-| C-6 | SMALL | **fail** | — | Stochastic: MOST loadmd() failure |
-| C-7 | MEDIUM | pass | — | Solver swap |
-| C-8 | MEDIUM | **fail** | — | SCOPF: unanimous fail at MEDIUM ([T13](./sweep-findings#t13)) |
-| C-9 | MEDIUM | pass | — | PTDF with phase-shifter correction |
-| C-10 | MEDIUM | pass | 3,969s | Distributed slack: anomalous timing ([matpower-F01](./sweep-findings#matpower-f01)) |
+MOST correctly assembled the 162K-variable SCUC problem and GLPK solved it
+in 1.1s, but the exit flag mapping prevented result extraction. This is a
+solver integration bug, not a scalability limitation; under MATLAB with
+commercial solvers, MATPOWER's MEDIUM scalability is well-established.
 
-**Related Themes:** [matpower-F01](./sweep-findings#matpower-f01) (anomalous C-10 timing), [matpower-F02](./sweep-findings#matpower-f02) (Octave overhead), [T13](./sweep-findings#t13) (SCOPF MEDIUM fail)
+**Key findings:**
 
-</details>
+| Test | Scale | Result | Time | Notes |
+|------|-------|--------|------|-------|
+| C-1 | SMALL | pass | 0.10s | DCPF reference baseline. |
+| C-2 | SMALL | pass | 0.17s | ACPF: 5 NR iterations from flat start. |
+| C-3 | SMALL | qualified | 0.51s | DC OPF via MIPS; GLPK fails with singular basis. |
+| C-4 | SMALL | fail | 1.11s | SCUC: GLPK solved correctly but exit flag bug blocks extraction. |
+| C-5 | SMALL | pass | 0.17s | AC feasibility: converges at all relaxation levels. |
+| C-7 through C-10 | MEDIUM | skip | n/a | All skipped due to C-4 SMALL gate failure. |
+
+## Summary
+
+No tool achieves a Strong scalability tier. All tools face meaningful
+scalability limitations at MEDIUM scale, whether from solver performance,
+tool overhead, or architectural constraints.
+
+PyPSA, GridCal, PowerModels, and PowerSimulations all earn Adequate, each
+with distinct scalability profiles. PyPSA's linopy model-building overhead
+is its primary bottleneck; the underlying HiGHS solver is fast. GridCal
+achieves the best combined DC OPF and SCOPF timing at MEDIUM (8.9s and
+32.1s respectively). PowerModels provides the fastest raw DC OPF solve
+(4.0s) but fails on ACPF at scale. PowerSimulations is the only tool with
+SCUC scalability at SMALL, confirming its native UC formulation advantage.
+
+pandapower and MATPOWER both earn Weak. pandapower's PYPOWER solver lock-in
+prevents performance improvement via solver swap, and SCOPF fails with
+out-of-memory. MATPOWER's Weak tier is driven by cascading effects of the
+GLPK integration bug rather than genuine scalability limitations; under a
+different solver environment, its performance would likely be competitive.
+
+A common finding across all tools is the shared ACPF convergence challenge
+at MEDIUM scale. PowerModels fails entirely (C-2); PyPSA and pandapower
+converge but with notable overhead; GridCal and PowerSimulations converge
+competitively. SCOPF at MEDIUM is a universal stress point: GridCal is the
+only tool that handles it cleanly (32.1s); PyPSA passes with significant
+overhead (315s); PowerModels and PowerSimulations both struggle with solver
+limits or non-convergence.
 
 ---
 

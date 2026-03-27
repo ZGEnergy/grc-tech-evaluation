@@ -19,8 +19,6 @@ const sidebars = {
         'results/maturity',
         'results/supply-chain',
         'results/head-to-head',
-        'results/sweep-findings',
-        'results/probe-results',
       ],
     },
   ],

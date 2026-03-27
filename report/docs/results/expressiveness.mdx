@@ -8,248 +8,251 @@ title: "Expressiveness"
 ## Overview
 
 Expressiveness measures the breadth of power system analyses a tool can perform
-natively or with minimal extension. It is the **highest priority** criterion in
-the rubric (weight: 0.30), reflecting the core requirement that a selected tool
-must cover the analysis types ZGE needs without rewriting fundamental
-algorithms. Tests A-1 through A-11 map to this criterion, spanning DC power
-flow (DCPF), AC power flow (ACPF), DC/AC optimal power flow (DCOPF/ACOPF),
-security-constrained unit commitment and economic dispatch (SCUC/SCED),
-contingency analysis, stochastic optimization, SCOPF, lossy DCOPF with LMP
-decomposition, and distributed slack OPF.
+natively or with minimal extension. It is the highest-priority criterion in
+the rubric (weight 0.30), reflecting the core requirement that a selected tool
+must cover the target analysis types without rewriting fundamental algorithms.
+Tests A-1 through A-12 map to this criterion: DC power flow (A-1), AC power
+flow (A-2), DC OPF with LMP extraction (A-3), AC feasibility checking (A-4),
+security-constrained unit commitment (A-5), economic dispatch (A-6),
+contingency sweeps (A-7), stochastic optimization (A-8), SCOPF (A-9), lossy
+DC OPF with LMP decomposition (A-10), distributed slack OPF (A-11), and
+multi-period DC OPF with storage (A-12).
 
-Each tool was tested at three network scales — TINY (5-bus), SMALL (24-bus RTS),
-and MEDIUM (ACTIVSg10k) — to expose both capability gaps and scale-dependent
-failures. Tools that pass at TINY but fail at SMALL or MEDIUM reveal API
-limitations that would surface in production use. Notable findings include
-[probe-001](./probe-results#probe-001) (PyPSA ACPF false convergence at
-MEDIUM), A-5 SCUC timeout patterns across multiple tools, and A-9 SCOPF as a
-key discriminator between tools.
+Each tool was tested at three network scales (TINY at 39 buses, SMALL at
+2,000 buses, and MEDIUM at 10,000 buses) to expose both capability gaps and
+scale-dependent failures. Tools that pass at TINY but fail at SMALL or MEDIUM
+reveal API limitations that would surface in production use.
 
-![Expressiveness grade comparison](/img/bar_expressiveness_grades.svg)
+## Cross-Tool Comparison
 
-## Tool Results
+| Tool | Tier | Rationale |
+|------|------|-----------|
+| **PyPSA** | **Strong** | 8 of 11 tests pass natively, including SCOPF (A-9), lossy DC OPF (A-10), and multi-period storage (A-12). One blocking gap: distributed slack OPF (A-11). |
+| **pandapower** | **Weak** | 4 of 10 tests pass; 4 independent blocking failures in SCUC (A-5), lossy OPF (A-10), distributed slack (A-11), and multi-period storage (A-12). Design scope limited to single-period steady-state analysis. |
+| **GridCal** | **Adequate** | Covers core PF/OPF and SCOPF (A-9) via native LODF formulation. Two blocking formulation bugs: battery energy balance sign error (A-12) and distributed slack hardcoded off (A-11). Soft branch constraints in DC OPF (A-3) reduce formulation fidelity. |
+| **PowerModels.jl** | **Adequate** | Strong native OPF with LMP decomposition (A-10) and multi-period storage (A-12). No native SCUC (A-5) and no distributed slack (A-11). SCOPF achievable through the JuMP extension API (A-9). |
+| **PowerSimulations.jl** | **Adequate** | Only tool with native SCUC formulation (A-5), but lossy DC OPF is blocked by solver-formulation mismatch (A-10) and distributed slack is absent (A-11). Multiple fragile workarounds required for core workflows. |
+| **MATPOWER\*** | **Adequate** | Broadest built-in formulation set via MOST (SCUC, multi-period, storage). No native SCOPF (A-9) and no internal loss model for LMP decomposition (A-10). GLPK integration bug blocks SCUC result extraction in the Octave environment. |
 
-<details className="eval-details" open>
-<summary>
+:::note[MATPOWER Reference Status]
+MATPOWER served as the reference implementation for validating test protocols
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime.
+:::
 
-### PyPSA — <span className="grade-b-plus">B+</span> (#1)
+## Per-Tool Analysis
 
-</summary>
+### PyPSA (Strong)
 
-PyPSA demonstrates the strongest Expressiveness profile among all evaluated
-tools. It passes A-1 (DCPF) and A-2 (ACPF) cleanly at TINY and MEDIUM scales,
-though A-2 MEDIUM was downgraded to qualified pass after
-[probe-001](./probe-results#probe-001) revealed false convergence (0 NR
-iterations, 83% of buses at flat start). A-3 (DCOPF) and A-4 (ACOPF) pass at
-TINY but fail at MEDIUM due to zero-impedance branch handling in the network
-data. The A-9 SCOPF test is the key differentiator: PyPSA is one of only two
-tools to pass SCOPF at SMALL scale via its native
-`optimize_security_constrained()` method. The sole blocking failure is A-8
-(stochastic optimization) — the `n.scenarios` data model exists but is not wired
-into the optimizer.
+PyPSA demonstrates the broadest native expressiveness among all evaluated
+tools. It passes A-1 (DCPF), A-2 (ACPF), A-3 (DC OPF), and A-4 (AC
+feasibility) cleanly at TINY scale with correct convergence diagnostics and
+structured output. Built-in SCUC via committable generators with min up/down
+times and startup costs passes at TINY (A-5). SCOPF via the native
+`optimize_security_constrained()` method passes at both TINY and SMALL scale
+(A-9), making PyPSA one of two tools with a clean SCOPF path. Native lossy
+DC OPF with piecewise-linear loss approximation passes at TINY (A-10), and
+multi-period DC OPF with storage passes with correct BESS arbitrage behavior
+(A-12).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF converges cleanly at all scales |
-| A-2 | pass | — | pass | [probe-001](./probe-results#probe-001): false convergence on MEDIUM |
-| A-3 | pass | — | **fail** | Zero-impedance branch handling ([T07](./sweep-findings#t07)) |
-| A-4 | pass | — | **fail** | AC feasibility check; data issue at MEDIUM |
-| A-5 | pass | **fail** | — | SCUC solver timeout at SMALL (HiGHS single-threaded) |
-| A-6 | pass | **fail** | — | SCED cascaded from A-5 SCUC failure |
-| A-7 | pass | — | **fail** | `lpf_contingency()` broken; manual loop impractical at MEDIUM |
-| A-8 | **fail** | **fail** | — | Stochastic: documented but non-functional ([probe-002](./probe-results#probe-002)) |
-| A-9 | pass | pass | — | SCOPF via `optimize_security_constrained()` — key differentiator |
-| A-10 | pass | pass | — | Lossy DCOPF with piecewise linear loss approximation |
-| A-11 | pass | pass | — | Distributed slack: PF inherently distributed by design |
+**Key strengths:**
 
-**Related Probes:** [probe-001](./probe-results#probe-001) (ACPF false convergence), [probe-002](./probe-results#probe-002) (stochastic non-functional)
+- Native SCOPF via BODF-based N-1 contingency constraints embedded in the LP formulation (A-9).
+- Lossy DC OPF via `transmission_losses` parameter with piecewise-linear loss approximation (A-10).
+- Multi-period storage OPF with cyclic state-of-charge constraints (A-12).
+- Built-in SCUC with all required constraint types as native attributes (A-5).
 
-</details>
+**Key weaknesses:**
 
-<details className="eval-details">
-<summary>
+- Distributed slack DC OPF is architecturally blocked; the linopy model has no bus angle variables, making distributed slack formulation impossible in the OPF context (A-11). AC PF distributed slack works via `n.pf(distribute_slack=True)`.
+- Branch shadow prices (`mu_upper`/`mu_lower`) not populated after `n.optimize()` in the evaluated version; extraction requires accessing linopy constraint duals directly (A-3, A-12).
 
-### PowerModels — <span className="grade-b-minus">B-</span> (#2)
+**Workarounds:**
 
-</summary>
+- A-6 SCED: Manual `p_min_pu`/`p_max_pu` bound construction to fix the commitment schedule (durability: stable).
+- A-12 shadow prices: Extract from linopy constraint duals instead of the PyPSA accessor (durability: fragile).
+- A-11 distributed slack: Available in PF context but blocked in OPF context (durability: blocking).
 
-PowerModels provides the most mathematically rigorous OPF formulations among all
-evaluated tools, with native support for multiple AC OPF relaxations (SOC, QC,
-SDP) and a clean JuMP-based architecture that enables arbitrary constraint
-injection. Core PF/OPF tests (A-1 through A-4) pass at TINY, and DCOPF scales
-cleanly to MEDIUM. However, B- reflects significant gaps in the UC pipeline:
-SCUC/SCED require 140-400 lines of user-assembled JuMP code and time out at
-SMALL scale. Stochastic OPF is a blocking failure — the multi-network framework
-supports temporal periods but lacks scenario indexing and probability weighting.
-SCOPF and distributed slack are achievable through manual JuMP assembly at TINY
-scale.
+### pandapower (Weak)
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF via direct linear solve |
-| A-2 | pass | — | **fail** | ACPF: NLsolve diverges at 10k-bus |
-| A-3 | pass | — | pass | DCOPF with native LMP extraction |
-| A-4 | pass | — | pass | AC feasibility check |
-| A-5 | pass | **fail** | — | SCUC: ~140 LOC manual JuMP; HiGHS timeout at SMALL |
-| A-6 | pass | **fail** | — | SCED: ~200 LOC manual two-stage; blocked by A-5 |
-| A-7 | pass | — | **fail** | Contingency sweep: combinatorial explosion at MEDIUM |
-| A-8 | **fail** | **fail** | — | Stochastic: blocking — no scenario indexing in multi-network |
-| A-9 | pass | pass | — | SCOPF via manual JuMP assembly (~180 LOC) |
-| A-10 | pass | pass | — | Lossy DCOPF via DCPLLPowerModel formulation |
-| A-11 | pass | pass | — | Distributed slack via PTDF algebra (~150 LOC) |
+pandapower has a well-designed API for power flow analysis. A-1 (DCPF),
+A-2 (ACPF), A-3 (DC OPF), and A-4 (AC feasibility) all pass cleanly at
+TINY scale with structured DataFrame output. The contingency sweep (A-7)
+passes at all scales using efficient in-place branch switching. However,
+the Weak tier reflects fundamental architectural limitations: four
+independent blocking failures prevent the tool from expressing core
+market-operations problems.
 
-**Related Themes:** [T04](./sweep-findings#t04) (estimated timings from documentation)
+**Key strengths:**
 
-</details>
+- Clean DCPF, ACPF, DC OPF, and AC feasibility workflow within a single network object (A-1 through A-4).
+- Efficient N-M contingency sweep via in-service toggling (A-7).
+- Embedded PYPOWER solver requires no external solver installation.
 
-<details className="eval-details">
-<summary>
+**Key weaknesses:**
 
-### pandapower — <span className="grade-c-plus">C+</span> (#3)
+- No MILP optimization capability; no binary commitment variables (A-5 fail).
+- No lossy DC OPF and no LMP decomposition into energy, congestion, and loss components (A-10 fail).
+- Distributed slack silently ignored in OPF; `rundcopp(distributed_slack=True)` is absorbed by `**kwargs` with no warning (A-11 fail).
+- No multi-period DC OPF with inter-temporal storage coupling (A-12 fail).
+- No contingency-constrained optimization; SCOPF requires bypassing pandapower's OPF entirely to build a manual LP (A-9).
 
-</summary>
+**Workarounds:**
 
-pandapower has a well-designed API for power flow analysis with clean pass on
-A-1 (DCPF), A-2 (ACPF), A-3 (DCOPF), and A-4 (AC feasibility) at both TINY
-and MEDIUM scales. The contingency sweep (A-7) passes at all scales using
-efficient in-place branch switching. However, C+ reflects fundamental
-architectural limitations: 6 of 11 expressiveness tests fail with blocking gaps.
-There is no MILP optimization (blocking SCUC/SCED), no contingency-constrained
-optimization (blocking SCOPF), no stochastic formulation, no lossy DC OPF, and
-no distributed slack OPF. These are not missing features that could be added —
-they reflect a design scope limited to single-period steady-state analysis.
+- A-6 SCED: Sequential single-period DC OPF with manual ramp-rate bound manipulation (durability: fragile).
+- A-9 SCOPF: Manual PTDF/LODF construction plus `scipy.optimize.linprog`, bypassing pandapower OPF entirely (durability: blocking).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF converges cleanly |
-| A-2 | pass | — | pass | ACPF with multiple solver algorithms |
-| A-3 | pass | — | pass | DCOPF via PYPOWER interior point (solver locked) |
-| A-4 | pass | — | pass | Seamless DC OPF to AC PF feasibility check |
-| A-5 | **fail** | **fail** | — | No MILP solver; no binary commitment variables |
-| A-6 | **fail** | **fail** | — | No ramp rate constraints; blocked by A-5 |
-| A-7 | pass | — | pass | N-M contingency sweep with graph-distance scoping |
-| A-8 | **fail** | **fail** | — | No scenario tree; no two-stage formulation |
-| A-9 | **fail** | **fail** | — | No contingency-constrained optimization |
-| A-10 | **fail** | **fail** | — | No lossy DC OPF; no LMP decomposition |
-| A-11 | **fail** | **fail** | — | Distributed slack in PF only, not OPF |
+:::warning
+pandapower's four independent expressiveness failures (A-5, A-10, A-11, A-12)
+are architectural boundaries, not missing features. The tool's design scope
+is limited to single-period steady-state analysis. These gaps cannot be
+resolved through configuration or extension.
+:::
 
-</details>
+### GridCal (Adequate)
 
-<details className="eval-details">
-<summary>
+GridCal provides clean power flow and DC OPF capability with a 3-line API.
+A-1 through A-4 pass at TINY scale, and the native LODF-based SCOPF via
+`consider_contingencies=True` (A-9) is a notable strength, providing a joint
+formulation rather than iterative Benders decomposition. Native 24-hour SCUC
+with `OpfDispatchMode.UnitCommitment` is present (A-5 qualified pass), and
+lossy DC OPF exists via an `add_losses_approximation` flag (A-10
+constrained pass), though the loss approximation underestimates by over 500x.
 
-### GridCal — <span className="grade-b-minus">B-</span> (#4)
+**Key strengths:**
 
-</summary>
+- Native LODF-based SCOPF via `consider_contingencies=True` with joint formulation (A-9).
+- Native 24-hour SCUC with ramp rates and min up/down constraints (A-5).
+- Clean 3-line power flow API with first-class convergence diagnostics (A-2).
 
-> **Note:** GridCal's expressiveness grade was corrected from C+ to B- during principal review, reflecting that the TapPhaseControl bug cascade artificially inflated the apparent gap count and that native capabilities (DCPF, ACPF, DCOPF, contingency analysis, lossy DCOPF) warranted a higher baseline.
+**Key weaknesses:**
 
-GridCal provides clean power flow and basic OPF capability with pass on A-1
-through A-4 and A-7 at both TINY and MEDIUM scales. Lossy DCOPF (A-10) also
-passes, though MATPOWER cross-validation was not performed per protocol
-requirements. However, SCUC (A-5) fails due to both a TapPhaseControl bug
-cascade ([gridcal-F02](./sweep-findings#gridcal-f02)) and unimplemented UC
-constraint enforcement, and SCOPF (A-9) and distributed slack OPF (A-11) are
-architecturally absent. The TapPhaseControl bug cascades into multiple test
-failures (A-5, A-6, A-8), inflating the apparent breadth of independent gaps.
+- Battery energy balance sign error in multi-period OPF: energy increases during discharge, producing physically impossible results (A-12 fail, blocking).
+- Distributed slack hardcoded off in OPF formulation (`distributed_slack=False` at source level); silently ignored when set to True (A-11 fail, blocking).
+- Soft branch flow constraints in DC OPF allow overloading (112% observed on TINY); no hard-constraint mode available (A-3 partial pass).
+- Loss approximation underestimates by over 500x (A-10); formula uses static thermal rating instead of actual flow.
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF converges cleanly |
-| A-2 | pass | — | pass | ACPF converges; iteration count not reported |
-| A-3 | pass | — | pass | DCOPF with uniform LMPs on TINY (no congestion) |
-| A-4 | pass | — | pass | AC feasibility check |
-| A-5 | **fail** | **fail** | — | TapPhaseControl bug + UC constraints not enforced |
-| A-6 | **fail** | **fail** | — | Cascaded from A-5 TapPhaseControl bug |
-| A-7 | pass | — | pass | Contingency sweep converges; not reference-validated |
-| A-8 | **fail** | **fail** | — | No native stochastic; also blocked by TapPhaseControl |
-| A-9 | **fail** | **fail** | — | No SCOPF capability |
-| A-10 | pass | pass | — | Lossy DCOPF; missing MATPOWER cross-validation |
-| A-11 | **fail** | **fail** | — | No distributed slack OPF |
+**Workarounds:**
 
-**Related Themes:** [gridcal-F02](./sweep-findings#gridcal-f02) (TapPhaseControl bug cascade)
+- A-6 SCED: Pmax/Pmin profile zeroing for decommitted generators (durability: stable).
+- A-11 distributed slack: No workaround available (durability: blocking).
+- A-12 multi-period storage: No workaround available (durability: blocking).
 
-</details>
+### PowerModels.jl (Adequate)
 
-<details className="eval-details">
-<summary>
+PowerModels provides mathematically rigorous OPF formulations with native
+support for multiple AC OPF relaxations (SOC, QC, SDP) and a clean
+JuMP-based architecture. Core PF/OPF tests (A-1 through A-4) pass at TINY
+scale. The lossy DC OPF via `DCPLLPowerModel` with three-component LMP
+decomposition (energy, congestion, loss) is a key differentiator (A-10
+qualified pass). Multi-period OPF with storage via `replicate()` and binary
+charge/discharge complementarity passes at TINY (A-12).
 
-### PowerSimulations — <span className="grade-b-minus">B-</span> (#5)
+**Key strengths:**
 
-</summary>
+- Lossy DC OPF with full three-component LMP decomposition (A-10).
+- Multi-period storage OPF with cyclic state-of-charge constraint (A-12).
+- SCOPF mechanism via PTDF/LODF and iterative Benders cutting plane through the two-level API (A-9 qualified pass).
+- Clean one-call DC OPF with native LMP extraction via `lam_kcl_r` dual variable (A-3).
 
-> **Note:** PowerSimulations grades were reconstructed from sweep findings and
-> secondary test evidence. Primary synthesis was not conducted for this tool.
+**Key weaknesses:**
 
-PowerSimulations is the only evaluated tool with native SCUC/SCED support via
-built-in formulations for commitment variables, startup/shutdown costs, and ramp
-constraints. A-5 (SCUC) and A-6 (SCED) pass at TINY, though SCUC on the 39-bus
-network produces no unit cycling due to capacity-load ratio
-([psi-F05](./sweep-findings#psi-f05)). SCOPF is achievable at TINY via manual
-JuMP contingency constraint assembly with LODF-based filtering. However, ACPF
-fails at MEDIUM, stochastic OPF is a blocking failure, lossy DCOPF LMP
-decomposition is not supported, and many SMALL/MEDIUM tests were skipped due to
-evaluation scope constraints. A potential unit mismatch between dispatch output
-and system limits ([psi-F02](./sweep-findings#psi-f02)) affects confidence in
-A-4 results.
+- No native SCUC; unit commitment binary variables, min up/down times, and startup costs are entirely absent (A-5 fail).
+- No distributed slack formulation; all 18 built-in formulations use a single reference bus (A-11 fail).
+- `compute_ac_pf` does not expose NR iteration count or convergence residual (A-2 qualified pass).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF converges |
-| A-2 | pass | — | **fail** | ACPF fails at MEDIUM |
-| A-3 | pass | — | skip | DCOPF; MEDIUM skipped |
-| A-4 | pass | — | skip | AC feasibility; unit mismatch concern ([psi-F02](./sweep-findings#psi-f02)) |
-| A-5 | pass | skip | — | SCUC native; no cycling on 39-bus ([psi-F05](./sweep-findings#psi-f05)) |
-| A-6 | pass | skip | — | SCED native; ramp enforcement not demonstrated |
-| A-7 | pass | — | skip | Contingency sweep via manual BFS loop |
-| A-8 | **fail** | skip | — | No native stochastic optimization |
-| A-9 | pass | skip | — | SCOPF via manual JuMP with LODF filtering |
-| A-10 | **fail** | **fail** | — | No lossy DCOPF LMP decomposition |
-| A-11 | pass | skip | — | Distributed slack; weights not configurable |
+**Workarounds:**
 
-**Related Probes:** [probe-021](./probe-results#probe-021) (dispatch/limit mismatch)
-**Related Themes:** [psi-F02](./sweep-findings#psi-f02) (unit mismatch), [T04](./sweep-findings#t04) (estimated timings)
+- A-9 SCOPF: Manual Benders cutting plane with LODF injection (durability: stable).
+- A-12 storage: Cyclic SoC constraint via manual JuMP injection; SCIP required (durability: stable).
+- A-11 distributed slack: Requires approximately 150 LOC custom PTDF-based JuMP OPF (durability: blocking).
+- A-6 SCED: Multi-period `DCPPowerModel` with ramp constraints via `replicate()` (durability: stable).
 
-</details>
+### PowerSimulations.jl (Adequate)
 
-<details className="eval-details">
-<summary>
+PowerSimulations is the only evaluated tool with native SCUC/SCED support
+via built-in `ThermalStandardUnitCommitment` formulations. A-5 (SCUC) and
+A-6 (SCED) achieve qualified pass at TINY, though both require an
+`initialize_model=false` workaround due to initialization bugs. SCOPF is
+achievable via manual LODF-based JuMP constraint assembly (A-9 qualified
+pass).
 
-### MATPOWER — <span className="grade-b-minus">B-</span> (Reference Only)
+**Key strengths:**
 
-</summary>
+- Built-in unit commitment formulations with binary commitment, ramp, and min up/down constraints (A-5).
+- Native DC and AC power flow via PowerFlows.jl with sub-millisecond solve times (A-1, A-2).
+- SCOPF achievable via LODF-based manual constraint assembly with 17.7% cost increase over unconstrained OPF (A-9).
+
+**Key weaknesses:**
+
+- Lossy DC OPF blocked by solver-formulation mismatch; `DCPLLPowerModel` uses quadratic constraints unsupported by HiGHS, GLPK, and SCIP (A-10 fail, blocking).
+- No distributed slack formulation exists in PowerSimulations or PowerModels (A-11 fail, blocking).
+- No built-in storage formulations; `EnergyReservoirStorage` exists as a data type but PowerSimulations has no `construct_device!` method for it (A-12 qualified pass via fragile manual JuMP injection).
+- No built-in UC-to-ED handoff; commitment transfer requires manual JuMP variable fixing (A-6).
+
+**Workarounds:**
+
+- A-5 SCUC: `initialize_model=false` plus `JuMP.optimize!()` to bypass broken initialization (durability: fragile).
+- A-12 storage: Manual JuMP BESS variables and constraints depending on PSI internal constraint naming (durability: fragile).
+- A-9 SCOPF: Manual LODF plus JuMP constraint injection (durability: stable).
+
+### MATPOWER (Adequate, Reference Only)
 
 :::note[Reference Implementation]
 MATPOWER served as the reference implementation for validating test protocols
-and network data. It is not a candidate for Phase 2 selection. Grades reflect
-protocol validation performance only.
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime. Grades reflect protocol validation performance only.
 :::
 
-MATPOWER provides the broadest native expressiveness among all evaluated tools,
-serving as the baseline against which other tools are compared. It passes A-1
-through A-7 and A-9 through A-11 at TINY, with clean scaling to SMALL for most
-tests. A-8 (stochastic optimization) passes at TINY via MOST but was skipped at
-SMALL. The B- grade reflects structural limitations: SCUC on the 39-bus
-network produces all-committed schedules with no unit cycling
-([matpower-F05](./sweep-findings#matpower-f05)), reducing the discriminative
-value of the UC test, and several MEDIUM-scale tests were not executed or
-produced incomplete results under Octave.
+MATPOWER provides broad native expressiveness for core power flow and OPF
+via the legacy API, and MOST provides built-in SCUC, multi-period scheduling,
+and storage capability. A-1 through A-4 pass cleanly. A-5 (SCUC) achieves
+qualified pass; the MOST formulation is correct but a GLPK exit flag
+integration bug prevents result extraction on the primary test case. A-12
+(multi-period storage) passes with correct BESS arbitrage behavior under
+linear cost constraints.
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| A-1 | pass | — | pass | DCPF reference baseline |
-| A-2 | pass | — | pass | ACPF reference baseline |
-| A-3 | pass | — | pass | DCOPF with LMP extraction |
-| A-4 | pass | — | pass | AC feasibility check |
-| A-5 | pass | pass | — | SCUC via MOST; no cycling on 39-bus ([matpower-F05](./sweep-findings#matpower-f05)) |
-| A-6 | pass | pass | — | SCED via MOST |
-| A-7 | pass | — | pass | N-M contingency sweep |
-| A-8 | pass | skip | — | Stochastic via MOST; SMALL skipped |
-| A-9 | pass | pass | — | SCOPF via MOST |
-| A-10 | pass | pass | — | Lossy DCOPF with LMP decomposition |
-| A-11 | pass | pass | — | Distributed slack OPF |
+**Key strengths:**
 
-</details>
+- MOST provides built-in SCUC with all constraint types: min up/down, startup costs, ramp rates, reserves, storage (A-5).
+- Native multi-period DC OPF with storage via `addstorage()` API (A-12).
+- Clean two-stage UC/ED separability via `GEN_STATUS` toggling (A-6).
+
+**Key weaknesses:**
+
+- No native SCOPF function; manual LODF computation and user constraint injection required. Benders iteration encounters MIPS numerical issues (A-9 fail, blocking).
+- No internal loss model in DC OPF; iterative loss injection produces correct total losses but zero marginal loss LMP components (A-10 fail, blocking).
+- GLPK exit flag integration bug prevents SCUC result extraction for non-trivial problems (A-5).
+
+**Workarounds:**
+
+- A-5 SCUC: GLPK MIP gap exit code mapped to failure; validated on bundled test case (durability: stable).
+- A-11 distributed slack: Post-processing via `makePTDF` with documented slack distribution vector (durability: stable).
+- A-9 SCOPF: Benders iteration with LODF constraint injection via `mpc.A/l/u` (durability: blocking).
+- A-10 lossy DC OPF: Iterative loss injection external to OPF; cannot produce non-zero loss LMP components (durability: blocking).
+
+## Summary
+
+PyPSA is the clear leader in expressiveness, earning a Strong tier with 8 of
+11 tests passing natively and the broadest coverage of market-operations
+formulations (SCOPF, lossy OPF, multi-period storage). Its sole blocking gap,
+distributed slack OPF (A-11), is shared by every evaluated tool except
+MATPOWER (where it is achievable via post-processing).
+
+The Adequate tier contains four tools with distinct profiles. PowerModels
+excels at OPF formulation rigor (lossy DC OPF with LMP decomposition) but
+lacks unit commitment entirely. PowerSimulations uniquely provides native
+SCUC but is blocked on lossy OPF and requires fragile workarounds for
+several core workflows. GridCal covers a broad spectrum including native
+SCOPF but is undermined by two blocking formulation bugs. MATPOWER has the
+broadest built-in capabilities via MOST but is constrained by its Octave
+solver ecosystem.
+
+pandapower falls to Weak due to four independent blocking failures that
+reflect fundamental architectural boundaries; the tool's design scope does
+not extend beyond single-period steady-state analysis.
 
 ---
 

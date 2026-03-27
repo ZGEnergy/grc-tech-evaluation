@@ -7,174 +7,185 @@ title: "Supply Chain"
 
 ## Overview
 
-Supply Chain is the **gate criterion** — every tool must achieve at least C+ to proceed to the full evaluation. The Suite F tests assess core licensing (F-1), dependency tree health (F-2), dependency license audit (F-3), compiled extension audit (F-4), code inspectability (F-5), distribution integrity (F-6), air-gap installability (F-7), solver dependency analysis (F-8), and getting-started integrity (F-9). These tests ensure that a selected tool can be deployed in ZGE's operational environment without licensing conflicts, supply chain vulnerabilities, or runtime barriers.
+Supply Chain, Inspectability, and Licensing Risk is the **gate criterion**. A tier of Weak or Failing is disqualifying regardless of performance on all other criteria. The Suite F tests assess core licensing (F-1), dependency tree transparency (F-2), dependency license audit (F-3), compiled extension audit (F-4), code inspectability (F-5), distribution integrity (F-6), air-gap installability (F-7), solver dependency analysis (F-8), and getting-started artifact integrity (F-9). These tests ensure that a selected tool can be deployed in the customer's operational environment without licensing conflicts, uninspectable binaries, or supply chain vulnerabilities.
 
-All 6 tools passed the C+ gate threshold. This makes Supply Chain the shortest criterion page — there are no gate failures to analyze and the primary differentiators are licensing model (particularly GridCal's MPL-2.0 copyleft) and dependency tree completeness. pandapower leads with an A grade, followed by PowerModels (A-) and PyPSA (B+), reflecting permissive licenses, healthy dependency trees, and verified distribution integrity.
+All six tools passed the gate threshold. This makes Supply Chain the least differentiating criterion; the primary distinctions are licensing model, dependency tree depth, and distribution integrity practices.
 
 ### License Summary
 
-| Tool | License | Copyleft? | Runtime | Notes |
-|------|---------|-----------|---------|-------|
-| PyPSA | MIT | No | Python 3.x | |
-| PowerModels | MIT | No | Julia 1.x | |
-| pandapower | BSD-3 | No | Python 3.x | |
-| GridCal | MPL-2.0 | File-level | Python 3.x | Derivative works must share modified files |
-| PowerSimulations | BSD-3 | No | Julia 1.x | |
-| MATPOWER | BSD-3 | No | Octave/MATLAB | |
+| Tool | License | Copyleft? | Runtime | Flagged Dependencies |
+|------|---------|-----------|---------|---------------------|
+| PyPSA | MIT | No | Python 3.x | Levenshtein (GPL-2.0), replaceable with rapidfuzz (MIT) (F-3) |
+| pandapower | BSD-3 | No | Python 3.x | LightSim2Grid (MPL-2.0, optional) (F-3) |
+| GridCal | MPL-2.0 | File-level | Python 3.x | chardet, moocore (LGPL, low-risk) (F-3) |
+| PowerModels | BSD-3 (LANL) | No | Julia 1.x | GLPK (GPL-3.0, optional), SCIP 8.0.0 (ZIB Academic, optional) (F-3) |
+| PowerSimulations | BSD-3 | No | Julia 1.x | GLPK (GPL-3.0, removable) (F-3) |
+| MATPOWER | BSD-3 | No | Octave/MATLAB | GLPK (GPL-3.0, avoidable via built-in MIPS) (F-3) |
 
-![Supply chain grade comparison](/img/bar_supply_chain_grades.svg)
+## Cross-Tool Comparison
 
-## Tool Results
+| Tool | Tier | F-1 License | F-2 Deps | F-3 Audit | F-4 Compiled | F-5 Inspect | F-6 Integrity | F-7 Air-Gap | F-8 Solver | F-9 Start |
+|------|------|-------------|----------|-----------|-------------|-------------|---------------|-------------|------------|-----------|
+| PyPSA | <span className="tier-strong">Strong</span> | MIT | 17 direct | 1 GPL (F-3) | Pure Python | Full | PyPI + SHA-256 | Yes | HiGHS (MIT) | Verified |
+| pandapower | <span className="tier-strong">Strong</span> | BSD-3 | 39 pkgs | 1 MPL opt. | Pure Python | Full | Sigstore | Yes | Embedded PYPOWER | Verified |
+| GridCal | <span className="tier-strong">Strong</span> | MPL-2.0 | 62 pkgs | 2 LGPL | Pure Python | Full | sdist, SHA-256 | Yes | HiGHS bundled | Verified |
+| PowerModels | <span className="tier-adequate">Adequate</span> | BSD-3 | 114 pkgs | GLPK GPL, SCIP ZIB | 35 JLL, all source | Full | git-tree-sha1 | Yes | Ipopt + HiGHS | Mutable badges |
+| PowerSimulations | <span className="tier-adequate">Adequate</span> | BSD-3 | 184 pkgs | GLPK GPL | JLL, all source | Full | git-tree-sha1 | Yes | HiGHS + Ipopt | Mutable URLs |
+| MATPOWER | <span className="tier-strong">Strong</span> | BSD-3 | 0 external | All BSD-3 | 0 compiled | Full | SHA-256 + Zenodo | Yes | Built-in MIPS | Immutable |
+
+## Per-Tool Analysis
 
 <details className="eval-details" open>
 <summary>
 
-### PyPSA — <span className="grade-b-plus">B+</span> (#1)
+### PyPSA — <span className="tier-strong">Strong</span>
 
 </summary>
 
-PyPSA has a clean supply chain profile. The MIT license is fully permissive with no copyleft obligations. The dependency tree is well-maintained, consisting primarily of standard Python scientific computing packages (numpy, scipy, pandas, linopy). All dependencies carry permissive licenses. The package is distributed via PyPI and conda-forge with verifiable integrity, and air-gap installation is achievable by pre-downloading wheels.
+PyPSA has a clean supply chain profile. The MIT license is fully permissive with no copyleft obligations (F-1). The dependency tree consists of 17 direct packages (approximately 70 transitive) rooted in standard Python scientific computing (numpy, scipy, pandas, linopy) with a maximum depth of 4 (F-2). One GPL-2.0 direct dependency (Levenshtein, used for fuzzy attribute name matching) is flagged; it is replaceable with the MIT-licensed `rapidfuzz`, which is already a transitive dependency (F-3). All 249 `.so` files in dependencies have publicly available source (F-4). The full execution path from API call to solver invocation is readable Python with zero opaque steps (F-5). Distribution is via PyPI with SHA-256 hashes and automated CI/CD release; no Sigstore attestations (ecosystem-wide gap) (F-6). Air-gap installation is achievable by pre-downloading wheels with no runtime network dependencies (F-7). The bundled HiGHS solver (MIT) covers LP, MILP, and QP with no commercial solver requirement (F-8). Getting-started examples are self-contained with no mutable URLs (F-9).
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | MIT license |
-| F-2 | pass | Clean dependency tree; standard scientific Python stack |
-| F-3 | pass | All dependencies permissively licensed |
-| F-4 | pass | No proprietary compiled extensions |
-| F-5 | pass | Fully inspectable Python source |
-| F-6 | pass | PyPI and conda-forge distribution with integrity checks |
-| F-7 | pass | Air-gap installable via wheel pre-download |
-| F-8 | pass | Open-source solver support (HiGHS, GLPK) |
-| F-9 | pass | Getting-started instructions verified |
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | pass | MIT license, SPDX headers |
+| F-2 | informational | 17 direct deps, ~70 transitive, max depth 4 |
+| F-3 | qualified_pass | 1 GPL dep (Levenshtein); 85 permissive |
+| F-4 | pass | Pure Python core; 249 .so files, all with source |
+| F-5 | pass | Full path inspectable; zero opaque steps |
+| F-6 | pass | PyPI with SHA-256 hashes; no Sigstore |
+| F-7 | pass | Fully air-gap installable |
+| F-8 | pass | HiGHS (MIT) bundled; GLPK, Ipopt available |
+| F-9 | pass | Self-contained examples, no mutable URLs |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### pandapower — <span className="grade-a">A</span> (#2)
+### pandapower — <span className="tier-strong">Strong</span>
 
 </summary>
 
-pandapower has an equally clean supply chain. The BSD-3-Clause license is permissive with no copyleft obligations. The dependency tree relies on the NumPy/SciPy stack with the addition of PYPOWER as the core solver backend. All dependencies carry permissive licenses. Distribution via PyPI is well-maintained with consistent release artifacts.
+pandapower has an exemplary supply chain profile. The BSD-3-Clause license is permissive with no copyleft obligations (F-1). The dependency tree is compact: 39 packages with a maximum depth of 3, all versions pinned via `uv.lock` (F-2). All dependencies carry permissive licenses except the optional LightSim2Grid accelerator (MPL-2.0, weak copyleft, file-level only), which is excludable (F-3). All 216 compiled extensions (`.so` files) have publicly available source (F-4). The entire power flow execution path is readable Python; the sole compiled step is scipy's SuperLU factorization (F-5). pandapower is the only evaluated tool with Sigstore provenance attestations and Trusted Publishing via GitHub Actions (F-6). Air-gap installation is achievable via pre-downloaded wheels with no runtime network access (F-7). The embedded PYPOWER solver eliminates any external solver dependency (F-8). Tutorials are not shipped inside the pip package (must clone the repository) and official documentation uses an unversioned `pip install pandapower` command (F-9).
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | BSD-3-Clause license |
-| F-2 | pass | Standard NumPy/SciPy/PYPOWER dependency tree |
-| F-3 | pass | All dependencies permissively licensed |
-| F-4 | pass | No proprietary compiled extensions |
-| F-5 | pass | Fully inspectable Python source |
-| F-6 | pass | PyPI distribution with integrity checks |
-| F-7 | pass | Air-gap installable via wheel pre-download |
-| F-8 | pass | Built-in PYPOWER solver; optional PowerModels bridge |
-| F-9 | pass | Getting-started instructions verified |
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | informational | BSD-3-Clause license |
+| F-2 | informational | 39 packages, depth 3, all pinned |
+| F-3 | informational | 1 MPL-2.0 (optional); rest permissive |
+| F-4 | informational | 216 .so files, all source-available |
+| F-5 | informational | Full PF path in readable Python |
+| F-6 | informational | Sigstore attestations, Trusted Publishing |
+| F-7 | informational | Air-gap installable |
+| F-8 | informational | Embedded PYPOWER; no external solver |
+| F-9 | informational | Versioned ReadTheDocs; tutorials not in pip |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### PowerModels — <span className="grade-a-minus">A-</span> (#3)
-
-</summary>
-
-PowerModels carries an MIT license with a clean dependency chain within the Julia/JuMP ecosystem. The JuMP mathematical programming framework and associated solver interfaces (HiGHS.jl, Ipopt.jl) are all permissively licensed. Julia's package manager provides built-in integrity verification through content-addressed artifact storage.
-
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | MIT license |
-| F-2 | skip | Julia Pkg manages dependencies; tree not independently audited |
-| F-3 | pass | JuMP ecosystem permissively licensed |
-| F-4 | pass | Solver binaries (HiGHS, Ipopt) are open-source |
-| F-5 | pass | Fully inspectable Julia source |
-| F-6 | pass | Julia General registry with content-addressed artifacts |
-| F-7 | pass | Air-gap installable via Pkg.offline mode |
-| F-8 | pass | HiGHS and Ipopt open-source solvers |
-| F-9 | pass | Getting-started instructions verified |
-
-</details>
-
-<details className="eval-details">
-<summary>
-
-### PowerSimulations — <span className="grade-b-plus">B+</span> (#4)
-
-</summary>
-
-> **Note:** PowerSimulations grades were reconstructed from sweep findings and secondary test evidence. Primary synthesis was not conducted for this tool.
-
-PowerSimulations uses the BSD-3-Clause license, consistent with NREL's open-source policy. The dependency chain within the Sienna ecosystem (PowerSystems.jl, InfrastructureSystems.jl) is permissively licensed. The same Julia Pkg integrity mechanisms apply as with PowerModels.
-
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | BSD-3-Clause license |
-| F-2 | skip | Julia Pkg manages dependencies; tree not independently audited |
-| F-3 | skip | Sienna ecosystem permissively licensed; full audit not completed |
-| F-4 | pass | Solver binaries are open-source |
-| F-5 | pass | Fully inspectable Julia source |
-| F-6 | pass | Julia General registry distribution |
-| F-7 | pass | Air-gap installable via Pkg.offline mode |
-| F-8 | pass | HiGHS and Ipopt open-source solvers |
-| F-9 | skip | Getting-started integrity not independently verified |
-
-</details>
-
-<details className="eval-details">
-<summary>
-
-### GridCal — <span className="grade-b-minus">B-</span> (#5)
+### GridCal — <span className="tier-strong">Strong</span>
 
 </summary>
 
 :::caution[MPL-2.0 License]
-GridCal uses the Mozilla Public License 2.0, which requires that modifications to GridCal source files be distributed under MPL-2.0. This is a file-level copyleft — it does not affect code that merely imports GridCal, but any patches to GridCal itself must be shared.
+GridCal uses the Mozilla Public License 2.0, which requires that modifications to GridCal source files be distributed under MPL-2.0. This is a file-level copyleft; it does not affect code that merely imports GridCal, but any patches to GridCal itself must be shared under MPL-2.0.
 :::
 
-GridCal's MPL-2.0 license is the only non-permissive license among the evaluated tools. While MPL-2.0's file-level copyleft is less restrictive than GPL (it does not require derivative works to be open-sourced in their entirety), it does require that any modifications to GridCal's own source files be distributed under MPL-2.0. For ZGE's use case of importing GridCal as a library without modifying its source, this has minimal practical impact, but it requires ongoing license compliance awareness.
+GridCal (VeraGridEngine) is 100% pure Python (`py3-none-any` wheel) with no compiled extensions in the core package (F-4). The MPL-2.0 license changed from LGPL in November 2024 and is compatible with enterprise adoption (F-1). The dependency tree includes 62 packages (28 direct) with 2 LGPL packages (chardet, moocore), both low-risk; no GPL, AGPL, or proprietary licenses were found (F-2, F-3). The full DCPF execution path is traceable through 4 layers of Python in approximately 200 lines, with a custom interior-point solver for AC OPF that eliminates any Ipopt dependency (F-5). Distribution is sdist-only on PyPI with no release signing; SHA-256 hashes are available (F-6). Air-gap installation is feasible; all compiled dependencies have platform wheels on PyPI, producing an approximately 500-700 MB bundle (F-7). HiGHS (MIT) is bundled via PuLP, and CBC is also bundled; no proprietary solver is required (F-8). The single-maintainer publishing model (no Trusted Publisher, no signing) concentrates supply chain risk on one PyPI account (F-6).
 
-Air-gap installability failed (F-7) due to dependency on system-level packages that are not bundled in the pip distribution.
-
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | MPL-2.0 license; file-level copyleft |
-| F-2 | skip | Dependency tree not independently audited |
-| F-3 | pass | Dependencies permissively licensed |
-| F-4 | pass | No proprietary compiled extensions |
-| F-5 | pass | Fully inspectable Python source |
-| F-6 | skip | Distribution integrity not independently verified |
-| F-7 | fail | Air-gap install blocked by system-level dependencies |
-| F-8 | pass | Built-in solvers; no external solver dependency |
-| F-9 | pass | Getting-started instructions verified |
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | pass | MPL-2.0 (weak copyleft, file-level) |
+| F-2 | pass | 62 packages, max depth 4 |
+| F-3 | pass | 2 LGPL (chardet, moocore); no GPL/AGPL |
+| F-4 | pass | Pure Python core; 25 deps with compiled extensions |
+| F-5 | pass | 4-layer traceable path; all Python |
+| F-6 | pass | sdist-only; no signing; SHA-256 hashes |
+| F-7 | pass | Air-gap feasible; no runtime network access |
+| F-8 | pass | HiGHS bundled; custom IPS for AC OPF |
+| F-9 | pass | uv.lock ensures reproducibility |
 
 </details>
 
 <details className="eval-details">
 <summary>
 
-### MATPOWER — <span className="grade-a">A</span> (Reference Only)
+### PowerModels — <span className="tier-adequate">Adequate</span>
+
+</summary>
+
+PowerModels carries a BSD-3 license (LANL) with a clean core dependency chain within the Julia/JuMP ecosystem (F-1). The full dependency tree includes 114 packages (6 direct, 108 transitive) resolved and pinned in Manifest.toml with git-tree-sha1 hashes (F-2). Two optional solver dependencies carry non-permissive licenses: GLPK.jl (GPL v3 wrapper) and SCIP_jll v0.2.1, which bundles SCIP 8.0.0 under the ZIB Academic License (non-commercial only at this pinned version) (F-3). Both are optional and excludable without loss of capability; Ipopt (EPL 2.0) and HiGHS (MIT) cover all standard formulations (F-8). All 35 compiled components (JLL packages) have public source and are reproducibly built via Yggdrasil (F-4). The full execution path from API call to solver invocation is inspectable Julia source (F-5). Julia's General Registry provides content-addressable artifact storage with git-tree-sha1 verification (F-6). Air-gap installation is feasible via Julia depot caching with `JULIA_PKG_OFFLINE=true` (F-7). Getting-started examples use `/stable/` documentation links but include mutable badge references (F-9).
+
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | pass | BSD-3 (LANL) |
+| F-2 | pass | 114 packages; 6 direct, 108 transitive |
+| F-3 | qualified_pass | GLPK GPL v3, SCIP ZIB Academic flagged; both optional |
+| F-4 | pass | 35 JLL packages; all source-available |
+| F-5 | pass | Full call chain traceable; no opaque steps |
+| F-6 | pass | Julia General Registry; git-tree-sha1 verified |
+| F-7 | pass | Depot caching; no runtime network access |
+| F-8 | pass | Ipopt + HiGHS cover all standard formulations |
+| F-9 | qualified_pass | /stable/ docs links; mutable badge refs |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### PowerSimulations — <span className="tier-adequate">Adequate</span>
+
+</summary>
+
+PowerSimulations uses the BSD-3-Clause license across all 5 core Sienna packages, consistent with NREL's open-source policy (F-1). The dependency tree is the largest among evaluated tools at 184 total packages (15 direct, 169 transitive), creating a broad audit surface (F-2). GLPK GPL-3.0 is present in the dependency tree but is removable by switching to HiGHS (F-3). All 4 solver binaries are built from source via Yggdrasil with pinned commits and SHA-256 hashes (F-4). The full execution path from API call to solver invocation is inspectable Julia source except solver engines (F-5). Distribution relies on Julia's General Registry with git-tree-sha1 verification but no GPG or Sigstore signatures (F-6). Air-gap installation is feasible via depot copy with `JULIA_PKG_OFFLINE=true` (F-7). All core use cases work on open-source solvers with no commercial solver requirement (F-8). Getting-started tutorials use mutable URLs, unversioned imports, and external data downloads (F-9).
+
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | pass | BSD-3-Clause across all Sienna packages |
+| F-2 | informational | 184 packages; largest dependency tree |
+| F-3 | informational | GLPK GPL-3.0 removable; rest permissive |
+| F-4 | pass | All solver binaries source-available via Yggdrasil |
+| F-5 | pass | Full path inspectable except solver engines |
+| F-6 | pass | Julia General Registry; no signatures |
+| F-7 | pass | Depot caching; air-gap feasible |
+| F-8 | pass | HiGHS + Ipopt cover all use cases |
+| F-9 | informational | Mutable URLs; unversioned imports |
+
+</details>
+
+<details className="eval-details">
+<summary>
+
+### MATPOWER — <span className="tier-strong">Strong</span> (Reference Only)
 
 </summary>
 
 :::note[Reference Implementation]
-MATPOWER served as the reference implementation for validating test protocols and network data. It is not a candidate for Phase 2 selection. Grades reflect protocol validation performance only.
+MATPOWER is excluded from the primary ranking because the customer requires inspectable source code, which precludes the compiled MATLAB runtime. Grades reflect evaluation performance only.
 :::
 
-MATPOWER uses the BSD-3-Clause license with no copyleft obligations. The tool is self-contained within the Octave/MATLAB runtime and has minimal external dependencies — the MIPS interior point solver is bundled directly. This simplicity makes MATPOWER one of the easiest tools to audit from a supply chain perspective, though the Octave/MATLAB runtime itself introduces a platform dependency.
+MATPOWER achieves the strongest supply chain profile in this evaluation with a perfect 9/9 on Suite F tests. The BSD-3-Clause license has no copyleft obligations (F-1). The self-contained distribution model is the simplest available: zero external dependencies, with all 4 sub-packages (MOST, MP-Opt-Model, MIPS, MP-Test) bundled in a single archive (F-2). All bundled packages carry BSD-3-Clause licenses (F-3). The distribution contains zero compiled binaries; 100% of the codebase is human-readable MATLAB/Octave source (F-4, F-5). Releases are version-pinned on GitHub with SHA-256 checksums and Zenodo DOIs for archival persistence (F-6). Air-gap installation requires only extracting a single zip archive with no runtime network calls (F-7). The built-in MIPS solver eliminates any hard dependency on external solver binaries (F-8). Getting-started artifacts use version-pinned, checksummed, immutable download links (F-9). The only copyleft exposure is the optional GLPK solver (GPL-3.0) available through Octave, avoidable by using the built-in MIPS solver.
 
-| Test ID | Result | Notes |
-|---------|--------|-------|
-| F-1 | pass | BSD-3-Clause license |
-| F-2 | skip | Minimal dependencies; self-contained distribution |
-| F-3 | skip | No third-party dependency licenses to audit |
-| F-4 | pass | Bundled MIPS solver is open-source |
-| F-5 | pass | Fully inspectable Octave/MATLAB source |
-| F-6 | skip | Distributed as source archive; no package registry |
-| F-7 | pass | Air-gap installable as self-contained archive |
-| F-8 | pass | Bundled MIPS solver; no external solver dependency |
-| F-9 | pass | Getting-started instructions verified |
+| Test | Status | Key Finding |
+|------|--------|-------------|
+| F-1 | pass | BSD-3-Clause, no copyleft |
+| F-2 | pass | 4 bundled deps, zero external, depth 1 |
+| F-3 | pass | All bundled deps BSD-3-Clause |
+| F-4 | pass | 0 compiled binaries in distribution |
+| F-5 | pass | 0 opaque execution steps |
+| F-6 | pass | SHA-256 checksums, Zenodo DOIs |
+| F-7 | pass | Full air-gap install capability |
+| F-8 | pass | Built-in MIPS solver; no external dependency |
+| F-9 | pass | Version-pinned immutable artifacts |
 
 </details>
+
+## Summary
+
+All six tools pass the supply chain gate. The Python tools (PyPSA, pandapower, GridCal) and MATPOWER earn Strong, reflecting permissive or file-level-copyleft licenses, fully inspectable source, and straightforward air-gap installation (F-1, F-5, F-7). The Julia tools (PowerModels, PowerSimulations) earn Adequate due to larger dependency trees (114 and 184 packages respectively), optional GPL-licensed solver wrappers that require explicit exclusion, and mutable getting-started artifacts (F-2, F-3, F-9). pandapower's Sigstore provenance attestations (F-6) and MATPOWER's zero-dependency self-contained distribution (F-2) are best-in-class practices within their respective tiers.
+
+The most common supply chain risk across all tools is the optional presence of GPL-licensed GLPK solver bindings. For any tool selected for Phase 2, the deployment configuration should explicitly exclude GLPK and rely on HiGHS (MIT) or Ipopt (EPL 2.0) for all optimization workloads.
 
 ---
 
