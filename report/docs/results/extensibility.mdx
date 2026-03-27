@@ -9,227 +9,260 @@ title: "Extensibility"
 
 Extensibility measures the ability to add custom constraints, swap solvers,
 modify networks programmatically, and integrate with external tools and
-workflows. It is a **high priority** criterion, reflecting the requirement that
-a selected tool must accommodate ZGE's custom modeling needs — flow gate
-constraints, solver benchmarking, PTDF-based analysis, and programmatic network
-modification — without requiring source code patches or fragile internal API
+workflows. It is a high-priority criterion, reflecting the requirement that a
+selected tool must accommodate custom modeling needs (flow gate constraints,
+solver benchmarking, PTDF-based analysis, and programmatic network
+modification) without requiring source code patches or fragile internal API
 access.
 
 Tests B-1 through B-9 map to this criterion: custom constraint injection with
-dual extraction (B-1), graph/topology access (B-2), contingency loop efficiency
-(B-3), stochastic wrapping (B-4), interoperability/export (B-5), code
-architecture assessment (B-6), AC feasibility extension (B-7), reference bus
-configuration (B-8), and PTDF extraction with phase-shifter correction (B-9).
-Notable findings include the B-1 custom constraint LOC comparison across tools
-and B-9 PTDF phase-shifter correction
-([T06](./sweep-findings#t06), [probe-010](./probe-results#probe-010)).
+dual extraction (B-1), graph and topology access (B-2), contingency loop
+efficiency (B-3), stochastic wrapping (B-4), interoperability and export
+(B-5), code architecture assessment (B-6), AC feasibility extension (B-7),
+reference bus configuration (B-8), and PTDF extraction with phase-shifter
+correction (B-9).
 
-![Extensibility grade comparison](/img/bar_extensibility_grades.svg)
+## Cross-Tool Comparison
 
-## Tool Results
+| Tool | Tier | Rationale |
+|------|------|-----------|
+| **PyPSA** | **Strong** | 8 of 8 extensibility tests pass with no workarounds. Clean `extra_functionality` callback, native NetworkX graph, machine-precision PTDF, solver swap via single parameter. |
+| **PowerModels.jl** | **Strong** | Two-level API enables custom constraint injection in 4 LOC with dual extraction (B-1). First-class PTDF with machine-epsilon accuracy at 10,000 buses (B-9). Four-layer dispatch architecture (B-6). |
+| **PowerSimulations.jl** | **Strong** | Full JuMP model access via `get_jump_model()` (B-1). Machine-precision PTDF (B-9). Cleanest 5-layer package architecture among evaluated tools (B-6). Native `TransmissionInterface` type for supplemental data. |
+| **pandapower** | **Adequate** | Excellent graph access via NetworkX and efficient contingency sweeps (B-2, B-3). OPF extensibility blocked by closed PYPOWER solver; custom constraint injection requires monkey-patching internals (B-1 fragile). |
+| **GridCal** | **Adequate** | Strong graph access and PTDF/LODF extraction (B-2, B-9). No public API for custom constraint injection; monkey-patching internal PuLP model required (B-1 fragile). Monolithic OPF formulation with no extension points (B-6). |
+| **MATPOWER\*** | **Strong** | Documented `mpc.A/l/u` custom constraint API with dual extraction (B-1). Native `makePTDF()`/`makeLODF()` with machine-precision accuracy (B-9). Flat `mpc` struct enables zero-friction network modification. |
 
-<details className="eval-details" open>
-<summary>
+:::note[MATPOWER Reference Status]
+MATPOWER served as the reference implementation for validating test protocols
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime.
+:::
 
-### PyPSA — <span className="grade-a-minus">A-</span> (#1)
+## Per-Tool Analysis
 
-</summary>
+### PyPSA (Strong)
 
-PyPSA demonstrates strong extensibility through its Linopy-based optimization
-subsystem. Custom constraint injection via `create_model()`/`solve_model()`
-requires only 2 lines of code with full dual extraction (B-1). NetworkX graph
-access is zero-friction via `n.graph()` (B-2, 4 LOC for BFS + subgraph). PTDF
-extraction is native via `SubNetwork.calculate_PTDF()` with machine-precision
-flow agreement at TINY (B-9). The 5-layer mixin architecture provides clean
-horizontal separation of concerns (B-6). MEDIUM-tier failures in B-1, B-3, and
-B-9 stem from zero-impedance branch data issues rather than architectural
-limitations.
+PyPSA achieves a clean sweep across all extensibility tests. The
+`extra_functionality` callback provides a documented hook for custom constraint
+injection with full access to the linopy model, requiring only 2 lines of
+code for a flow gate constraint with dual extraction (B-1). NetworkX graph
+access is zero-friction via `n.graph()` (B-2, 4 LOC for BFS and subgraph
+extraction). PTDF extraction is native via `SubNetwork.calculate_PTDF()` with
+machine-precision flow agreement (max error 1.9e-14 p.u. at TINY, B-9).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | pass | — | **fail** | Custom constraints: 2 LOC; MEDIUM fails on data issue |
-| B-2 | pass | — | pass | NetworkX graph access: zero friction |
-| B-3 | pass | — | **fail** | Contingency loop: `lpf_contingency()` broken; manual loop impractical at MEDIUM |
-| B-4 | pass | pass | — | Stochastic wrapping via `n.copy()` + DataFrame assignment |
-| B-5 | pass | — | pass | DataFrame export in 2 LOC via `.to_csv()` |
-| B-6 | skip | — | — | 5-layer mixin architecture (informational) |
-| B-7 | pass | — | pass | AC feasibility extension: stable, low-effort |
-| B-8 | pass | pass | — | Reference bus config via DataFrame edits |
-| B-9 | pass | — | **fail** | PTDF: native API; singular B matrix at MEDIUM (zero-impedance) |
+**Key strengths:**
 
-**Related Themes:** [T06](./sweep-findings#t06) (PTDF phase-shifter correction)
+- Custom constraint injection via `extra_functionality` callback with linopy model access; 2 LOC for flow gate constraint with dual extraction (B-1).
+- Native NetworkX graph export via `n.graph()` for immediate access to BFS, DFS, and shortest-path algorithms (B-2).
+- N-M contingency sweep via `n.copy()` plus `n.lpf()` with no file re-reads; 3,276 cases in 213s (B-3).
+- Programmatic time series injection via DataFrame assignment for stochastic scenarios (B-4).
+- DataFrame-native results with zero-friction export to CSV, Parquet, and HDF5 (B-5).
+- Well-separated 4-layer architecture with 5 documented injection points (B-6).
+- Native PTDF extraction with correct phase-shifter handling (B-9).
 
-</details>
+**Key weaknesses:**
 
-<details className="eval-details">
-<summary>
+- `n.lpf_contingency()` broken on Python 3.12+; does not block N-M contingency analysis (BODF or copy-plus-lpf patterns work) (B-3).
+- DCPF solver (scipy.sparse) is hardcoded and not swappable via parameter (B-6).
 
-### PowerModels — <span className="grade-a-minus">A-</span> (#2)
+**Workarounds:**
 
-</summary>
+None required across all extensibility tests. All functionality achieved through documented public APIs.
+
+### PowerModels.jl (Strong)
 
 PowerModels provides the cleanest constraint injection pattern among all
 evaluated tools via its two-level API (`instantiate_model`/`optimize_model!`),
 which exposes the JuMP model for arbitrary modification. Custom flow gate
-constraints with dual extraction work at both TINY and MEDIUM scale (B-1). The
-native PTDF pipeline via `calc_basic_ptdf_matrix` achieves flow prediction error
-below 1e-11 at 10k-bus (B-9). Contingency loops are efficient via dict
-`deepcopy` + `br_status=0` (B-3, 50 N-1 cases in 3.4s on MEDIUM). The sole
-caveat is the absence of a native graph library — BFS/adjacency must be built
-manually from branch `f_bus`/`t_bus` pairs (~15 LOC, B-2 qualified pass).
+constraints with dual extraction work at both TINY and MEDIUM scale (B-1).
+The native PTDF pipeline via `calc_basic_ptdf_matrix` achieves flow prediction
+error below 1e-11 at 10,000 buses (B-9). Contingency loops are efficient
+via dict `deepcopy` plus `br_status=0` (B-3, 50 N-1 cases at 1.25ms per case
+on TINY).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | pass | — | pass | JuMP constraint injection with full dual extraction |
-| B-2 | pass | — | pass | Manual adjacency (~15 LOC); no native graph library |
-| B-3 | pass | — | pass | Dict deepcopy contingency loop; 3.4s for 50 N-1 at MEDIUM |
-| B-4 | pass | pass | — | Scenario wrapping: 20 scenarios in 282s at SMALL |
-| B-5 | pass | — | pass | DataFrames.jl + CSV export in < 5 lines |
-| B-6 | pass | — | — | 4-layer architecture: IO / Data / Formulation / Solver |
-| B-7 | pass | — | pass | AC feasibility via in-memory data model |
-| B-8 | pass | pass | — | Reference bus via data dict; requires re-solve |
-| B-9 | pass | — | pass | Native PTDF; flow error < 1e-11 at MEDIUM |
+**Key strengths:**
 
-</details>
+- Two-level API provides custom constraint injection in 4 LOC with dual extraction (B-1).
+- First-class PTDF computation via `calc_basic_ptdf_matrix` with machine-epsilon accuracy at MEDIUM scale (B-9).
+- Four-layer dispatch architecture (public API, model lifecycle, formulation build, solver) with clean separation of concerns (B-6).
+- N-M contingency sweep via `deepcopy` plus `br_status=0` at 1.25ms per case (B-3).
+- Stochastic wrapping via `deepcopy` plus dict mutation at 4ms per scenario (B-4).
+- Interoperability: 3 LOC per component type to export to DataFrame and CSV (B-5).
 
-<details className="eval-details">
-<summary>
+**Key weaknesses:**
 
-### pandapower — <span className="grade-b">B</span> (#3)
+- No Graphs.jl integration; adjacency must be built manually from branch `f_bus`/`t_bus` pairs (approximately 12 LOC, B-2 qualified pass).
+- Formulation-specific methods in `form/*.jl` lack docstrings (B-6).
 
-</summary>
+**Workarounds:**
+
+- B-2 graph access: Manual adjacency construction from `data["branch"]`, approximately 12 LOC (durability: stable).
+- B-8 distributed slack: Requires approximately 150 LOC custom PTDF-based JuMP OPF (durability: stable, but high effort).
+
+### PowerSimulations.jl (Strong)
+
+PowerSimulations inherits JuMP model access from its PowerModels foundation,
+enabling custom constraint injection via standard JuMP `@constraint` macros
+(B-1). The 5-layer package architecture (PowerSystems for data,
+PowerNetworkMatrices for PTDF/LODF, PowerFlows for power flow,
+PowerSimulations for optimization, results via DataFrames) provides the
+cleanest separation of concerns among all evaluated tools (B-6).
+Machine-precision PTDF verification with max error of 1.15e-14 p.u.
+is achieved via a single-call API (B-9).
+
+**Key strengths:**
+
+- Full JuMP model access via `PSI.get_jump_model()` enables arbitrary constraint addition and dual extraction (B-1).
+- Machine-precision PTDF computation via single-call API; max error 1.15e-14 p.u. (B-9).
+- Clean 5-layer package architecture with DAG dependency structure and no circular dependencies (B-6).
+- DataFrame-native results enable 2-LOC CSV export (B-5).
+- Reference bus configurable via `set_bustype!()` API with LMP invariance confirmed to machine precision (B-8).
+- 20-scenario stochastic wrapping completes in 2.1s total, 0.1s mean per scenario (B-4).
+
+**Key weaknesses:**
+
+- No Graphs.jl integration; BFS/DFS requires manual implementation over the adjacency matrix (B-2 qualified pass).
+- LODF superposition is approximate for M>1 contingencies; no Woodbury correction available (B-3).
+- Time series immutability forces full System reconstruction per scenario (B-4).
+
+**Workarounds:**
+
+- B-2 graph access: Manual BFS over `AdjacencyMatrix` for graph traversal (durability: stable).
+- B-3 contingency sweep: LODF screening pipeline assembled from 3 separate packages (durability: stable).
+- B-4 stochastic wrapping: Full System reconstruction per scenario due to time series immutability (durability: stable).
+
+### pandapower (Adequate)
 
 pandapower is highly extensible for its core domain (power flow, contingency,
 topology) with clean APIs and efficient in-place modification. NetworkX
-integration via `create_nxgraph()` with `respect_switches` is seamless (B-2).
-In-place branch switching enables efficient contingency loops at 0.054s/case on
-10k-bus (B-3). The pandas-native data model provides trivial DataFrame export
-(B-5). However, OPF extension points require fragile access to PYPOWER
-internals: custom constraint dual values need `net._ppc` access (B-1), and PTDF
-extraction requires `pandapower.pypower.makePTDF` after running DCPF to
-populate `_ppc` (B-9). PTDF flow predictions diverge significantly on MEDIUM
-networks.
+integration via `create_nxgraph()` with impedance-weighted edges is seamless
+(B-2). In-place branch switching enables efficient contingency loops at
+6.4ms per case on TINY (B-3). The pandas-native data model provides trivial
+DataFrame export (B-5).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | pass | — | pass | Custom constraints pass; dual extraction requires `_ppc` internals |
-| B-2 | pass | — | pass | Native NetworkX via `create_nxgraph()` |
-| B-3 | pass | — | pass | In-place branch switching; 0.054s/case at MEDIUM |
-| B-4 | pass | pass | — | Stochastic wrapping: manual loop with in-place DataFrame modification |
-| B-5 | pass | — | pass | Trivial pandas DataFrame export |
-| B-6 | pass | — | — | Clean 4-layer architecture |
-| B-7 | pass | — | pass | AC feasibility: natural same-model workflow |
-| B-8 | pass | pass | — | Reference bus config: manual ext_grid/gen management |
-| B-9 | pass | — | pass | PTDF via PYPOWER internals; flow divergence on MEDIUM |
+The critical extensibility gap is OPF constraint injection. The embedded
+PYPOWER solver is a closed system with no public hook for custom constraints
+or dual extraction. The only path requires monkey-patching
+`_optimal_powerflow` and capturing the PYPOWER result dict (B-1 partial pass,
+fragile workaround). This single limitation has cascading consequences for
+SCOPF, interface flow limits, and any formulation beyond the built-in
+constraint set.
 
-**Related Themes:** [T06](./sweep-findings#t06) (PTDF phase-shifter correction), [probe-010](./probe-results#probe-010)
+**Key strengths:**
 
-</details>
+- First-class NetworkX graph bridge via `create_nxgraph()` with impedance weighting and switch awareness (B-2).
+- Clean N-M contingency sweep via in-service toggling; 3,276 cases at 6.4ms each (B-3).
+- DataFrame-native results with trivial CSV export in 4 LOC (B-5).
+- Clean 6-layer architecture with well-separated concerns (B-6).
+- PTDF computation via native `makePTDF()` with machine-precision accuracy on TINY (B-9).
 
-<details className="eval-details">
-<summary>
+**Key weaknesses:**
 
-### GridCal — <span className="grade-b-minus">B-</span> (#4)
+- No public API for custom OPF constraint injection; monkey-patching `_optimal_powerflow` required (B-1 partial pass, fragile).
+- OPF result dict (containing duals and multipliers) discarded during result extraction; users needing constraint duals must access undocumented internals (B-1).
 
-</summary>
+**Workarounds:**
+
+- B-1 custom constraints: Replicate `_optimal_powerflow`, monkey-patch module reference, capture PYPOWER result dict (durability: fragile).
+- B-8 reference bus: 5-6 API calls to remove/recreate `ext_grid` plus `gen` elements with manual cost transfer (durability: stable).
+
+### GridCal (Adequate)
 
 GridCal provides strong graph access and topology operations via its native
 NetworkX integration, and its pure-Python architecture enables source-level
-inspection (B-6). Contingency loops and interoperability pass at both TINY and
-MEDIUM scales. However, custom constraint injection (B-1) fails — there is no
-public API for adding user constraints to the OPF formulation. PTDF extraction
-via LinearAnalysis works on TINY but shows a dramatic flow prediction mismatch
-on MEDIUM (743 MW max absolute difference,
-[gridcal-F04](./sweep-findings#gridcal-f04)), scored as qualified pass without
-adequate investigation.
+inspection. Contingency loops and interoperability pass at TINY scale. PTDF
+and LODF matrices are accessible as dense NumPy arrays via one-line
+`linear_power_flow()` (B-9). Slack bus reconfiguration via `bus.is_slack`
+boolean toggle is clean, and LMPs are invariant to slack choice due to the
+PTDF-based formulation (B-8). Solver swap is a single parameter change
+(`mip_solver=MIPSolvers.X`) with no reformulation needed (B-4).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | **fail** | — | **fail** | No custom constraint API |
-| B-2 | pass | — | pass | Native graph access |
-| B-3 | pass | — | pass | Contingency loop converges |
-| B-4 | pass | pass | — | Stochastic wrapping |
-| B-5 | pass | — | pass | Interoperability/export |
-| B-6 | pass | — | — | Pure Python; inspectable architecture |
-| B-7 | pass | — | pass | AC feasibility extension |
-| B-8 | pass | pass | — | Reference bus configuration |
-| B-9 | pass | — | pass | PTDF: exact on TINY; 743 MW divergence on MEDIUM ([gridcal-F04](./sweep-findings#gridcal-f04)) |
+The principal gap is identical to pandapower: no public API for custom
+constraint injection into the OPF. The monolithic OPF formulation
+(`linear_opf_ts.py`, 3,146 LOC as a single procedural function) provides no
+extension points or plugin architecture.
 
-**Related Themes:** [gridcal-F04](./sweep-findings#gridcal-f04) (PTDF flow mismatch at MEDIUM)
+**Key strengths:**
 
-</details>
+- NetworkX graph via `build_graph()` enables BFS, shortest-path, and subgraph extraction (B-2).
+- Branch toggle via `branch.active` for contingency sweeps with no model reconstruction (B-3).
+- PTDF and LODF matrices as dense NumPy arrays via one-line API (B-9).
+- Parameter-only solver swap via PuLP (`mip_solver=MIPSolvers.X`) with no reformulation (B-4).
 
-<details className="eval-details">
-<summary>
+**Key weaknesses:**
 
-### PowerSimulations — <span className="grade-a-minus">A-</span> (#5)
+- No public API for custom constraint injection (B-1 partial pass).
+- Monkey-patch required to add flowgate constraints; relies on internal naming convention `br_flow_upper_lim_0_<idx>` (B-1 fragile).
+- `TapPhaseControl` enum bug crashes time-series OPF on networks with transformers in the evaluated version (B-4).
+- Monolithic OPF formulation (3,146 LOC single file) with no hook points or plugin architecture (B-6).
 
-</summary>
+**Workarounds:**
 
-> **Note:** PowerSimulations grades were reconstructed from sweep findings and
-> secondary test evidence. Primary synthesis was not conducted for this tool.
+- B-1 custom constraints: PulpLpModel.solve monkey-patch with internal naming conventions (durability: fragile).
+- B-4 stochastic wrapping: Sequential snapshot OPF instead of time-series driver to avoid the `TapPhaseControl` bug; loses inter-temporal coupling (durability: stable).
 
-PowerSimulations inherits JuMP model access from its PowerModels foundation,
-enabling custom constraint injection via `@constraint` (B-1). However, dual
-extraction was only verified for non-binding constraints
-([psi-F03](./sweep-findings#psi-f03)), leaving binding-constraint dual behavior
-untested. Contingency loops, stochastic wrapping, and interoperability pass at
-TINY. Several MEDIUM-scale tests were skipped due to evaluation scope
-constraints, reducing confidence in scalability of extension patterns. The
-native SCUC/SCED formulations provide inherent extensibility for unit commitment
-workflows that other tools lack.
-
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | pass | — | skip | JuMP constraint injection; dual verified non-binding only ([psi-F03](./sweep-findings#psi-f03)) |
-| B-2 | pass | — | skip | Graph access via manual adjacency (~40 LOC) |
-| B-3 | pass | — | skip | Contingency loop via PowerFlows.jl |
-| B-4 | pass | pass | — | Stochastic wrapping |
-| B-5 | pass | — | skip | Interoperability to DataFrames.jl |
-| B-6 | pass | — | — | Clean JuMP-based architecture |
-| B-7 | pass | — | skip | AC feasibility extension; unit mismatch concern |
-| B-8 | pass | skip | — | Reference bus configuration |
-| B-9 | pass | — | skip | PTDF extraction |
-
-**Related Themes:** [psi-F03](./sweep-findings#psi-f03) (non-binding dual only), [T06](./sweep-findings#t06) (PTDF phase-shifter correction)
-
-</details>
-
-<details className="eval-details">
-<summary>
-
-### MATPOWER — <span className="grade-a-minus">A-</span> (Reference Only)
-
-</summary>
+### MATPOWER (Strong, Reference Only)
 
 :::note[Reference Implementation]
 MATPOWER served as the reference implementation for validating test protocols
-and network data. It is not a candidate for Phase 2 selection. Grades reflect
-protocol validation performance only.
+and network data. It is not a candidate for Phase 2 selection because the
+customer requires inspectable source code, which precludes the compiled
+MATLAB runtime. Grades reflect protocol validation performance only.
 :::
 
-MATPOWER provides broad extensibility through its `opt_model` framework for
-custom constraint injection, native PTDF/LODF computation, and direct access to
-the network case struct for programmatic modification. All Suite B tests pass at
-TINY and MEDIUM scales except B-6 (code architecture, skipped for Octave).
-PTDF extraction is native with correct phase-shifter correction. The
-contingency loop is efficient via LODF-based screening. Reference bus
-configuration works through case struct modification.
+MATPOWER provides broad extensibility through its documented `mpc.A/l/u`
+framework for custom constraint injection with dual value extraction at
+`results.lin.mu.u.usr` (B-1). Native `makePTDF()`/`makeLODF()` enable
+efficient LODF-based contingency screening; 126 contingencies processed in
+12.1s (B-3). Single-call PTDF computation achieves machine-precision flow
+accuracy with max error of 1.5e-12 MW (B-9). Reference bus reconfiguration
+is a single matrix element assignment, and LMPs are invariant to slack
+choice (B-8).
 
-| Test ID | TINY | SMALL | MEDIUM | Notes |
-|---------|------|-------|--------|-------|
-| B-1 | pass | — | pass | Custom constraints via `opt_model` |
-| B-2 | pass | — | pass | Graph access via adjacency construction |
-| B-3 | pass | — | pass | Contingency loop with LODF screening |
-| B-4 | pass | pass | — | Stochastic wrapping via MOST |
-| B-5 | pass | — | pass | Interoperability: struct to CSV |
-| B-6 | skip | — | — | Code architecture (Octave — informational) |
-| B-7 | pass | — | pass | AC feasibility extension |
-| B-8 | pass | pass | — | Reference bus via case struct modification |
-| B-9 | pass | — | pass | PTDF with phase-shifter correction |
+**Key strengths:**
 
-</details>
+- Documented custom constraint API (`mpc.A/l/u`) with dual value extraction (B-1).
+- Native `makePTDF()`/`makeLODF()` with machine-precision accuracy (B-9).
+- Flat `mpc` struct data model enables zero-friction programmatic network modification (B-8).
+- 12+ solver backends accessible via a single `mpoption` parameter (B-6).
+
+**Key weaknesses:**
+
+- MIPS solver fails with user constraints on QP problems due to numerical singularity (B-1).
+- No DataFrame abstraction; CSV export requires manual `fopen`/`fprintf`/`fclose` pattern (B-5 qualified pass).
+
+**Workarounds:**
+
+- B-1 custom constraints: GLPK (LP) with PWL-linearized costs instead of MIPS (QP) (durability: stable).
+- B-5 CSV export: Manual header writing via standard Octave I/O (durability: stable).
+
+## Summary
+
+Extensibility separates tools into two clear tiers. PyPSA, PowerModels, and
+PowerSimulations all earn Strong, each providing a clean, documented path for
+custom constraint injection with dual extraction, machine-precision PTDF
+computation, and architectures designed for extension. PyPSA's
+`extra_functionality` callback, PowerModels' two-level API, and
+PowerSimulations' JuMP model access represent three distinct but equally
+effective extension mechanisms. MATPOWER (reference only) also earns Strong
+via its documented `mpc.A/l/u` framework.
+
+pandapower and GridCal both earn Adequate. Both tools provide excellent graph
+access and efficient contingency sweep infrastructure, but both share the same
+critical gap: no public API for custom OPF constraint injection. In both
+tools, the only path to custom constraints requires monkey-patching internal
+solver objects (fragile workaround). This limitation directly constrains
+Phase 2 workflows that require flow gate constraints or custom security
+formulations.
+
+The key discriminator across all tools is the custom constraint API (B-1).
+Tools with documented public extension APIs (PyPSA, PowerModels, MATPOWER)
+enable constraint injection in 2-4 LOC. Tools without such APIs (pandapower,
+GridCal) require 200+ LOC fragile workarounds that depend on internal naming
+conventions and could break on any version upgrade.
 
 ---
 
-**Previous:** [Results Overview](./) | **Next:** [Scalability](./scalability)
+**Previous:** [Expressiveness](./expressiveness) | **Next:** [Scalability](./scalability)
