@@ -1,77 +1,78 @@
 ---
 sidebar_position: 1
-title: "Results Overview"
+title: "Evaluation Results"
 ---
 
-# Results Overview
+# Evaluation Results
 
-The Results section presents the complete evaluation findings for all six power-system modeling tools across seven rubric dimensions. Six criterion sub-pages — [Expressiveness](./expressiveness), [Extensibility](./extensibility), [Scalability](./scalability), [Accessibility](./accessibility), [Maturity](./maturity), and [Supply Chain](./supply-chain) — each follow a uniform template with per-tool collapsible sections containing letter grades, evidence tables, and analytical narratives. Three cross-cutting pages complement the criterion deep-dives: [Head-to-Head](./head-to-head) compares tool capabilities on Phase 2-critical features, [Sweep Findings](./sweep-findings) documents systemic protocol themes, and [Probe Results](./probe-results) addresses specific disputed claims.
+This section presents the complete evaluation findings for six power-system modeling tools across six rubric criteria. Each tool was tested against a standardized protocol that executed six test suites (A through F) across three network scales: a 39-bus network (TINY), a 2,000-bus synthetic network (SMALL), and a 10,000-bus synthetic network (MEDIUM). Grades use a three-tier scale (Strong, Adequate, Weak) that aggregates per-test pass/fail outcomes within each criterion, weighting MEDIUM-scale results most heavily to reflect production relevance.
 
-Each criterion page is organized identically: six collapsible tool sections (ordered by final rank), each containing a grade summary, a pass/fail evidence table covering all test IDs at three network scales (TINY, SMALL, MEDIUM), and a narrative explaining the grade rationale with references to specific test outcomes. Grades use a letter scale from A through F, displayed with color-coded badges. MATPOWER appears on every criterion page as a reference-only benchmark — it is not ranked due to its MATLAB licensing requirement, but its results provide a calibration baseline for the other five tools.
-
-Grades were derived from a standardized evaluation protocol that executed six test suites (A through F) across three network scales (IEEE 39-bus, ACTIVSg 2000-bus, and ACTIVSg 10,000-bus). Each test produced a structured result with pass/fail status, wall-clock timing, and diagnostic notes. Letter grades aggregate these per-test outcomes within each criterion, weighting MEDIUM-scale results most heavily to reflect production relevance. The protocol v10 revision incorporated findings from 18 targeted probes and 13 cross-cutting themes identified during the v4-to-v5 sweep, along with subsequent principal review corrections, to ensure grading consistency.
+Six criterion sub-pages provide detailed per-tool evidence: [Expressiveness](./expressiveness), [Extensibility](./extensibility), [Scalability](./scalability), [Accessibility](./accessibility), [Maturity](./maturity), and [Supply Chain](./supply-chain). A [Head-to-Head](./head-to-head) comparison page addresses Phase 2-critical features directly. MATPOWER appears on every criterion page as a reference benchmark; it is not ranked because the customer requires inspectable source code, which precludes the compiled MATLAB runtime.
 
 ## Grade Comparison
 
-![Grade comparison heatmap across six tools and six criteria](/img/heatmap_grades.svg)
+The table below summarizes all grades across six criteria for the five ranked tools and the MATPOWER reference benchmark.
 
-*Letter grades across 6 criteria for all 6 tools. MATPOWER shown as reference only.*
+| Tool | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
+|------|:-:|:-:|:-:|:-:|:-:|:-:|
+| **PyPSA** | Strong | Strong | Adequate | Strong | Strong | Strong |
+| **PowerModels.jl** | Adequate | Strong | Adequate | Adequate | Adequate | Adequate |
+| **PowerSimulations.jl** | Adequate | Strong | Adequate | Weak | Adequate | Adequate |
+| **GridCal** | Adequate | Adequate | Adequate | Weak | Weak | Strong |
+| **pandapower** | Weak | Adequate | Weak | Adequate | Strong | Strong |
+| **MATPOWER**\* | Adequate | Strong | Weak | Adequate | Adequate | Strong |
 
-## Test Outcomes
+\*Reference benchmark only; excluded from ranking because the customer requires inspectable source code.
 
-![Test pass/fail matrix — Gate](/img/matrix_test-results-gate.svg)
+PyPSA is the only tool graded Strong on Expressiveness, the highest-priority criterion. It is also the only tool to achieve Strong across five of six criteria. The Julia tools (PowerModels.jl and PowerSimulations.jl) share Strong Extensibility grades due to the JuMP model-access pattern but diverge on Accessibility, where PowerModels.jl's more mature documentation earns Adequate versus PowerSimulations.jl's Weak. pandapower's Weak Expressiveness (no MILP optimization capability; A-5, A-9, A-10, A-12) and Weak Scalability (hardcoded solver with no swap mechanism; C-7, C-8) place it last among ranked tools despite Strong Maturity and Supply Chain grades.
 
-![Test pass/fail matrix — Expressiveness](/img/matrix_test-results-expressiveness.svg)
+## Ranking Methodology
 
-![Test pass/fail matrix — Extensibility](/img/matrix_test-results-extensibility.svg)
+Tools are ranked using lexicographic comparison across criteria in priority order:
 
-![Test pass/fail matrix — Scalability](/img/matrix_test-results-scalability.svg)
+1. **Supply Chain** (gate): any tool graded below Adequate is disqualified. All six tools pass this gate.
+2. **Expressiveness**: the ability to formulate the target problem types (DC/AC power flow, OPF, SCUC, SCED, SCOPF, stochastic optimization).
+3. **Extensibility**: programmatic access to inject custom constraints, swap solvers, and extract sensitivity factors.
+4. **Scalability**: performance at 2,000-bus and 10,000-bus network scales.
+5. **Accessibility**: documentation quality, installation friction, and onboarding effort.
+6. **Maturity**: community health, release cadence, institutional backing, and bus factor.
 
-![Test pass/fail matrix — Accessibility](/img/matrix_test-results-accessibility.svg)
+The lexicographic method compares tools on the highest-priority criterion first. Ties on a given criterion are broken by the next criterion in priority order. This approach reflects the contract requirement that a tool must be able to express the target problems before other qualities become relevant.
 
-![Test pass/fail matrix — Maturity](/img/matrix_test-results-maturity.svg)
+**Final Ranking:**
 
-![Test pass/fail matrix — Supply Chain](/img/matrix_test-results-supply_chain.svg)
-
-![Test pass/fail matrix — FNM Ingestion](/img/matrix_test-results-fnm_ingestion.svg)
-
-*Pass/fail outcomes for all tests across 3 network scales.*
+| Rank | Tool | Deciding Factor |
+|------|------|-----------------|
+| #1 | PyPSA | Only tool with Strong Expressiveness (A-1 through A-12). |
+| #2 | PowerModels.jl | Tied with PowerSimulations.jl through Scalability; Adequate Accessibility breaks the tie. |
+| #3 | PowerSimulations.jl | Weak Accessibility (D-2, D-3, D-5) separates it from PowerModels.jl. |
+| #4 | GridCal | Adequate Extensibility (not Strong) separates it from the Julia tools. |
+| #5 | pandapower | Weak Expressiveness (A-5, A-9, A-10, A-12) places it last. |
 
 ## Sensitivity Analysis
 
-PyPSA's #1 ranking is robust to most alternative criterion weighting schemes. The table below presents four scenarios — the baseline lexicographic priority ordering used in the evaluation, plus three alternative schemes. PyPSA holds the top position in three of four scenarios; the sole exception is Scenario 3 (Scalability as top priority), where GridCal takes #1. MATPOWER is excluded from ranking per the rubric's reference-only designation.
+To verify that the ranking is not an artifact of the chosen priority ordering, three alternative scenarios were tested. Each scenario re-orders the criteria while retaining the Supply Chain gate.
 
-| Scenario | PyPSA | pandapower | PowerModels | PowerSimulations | GridCal |
-|----------|-------|------------|-------------|------------------|---------|
-| Baseline (lexicographic priority) | **#1** | #5 | #2 | #3 | #4 |
-| Extensibility as top priority | **#1** | #4 | #2 | #3 | #5 |
-| Maturity gate at C (GridCal DQ'd) | **#1** | #4 | #2 | #3 | DQ |
-| Scalability as top priority | #4 | #5 | #2 | #3 | **#1** |
+| Scenario | Description | #1 | #2 | #3 | #4 | #5 |
+|----------|-------------|:--:|:--:|:--:|:--:|:--:|
+| Baseline | Expressiveness, Extensibility, Scalability, Accessibility, Maturity | PyPSA | PowerModels | PowerSimulations | GridCal | pandapower |
+| Scalability First | Scalability, Expressiveness, Extensibility, Accessibility, Maturity | PyPSA | PowerModels | PowerSimulations | GridCal | pandapower |
+| Extensibility First | Extensibility, Expressiveness, Scalability, Accessibility, Maturity | PyPSA | PowerModels | PowerSimulations | GridCal | pandapower |
+| Maturity/Accessibility Swap | Expressiveness, Extensibility, Scalability, Maturity, Accessibility | PyPSA | PowerModels | PowerSimulations | GridCal | pandapower |
 
-PyPSA holds #1 in three of four scenarios. Scenario 3 (Scalability as top priority) is the only configuration where PyPSA loses the top position — GridCal's improved scalability grade (B) places it first when scalability is weighted most heavily. The Maturity gate scenario disqualifies GridCal (grade C, below the C+ threshold), which does not affect PyPSA's #1 position.
+The ranking is completely stable across all three alternative scenarios. PyPSA holds the top position in every case because it is the only tool with Strong Expressiveness, which dominates regardless of criterion priority ordering. The full ordering also remains unchanged because the tier gaps between adjacent-ranked tools are wide enough that no single priority reordering changes relative positions.
 
-## Overall Profile
+This stability means the recommendation does not depend on subjective weighting assumptions. Whether a decision-maker prioritizes scalability, extensibility, or maturity, the same tool order results.
 
-![Grade radar overlay for all six tools](/img/radar_overlay.svg)
+## Criterion Sub-Pages
 
-*Radar profiles for top 3 tools across 6 criteria.*
-
-## Navigation Guide
-
-### Criterion Sub-Pages
-
-- **[Expressiveness](./expressiveness)** — Covers Suite A tests: DC/AC power flow, OPF variants, unit commitment, and SCOPF. The highest-priority criterion in the lexicographic ranking.
-- **[Extensibility](./extensibility)** — Covers Suite B tests: custom constraints, solver swapping, PTDF/LODF extraction, and API depth for programmatic model manipulation.
-- **[Scalability](./scalability)** — Covers Suite C tests: performance benchmarks across three network scales, measuring wall-clock time, memory usage, and convergence reliability.
-- **[Accessibility](./accessibility)** — Covers Suite D tests: documentation quality, installation experience, error messages, and onboarding friction for new users.
-- **[Maturity](./maturity)** — Covers Suite E tests: community health metrics, release cadence, CI/CD practices, and long-term maintenance indicators.
-- **[Supply Chain](./supply-chain)** — Covers Suite F (gate) tests: licensing compatibility, dependency audit, and security posture. This criterion serves as a pass/fail gate before detailed evaluation.
-
-### Cross-Cutting Pages
-
-- **[Head-to-Head](./head-to-head)** — Direct 6-capability comparison between the top tools for Phase 2-critical features including SCOPF, stochastic dispatch, and custom constraint injection.
-- **[Sweep Findings](./sweep-findings)** — Documents 13 cross-cutting themes identified during the v4-to-v5 protocol revision, covering network insufficiency, scoring inconsistency, and protocol gaps.
-- **[Probe Results](./probe-results)** — Presents 18 targeted probes that verified extraordinary claims, including 4 debunked findings with full methodology and grade impact analysis.
+- **[Expressiveness](./expressiveness)**: Suite A tests covering DC/AC power flow, OPF variants, unit commitment, SCOPF, stochastic optimization, and multi-period storage dispatch.
+- **[Extensibility](./extensibility)**: Suite B tests covering custom constraint injection, solver swapping, PTDF/LODF extraction, and programmatic model access.
+- **[Scalability](./scalability)**: Suite C tests measuring wall-clock time, memory consumption, and convergence reliability across three network scales.
+- **[Accessibility](./accessibility)**: Suite D tests evaluating documentation quality, installation friction, error messages, and onboarding effort.
+- **[Maturity](./maturity)**: Suite E tests assessing release cadence, contributor diversity, CI/CD practices, institutional backing, and production deployment evidence.
+- **[Supply Chain](./supply-chain)**: Suite F (gate) tests covering license compatibility, dependency audit, air-gap installability, and cryptographic provenance.
+- **[Head-to-Head](./head-to-head)**: Direct comparison of the top tools on Phase 2-critical capabilities.
 
 ---
 
