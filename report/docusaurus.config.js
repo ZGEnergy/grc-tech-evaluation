@@ -20,7 +20,7 @@ const config = {
   },
 
   customFields: {
-    protocolVersion: 'v10',
+    protocolVersion: 'v11',
   },
 
   presets: [
@@ -56,7 +56,7 @@ const config = {
       },
       footer: {
         style: 'dark',
-        copyright: `Protocol version: v10 | Built with Docusaurus`,
+        copyright: `Protocol version: v11 | Built with Docusaurus`,
       },
     }),
 };
