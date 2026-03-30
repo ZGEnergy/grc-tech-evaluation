@@ -2,6 +2,7 @@
 sidebar_position: 7
 title: "Supply Chain"
 ---
+import CriterionChart from '@site/src/components/CriterionChart';
 
 # Supply Chain
 
@@ -10,6 +11,8 @@ title: "Supply Chain"
 Supply Chain, Inspectability, and Licensing Risk is the **gate criterion**. A tier of Weak or Failing is disqualifying regardless of performance on all other criteria. The Suite F tests assess core licensing (F-1), dependency tree transparency (F-2), dependency license audit (F-3), compiled extension audit (F-4), code inspectability (F-5), distribution integrity (F-6), air-gap installability (F-7), solver dependency analysis (F-8), and getting-started artifact integrity (F-9). These tests ensure that a selected tool can be deployed in the customer's operational environment without licensing conflicts, uninspectable binaries, or supply chain vulnerabilities.
 
 All six tools passed the gate threshold. This makes Supply Chain the least differentiating criterion; the primary distinctions are licensing model, dependency tree depth, and distribution integrity practices.
+
+<CriterionChart criterion="supply_chain" />
 
 ### License Summary
 
