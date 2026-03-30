@@ -341,3 +341,18 @@ runtime. All MATPOWER testing used GNU Octave.
 MATPOWER is excluded from the primary ranking because the customer requires inspectable source code. The MATLAB runtime is a compiled binary that does not meet this requirement. All evaluation testing was conducted using GNU Octave, an open-source MATLAB-compatible interpreter. Octave introduces interpreter-specific limitations: HiGHS MEX bindings are unavailable, performance overhead is measurable on data structure operations, and no production deployment precedent exists for Octave-based power system analysis at scale. MATPOWER's grades are retained in the comparison table to provide a calibration baseline for power systems professionals but do not factor into the tool selection ranking or recommendation.
 
 </details>
+
+## Tools Considered but Ruled Out
+
+The following tools were identified during the initial landscape survey and considered for inclusion in the primary evaluation. Each was excluded for the reason noted.
+
+| Tool | Reason Excluded |
+|------|----------------|
+| **PYPOWER** | Python port of early MATPOWER; functionally superseded by pandapower, which is faster and better maintained. |
+| **GridDyn** | C++ transmission dynamics simulator (LLNL). Last substantive activity circa 2019; project appears stalled. |
+| **PowSyBl** | Java-based framework used by European TSOs (RTE, ENTSO-E). Strong CGMES/CIM support but European data model focus; PSS/E RAW ingestion less tested. Misaligned with US transmission work. |
+| **PowerGridModel** | C++ core with Python API (Alliander / LF Energy). Designed for high-speed batch power flow in distribution systems; transmission use is possible but not the design target. |
+| **HELICS** | DOE co-simulation framework (NREL/PNNL/LLNL). Orchestrates coupling between separate tools — not a solver itself. Not applicable to Phase 1 scope. |
+| **GridLAB-D** | Distribution system simulator (PNNL). Scope is explicitly distribution-level; not applicable to high-voltage transmission. |
+| **OpenDSS** | Distribution system simulator (EPRI). Same exclusion rationale as GridLAB-D. |
+| **STEPS** | AC-DC hybrid power system analysis tool. Less established in the US community; documentation primarily in Chinese. Worth revisiting if HVDC modeling becomes a requirement. |
