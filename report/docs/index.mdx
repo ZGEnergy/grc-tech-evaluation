@@ -15,10 +15,10 @@ Six open-source power system modeling tools (PyPSA, PowerModels.jl, PowerSimulat
 | Tool | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
 |------|:-:|:-:|:-:|:-:|:-:|:-:|
 | **PyPSA** | Strong | Strong | Adequate | Strong | Strong | Strong |
-| pandapower | Weak | Adequate | Weak | Adequate | Strong | Strong |
-| GridCal | Adequate | Adequate | Adequate | Weak | Weak | Strong |
 | PowerModels.jl | Adequate | Strong | Adequate | Adequate | Adequate | Adequate |
 | PowerSimulations.jl | Adequate | Strong | Adequate | Weak | Adequate | Adequate |
+| GridCal | Adequate | Adequate | Adequate | Weak | Weak | Strong |
+| pandapower | Weak | Adequate | Weak | Adequate | Strong | Strong |
 | MATPOWER\* | Adequate | Strong | Weak | Adequate | Adequate | Strong |
 
 \*Reference benchmark only; excluded from ranking.
@@ -27,15 +27,21 @@ Six open-source power system modeling tools (PyPSA, PowerModels.jl, PowerSimulat
 
 ## Why PyPSA
 
-1. **Expressiveness leadership.** PyPSA is the only tool graded Strong in Expressiveness. It demonstrated native preventive SCOPF via `optimize_security_constrained()` (A-9), native PTDF/LODF matrix computation (B-9), and the broadest coverage of standard power system analyses among all evaluated tools. No other candidate matched this breadth without requiring user-assembled solver code for each analysis type.
+1. **Expressiveness leadership.** PyPSA is the only tool graded Strong in Expressiveness. It demonstrated native preventive SCOPF via `optimize_security_constrained()`, native PTDF/LODF matrix computation, and the broadest coverage of standard power system analyses among all evaluated tools. No other candidate matched this breadth without requiring user-assembled solver code for each analysis type.
 
-2. **Strong, balanced profile.** Beyond the primary criterion, PyPSA earned Strong in Extensibility, Accessibility, Maturity, and Supply Chain, with Adequate in Scalability. The Strong Extensibility reflects a clean extra_functionality callback for custom constraint injection (B-1). The Strong Maturity reflects a healthy multi-contributor development community with institutional backing. Scalability (Adequate) is the one area requiring active Phase 2 attention; Linopy model-building overhead at 10,000 buses (302 seconds vs. 6 seconds of solver time, C-3) is addressed in the risk register (R1).
+2. **Strong, balanced profile.** Beyond the primary criterion, PyPSA earned Strong in Extensibility, Accessibility, Maturity, and Supply Chain, with Adequate in Scalability. The Strong Extensibility reflects a clean extra_functionality callback for custom constraint injection. The Strong Maturity reflects a healthy multi-contributor development community with institutional backing. Scalability (Adequate) is the one area requiring active Phase 2 attention; Linopy model-building overhead at 10,000 buses (302 seconds vs. 6 seconds of solver time) is addressed in the risk register (R1).
 
 3. **Python ecosystem accessibility.** PyPSA is pure Python, built on the pandas/numpy/scipy stack. This eliminates the language-adoption barrier that Julia-based tools (PowerModels.jl, PowerSimulations.jl) would impose. Integration with existing data pipelines, visualization tools, and notebook workflows requires no bridge infrastructure.
 
 ## Runner-Up: PowerModels.jl
 
-PowerModels.jl ranks second on the strength of its Strong Extensibility and its JuMP foundation, which provides the most flexible constraint injection API among all evaluated tools (B-1). It demonstrated native piecewise-linear cost curves and PTDF computation with sub-1e-11 error at 10,000 buses (B-9). PowerModels.jl was not selected for three reasons: its Adequate Expressiveness reflects the cost of JuMP flexibility, with 6 of 11 Suite A tests requiring user-assembled code averaging 269 lines per test; its Adequate Maturity carries a bus factor of 1 (82.4% of commits from a single contributor), signaling sustainability risk; and Julia remains a niche language for many analyst teams. PowerModels.jl should be reconsidered if PyPSA's model-building overhead at production scale (R1) proves unresolvable.
+PowerModels.jl ranks second on the strength of its Strong Extensibility and its JuMP foundation, which provides the most flexible constraint injection API among all evaluated tools. It demonstrated native piecewise-linear cost curves and PTDF computation with sub-1e-11 error at 10,000 buses. PowerModels.jl was not selected for three reasons:
+
+1. **Adequate Expressiveness reflects the cost of JuMP flexibility.** 6 of 11 expressiveness tests required user-assembled code averaging 269 lines per test, compared to PyPSA's native API calls.
+2. **Adequate Maturity carries sustainability risk.** 82.4% of commits come from a single contributor (bus factor of 1), raising concerns about long-term maintenance.
+3. **Julia adoption barrier.** Julia remains a niche language for many analyst teams, imposing a workforce ramp-up cost that Python-based tools avoid.
+
+PowerModels.jl should be reconsidered if PyPSA's model-building overhead at production scale (R1) proves unresolvable.
 
 ![Grade radar overlay for all six tools](/img/radar_overlay.svg)
 
@@ -44,44 +50,38 @@ PowerModels.jl ranks second on the strength of its Strong Extensibility and its 
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| **R1: Linopy model-building overhead at production scale.** PyPSA's Linopy layer takes 302 seconds to construct the optimization model for a 10,000-bus DC OPF (C-3), compared to 6 seconds of solver time. At production scale with repeated solves, this overhead may dominate wall-clock time. | HIGH | Profile Linopy model construction during Phase 2 development. If overhead is prohibitive, evaluate direct solver interface (HiGHS C API) for the inner loop, using PyPSA only for network data management and result post-processing. The solver-only time (6.2s on 10,000 buses) is competitive. |
-| **R2: No native PSS/E RAW file parser.** PyPSA has no PSS/E import capability (P2-1). Phase 2 requires ingesting the full network model distributed in PSS/E RAW format. A custom converter must be built or an existing parser must be adapted. | HIGH | Build a PSS/E RAW-to-PyPSA converter during Phase 2. The FNM intermediate format (CSV-based) already exists and was used for Phase 1 FNM testing. Alternatively, use an external parser as a preprocessing step and ingest via the existing MATPOWER .m importer. |
-| **R3: Distributed slack OPF not available in optimization context.** PyPSA supports distributed slack in power flow but not in OPF formulations (A-11, partial pass). LMP decomposition without distributed slack produces systematically different values from published data. | MED | Implement distributed slack as a custom Linopy constraint via PyPSA's `extra_functionality` callback. The PTDF formulation with load-proportional weights is well-documented. Estimated effort: weeks. |
-| **R4: Single-threaded HiGHS solver limits parallelism.** HiGHS simplex does not parallelize; SCOPF on a 10,000-bus network showed 0.92x speedup with 32 threads (C-8). Production contingency analysis will not benefit from multi-core hardware through solver-internal threading. | MED | Use process-level parallelism for independent contingency sub-problems rather than relying on solver-internal threading. PyPSA's architecture supports independent model instantiation per contingency group. |
-| **R5: Piecewise-linear cost curves require tranche workaround.** PyPSA does not natively support piecewise-linear cost curves (P2-2, partial). The workaround (generator tranche decomposition) approximates PWL behavior but introduces modeling complexity. | MED | Implement the generator tranche decomposition as a reusable utility during Phase 2. Validate against reference PWL solutions from a tool with native SOS2 support to ensure numerical fidelity. |
+| **R1: Linopy model-building overhead at production scale.** PyPSA's Linopy layer takes 302 seconds to construct the optimization model for a 10,000-bus DC OPF, compared to 6 seconds of solver time. At production scale with repeated solves, this overhead may dominate wall-clock time. | HIGH | Profile Linopy model construction during Phase 2 development. If overhead is prohibitive, evaluate direct solver interface (HiGHS C API) for the inner loop, using PyPSA only for network data management and result post-processing. The solver-only time (6.2s on 10,000 buses) is competitive. |
+| **R2: No native PSS/E RAW file parser.** PyPSA has no PSS/E import capability. Phase 2 requires ingesting the full network model distributed in PSS/E RAW format. A custom converter must be built or an existing parser must be adapted. | HIGH | Build a PSS/E RAW-to-PyPSA converter during Phase 2. The FNM intermediate format (CSV-based) already exists and was used for Phase 1 FNM testing. Alternatively, use an external parser as a preprocessing step and ingest via the existing MATPOWER .m importer. |
+| **R3: Distributed slack OPF not available in optimization context.** PyPSA supports distributed slack in power flow but not in OPF formulations. LMP decomposition without distributed slack produces systematically different values from published data. | MED | Implement distributed slack as a custom Linopy constraint via PyPSA's `extra_functionality` callback. The PTDF formulation with load-proportional weights is well-documented. Estimated effort: weeks. |
+| **R4: Single-threaded HiGHS solver limits parallelism.** HiGHS simplex does not parallelize; SCOPF on a 10,000-bus network showed 0.92x speedup with 32 threads. Production contingency analysis will not benefit from multi-core hardware through solver-internal threading. | MED | Use process-level parallelism for independent contingency sub-problems rather than relying on solver-internal threading. PyPSA's architecture supports independent model instantiation per contingency group. |
+| **R5: Piecewise-linear cost curves require tranche workaround.** PyPSA does not natively support piecewise-linear cost curves. The workaround (generator tranche decomposition) approximates PWL behavior but introduces modeling complexity. | LOW | Cost curves will be linearized in Phase 2 rather than implemented as piecewise-linear, making this gap irrelevant to the planned workflow. |
 
 </details>
 
 <details className="eval-details">
 <summary>Phase 2 Development Scope</summary>
 
-### Tool-Intrinsic Gaps (effort: days to weeks)
+### Stage 1 — Historical Calibration
 
-| Gap | Effort | Notes |
-|-----|--------|-------|
-| Linopy model-building overhead profiling and optimization | weeks | 302s model construction vs. 6s solve at 10,000 buses (C-3); may require direct solver interface for inner loop. |
-| PWL cost curve injection via generator tranche decomposition | weeks | No native support (P2-2, partial); must implement and validate against reference LMPs from a tool with native SOS2. |
-| Distributed slack in OPF formulations | weeks | Supported in power flow but not OPF (A-11, partial); implement via `extra_functionality` callback with PTDF formulation. |
-| Shadow price extraction validation | days | Confirm `n.statistics()` output against manually computed duals on small reference networks before integrating into LMP decomposition. |
+Assemble the full network model and supporting documents to establish topology. Data gathering includes available generators, third-party vendor data, flow data from third-party sensors, and constraint setup and binding information from the ISO. Intertie actual flows may be available depending on whether the customer can navigate a regulatory barrier (the ISO restricts this data to Transmission Operators).
 
-### Tool-Adjacent Engineering (effort: weeks)
+The goal is to calibrate a state estimate — effectively rebuilding state estimation since the ISO does not publish it — and to calibrate distribution factors and learn stochastic scenarios for generation outages and renewable variability.
 
-| Work Item | Effort | Notes |
-|-----------|--------|-------|
-| PSS/E RAW-to-PyPSA converter | weeks | No PyPSA ingestion path (P2-1); build or adapt an external parser, validate against MATPOWER DCPF baseline. |
-| FNM imputation and island resolution | weeks | The full network model likely contains radial islands and missing impedance data; must stabilize before any OPF run. |
-| PTDF calibration against FNM baseline | weeks | PyPSA SubNetwork PTDF API passes B-9; validate at full network model scale before production use. |
-| LMP decomposition validation harness | weeks | Compare PyPSA LMP components to reference solutions; confirm energy, congestion, and loss split. |
+**Success criterion:** constraints firing as published per ISO market results.
 
-### Operational Workflow (effort: weeks to months)
+### Stage 2 — Real-Time Estimation
 
-| Work Item | Effort | Notes |
-|-----------|--------|-------|
-| Scenario management framework | weeks | Parameterize contingency sets, load levels, and generator availability across study scenarios. |
-| LMP validation loop | weeks | Automated comparison of PyPSA LMPs to reference solutions before each production run. |
-| Solver environment configuration | days | Confirm HiGHS version in deployment environment; document solver swap path for commercial alternatives if needed. |
-| Process-level parallelism for contingency analysis | weeks | Independent model instantiation per contingency group (C-8); required to leverage multi-core hardware. |
-| Result archival and reproducibility | weeks | Hash inputs, solver config, and PyPSA version to produce reproducible study artifacts. |
+Inputs: real-time sensor data, aggregated real-time load and generation, and published shadow prices for constraints. Shadow prices combined with constraint setup information indicate whether a line is binding, providing at minimum a floor on flow levels. From these inputs, create a real-time state estimation for the entire grid.
+
+### Stage 3 — Forecasting
+
+Use the learned parameters from Stages 1–2 (distribution factors, stochastic scenarios around generation outages and renewables). At this stage no prices are available — inputs are limited to load forecast, renewable forecast, and known generation and topology for the next few days. Produce a range of possible power flow and congestion outcomes over a 2–3 day horizon.
+
+### Supporting Work
+
+- ETL pipelines for all data sources across all three stages
+- Distribution factor calibration down to bus level (more granular than the substation-level commitment in the SOW)
+- **Deliverable:** a forward-looking vulnerability assessment tool
 
 </details>
 

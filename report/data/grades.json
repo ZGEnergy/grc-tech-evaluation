@@ -10,7 +10,7 @@
         "Weak": 1,
         "Failing": 0
     },
-    "tools": ["pypsa", "pandapower", "gridcal", "powermodels", "powersimulations", "matpower"],
+    "tools": ["pypsa", "powermodels", "powersimulations", "gridcal", "pandapower", "matpower"],
     "criteria": ["expressiveness", "extensibility", "scalability", "accessibility", "maturity", "supply_chain"],
     "grades": [
         {"tool": "pypsa", "criterion": "expressiveness", "tier": "Strong", "numeric": 3},

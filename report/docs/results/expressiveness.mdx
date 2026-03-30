@@ -2,6 +2,7 @@
 sidebar_position: 2
 title: "Expressiveness"
 ---
+import CriterionChart from '@site/src/components/CriterionChart';
 
 # Expressiveness
 
@@ -22,6 +23,8 @@ Each tool was tested at three network scales (TINY at 39 buses, SMALL at
 2,000 buses, and MEDIUM at 10,000 buses) to expose both capability gaps and
 scale-dependent failures. Tools that pass at TINY but fail at SMALL or MEDIUM
 reveal API limitations that would surface in production use.
+
+<CriterionChart criterion="expressiveness" />
 
 ## Cross-Tool Comparison
 
