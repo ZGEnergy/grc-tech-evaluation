@@ -341,3 +341,47 @@ runtime. All MATPOWER testing used GNU Octave.
 MATPOWER is excluded from the primary ranking because the customer requires inspectable source code. The MATLAB runtime is a compiled binary that does not meet this requirement. All evaluation testing was conducted using GNU Octave, an open-source MATLAB-compatible interpreter. Octave introduces interpreter-specific limitations: HiGHS MEX bindings are unavailable, performance overhead is measurable on data structure operations, and no production deployment precedent exists for Octave-based power system analysis at scale. MATPOWER's grades are retained in the comparison table to provide a calibration baseline for power systems professionals but do not factor into the tool selection ranking or recommendation.
 
 </details>
+
+## Tools Considered but Ruled Out
+
+The following tools were identified during the initial landscape survey and considered for inclusion in the primary evaluation. Each was excluded for the reason noted.
+
+| Tool | Reason Excluded |
+|------|----------------|
+| **PYPOWER** | Python port of early MATPOWER; functionally superseded by pandapower, which is faster and better maintained. |
+| **GridDyn** | C++ transmission dynamics simulator (LLNL). Last substantive activity circa 2019; project appears stalled. |
+| **PowSyBl** | Design scope mismatch with Phase 1 rubric. See [detailed assessment](#powsybl-assessment) below. |
+| **PowerGridModel** | C++ core with Python API (Alliander / LF Energy). Designed for high-speed batch power flow in distribution systems; transmission use is possible but not the design target. |
+| **HELICS** | DOE co-simulation framework (NREL/PNNL/LLNL). Orchestrates coupling between separate tools — not a solver itself. Not applicable to Phase 1 scope. |
+| **GridLAB-D** | Distribution system simulator (PNNL). Scope is explicitly distribution-level; not applicable to high-voltage transmission. |
+| **OpenDSS** | Distribution system simulator (EPRI). Same exclusion rationale as GridLAB-D. |
+| **STEPS** | AC-DC hybrid power system analysis tool. Less established in the US community; documentation primarily in Chinese. Worth revisiting if HVDC modeling becomes a requirement. |
+
+### PowSyBl — Detailed Exclusion Rationale {#powsybl-assessment}
+
+PowSyBl (Power System Blocks) warranted closer examination than the other excluded tools. It is the most production-deployed open-source power systems framework in Europe: developed by RTE (the French TSO), hosted under LF Energy (Linux Foundation), operationally serving 30+ TSOs via the European Merging Function, and validated at 120,000+ bus scale. Its supply chain is clean (MPL-2.0, fully open-source default solver stack, PGP-signed Maven Central artifacts), and its architecture — 50+ modular Maven packages with a formal Java SPI extension system — is among the best-engineered in the open-source power systems space. A Python binding (`pypowsybl`) provides `pip install` access to load flow, security analysis, and sensitivity analysis without requiring a JVM.
+
+PowSyBl was excluded because its design scope — **European TSO operational security** — does not overlap with the US ISO market clearing workflow that the Phase 1 rubric evaluates. Specifically:
+
+| Rubric Sub-question | PowSyBl Capability | Gap |
+|---|---|---|
+| DC OPF with LMPs (A-3) | Metrix SC-DCOPF minimizes *redispatching cost*, not generation cost. No LMP extraction API. | No general-purpose DCOPF |
+| SCUC (A-5) | No unit commitment formulation anywhere in the ecosystem. Metrix assumes fixed commitment. | Complete absence |
+| SCED (A-6) | Metrix redispatching is functionally analogous but framed as remedial action, not US-style economic dispatch. | Conceptual mismatch |
+| Stochastic optimization (A-8) | Deterministic scenario enumeration via Metrix time-series mapping. No recourse decisions, scenario trees, or chance constraints. | Complete absence |
+| Lossy DC OPF + LMP decomposition (A-10) | Lossless DC approximation only. No energy/congestion/loss LMP decomposition. | Complete absence |
+| Distributed slack OPF (A-11) | Distributed slack in power flow only, not in OPF. | Not applicable to OPF |
+| Multi-period DCOPF with storage (A-12) | No inter-temporal optimization. Each timestep independent. IIDM has battery elements but no SoC coupling. | Complete absence |
+
+Five of twelve expressiveness sub-questions are outright absent; three more are partial at best. Under the rubric's assessment standards, this maps to **Weak** — "multiple target problem types require significant manual effort or are partially outside the tool's design scope." The complete absence of SCUC, stochastic optimization, and LMP decomposition arguably approaches **Failing**.
+
+Additionally, PowSyBl cannot interface with any of the four open-source solvers in the Phase 1 test protocol (HiGHS, SCIP, Ipopt, GLPK). Its solvers — KLU for load flow, Sirius for LP/MIP — are open-source but outside the evaluation's solver stack.
+
+**Where PowSyBl excels — and where it may contribute to Phase 2:**
+
+- **PSS/E RAW v33/v35 import.** PowSyBl has native PSS/E parsing. No other tool in the Phase 1 evaluation can do this. Phase 2 FNM ingestion could benefit from PowSyBl as a format conversion layer.
+- **CIM-CGMES.** The most mature open-source CIM importer/exporter. Relevant if ISO data becomes available in CIM format.
+- **N-k security analysis at scale.** Parallel contingency processing on 120k+ bus networks with remedial action optimization — a capability no Phase 1 tool matches.
+- **Continental-scale validation.** Production deployment across 30+ European TSOs provides confidence in correctness at a scale none of the evaluated tools have demonstrated.
+
+Including PowSyBl in the Phase 1 comparative evaluation would produce a misleadingly low overall grade for a genuinely excellent tool, because the rubric measures capabilities outside its design scope. The exclusion reflects a scope mismatch, not a quality judgment.
