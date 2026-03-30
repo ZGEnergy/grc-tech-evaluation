@@ -32,8 +32,8 @@
             "id": "R5",
             "title": "Piecewise-linear cost curves require tranche workaround",
             "description": "PyPSA does not natively support piecewise-linear cost curves (P2-2, partial). The workaround (generator tranche decomposition) approximates PWL behavior but introduces modeling complexity.",
-            "severity": "MED",
-            "mitigation": "Implement the generator tranche decomposition as a reusable utility during Phase 2. Validate against reference PWL solutions from a tool with native SOS2 support to ensure numerical fidelity."
+            "severity": "LOW",
+            "mitigation": "Cost curves will be linearized in Phase 2 rather than implemented as piecewise-linear, making this gap irrelevant to the planned workflow."
         }
     ]
 }
