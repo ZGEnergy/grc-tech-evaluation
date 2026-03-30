@@ -9,7 +9,7 @@
       "evaluations/powersimulations/results/synthesis.md"
     ],
     "extracted": "2026-03-19",
-    "_note": "Results extracted from per-tool synthesis.md files (protocol v10). 'pass' and 'qualified_pass' counted as pass; 'fail' counted as fail; 'skip' and 'informational' counted as skip. Each test ID at each scale tier counts as one test."
+    "_note": "Results extracted from per-tool synthesis.md files (protocol v11). 'pass' and 'qualified_pass' counted as pass; 'fail' counted as fail; 'skip' and 'informational' counted as skip. Each test ID at each scale tier counts as one test."
   },
   "suites": [
     "gate",

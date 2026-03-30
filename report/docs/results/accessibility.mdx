@@ -2,6 +2,7 @@
 sidebar_position: 5
 title: "Accessibility"
 ---
+import CriterionChart from '@site/src/components/CriterionChart';
 
 # Accessibility
 
@@ -10,6 +11,8 @@ title: "Accessibility"
 Accessibility measures how easy it is for a new analyst to install, learn, and productively use each tool. The Suite D tests evaluate onboarding friction (D-1: time from install to first successful solve), documentation quality and coverage (D-2), example verification (D-3), error transparency and diagnostic quality (D-4), and code volume required for standard tasks (D-5). This criterion carries **moderate priority** in the rubric; a tool with outstanding expressiveness but poor accessibility creates adoption risk and ongoing maintenance burden for the analyst team.
 
 The six tools separate into three tiers. PyPSA earns Strong with the fastest install-to-first-solve time, working examples, and meaningful error diagnostics. pandapower, PowerModels, and MATPOWER each earn Adequate, with solid core documentation offset by gaps in advanced workflows or platform-specific friction. GridCal and PowerSimulations receive Weak, reflecting documentation gaps, poor OPF diagnostics, and barriers to programmatic use that extend the learning curve well beyond days.
+
+<CriterionChart criterion="accessibility" />
 
 ## Cross-Tool Comparison
 
