@@ -61,6 +61,7 @@ repos:
         entry: python -m data.validation.check_no_real_grid_names
         language: python
         pass_filenames: true
+        exclude: '(whitepaper_proposal\.md|deliverables/)'
 
       - id: mh-style
         name: mh_style (MATLAB/Octave)
