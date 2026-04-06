@@ -7,7 +7,7 @@ Shared test data consumed by all six evaluation environments.
 | Directory | Contents |
 |-----------|----------|
 | `networks/` | MATPOWER `.m` case files (IEEE 39-bus, ACTIVSg 2k, ACTIVSg 10k) |
-| `fnm/` | Foundational Network Model — parsed hydro network data with intermediate schemas |
+| `fnm/` | Full Network Model — parsed network data with intermediate schemas |
 | `timeseries/` | Augmented time-series data (load profiles, gen costs, reserves, scenarios) |
 | `reference/` | Reference data (RTS-GMLC technology classes, calibration outputs) |
 | `scripts/` | Data augmentation pipeline (generates timeseries/ and reference/ outputs) |
