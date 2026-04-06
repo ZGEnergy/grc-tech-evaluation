@@ -342,9 +342,7 @@ def build_file_type_docs() -> list[FileTypeDoc]:
             columns=[
                 ColumnDocEntry("gen_uid", "str", "none", "Generator unique identifier"),
                 ColumnDocEntry("fuel_type", "str", "none", "Primary fuel type"),
-                ColumnDocEntry(
-                    "is_renewable", "bool", "none", "Whether generator is renewable"
-                ),
+                ColumnDocEntry("is_renewable", "bool", "none", "Whether generator is renewable"),
             ],
             row_semantics="One row per generator.",
         ),
@@ -397,18 +395,10 @@ def build_file_type_docs() -> list[FileTypeDoc]:
                 ColumnDocEntry("bus_id", "int", "none", "Bus where BESS is connected"),
                 ColumnDocEntry("power_mw", "float", "MW", "Rated power capacity"),
                 ColumnDocEntry("energy_mwh", "float", "MWh", "Rated energy capacity"),
-                ColumnDocEntry(
-                    "efficiency", "float", "fraction", "Round-trip efficiency (0-1)"
-                ),
-                ColumnDocEntry(
-                    "min_soc", "float", "fraction", "Minimum state of charge (0-1)"
-                ),
-                ColumnDocEntry(
-                    "max_soc", "float", "fraction", "Maximum state of charge (0-1)"
-                ),
-                ColumnDocEntry(
-                    "init_soc", "float", "fraction", "Initial state of charge (0-1)"
-                ),
+                ColumnDocEntry("efficiency", "float", "fraction", "Round-trip efficiency (0-1)"),
+                ColumnDocEntry("min_soc", "float", "fraction", "Minimum state of charge (0-1)"),
+                ColumnDocEntry("max_soc", "float", "fraction", "Maximum state of charge (0-1)"),
+                ColumnDocEntry("init_soc", "float", "fraction", "Initial state of charge (0-1)"),
             ],
             row_semantics="One row per BESS unit.",
         ),
@@ -418,15 +408,9 @@ def build_file_type_docs() -> list[FileTypeDoc]:
             description="Demand response eligible buses and parameters.",
             columns=[
                 ColumnDocEntry("bus_id", "int", "none", "Bus identifier"),
-                ColumnDocEntry(
-                    "max_curtailment_mw", "float", "MW", "Maximum curtailable load"
-                ),
-                ColumnDocEntry(
-                    "curtailment_cost", "float", "$/MWh", "Cost of load curtailment"
-                ),
-                ColumnDocEntry(
-                    "max_hours", "float", "hours", "Maximum curtailment duration"
-                ),
+                ColumnDocEntry("max_curtailment_mw", "float", "MW", "Maximum curtailable load"),
+                ColumnDocEntry("curtailment_cost", "float", "$/MWh", "Cost of load curtailment"),
+                ColumnDocEntry("max_hours", "float", "hours", "Maximum curtailment duration"),
             ],
             row_semantics="One row per demand response bus.",
         ),
@@ -436,9 +420,7 @@ def build_file_type_docs() -> list[FileTypeDoc]:
             description="Flowgate definitions with constituent lines and limits.",
             columns=[
                 ColumnDocEntry("flowgate_id", "str", "none", "Flowgate identifier"),
-                ColumnDocEntry(
-                    "line_ids", "str", "none", "Semicolon-separated branch IDs"
-                ),
+                ColumnDocEntry("line_ids", "str", "none", "Semicolon-separated branch IDs"),
                 ColumnDocEntry(
                     "weights",
                     "str",
@@ -458,9 +440,7 @@ def build_file_type_docs() -> list[FileTypeDoc]:
             ),
             columns=[
                 ColumnDocEntry("scenario_id", "int", "none", "Scenario index (1-50)"),
-                ColumnDocEntry(
-                    "generator_id", "str", "none", "Generator unique identifier"
-                ),
+                ColumnDocEntry("generator_id", "str", "none", "Generator unique identifier"),
                 *_HR_COLS_DIMENSIONLESS,
             ],
             row_semantics="One row per (scenario, generator) combination.",
@@ -491,9 +471,7 @@ def render_schema_reference(file_type_docs: list[FileTypeDoc]) -> str:
         lines.append("| Column | Type | Unit | Description |")
         lines.append("|--------|------|------|-------------|")
         for col in ftd.columns:
-            lines.append(
-                f"| {col.name} | {col.dtype} | {col.unit} | {col.description} |"
-            )
+            lines.append(f"| {col.name} | {col.dtype} | {col.unit} | {col.description} |")
         lines.append("")
         sections.append("\n".join(lines))
     return "\n".join(sections)
@@ -662,9 +640,7 @@ def compute_network_summary(
 
     # Scenarios
     scenarios_dir = net_dir / "scenarios"
-    wind_scenario_count = _count_scenario_ids(
-        scenarios_dir / "scenario_multipliers_wind_50x24.csv"
-    )
+    wind_scenario_count = _count_scenario_ids(scenarios_dir / "scenario_multipliers_wind_50x24.csv")
     solar_scenario_count = _count_scenario_ids(
         scenarios_dir / "scenario_multipliers_solar_50x24.csv"
     )
@@ -702,10 +678,7 @@ def compute_all_network_summaries(
     Returns:
         List of NetworkSummary, one per network.
     """
-    return [
-        compute_network_summary(nid, timeseries_base_dir, networks_dir)
-        for nid in NetworkId
-    ]
+    return [compute_network_summary(nid, timeseries_base_dir, networks_dir) for nid in NetworkId]
 
 
 def render_summary_table(summaries: list[NetworkSummary]) -> str:
@@ -1186,9 +1159,7 @@ def build_readme_content(
         ),
         directory_tree=walk_timeseries_tree(timeseries_base_dir),
         file_type_docs=build_file_type_docs(),
-        network_summaries=compute_all_network_summaries(
-            timeseries_base_dir, networks_dir
-        ),
+        network_summaries=compute_all_network_summaries(timeseries_base_dir, networks_dir),
         methodology_sections=build_methodology_sections(),
         provenance_entries=build_provenance_entries(),
         known_limitations=build_known_limitations(),

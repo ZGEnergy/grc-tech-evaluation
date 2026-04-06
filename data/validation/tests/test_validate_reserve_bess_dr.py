@@ -7,7 +7,6 @@ or database connections.
 
 from __future__ import annotations
 
-
 import pytest
 
 from scripts.validate_reserve_bess_dr import (
@@ -148,12 +147,8 @@ def test_check_reserve_non_spinning_adequacy_passes():
     """Test 3: non-spinning req 300MW, eligible 1500MW -> passed=True."""
     req = _make_reserve_req(non_spinning=[300.0] * NUM_HOURS)
     eligibility = [
-        _make_eligibility_row(
-            "G1", non_spinning_eligible=True, max_non_spinning_mw=800.0
-        ),
-        _make_eligibility_row(
-            "G2", non_spinning_eligible=True, max_non_spinning_mw=700.0
-        ),
+        _make_eligibility_row("G1", non_spinning_eligible=True, max_non_spinning_mw=800.0),
+        _make_eligibility_row("G2", non_spinning_eligible=True, max_non_spinning_mw=700.0),
     ]
     # Total eligible = 1500MW
 

@@ -844,16 +844,12 @@ def check_flowgate_limits(
 
     for fg in flowgates:
         if fg.limit_mw <= 0:
-            details.append(
-                f"Flowgate {fg.flowgate_id}: limit_mw={fg.limit_mw} is not positive"
-            )
+            details.append(f"Flowgate {fg.flowgate_id}: limit_mw={fg.limit_mw} is not positive")
             items_failed += 1
             continue
 
         # Sum of rate_a for constituent branches
-        sum_rate_a = sum(
-            topology.branch_rate_map.get(bid, 0.0) for bid in fg.branch_ids
-        )
+        sum_rate_a = sum(topology.branch_rate_map.get(bid, 0.0) for bid in fg.branch_ids)
 
         if sum_rate_a > 0 and fg.limit_mw >= sum_rate_a:
             details.append(
@@ -900,19 +896,13 @@ def check_flowgate_weights(
     for fg in flowgates:
         for pos, w in enumerate(fg.weights):
             if math.isnan(w):
-                details.append(
-                    f"Flowgate {fg.flowgate_id}: weight at position {pos} is NaN"
-                )
+                details.append(f"Flowgate {fg.flowgate_id}: weight at position {pos} is NaN")
                 flowgates_with_errors.add(fg.flowgate_id)
             elif math.isinf(w):
-                details.append(
-                    f"Flowgate {fg.flowgate_id}: weight at position {pos} is infinite"
-                )
+                details.append(f"Flowgate {fg.flowgate_id}: weight at position {pos} is infinite")
                 flowgates_with_errors.add(fg.flowgate_id)
             elif abs(w) < 1e-12:
-                details.append(
-                    f"Flowgate {fg.flowgate_id}: weight at position {pos} is zero"
-                )
+                details.append(f"Flowgate {fg.flowgate_id}: weight at position {pos} is zero")
                 flowgates_with_errors.add(fg.flowgate_id)
 
     items_failed = len(flowgates_with_errors)
@@ -955,9 +945,7 @@ def check_flowgate_branch_disjoint(
         for bid in fg.branch_ids:
             if bid in branch_to_flowgate:
                 other_fg = branch_to_flowgate[bid]
-                details.append(
-                    f"Branch {bid} appears in both {other_fg} and {fg.flowgate_id}"
-                )
+                details.append(f"Branch {bid} appears in both {other_fg} and {fg.flowgate_id}")
                 duplicate_branches.add(bid)
             else:
                 branch_to_flowgate[bid] = fg.flowgate_id
@@ -1048,9 +1036,7 @@ def check_scenario_dimensions(
             f"Expected {config.expected_n_scenarios} scenarios, found {data.n_scenarios}"
         )
     if data.n_hours != config.expected_n_hours:
-        details.append(
-            f"Expected {config.expected_n_hours} hours, found {data.n_hours}"
-        )
+        details.append(f"Expected {config.expected_n_hours} hours, found {data.n_hours}")
 
     status = CheckStatus.PASS if not details else CheckStatus.FAIL
     message = (
@@ -1142,9 +1128,7 @@ def check_multiplier_pmax_bound(
         for g in range(data.n_generators):
             pmax = forecast.pmax_values[g] if g < len(forecast.pmax_values) else 0.0
             for h in range(data.n_hours):
-                forecast_val = (
-                    forecast.forecast[g][h] if g < len(forecast.forecast) else 0.0
-                )
+                forecast_val = forecast.forecast[g][h] if g < len(forecast.forecast) else 0.0
                 realization = forecast_val * data.multipliers[s][g][h]
                 exceedance = realization - pmax
                 if exceedance > config.pmax_tolerance_mw:
@@ -1163,9 +1147,7 @@ def check_multiplier_pmax_bound(
     message = (
         "No Pmax violations"
         if violations == 0
-        else (
-            f"{violations} Pmax violation(s), worst exceedance={worst_exceedance:.4f} MW"
-        )
+        else (f"{violations} Pmax violation(s), worst exceedance={worst_exceedance:.4f} MW")
     )
 
     return ScenarioCheckResult(
@@ -1208,11 +1190,7 @@ def check_ensemble_mean(
     grand_mean = float(np.mean(all_vals)) if all_vals else 1.0
 
     deviation = abs(grand_mean - 1.0)
-    status = (
-        CheckStatus.PASS
-        if deviation <= config.ensemble_mean_tolerance
-        else CheckStatus.FAIL
-    )
+    status = CheckStatus.PASS if deviation <= config.ensemble_mean_tolerance else CheckStatus.FAIL
 
     details: list[str] = []
     if status == CheckStatus.FAIL:
@@ -1301,9 +1279,7 @@ def check_correlation_fidelity(
         empirical_corr, _ = stats.spearmanr(hour_data)
         if empirical_corr.ndim == 0:
             # Only 2 generators: spearmanr returns a scalar
-            empirical_corr = np.array(
-                [[1.0, float(empirical_corr)], [float(empirical_corr), 1.0]]
-            )
+            empirical_corr = np.array([[1.0, float(empirical_corr)], [float(empirical_corr), 1.0]])
 
         diff = empirical_corr - target
         frob_norm = float(np.linalg.norm(diff, "fro"))
@@ -1312,9 +1288,7 @@ def check_correlation_fidelity(
     avg_frob = float(np.mean(per_hour_norms))
 
     status = (
-        CheckStatus.PASS
-        if avg_frob < config.correlation_frobenius_threshold
-        else CheckStatus.FAIL
+        CheckStatus.PASS if avg_frob < config.correlation_frobenius_threshold else CheckStatus.FAIL
     )
 
     details: list[str] = []
@@ -1635,9 +1609,7 @@ def validate_scenarios(
     for csv_path, explicit_resource_type in multiplier_files:
         if not csv_path.exists():
             # Skip with SKIPPED status
-            resource_label = (
-                explicit_resource_type.value if explicit_resource_type else "combined"
-            )
+            resource_label = explicit_resource_type.value if explicit_resource_type else "combined"
             skipped = ScenarioCheckResult(
                 check_id="f",
                 check_name="Scenario dimensions",
@@ -1721,10 +1693,7 @@ def validate_scenarios(
                     continue
 
                 filtered_multipliers = [
-                    [
-                        [scenario_data.multipliers[s][g][h] for h in range(24)]
-                        for g in gen_indices
-                    ]
+                    [[scenario_data.multipliers[s][g][h] for h in range(24)] for g in gen_indices]
                     for s in range(scenario_data.n_scenarios)
                 ]
                 filtered_gen_ids = [scenario_data.generator_ids[g] for g in gen_indices]
@@ -1755,19 +1724,13 @@ def validate_scenarios(
             # Run checks (f) through (l)
             results.append(check_scenario_dimensions(filtered_data, config))
             results.append(check_multiplier_non_negative(filtered_data))
-            results.append(
-                check_multiplier_pmax_bound(filtered_data, forecast_data, config)
-            )
+            results.append(check_multiplier_pmax_bound(filtered_data, forecast_data, config))
             results.append(check_ensemble_mean(filtered_data, config))
 
             # Correlation check (j)
-            target_corr = load_target_correlation_matrix(
-                network_id, resource_type, timeseries_dir
-            )
+            target_corr = load_target_correlation_matrix(network_id, resource_type, timeseries_dir)
             if target_corr is not None:
-                results.append(
-                    check_correlation_fidelity(filtered_data, target_corr, config)
-                )
+                results.append(check_correlation_fidelity(filtered_data, target_corr, config))
             else:
                 results.append(
                     ScenarioCheckResult(

@@ -214,9 +214,7 @@ def collect_csv_checksums(network_dir: Path) -> list[FileChecksum]:
     return results
 
 
-def collect_mfile_checksums(
-    networks_dir: Path, network_id: NetworkId
-) -> list[FileChecksum]:
+def collect_mfile_checksums(networks_dir: Path, network_id: NetworkId) -> list[FileChecksum]:
     """Collect SHA-256 checksums of ``*_clean.m`` files for *network_id*.
 
     Only files matching the ``*_clean.m`` glob are included (original
@@ -309,9 +307,7 @@ def collect_script_checksums(scripts_dir: Path) -> list[ScriptChecksum]:
 # ---------------------------------------------------------------------------
 
 
-def extract_seeds_from_metadata(
-    network_id: NetworkId, network_dir: Path
-) -> list[SeedEntry]:
+def extract_seeds_from_metadata(network_id: NetworkId, network_dir: Path) -> list[SeedEntry]:
     """Extract RNG seed values from scenario metadata.
 
     Looks for ``scenarios/stochastic_metadata.json`` inside *network_dir*.
@@ -453,9 +449,7 @@ def extract_student_t_params(network_dir: Path) -> list[StudentTParams]:
     return results
 
 
-def extract_generation_parameters(
-    network_id: NetworkId, network_dir: Path
-) -> GenerationParameters:
+def extract_generation_parameters(network_id: NetworkId, network_dir: Path) -> GenerationParameters:
     """Extract all generation parameters for one network.
 
     Reads from ``scenarios/stochastic_metadata.json`` and
@@ -633,9 +627,7 @@ def detect_git_info(repo_dir: Path) -> GitInfo:
             cwd=str(repo_dir),
             timeout=10,
         )
-        branch = (
-            branch_result.stdout.strip() if branch_result.returncode == 0 else "unknown"
-        )
+        branch = branch_result.stdout.strip() if branch_result.returncode == 0 else "unknown"
     except (FileNotFoundError, subprocess.TimeoutExpired):
         branch = "unknown"
 
@@ -647,11 +639,7 @@ def detect_git_info(repo_dir: Path) -> GitInfo:
             cwd=str(repo_dir),
             timeout=10,
         )
-        dirty = (
-            bool(status_result.stdout.strip())
-            if status_result.returncode == 0
-            else True
-        )
+        dirty = bool(status_result.stdout.strip()) if status_result.returncode == 0 else True
     except (FileNotFoundError, subprocess.TimeoutExpired):
         dirty = True
 
@@ -742,23 +730,15 @@ def validate_manifest(manifest: Manifest) -> list[str]:
 
     # Semver
     if not _SEMVER_RE.match(manifest.manifest_version):
-        errors.append(
-            f"manifest_version '{manifest.manifest_version}' is not valid semver"
-        )
+        errors.append(f"manifest_version '{manifest.manifest_version}' is not valid semver")
 
     # Timestamp
     if not _ISO_RE.match(manifest.generated_at):
-        errors.append(
-            f"generated_at '{manifest.generated_at}' is not a valid ISO 8601 timestamp"
-        )
+        errors.append(f"generated_at '{manifest.generated_at}' is not a valid ISO 8601 timestamp")
 
     # Git hash
-    if manifest.git.commit_hash != "unknown" and not _GIT_HASH_RE.match(
-        manifest.git.commit_hash
-    ):
-        errors.append(
-            f"git commit_hash '{manifest.git.commit_hash}' is not 40-char hex"
-        )
+    if manifest.git.commit_hash != "unknown" and not _GIT_HASH_RE.match(manifest.git.commit_hash):
+        errors.append(f"git commit_hash '{manifest.git.commit_hash}' is not 40-char hex")
 
     # File checksums
     for nfc in manifest.file_checksums:
@@ -775,9 +755,7 @@ def validate_manifest(manifest: Manifest) -> list[str]:
     for ns in manifest.seeds:
         for se in ns.seeds:
             if not isinstance(se.seed_value, int):
-                errors.append(
-                    f"Seed value for {se.process_name} is not int: {se.seed_value}"
-                )
+                errors.append(f"Seed value for {se.process_name} is not int: {se.seed_value}")
 
     return errors
 

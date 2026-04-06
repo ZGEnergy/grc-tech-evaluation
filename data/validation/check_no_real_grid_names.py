@@ -66,10 +66,7 @@ FORBIDDEN_TERMS: tuple[str, ...] = (
 )
 
 _TERM_PATTERN = re.compile(
-    "|".join(
-        rf"\b{re.escape(term)}\b"
-        for term in sorted(FORBIDDEN_TERMS, key=len, reverse=True)
-    ),
+    "|".join(rf"\b{re.escape(term)}\b" for term in sorted(FORBIDDEN_TERMS, key=len, reverse=True)),
     flags=re.IGNORECASE,
 )
 
@@ -120,9 +117,7 @@ def scan_file(path: Path) -> list[Violation]:
 def build_parser() -> argparse.ArgumentParser:
     """Build the CLI parser."""
     parser = argparse.ArgumentParser(
-        description=(
-            "Fail when staged files reference real grids or grid-operating entities."
-        )
+        description=("Fail when staged files reference real grids or grid-operating entities.")
     )
     parser.add_argument("paths", nargs="*", help="Files to scan.")
     return parser

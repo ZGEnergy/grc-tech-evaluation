@@ -584,9 +584,7 @@ def check_reserve_ratio_consistency(
     ratios: list[float] = []
 
     for s in summaries:
-        ratio = (
-            s.spinning_reserve_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
-        )
+        ratio = s.spinning_reserve_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
         per_network[s.network_id.value] = round(ratio, 4)
         ratios.append(ratio)
 
@@ -742,10 +740,7 @@ def check_flowgate_count_range(
 
     for s in summaries:
         per_network[s.network_id.value] = s.flowgate_count
-        if (
-            s.flowgate_count < FLOWGATE_COUNT_MIN
-            or s.flowgate_count > FLOWGATE_COUNT_MAX
-        ):
+        if s.flowgate_count < FLOWGATE_COUNT_MIN or s.flowgate_count > FLOWGATE_COUNT_MAX:
             all_pass = False
 
     status = ConsistencyStatus.PASS if all_pass else ConsistencyStatus.FAIL
@@ -803,9 +798,7 @@ def check_structural_counts(
             lo, hi = EXPECTED_BRANCH_COUNT_RANGES[nid]
             if not (lo <= s.branch_count <= hi):
                 all_pass = False
-                failures.append(
-                    f"{nid} branch_count={s.branch_count} not in [{lo}, {hi}]"
-                )
+                failures.append(f"{nid} branch_count={s.branch_count} not in [{lo}, {hi}]")
 
     status = ConsistencyStatus.PASS if all_pass else ConsistencyStatus.FAIL
     msg = (
@@ -889,23 +882,13 @@ def build_comparison_table(
                 pct = s.dr_curtail_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
                 values[metric][nid] = round(pct, 4)
             elif metric == "spinning_reserve_pct":
-                pct = (
-                    s.spinning_reserve_peak_mw / s.peak_load_mw
-                    if s.peak_load_mw > 0
-                    else 0.0
-                )
+                pct = s.spinning_reserve_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
                 values[metric][nid] = round(pct, 4)
             elif metric == "non_spinning_reserve_pct":
-                pct = (
-                    s.non_spinning_reserve_peak_mw / s.peak_load_mw
-                    if s.peak_load_mw > 0
-                    else 0.0
-                )
+                pct = s.non_spinning_reserve_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
                 values[metric][nid] = round(pct, 4)
             elif metric == "renewable_penetration_pct":
-                pct = (
-                    s.renewable_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
-                )
+                pct = s.renewable_peak_mw / s.peak_load_mw if s.peak_load_mw > 0 else 0.0
                 values[metric][nid] = round(pct, 4)
             elif metric == "flowgate_count":
                 values[metric][nid] = s.flowgate_count

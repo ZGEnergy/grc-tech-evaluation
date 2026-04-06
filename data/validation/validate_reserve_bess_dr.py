@@ -526,8 +526,7 @@ def check_reserve_requirements_sanity(
 
     for product, req_mw in reserve_requirements.items():
         ratios = [
-            req_mw[h] / system_load[h] if system_load[h] > 0 else 0.0
-            for h in range(NUM_HOURS)
+            req_mw[h] / system_load[h] if system_load[h] > 0 else 0.0 for h in range(NUM_HOURS)
         ]
         all_positive = all(r > 0.0 for r in req_mw)
         within_bound = all(r <= RESERVE_MAX_LOAD_FRACTION for r in ratios)
@@ -830,9 +829,7 @@ def check_bess_cyclic_soc_feasibility(
 
         # Check usable band is non-degenerate
         if min_soc >= max_soc:
-            issues.append(
-                f"degenerate SoC band: min_soc_pct={min_soc} >= max_soc_pct={max_soc}"
-            )
+            issues.append(f"degenerate SoC band: min_soc_pct={min_soc} >= max_soc_pct={max_soc}")
 
         # Check that efficiency allows cycling (rte > 0)
         if rte <= 0:
@@ -858,9 +855,7 @@ def check_bess_cyclic_soc_feasibility(
     )
 
     cyclic_count = sum(
-        1
-        for r in bess_rows
-        if r.get("cyclic_soc", "true").strip().lower() in ("true", "1")
+        1 for r in bess_rows if r.get("cyclic_soc", "true").strip().lower() in ("true", "1")
     )
     passed = len(failing_units) == 0
     if passed:
@@ -1005,9 +1000,7 @@ def check_dr_energy_neutrality_feasibility(
             }
 
     neutral_count = sum(
-        1
-        for r in dr_rows
-        if r.get("daily_energy_neutral", "true").strip().lower() in ("true", "1")
+        1 for r in dr_rows if r.get("daily_energy_neutral", "true").strip().lower() in ("true", "1")
     )
     passed = len(failing_resources) == 0
     if passed:
@@ -1132,15 +1125,9 @@ def run_reserve_checks(
     eligibility = load_reserve_eligibility(network_dir)
     system_load = load_system_load(network_dir)
 
-    results.append(
-        check_reserve_spinning_adequacy(reserve_req, eligibility, network_id)
-    )
-    results.append(
-        check_reserve_non_spinning_adequacy(reserve_req, eligibility, network_id)
-    )
-    results.extend(
-        check_reserve_requirements_sanity(reserve_req, system_load, network_id)
-    )
+    results.append(check_reserve_spinning_adequacy(reserve_req, eligibility, network_id))
+    results.append(check_reserve_non_spinning_adequacy(reserve_req, eligibility, network_id))
+    results.extend(check_reserve_requirements_sanity(reserve_req, system_load, network_id))
 
     return results
 

@@ -18,11 +18,10 @@ from scripts.generate_docs import (
     compute_network_summary,
     generate_docs,
     render_directory_tree,
-    render_summary_table,
     render_schema_reference,
+    render_summary_table,
     walk_timeseries_tree,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -166,9 +165,7 @@ class TestWalkTimeseriesTree:
         assert len(file_entries) >= 3  # at least 1 csv per network
 
         # scenarios subdirs found
-        scenario_dirs = [
-            e for e in entries if e.is_directory and "scenarios" in e.relative_path
-        ]
+        scenario_dirs = [e for e in entries if e.is_directory and "scenarios" in e.relative_path]
         assert len(scenario_dirs) == 3
 
         # Entries are sorted (directories before files, alphabetical)
@@ -428,9 +425,7 @@ class TestApplyClaudeMdUpdate:
     def test_apply_claude_md_update_appends_section(self, tmp_path: Path) -> None:
         """Preserves existing content, adds ## Augmented Data."""
         claude_md = tmp_path / "CLAUDE.md"
-        existing = (
-            "# My Project\n\nSome existing content.\n\n## Other Section\n\nDetails.\n"
-        )
+        existing = "# My Project\n\nSome existing content.\n\n## Other Section\n\nDetails.\n"
         claude_md.write_text(existing, encoding="utf-8")
 
         update = build_claude_md_update()
@@ -477,9 +472,7 @@ class TestGenerateDocsEndToEnd:
 
         readme_path = ts_dir / "README.md"
         claude_md_path = tmp_path / "CLAUDE.md"
-        claude_md_path.write_text(
-            "# Test CLAUDE.md\n\nExisting content.\n", encoding="utf-8"
-        )
+        claude_md_path.write_text("# Test CLAUDE.md\n\nExisting content.\n", encoding="utf-8")
 
         generate_docs(
             timeseries_base_dir=ts_dir,

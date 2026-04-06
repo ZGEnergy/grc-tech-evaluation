@@ -11,7 +11,6 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-
 from scripts.validate_cross_network import (
     ConsistencyStatus,
     CrossNetworkComparisonTable,
@@ -29,7 +28,6 @@ from scripts.validate_cross_network import (
     run_all_cross_network_checks,
     validate_cross_network,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -410,16 +408,14 @@ def test_build_comparison_table_populates_all_metrics() -> None:
 def _write_mfile(path: Path, bus_count: int, gen_count: int, branch_count: int) -> None:
     """Write a minimal MATPOWER .m file with the given counts."""
     bus_rows = "\n".join(
-        f"\t{i}\t1\t100\t50\t0\t0\t1\t1.0\t0\t345\t1\t1.06\t0.94;"
-        for i in range(1, bus_count + 1)
+        f"\t{i}\t1\t100\t50\t0\t0\t1\t1.0\t0\t345\t1\t1.06\t0.94;" for i in range(1, bus_count + 1)
     )
     gen_rows = "\n".join(
         f"\t{i}\t100\t0\t300\t-100\t1.0\t100\t1\t200\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0;"
         for i in range(1, gen_count + 1)
     )
     branch_rows = "\n".join(
-        "\t1\t2\t0.01\t0.1\t0.02\t100\t100\t100\t0\t0\t1\t-360\t360;"
-        for _ in range(branch_count)
+        "\t1\t2\t0.01\t0.1\t0.02\t100\t100\t100\t0\t0\t1\t-360\t360;" for _ in range(branch_count)
     )
     content = textwrap.dedent(f"""\
         function mpc = testcase
@@ -459,9 +455,7 @@ def _write_bess_csv(path: Path, units: list[tuple[str, float, float]]) -> None:
 
 def _write_dr_csv(path: Path, resources: list[tuple[str, float]]) -> None:
     """Write dr_buses.csv. Each tuple is (dr_id, max_curtail_mw)."""
-    lines = [
-        "dr_id,bus,max_curtail_mw,max_recover_mw,max_curtail_hours,daily_energy_neutral"
-    ]
+    lines = ["dr_id,bus,max_curtail_mw,max_recover_mw,max_curtail_hours,daily_energy_neutral"]
     for dr_id, mw in resources:
         lines.append(f"{dr_id},1,{mw},{mw},4,true")
     path.write_text("\n".join(lines), encoding="utf-8")

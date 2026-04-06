@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 from scripts.validate_schema import (
     CheckId,
     CheckStatus,
@@ -30,7 +29,6 @@ from scripts.validate_schema import (
     validate_file,
     validate_network_schema,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test 1: build_file_manifest_tiny_has_all_file_types

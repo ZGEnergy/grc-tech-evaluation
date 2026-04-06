@@ -6,7 +6,6 @@ Tests are self-contained with no external file or network dependencies.
 
 from __future__ import annotations
 
-
 import numpy as np
 
 from scripts.validate_flowgate_scenario import (
@@ -131,9 +130,7 @@ def _uniform_multipliers(
     n_scenarios: int, n_generators: int, n_hours: int, value: float = 1.0
 ) -> list[list[list[float]]]:
     """Create a 3-D multiplier array with uniform values."""
-    return [
-        [[value] * n_hours for _ in range(n_generators)] for _ in range(n_scenarios)
-    ]
+    return [[[value] * n_hours for _ in range(n_generators)] for _ in range(n_scenarios)]
 
 
 # ---------------------------------------------------------------------------
@@ -432,9 +429,7 @@ class TestSolarNighttimeZero:
                 for h in range(24):
                     if h not in night_hours:
                         mults[s][g][h] = 0.9
-        data = _make_scenario_data(
-            mults, n_generators=2, resource_type=ResourceType.SOLAR
-        )
+        data = _make_scenario_data(mults, n_generators=2, resource_type=ResourceType.SOLAR)
         forecast = _make_forecast_data(
             forecast=[[0.0] * 24] * 2,
             actual=[[0.0] * 24] * 2,
@@ -450,9 +445,7 @@ class TestSolarNighttimeZero:
         night_hours = [0, 1, 22, 23]
         mults = _uniform_multipliers(50, 2, 24, value=1.0)
         mults[0][0][0] = 1.5  # violation at hour 0 (nighttime)
-        data = _make_scenario_data(
-            mults, n_generators=2, resource_type=ResourceType.SOLAR
-        )
+        data = _make_scenario_data(mults, n_generators=2, resource_type=ResourceType.SOLAR)
         forecast = _make_forecast_data(
             forecast=[[0.0] * 24] * 2,
             actual=[[0.0] * 24] * 2,

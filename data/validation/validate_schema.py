@@ -348,9 +348,7 @@ def build_column_specs_gen_temporal_params() -> list[ColumnSpec]:
             min_value=0.0,
         ),
         ColumnSpec(name="fuel_type", dtype=ColumnDtype.STR, unit="none", required=True),
-        ColumnSpec(
-            name="unit_type", dtype=ColumnDtype.STR, unit="none", required=False
-        ),
+        ColumnSpec(name="unit_type", dtype=ColumnDtype.STR, unit="none", required=False),
     ]
 
 
@@ -392,9 +390,7 @@ def build_column_specs_reserve_eligibility() -> list[ColumnSpec]:
             required=True,
             is_id=True,
         ),
-        ColumnSpec(
-            name="spinning_eligible", dtype=ColumnDtype.BOOL, unit="none", required=True
-        ),
+        ColumnSpec(name="spinning_eligible", dtype=ColumnDtype.BOOL, unit="none", required=True),
         ColumnSpec(
             name="non_spinning_eligible",
             dtype=ColumnDtype.BOOL,
@@ -494,9 +490,7 @@ def build_column_specs_dr_buses() -> list[ColumnSpec]:
         Ordered list of ColumnSpec for the demand response file.
     """
     return [
-        ColumnSpec(
-            name="bus_id", dtype=ColumnDtype.INT, unit="none", required=True, is_id=True
-        ),
+        ColumnSpec(name="bus_id", dtype=ColumnDtype.INT, unit="none", required=True, is_id=True),
         ColumnSpec(
             name="max_curtailment_mw",
             dtype=ColumnDtype.FLOAT,
@@ -560,9 +554,7 @@ def build_column_specs_scenario_multipliers() -> list[ColumnSpec]:
         Ordered list of ColumnSpec for scenario multiplier files.
     """
     return [
-        ColumnSpec(
-            name="scenario_id", dtype=ColumnDtype.INT, unit="none", required=True
-        ),
+        ColumnSpec(name="scenario_id", dtype=ColumnDtype.INT, unit="none", required=True),
         ColumnSpec(
             name="generator_id",
             dtype=ColumnDtype.STR,
@@ -794,9 +786,7 @@ def check_column_order(
     """
     expected_names = [cs.name for cs in expected_columns]
     # Filter to columns present in both.
-    actual_filtered = [
-        c for c in actual_columns if c in {cs.name for cs in expected_columns}
-    ]
+    actual_filtered = [c for c in actual_columns if c in {cs.name for cs in expected_columns}]
     expected_filtered = [c for c in expected_names if c in set(actual_columns)]
 
     violations: list[CheckViolation] = []
@@ -809,9 +799,7 @@ def check_column_order(
                         column_name=e,
                         row_index=None,
                         error_type="wrong_order",
-                        message=(
-                            f"Column '{e}' expected at position {i} but found '{a}'"
-                        ),
+                        message=(f"Column '{e}' expected at position {i} but found '{a}'"),
                         actual_value=a,
                         expected=e,
                     )
@@ -1043,10 +1031,7 @@ def check_row_count(
                     expected=f">={manifest_entry.min_rows}",
                 )
             )
-        if (
-            manifest_entry.max_rows is not None
-            and actual_row_count > manifest_entry.max_rows
-        ):
+        if manifest_entry.max_rows is not None and actual_row_count > manifest_entry.max_rows:
             violations.append(
                 CheckViolation(
                     column_name=None,
@@ -1082,9 +1067,7 @@ def check_no_nan_inf(
     """
     violations: list[CheckViolation] = []
     numeric_col_names = {
-        cs.name
-        for cs in expected_columns
-        if cs.dtype in {ColumnDtype.FLOAT, ColumnDtype.INT}
+        cs.name for cs in expected_columns if cs.dtype in {ColumnDtype.FLOAT, ColumnDtype.INT}
     }
     if not numeric_col_names:
         return CheckStatus.PASS, []
