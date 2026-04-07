@@ -125,10 +125,10 @@ def test_risk_register_collapsible(mdx_text: str) -> None:
     )
 
 
-# ── 9. Risk Register has 4 items ────────────────────────────────────
+# ── 9. Risk Register has 5 items ────────────────────────────────────
 
 
-def test_risk_register_four_items(mdx_text: str) -> None:
+def test_risk_register_five_items(mdx_text: str) -> None:
     # Extract the risk register section (between Risk Register summary and next </details>)
     risk_section_match = re.search(
         r"<summary>[^<]*Risk Register[^<]*</summary>(.*?)</details>",
@@ -138,13 +138,14 @@ def test_risk_register_four_items(mdx_text: str) -> None:
     assert risk_section_match, "Could not find Risk Register section"
     section = risk_section_match.group(1)
 
-    # Count the 4 known risk keywords
+    # Count the 5 known risk keywords (R1–R5)
     keywords_found = 0
-    for keyword in ["SCUC", "stochastic", "PWL", "Linopy"]:
+    for keyword in ["Linopy", "PSS/E", "distributed slack", "HiGHS", "PWL"]:
         if re.search(keyword, section, re.IGNORECASE):
             keywords_found += 1
-    assert keywords_found == 4, (
-        f"Expected 4 distinct risk items (SCUC, stochastic, PWL, Linopy), found {keywords_found}"
+    assert keywords_found == 5, (
+        f"Expected 5 distinct risk items (Linopy, PSS/E, distributed slack, HiGHS, PWL), "
+        f"found {keywords_found}"
     )
 
 
@@ -176,10 +177,10 @@ def test_phase2_roadmap_collapsible(mdx_text: str) -> None:
     )
 
 
-# ── 12. Phase 2 roadmap three tables ────────────────────────────────
+# ── 12. Phase 2 roadmap three stages ───────────────────────────────
 
 
-def test_phase2_roadmap_three_tables(mdx_text: str) -> None:
+def test_phase2_roadmap_three_stages(mdx_text: str) -> None:
     # Find the Phase 2 roadmap section
     roadmap_match = re.search(
         r"<summary>[^<]*(?:Phase 2|Development)[^<]*</summary>(.*?)</details>",
@@ -189,10 +190,10 @@ def test_phase2_roadmap_three_tables(mdx_text: str) -> None:
     assert roadmap_match, "Could not find Phase 2 roadmap section"
     section = roadmap_match.group(1)
 
-    # Count markdown table headers (lines that start with |---|)
-    table_separators = re.findall(r"^\|[-| :]+\|$", section, re.MULTILINE)
-    assert len(table_separators) >= 3, (
-        f"Expected >=3 markdown tables in Phase 2 roadmap, found {len(table_separators)}"
+    # Count stage sub-headings (### Stage 1, ### Stage 2, ### Stage 3)
+    stage_headings = re.findall(r"^###\s+Stage\s+\d", section, re.MULTILINE)
+    assert len(stage_headings) >= 3, (
+        f"Expected >=3 stage headings in Phase 2 roadmap, found {len(stage_headings)}"
     )
 
 

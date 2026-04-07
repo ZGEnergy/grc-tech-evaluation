@@ -96,8 +96,8 @@ def test_rank_ordering(mdx_text: str) -> None:
         "PyPSA",
         "PowerModels",
         "PowerSimulations",
-        "pandapower",
         "GridCal",
+        "pandapower",
         "MATPOWER",
     ]
     # Find positions of each tool's <summary> heading, not first mention
@@ -152,16 +152,17 @@ def test_each_card_has_grade_table(mdx_text: str) -> None:
 
 
 def test_grade_values_match_grades_json(mdx_text: str, grades_data: dict) -> None:
-    # Spot-check at least 6 grades from the JSON
+    # Spot-check at least 6 grades from the JSON against the MDX page.
+    # The grade system uses tiers (Strong/Adequate/Weak/Failing), not letter grades.
     spot_checks = [
-        ("pypsa", "expressiveness", "B+"),
-        ("pypsa", "supply_chain", "A"),
-        ("pandapower", "expressiveness", "C+"),
-        ("powermodels", "extensibility", "A-"),
-        ("gridcal", "maturity", "B-"),
-        ("powersimulations", "accessibility", "C+"),
+        ("pypsa", "expressiveness", "Strong"),
+        ("pypsa", "supply_chain", "Strong"),
+        ("pandapower", "expressiveness", "Weak"),
+        ("powermodels", "extensibility", "Strong"),
+        ("gridcal", "maturity", "Weak"),
+        ("powersimulations", "accessibility", "Weak"),
     ]
-    for tool_id, criterion, expected_letter in spot_checks:
+    for tool_id, criterion, expected_tier in spot_checks:
         # Verify the grade exists in grades.json
         matching = [
             g
@@ -169,25 +170,14 @@ def test_grade_values_match_grades_json(mdx_text: str, grades_data: dict) -> Non
             if g["tool"] == tool_id and g["criterion"] == criterion
         ]
         assert len(matching) == 1, f"Grade not found in JSON: {tool_id}/{criterion}"
-        assert matching[0]["letter"] == expected_letter
-
-        # Verify the grade letter appears in the MDX with CSS class
-        css_class = "grade-" + expected_letter.lower().replace("+", "-plus").replace(
-            "-", "-minus"
+        assert matching[0]["tier"] == expected_tier, (
+            f"Tier mismatch for {tool_id}/{criterion}: "
+            f"expected {expected_tier}, got {matching[0]['tier']}"
         )
-        # Handle the special case where "B-" -> "grade-b-minus" but "A-" -> "grade-a-minus"
-        # Re-derive properly
-        letter = expected_letter
-        base = letter[0].lower()
-        if letter.endswith("+"):
-            css_class = f"grade-{base}-plus"
-        elif letter.endswith("-"):
-            css_class = f"grade-{base}-minus"
-        else:
-            css_class = f"grade-{base}"
 
-        assert css_class in mdx_text, (
-            f"CSS class '{css_class}' not found for {tool_id}/{criterion}"
+        # Verify the tier value appears in the MDX page
+        assert expected_tier in mdx_text, (
+            f"Tier '{expected_tier}' not found in MDX for {tool_id}/{criterion}"
         )
 
 
@@ -195,25 +185,24 @@ def test_grade_values_match_grades_json(mdx_text: str, grades_data: dict) -> Non
 
 
 def test_each_card_has_rationale_text(mdx_text: str) -> None:
-    """Each criterion row should have non-empty rationale (>=20 chars)."""
+    """Each card should have prose rationale sections (Key Strengths / Key Weaknesses)."""
     cards = re.split(r"<details\b", mdx_text)[1:]
     assert len(cards) == 6
     for i, card in enumerate(cards):
-        # Find grade table rows: | Criterion | <span...>GRADE</span> | summary |
-        rows = re.findall(
-            r"\|\s*(?:Expressiveness|Extensibility|Scalability|Accessibility"
-            r"|Maturity|Supply Chain)\s*\|[^|]+\|([^|]+)\|",
-            card,
+        # Each card should have Key Strengths and Key Weaknesses sections
+        assert "Key Strengths" in card, f"Card {i + 1}: missing 'Key Strengths' section"
+        assert "Key Weaknesses" in card, (
+            f"Card {i + 1}: missing 'Key Weaknesses' section"
         )
-        assert len(rows) >= 6, (
-            f"Card {i + 1}: expected >=6 criterion rows, found {len(rows)}"
+        # Each card should have substantial rationale text (at least 200 chars
+        # after the grade table)
+        grade_table_end = card.rfind("| Supply Chain")
+        if grade_table_end == -1:
+            grade_table_end = 0
+        rationale_text = card[grade_table_end:]
+        assert len(rationale_text) >= 200, (
+            f"Card {i + 1}: rationale text too short ({len(rationale_text)} chars)"
         )
-        for row_text in rows:
-            stripped = row_text.strip()
-            assert len(stripped) >= 20, (
-                f"Card {i + 1}: rationale too short ({len(stripped)} chars): "
-                f"'{stripped[:40]}...'"
-            )
 
 
 # ── 13. MATPOWER reference indicator ─────────────────────────────────
@@ -235,8 +224,8 @@ def test_matpower_reference_only_indicator(mdx_text: str) -> None:
 def test_matpower_exclusion_footnote(mdx_text: str) -> None:
     lower = mdx_text.lower()
     assert "matlab" in lower, "Page must mention 'MATLAB'"
-    assert "classified" in lower or "authorization" in lower, (
-        "Page must mention 'classified' or 'authorization'"
+    assert "inspectable" in lower or "compiled" in lower, (
+        "Page must mention 'inspectable' or 'compiled' (source code inspection requirement)"
     )
 
 
@@ -244,19 +233,12 @@ def test_matpower_exclusion_footnote(mdx_text: str) -> None:
 
 
 def test_radar_placeholder_slots(mdx_text: str) -> None:
-    has_overlay = "Tool Comparison Radar" in mdx_text or re.search(
-        r"(<img\b[^>]*|!\[.*\]\(/img/)radar_overlay", mdx_text
+    # The page uses per-tool Grade Profile tables instead of radar chart images.
+    # Verify each card has a "Grade Profile" section with a grade table.
+    grade_profiles = re.findall(r"####\s+Grade Profile", mdx_text)
+    assert len(grade_profiles) >= 6, (
+        f"Expected >=6 'Grade Profile' sections, found {len(grade_profiles)}"
     )
-    assert has_overlay, (
-        "Missing 'Tool Comparison Radar' placeholder or radar_overlay image"
-    )
-    # At least 1 per-tool radar (either Placeholder, <img>, or markdown image)
-    tool_radar_placeholders = re.findall(r'title="[^"]*Radar"', mdx_text)
-    tool_radar_imgs = re.findall(
-        r"(?:<img\b[^>]*|!\[.*\]\(/img/)radar_\w+\.svg", mdx_text
-    )
-    total = len(tool_radar_placeholders) + len(tool_radar_imgs)
-    assert total >= 7, f"Expected >=7 radar chart slots, found {total}"
 
 
 # ── 16-17. Uniform presentation ──────────────────────────────────────

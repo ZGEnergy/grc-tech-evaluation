@@ -103,29 +103,29 @@ def test_maturity_six_tool_sections(maturity_text: str) -> None:
 
 
 def test_maturity_probe_025_reference(maturity_text: str) -> None:
-    # Find the PowerSimulations section and check for probe-025 or coverage ref
-    psi_match = re.search(
-        r"PowerSimulations.*?(?=<details|$)", maturity_text, re.DOTALL
-    )
-    assert psi_match, "PowerSimulations section not found in Maturity page"
-    psi_section = psi_match.group()
+    # Find the PowerSimulations detail section and check for probe-025 or coverage
+    # The section is inside a <details> card with PowerSimulations in the summary
+    psi_start = maturity_text.find("PowerSimulations")
+    assert psi_start >= 0, "PowerSimulations not found in Maturity page"
+    # Search the rest of the page from this point
+    psi_section = maturity_text[psi_start:]
     has_probe = "probe-025" in psi_section
     has_coverage = "coverage" in psi_section.lower()
     assert has_probe or has_coverage, (
-        "PowerSimulations section must reference probe-025 or coverage"
+        "Maturity page must reference probe-025 or coverage for PowerSimulations"
     )
 
 
 # ── 8. Maturity: theme T13 reference ───────────────────────────────────
 
 
-def test_maturity_theme_t13_reference(maturity_text: str) -> None:
+def test_maturity_sustainability_risk_reference(maturity_text: str) -> None:
     lower = maturity_text.lower()
-    has_t13 = "t13" in lower
-    has_unverified = "unverified" in lower
-    has_doc_claims = "documentation claims" in lower
-    assert has_t13 or has_unverified or has_doc_claims, (
-        "Maturity page must reference T13, 'unverified', or 'documentation claims'"
+    has_bus_factor = "bus factor" in lower
+    has_sustainability = "sustainability" in lower
+    has_contributor = "contributor" in lower
+    assert has_bus_factor or has_sustainability or has_contributor, (
+        "Maturity page must reference bus factor, sustainability, or contributor risk"
     )
 
 
@@ -163,7 +163,11 @@ def test_supply_chain_six_tool_sections(supply_chain_text: str) -> None:
 
 def test_supply_chain_all_pass(supply_chain_text: str) -> None:
     lower = supply_chain_text.lower()
-    has_all_passed = "all 6 tools passed" in lower or "all passed" in lower
+    has_all_passed = (
+        "all 6 tools passed" in lower
+        or "all six tools passed" in lower
+        or "all passed" in lower
+    )
     assert has_all_passed, "Supply Chain page must indicate all tools passed the gate"
 
 

@@ -21,8 +21,8 @@ supporting the Phase 1 technology assessment.
 ```
 grc-tech-evaluation/
 ├── evaluation_guides/          # Rubric and test protocol
-│   ├── Phase1_Evaluation_Rubric_v1.md
-│   └── Phase1_Test_Protocol_v2.md
+│   ├── Phase1_Evaluation_Rubric.md
+│   └── Phase1_Test_Protocol.md
 ├── data/
 │   └── networks/               # Shared MATPOWER .m test cases
 ├── evaluations/
@@ -132,8 +132,8 @@ For Julia, edit `Project.toml` and run
 
 See `evaluation_guides/` for the full rubric and test protocol:
 
-- **Phase1_Evaluation_Rubric_v1.md** — Scoring criteria across seven dimensions
-- **Phase1_Test_Protocol_v2.md** — Specific tests and acceptance criteria
+- **Phase1_Evaluation_Rubric.md** — Scoring criteria across seven dimensions
+- **Phase1_Test_Protocol.md** — Specific tests and acceptance criteria
 
 Results for each tool are organized into subdirectories under
 `evaluations/<tool>/results/` matching the rubric dimensions.
