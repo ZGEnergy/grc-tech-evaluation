@@ -1331,8 +1331,8 @@ _NULLABLE_BEHAVIOR: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 _APPROX_COUNTS: dict[str, str] = {
-    "Bus": "~30,000",
-    "Load": "~15,000",
+    "Bus": "30000",
+    "Load": "15000",
     "Fixed Shunt": "~500",
     "Generator": "~5,000",
     "Branch": "~35,000",

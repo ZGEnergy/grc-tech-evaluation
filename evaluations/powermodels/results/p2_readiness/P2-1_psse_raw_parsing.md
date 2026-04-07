@@ -25,7 +25,7 @@ unresolved as of March 2026).
 
 ### FNM RAW File Parse Attempt
 
-**File:** `/data/fnm-source/AUC_AN_2026_2026_S01_ON_NETWORK_MODEL.RAW`
+**File:** `<FNM_SOURCE_PATH>`
 
 #### FNM RAW version detected from file header:
 

@@ -2,7 +2,7 @@
 Test G-FNM-3: DCPF Verification Against Reference Solution
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM main island via MATPOWER fallback, 27,862 buses)
+Network: LARGE (FNM main island via MATPOWER fallback, 28000 buses)
 Pass condition: All aggregate thresholds met per pass_conditions.json dcpf section.
   - Bus angle: >=95% of non-excluded buses within 1.0 deg
   - Branch flow: >=90% of in-service branches within 10% (floor 1.0 MW)

@@ -34,7 +34,7 @@ PowerModels.jl cannot ingest the PSS/E intermediate CSV format. It supports only
 MATPOWER `.m`, PSS/E `.raw` (v33 spec), and PowerModels JSON formats. The intermediate
 CSV tables are tabular extracts from PSS/E, not a native format PowerModels can parse.
 
-The MATPOWER `.m` fallback file loads successfully (3.05s, 27,862 buses), confirming the
+The MATPOWER `.m` fallback file loads successfully (3.05s, ~28,000 buses), confirming the
 fallback ingestion path works for downstream G-FNM-3/4/5 tests.
 
 ## Approach
@@ -71,22 +71,22 @@ to verify the fallback path for downstream tests. This does NOT change G-FNM-1 s
 | File | `data/fnm/reference/cleaned/fnm_main_island.m` |
 | Load time | 3.05 s |
 | baseMVA | 100 |
-| Slack bus | 29421 (bus_type=3) |
+| Slack bus | <slack_bus> (bus_type=3) |
 | Tap=0 branches | 0 (correctly mapped to 1.0 by MATPOWER converter) |
 | Tap=1.0 branches | 30,248 |
-| Buses | 27,862 |
-| Branches | 32,606 |
-| Generators | 5,741 |
+| Buses | ~28,000 |
+| Branches | ~33,000 |
+| Generators | ~5,700 |
 | Loads | 8,624 |
 
 ### Record Count Comparison (MATPOWER fallback vs manifest)
 
 | Table | Manifest Expected | MATPOWER Actual | Delta | % Diff |
 |-------|------------------:|----------------:|------:|-------:|
-| bus | 30,307 | 27,862 | -2,445 | -8.1% |
-| load | 15,062 | 8,624 | -6,438 | -42.7% |
-| generator | 5,768 | 5,741 | -27 | -0.5% |
-| branch+transformer | 33,840 | 32,606 | -1,234 | -3.6% |
+| bus | ~30,000 | ~28,000 | -2,445 | -8.1% |
+| load | ~15,000 | 8,624 | -6,438 | -42.7% |
+| generator | ~5,800 | ~5,700 | -27 | -0.5% |
+| branch+transformer | ~34,000 | ~33,000 | -1,234 | -3.6% |
 
 Count mismatches are attributable to the MATPOWER fallback being a pre-cleaned main-island
 subset, not a PowerModels ingestion error. Isolated buses (IDE=4), de-energized equipment,
@@ -97,7 +97,7 @@ and off-island fragments were removed during the external cleaning process.
 | Check | Result | Detail |
 |-------|--------|--------|
 | baseMVA | 100 | Correct (matches manifest sbase) |
-| Slack bus present | Yes | Bus 29421 (bus_type=3) |
+| Slack bus present | Yes | Bus <slack_bus> (bus_type=3) |
 | Tap ratio preservation | OK | 0 branches with tap=0; 30,248 with tap=1.0 |
 
 ## Workarounds

@@ -32,12 +32,12 @@ acpf_timeout_minutes: 30
 ## Result: INFORMATIONAL
 
 The Newton-Raphson AC power flow solver in PowerFlows.jl failed to converge at all
-three relaxation levels (0%, 10%, 20%) on the 27,862-bus FNM main island network.
+three relaxation levels (0%, 10%, 20%) on the ~28,000-bus FNM main island network.
 Relaxation level achieved: **infeasible**.
 
 ## Approach
 
-1. **DCPF warm-start:** Loaded `fnm_main_island.m` (MATPOWER fallback, 27,862 buses) via
+1. **DCPF warm-start:** Loaded `fnm_main_island.m` (MATPOWER fallback, ~28,000 buses) via
    `PowerSystems.System(path; runchecks=false)`. Solved DCPF via
    `PowerFlows.solve_powerflow(DCPowerFlow(), sys)`. Extracted bus voltage angles
    from the DCPF solution.
@@ -58,7 +58,7 @@ Relaxation level achieved: **infeasible**.
 | DCPF solve time | 10.51s |
 | Mean \|angle\| (non-zero buses) | 2.120131e+02 deg |
 | Max \|angle\| | 5.402463e+02 deg |
-| Non-zero angles | 27,858 / 27,862 |
+| Non-zero angles | 27,858 / ~28,000 |
 
 The large angle magnitudes (mean 212 deg) are expected for a large interconnected
 network where the slack bus reference sets the zero point and other buses span
@@ -105,9 +105,9 @@ at the `@error` log level.
 
 ## Analysis
 
-The ACPF non-convergence on this 27,862-bus network is attributable to several factors:
+The ACPF non-convergence on this ~28,000-bus network is attributable to several factors:
 
-1. **Network scale:** 27,862 buses is at the upper end of what open-source NR solvers
+1. **Network scale:** ~28,000 buses is at the upper end of what open-source NR solvers
    reliably handle without specialized initialization and tuning. Commercial tools
    (PSS/E, PowerWorld) use multi-level initialization strategies, optimal multiplier
    selection, and bus-ordering heuristics not available in PowerFlows.jl.
@@ -163,7 +163,7 @@ These are left as future diagnostic paths since G-FNM-4 has no hard gate consequ
 
 ### `fnm-scale` -- ACPF non-convergence on 28K-bus network
 
-PowerFlows.jl's Newton-Raphson ACPF solver cannot converge on the 27,862-bus FNM
+PowerFlows.jl's Newton-Raphson ACPF solver cannot converge on the ~28,000-bus FNM
 main island network even with DCPF warm-start and 20% branch rating relaxation.
 This is consistent with the expected behavior for large-scale AC power flow in
 open-source tools without specialized initialization heuristics. [tool-specific]

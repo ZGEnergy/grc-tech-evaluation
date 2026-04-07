@@ -11,14 +11,14 @@ timestamp: "2026-03-13T00:00:00Z"
 
 ## Finding
 
-PowerModels loaded the 27,862-bus MATPOWER fallback file in 2.97 seconds. This confirms
+PowerModels loaded the ~28,000-bus MATPOWER fallback file in 2.97 seconds. This confirms
 that PowerModels' MATPOWER parser handles LARGE-scale networks without difficulty, though
-the actual FNM (30,307 buses) could not be tested due to PSS/E parser incompatibility.
+the actual FNM (~30,000 buses) could not be tested due to PSS/E parser incompatibility.
 
 ## Context
 
-The MATPOWER fallback (`fnm_main_island.m`) contains 27,862 buses, 32,606 branches,
-5,741 generators, and 8,624 loads. PowerModels parsed this file without errors (warnings
+The MATPOWER fallback (`fnm_main_island.m`) contains ~28,000 buses, ~33,000 branches,
+~5,700 generators, and 8,624 loads. PowerModels parsed this file without errors (warnings
 about angle limits and branch orientation reversals were handled automatically). The
 2.97-second load time is well within acceptable bounds for a network of this scale.
 

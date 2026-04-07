@@ -12,7 +12,7 @@ timestamp: 2026-03-24T00:00:00Z
 ## Finding
 
 GridCal's ACPF solver (Newton-Raphson, Levenberg-Marquardt, HELM) fails to converge
-on the 27,862-bus FNM main island loaded via MATPOWER fallback path. The best result
+on the ~28,000-bus FNM main island loaded via MATPOWER fallback path. The best result
 (LM, 200 iterations) achieves a residual of 15.83 MVA, far from the 1e-6 tolerance.
 
 ## Context

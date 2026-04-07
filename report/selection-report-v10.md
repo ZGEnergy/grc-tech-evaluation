@@ -59,7 +59,7 @@ GridCal's Maturity grade of C triggers disqualification (bus factor 1, zero CI t
 
 **Scenario 3 — Scalability as top priority** (Scalability → Expressiveness → Extensibility → Accessibility → Maturity):
 
-GridCal's B Scalability leads the field. PyPSA drops to #4 because its C+ Scalability reflects a HiGHS single-threaded MILP timeout on the SCUC SMALL test (C-4 fail). This grade is solver-bound, not an architectural ceiling: PyPSA ACPF scales to 10K buses (C-5 MEDIUM pass) and FNM DCPF runs exact at 27,862 buses in 31.3s (G-FNM-3 pass). PowerModels vs PowerSimulations: tied on Scalability (B-), Expressiveness (B-), and Extensibility (A-); Accessibility breaks the tie — PowerModels B- > PowerSimulations C+ → PowerModels #2, PowerSimulations #3. PyPSA C+ vs pandapower C+: Expressiveness PyPSA B+ > pandapower C+ → PyPSA #4, pandapower #5.
+GridCal's B Scalability leads the field. PyPSA drops to #4 because its C+ Scalability reflects a HiGHS single-threaded MILP timeout on the SCUC SMALL test (C-4 fail). This grade is solver-bound, not an architectural ceiling: PyPSA ACPF scales to 10K buses (C-5 MEDIUM pass) and FNM DCPF runs exact at ~28,000 buses in 31.3s (G-FNM-3 pass). PowerModels vs PowerSimulations: tied on Scalability (B-), Expressiveness (B-), and Extensibility (A-); Accessibility breaks the tie — PowerModels B- > PowerSimulations C+ → PowerModels #2, PowerSimulations #3. PyPSA C+ vs pandapower C+: Expressiveness PyPSA B+ > pandapower C+ → PyPSA #4, pandapower #5.
 
 | Rank | Tool |
 |------|------|

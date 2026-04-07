@@ -7,11 +7,11 @@ severity: medium
 timestamp: "2026-03-13T23:15:00Z"
 ---
 
-# Observation: MATPOWER fallback carries 27,862 buses and 32,606 branches successfully
+# Observation: MATPOWER fallback carries ~28,000 buses and ~33,000 branches successfully
 
 ## Finding
 
-PowerModels successfully loaded and indexed the 27,862-bus, 32,606-branch MATPOWER fallback
+PowerModels successfully loaded and indexed the ~28,000-bus, ~33,000-branch MATPOWER fallback
 of the regional FNM in approximately 3 seconds. The data model correctly represents all core
 network elements (buses, loads, generators, branches including transformer-as-branch, and
 fixed shunts) at this scale.

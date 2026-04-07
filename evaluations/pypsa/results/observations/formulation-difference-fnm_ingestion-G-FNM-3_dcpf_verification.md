@@ -12,7 +12,7 @@ timestamp: 2026-03-24T00:00:00Z
 ## Finding
 
 PyPSA's DCPF solution (`n.lpf()`) produces deviations at float64 machine-precision level
-from the MATPOWER reference on the 27,862-bus FNM main island when loaded via the shared
+from the MATPOWER reference on the ~28,000-bus FNM main island when loaded via the shared
 `matpower_loader.load_pypsa()`. Max bus angle deviation: 1.073352e-08 degrees. Max branch
 flow deviation: 5.757744e-07 %. 100% of buses and 100% of branches pass all thresholds.
 Both tools use the same B-matrix formulation.
@@ -25,7 +25,7 @@ no systematic formulation difference is observed. PyPSA's `calculate_B_H` and MA
 `makeBdc.m` produce equivalent B-matrix constructions when the branch status patch is
 applied.
 
-Bus injection power balance was verified on all 27,862 non-excluded buses using post-solve
+Bus injection power balance was verified on all ~28,000 non-excluded buses using post-solve
 generator dispatch values. Maximum bus mismatch: 1.317039e-07 MW. All buses balanced
 within 1.000000e-03 MW tolerance.
 

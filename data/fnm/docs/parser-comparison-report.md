@@ -2,11 +2,11 @@
 
 ## Summary
 
-**File:** `AUC_AN_2026_2026_S01_ON_NETWORK_MODEL.RAW`
+**File:** `<FNM_SOURCE>.RAW`
 **Format:** PSS/E v31, space-separated (no commas)
 **Size:** 17.8 MB, 117,420 lines, 88,230 data records
 **System Base:** 100.0 MVA
-**Case ID:** `Model_DB135_Prod_20250714 - 2025-07-16 23:59:59 - Nwk_Model_Meas`
+**Case ID:** `<redacted>`
 
 **Canonical Parser Selected:** MATPOWER psse2mpc
 
@@ -22,12 +22,12 @@ Extracted by `raw_record_counter.py` — parser-independent line counting.
 
 | Section | Records | Non-Empty |
 |---------|--------:|:---------:|
-| Bus | 30,307 | Y |
-| Load | 15,062 | Y |
+| Bus | ~30,000 | Y |
+| Load | ~15,000 | Y |
 | Fixed Shunt | 0 | |
-| Generator | 5,768 | Y |
-| Branch | 24,117 | Y |
-| Transformer | 9,723 | Y |
+| Generator | ~5,800 | Y |
+| Branch | ~24,000 | Y |
+| Transformer | ~9,700 | Y |
 | Area | 49 | Y |
 | Two-Terminal DC | 0 | |
 | VSC DC | 0 | |
@@ -38,7 +38,7 @@ Extracted by `raw_record_counter.py` — parser-independent line counting.
 | Interarea Transfer | 0 | |
 | Owner | 0 | |
 | FACTS | 0 | |
-| Switched Shunt | 3,114 | Y |
+| Switched Shunt | ~3,100 | Y |
 | **Total** | **88,230** | **8/17** |
 
 ### HVDC/FACTS/Multi-Terminal DC (OQ-E02)
@@ -56,20 +56,20 @@ no DC transmission, no FACTS devices, and no multi-terminal DC lines.
 
 | Element | Count | Matches Raw? |
 |---------|------:|:------------:|
-| Buses | 30,307 | Y |
-| Loads | 15,062 | Y |
-| Generators | 5,768 | Y |
-| Branches | 33,840 | * |
+| Buses | ~30,000 | Y |
+| Loads | ~15,000 | Y |
+| Generators | ~5,800 | Y |
+| Branches | ~34,000 | * |
 | Areas | — | Skipped |
 | Zones | — | Skipped |
-| Switched Shunts | 3,114 | Y |
+| Switched Shunts | ~3,100 | Y |
 
-*Branches = 24,117 lines + 9,723 two-winding transformers merged into the mpc.branch matrix.
+*Branches = ~24,000 lines + ~9,700 two-winding transformers merged into the mpc.branch matrix.
 
 **Known limitations observed:**
 - Zone data (90 records) skipped — not imported into mpc struct
 - Area data (49 records) skipped — not imported into mpc struct
-- All 9,723 transformers are two-winding (no 3-winding decomposition needed)
+- All ~9,700 transformers are two-winding (no 3-winding decomposition needed)
 - No voltage limits in RAW file — defaults applied (VMIN=0.9, VMAX=1.1)
 
 **Warnings:**
@@ -146,9 +146,9 @@ Result: FLAT START
 | VA mean | 0.000000 |
 | VA std | 0.000000 |
 | VA min / max | 0.0 / 0.0 |
-| Buses with VM = 1.0 | 30,307 / 30,307 (100%) |
-| Buses with VA = 0.0 | 30,307 / 30,307 (100%) |
-| Generators with Qg != 0 | 0 / 5,768 (0%) |
+| Buses with VM = 1.0 | ~30,000 / ~30,000 (100%) |
+| Buses with VA = 0.0 | ~30,000 / ~30,000 (100%) |
+| Generators with Qg != 0 | 0 / ~5,800 (0%) |
 
 All bus voltage magnitudes are exactly 1.0 p.u. and all angles are exactly 0.0
 degrees. No generator produces reactive power. This is definitively a flat-start
@@ -166,13 +166,13 @@ Seven supplemental CSVs accompany the RAW file:
 
 | File | Size | Description |
 |------|-----:|-------------|
-| `AUC_AN_2026_2026_S01_CONTINGENCY.csv` | 731 KB | Contingency definitions |
-| `AUC_AN_2026_2026_S01_GEN_DISTRIBUTION_FACTOR.csv` | 18 KB | Generator distribution factors |
-| `AUC_AN_2026_2026_S01_INTERFACE.csv` | 721 KB | Interface definitions |
-| `AUC_AN_2026_2026_S01_LINE_AND_TRANSFORMER.csv` | 14.5 MB | Line and transformer data |
-| `AUC_AN_2026_2026_S01_OUTAGE.csv` | 65 KB | Outage definitions |
-| `AUC_AN_2026_2026_S01_RESOURCE.csv` | 1.3 MB | Resource (generator) data |
-| `AUC_AN_2026_2026_S01_TRADING_HUB.csv` | 103 KB | Trading hub definitions |
+| `<FNM_PREFIX>_CONTINGENCY.csv` | 731 KB | Contingency definitions |
+| `<FNM_PREFIX>_GEN_DISTRIBUTION_FACTOR.csv` | 18 KB | Generator distribution factors |
+| `<FNM_PREFIX>_INTERFACE.csv` | 721 KB | Interface definitions |
+| `<FNM_PREFIX>_LINE_AND_TRANSFORMER.csv` | 14.5 MB | Line and transformer data |
+| `<FNM_PREFIX>_OUTAGE.csv` | 65 KB | Outage definitions |
+| `<FNM_PREFIX>_RESOURCE.csv` | 1.3 MB | Resource (generator) data |
+| `<FNM_PREFIX>_TRADING_HUB.csv` | 103 KB | Trading hub definitions |
 
 Note: The manifest expects generic file names but the actual data files may use
 a different naming convention. The manifest should be updated to reflect the actual file names.

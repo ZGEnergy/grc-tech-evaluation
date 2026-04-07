@@ -14,7 +14,7 @@ timestamp: 2026-03-24T00:00:00Z
 PyPSA's `import_from_pypower_ppc` imports the MATPOWER `BR_STATUS` column as a custom
 `status` attribute on the Lines and Transformers DataFrames but does NOT map it to PyPSA's
 `active` flag. All branches are treated as active regardless of their MATPOWER status.
-On the 27,862-bus FNM, this means 74 inactive branches (69 lines, 5 transformers)
+On the ~28,000-bus FNM, this means 74 inactive branches (69 lines, 5 transformers)
 participate in the DCPF B-matrix when they should be excluded.
 
 ## Context
