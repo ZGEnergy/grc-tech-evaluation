@@ -1,6 +1,5 @@
 # Synthesis Report: GridCal (VeraGridEngine 5.6.28)
 
-**Contract:** FA714626C0006
 **Protocol version:** v11
 **Skill version:** v2
 **Tool version:** VeraGridEngine 5.6.28 (PyPI: `veragridengine`)

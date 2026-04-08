@@ -1,6 +1,5 @@
 # Synthesis Report — PowerSimulations.jl
 
-**Contract:** FA714626C0006
 **Tool version:** v0.30.2 (ecosystem: PowerSystems.jl v4.6.2, PowerFlows.jl v0.9.0, PowerNetworkMatrices.jl v0.12.1)
 **Protocol version:** v10
 **Evaluation date:** 2026-03-14

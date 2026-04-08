@@ -1,6 +1,5 @@
 # Synthesis Report -- MATPOWER 8.1
 
-**Contract:** FA714626C0006
 **Tool version:** MATPOWER 8.1 (released 2025-07-13)
 **Protocol version:** v11
 **Skill version:** v2
