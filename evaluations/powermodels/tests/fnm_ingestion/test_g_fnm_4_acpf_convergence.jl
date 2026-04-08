@@ -2,7 +2,7 @@
 Test G-FNM-4: ACPF Convergence on Cleaned FNM Case
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM 27,862-bus main island)
+Network: LARGE (FNM 28000-bus main island)
 Pass condition: Informational (all outcomes recorded, no gate consequence)
 Tool: PowerModels.jl
 Solver: Ipopt

@@ -2,7 +2,7 @@
 Test G-FNM-3: DCPF Verification on Cleaned FNM Case
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM 27,862-bus main island)
+Network: LARGE (FNM 28000-bus main island)
 Pass condition: Per pass_conditions.json dcpf section:
   - Bus angle: >=95% of non-excluded buses within 1.0 deg tolerance
   - Branch flow: >=90% of in-service branches within 10% tolerance (floor 1.0 MW)

@@ -23,7 +23,7 @@ from PSS/E v31 records). PowerModels' `parse_file()` dispatches on file extensio
 does not recognize `.csv`. Additionally, its PSS/E RAW parser fails on the FNM's v31
 header format due to a single-line Case Identification parsing limitation.
 
-The MATPOWER fallback path works (3.05s load time, 27,862 buses), but the fallback file
+The MATPOWER fallback path works (3.05s load time, ~28,000 buses), but the fallback file
 is a pre-cleaned main-island subset with fewer records than the raw source (bus count
 deficit: -8.1%, load count deficit: -42.7%).
 

@@ -256,7 +256,7 @@ pandapower has an exemplary supply chain profile. The BSD license, fully inspect
 
 #### Data Model Fidelity
 
-**G-FNM-1 (Intermediate Ingestion):** FAIL. pandapower has no PSS/E parser of any kind. The tool cannot ingest the 17-table intermediate CSV format. All FNM testing proceeds via MATPOWER fallback path (`fnm_main_island.m` via `matpowercaseframes` + `from_ppc`). The MATPOWER path aggregates per-load records (8,576 vs 15,062 expected) and reclassifies branches by voltage level rather than PSS/E record type. ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_ingestion.md))
+**G-FNM-1 (Intermediate Ingestion):** FAIL. pandapower has no PSS/E parser of any kind. The tool cannot ingest the 17-table intermediate CSV format. All FNM testing proceeds via MATPOWER fallback path (`fnm_main_island.m` via `matpowercaseframes` + `from_ppc`). The MATPOWER path aggregates per-load records (8,576 vs ~15,000 expected) and reclassifies branches by voltage level rather than PSS/E record type. ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_ingestion.md))
 
 **G-FNM-2 (Field Coverage):** SKIP, blocked by G-FNM-1. Prior v10 assessment via MATPOWER path found 100% DCPF-critical coverage (19/19), 55.8% ACPF-critical coverage (29/52), and 27.6% informational coverage (24/87). The 55.8% ACPF-critical gap includes area interchange controls, switched shunt parameters, and transformer control modes. ([G-FNM-2](fnm_ingestion/G-FNM-2_field_coverage_audit.md))
 
@@ -266,9 +266,9 @@ pandapower has an exemplary supply chain profile. The BSD license, fully inspect
 
 **G-FNM-3 (DCPF Verification):** FAIL (hard-fail triggered). Aggregate performance is strong: 99.64% of buses pass VA tolerance, 99.67% of branches pass flow tolerance, and bus injection power balance passes at machine precision (max mismatch 8.6e-11 p.u.). However, a localized cluster of ~101 subtransmission buses produces systematic 14-21 degree angle deviations, causing one branch to exceed the 50% flow deviation hard-fail ceiling (596.6%). The outlier cluster has zero transformer adjacency, ruling out formulation difference classification. This is attributed to localized impedance handling differences in the MATPOWER PPC import path [tool-specific]. ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
 
-**G-FNM-4 (ACPF Convergence):** INFORMATIONAL -- infeasible at all relaxation levels (0%, 10%, 20%). pandapower's internal Newton-Raphson solver fails to converge on the 27,862-bus FNM at 100 iterations per attempt. Contributing factors: PPC import flattens transformer AC data (tap control modes, switched shunt steps), the ~101 outlier buses create Jacobian ill-conditioning, and pandapower uses its own NR implementation (not Ipopt) which may have different convergence properties on ill-conditioned large-scale networks. ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
+**G-FNM-4 (ACPF Convergence):** INFORMATIONAL -- infeasible at all relaxation levels (0%, 10%, 20%). pandapower's internal Newton-Raphson solver fails to converge on the ~28,000-bus FNM at 100 iterations per attempt. Contributing factors: PPC import flattens transformer AC data (tap control modes, switched shunt steps), the ~101 outlier buses create Jacobian ill-conditioning, and pandapower uses its own NR implementation (not Ipopt) which may have different convergence properties on ill-conditioned large-scale networks. ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
 
-*Scalability implication:* DCPF solves the 27,862-bus FNM in 2.9 seconds, demonstrating adequate LARGE-tier DCPF scalability. ACPF cannot be assessed at LARGE tier due to convergence failure, which is primarily an ingestion fidelity issue.
+*Scalability implication:* DCPF solves the ~28,000-bus FNM in 2.9 seconds, demonstrating adequate LARGE-tier DCPF scalability. ACPF cannot be assessed at LARGE tier due to convergence failure, which is primarily an ingestion fidelity issue.
 
 #### Supplemental Data Representability
 
@@ -319,7 +319,7 @@ pandapower has an exemplary supply chain profile. The BSD license, fully inspect
 
 ### FNM Data Model
 
-- **Load aggregation in PPC import:** Multiple PSS/E loads per bus aggregated into single pandapower load element, losing per-load granularity (8,576 vs 15,062 expected). (Source: [G-FNM-1 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-1_intermediate_ingestion.md))
+- **Load aggregation in PPC import:** Multiple PSS/E loads per bus aggregated into single pandapower load element, losing per-load granularity (8,576 vs ~15,000 expected). (Source: [G-FNM-1 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-1_intermediate_ingestion.md))
 - **ACPF-critical field coverage limited:** 55.8% via MATPOWER path (missing area interchange, switched shunt parameters, transformer control modes). (Source: [G-FNM-2 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-2_field_coverage_audit.md))
 - **No interface/flowgate or contingency definition models:** 43% of supplemental CSV fields are tool-external. Interface flow limits cannot be enforced in OPF. (Source: [G-FNM-5 observation](observations/fnm-data-model-fnm_ingestion-G-FNM-5_supplemental_csv_representability.md))
 - **Thermal rating unit difference:** `line.max_i_ka` uses current (kA) not power (MVA), requiring voltage-dependent conversion at ingestion. (Source: [G-FNM-5 observation](observations/formulation-difference-fnm_ingestion-G-FNM-5_supplemental_csv_representability.md))

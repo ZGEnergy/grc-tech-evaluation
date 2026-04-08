@@ -240,7 +240,7 @@ Grade: **B+**. The core license is clean, all compiled components are source-ava
 
 ### Data Model Fidelity
 
-G-FNM-1 **failed**: PowerSystems.jl v4.6.2 cannot parse PSS/E RAW v31 files -- the PTI parser lacks fixed-width column support for pre-v33 formats. The parser fails at line 1 of the CASE IDENTIFICATION section. G-FNM-2 is **blocked** by G-FNM-1 (skip). The MATPOWER fallback path loaded the 27,862-bus main island successfully with correct component type differentiation (Line vs Transformer2W vs TapTransformer). 100% DCPF-critical coverage was **not assessed** via the native PSS/E path.
+G-FNM-1 **failed**: PowerSystems.jl v4.6.2 cannot parse PSS/E RAW v31 files -- the PTI parser lacks fixed-width column support for pre-v33 formats. The parser fails at line 1 of the CASE IDENTIFICATION section. G-FNM-2 is **blocked** by G-FNM-1 (skip). The MATPOWER fallback path loaded the ~28,000-bus main island successfully with correct component type differentiation (Line vs Transformer2W vs TapTransformer). 100% DCPF-critical coverage was **not assessed** via the native PSS/E path.
 
 **Impact on Expressiveness:** The PSS/E v31 parse failure is additive negative evidence. It weakens the tool's data ingestion capability but does not change the Expressiveness grade boundary (the A-10/A-11 failures are more determinative).
 
@@ -248,7 +248,7 @@ G-FNM-1 **failed**: PowerSystems.jl v4.6.2 cannot parse PSS/E RAW v31 files -- t
 
 G-FNM-3 **failed**: Bus angle gate fails (13.2% passing vs 95% required). Branch flow gate passes (96.5% passing vs 90% required). The failure is attributable to a formulation difference: PowerFlows.jl uses a simplified B-matrix (`b = -1/x`) that ignores transformer tap ratios, while the MATPOWER reference uses the full B-matrix. With 2,340 off-nominal tap transformers in the network, this produces systematic angle deviations (mean 2.66 deg). This is a `formulation-difference`, not a tool bug, but it represents a fidelity gap on real-world networks.
 
-G-FNM-4 is **informational**: ACPF failed to converge at all three relaxation levels (0%, 10%, 20%) on the 27,862-bus FNM. This is consistent with expected behavior for large-scale NR without specialized initialization heuristics. The solver does not expose convergence residual, limiting root-cause analysis.
+G-FNM-4 is **informational**: ACPF failed to converge at all three relaxation levels (0%, 10%, 20%) on the ~28,000-bus FNM. This is consistent with expected behavior for large-scale NR without specialized initialization heuristics. The solver does not expose convergence residual, limiting root-cause analysis.
 
 **Impact on Expressiveness:** The simplified B-matrix formulation difference weakens DCPF fidelity on networks with off-nominal tap transformers. This is moderate negative evidence.
 

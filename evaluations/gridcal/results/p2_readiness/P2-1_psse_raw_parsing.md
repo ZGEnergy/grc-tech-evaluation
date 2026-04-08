@@ -36,7 +36,7 @@ versions = [35, 34, 33, 32, 30, 29]
 
 If the file's `REV` field is not in this list, the parser logs an error and returns an empty `PsseCircuit`. Version 31 is notably absent from the list.
 
-**Actual v31 failure (G-FNM-1).** When the FNM RAW file (`AUC_AN_2026_2026_S01_ON_NETWORK_MODEL.RAW`, PSS/e v31) was parsed, the parser failed with:
+**Actual v31 failure (G-FNM-1).** When the FNM RAW file (`<FNM_SOURCE>.RAW`, PSS/e v31) was parsed, the parser failed with:
 
 ```
 Exception: PSSe 35 load data came with 1 elements and 18 or 17 were expected :/
@@ -52,5 +52,5 @@ This error reveals that even for nominally "supported" versions, the per-record 
 
 - **Phase 2 FNM ingestion** requires PSS/e v31 parsing. GridCal cannot parse v31 RAW files without parser modifications to handle the shorter record formats.
 - **Estimated effort to fix:** Medium. The parser architecture already threads a `version` parameter to device-level parsers. The fix requires auditing each device parser (bus, load, branch, generator, transformer, etc.) to accept the correct field counts for v29-v34 formats. The PSS/e RAW specification defines field layouts per version, so this is mechanical but tedious work across ~15 device types.
-- **Alternative path:** The MATPOWER `.m` fallback (demonstrated in G-FNM-1) successfully loads the FNM main island with 27,862 of 30,307 buses. This loses area/zone metadata but provides a workable network for power flow and OPF studies.
+- **Alternative path:** The MATPOWER `.m` fallback (demonstrated in G-FNM-1) successfully loads the FNM main island with ~28,000 of ~30,000 buses. This loses area/zone metadata but provides a workable network for power flow and OPF studies.
 - **v35 files parse correctly.** Standard test cases distributed in v35 format (the current PSS/e version) should work without issues.

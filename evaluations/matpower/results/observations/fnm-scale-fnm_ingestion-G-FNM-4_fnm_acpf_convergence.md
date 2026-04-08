@@ -11,7 +11,7 @@ timestamp: "2026-03-24T18:00:00Z"
 
 ## Finding
 
-MATPOWER's built-in Newton-Raphson solver fails to converge on the 27,862-bus
+MATPOWER's built-in Newton-Raphson solver fails to converge on the ~28,000-bus
 FNM main island network at 0%, 10%, and 20% thermal limit relaxation. The
 failure mode is a singular Jacobian matrix (rcond ~ 1.9e-17) persisting
 across all 100 NR iterations at each relaxation level.

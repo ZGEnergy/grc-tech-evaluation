@@ -18,7 +18,7 @@ extreme branch flow deviation (596.6% > 50% threshold).
 
 ## Context
 
-G-FNM-3 loaded the pre-cleaned 27,862-bus FNM main island via `matpowercaseframes.CaseFrames`
+G-FNM-3 loaded the pre-cleaned ~28,000-bus FNM main island via `matpowercaseframes.CaseFrames`
 + `from_ppc` (MATPOWER fallback path, since pandapower lacks native CSV ingestion). The DCPF
 converges and the aggregate metrics are strong (99.64% buses pass, 99.67% branches pass), but
 a localized cluster of outliers in the 69-138 kV sub-network causes the worst-case branch

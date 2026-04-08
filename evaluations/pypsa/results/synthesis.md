@@ -296,9 +296,9 @@ The supply chain gate passes. The single GPL-2.0 dependency (Levenshtein) is a c
 
 ### Power Flow Verification
 
-**G-FNM-3 (DCPF Verification): PASS** -- 100% of buses (27,862) and 100% of branches (32,532) pass all tolerance thresholds via MATPOWER fallback path. Max bus angle deviation: 1.07e-08 degrees. Max branch flow deviation: 5.76e-07%. Bus injection power balance verified on all buses (max mismatch: 1.32e-07 MW). The shared `matpower_loader.load_pypsa()` addresses the `import_from_pypower_ppc` branch status bug that caused the original v10 G-FNM-3 failure. Solve time: 40.1s, peak memory: 16,289 MB. ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
+**G-FNM-3 (DCPF Verification): PASS** -- 100% of buses (~28,000) and 100% of branches (~33,000) pass all tolerance thresholds via MATPOWER fallback path. Max bus angle deviation: 1.07e-08 degrees. Max branch flow deviation: 5.76e-07%. Bus injection power balance verified on all buses (max mismatch: 1.32e-07 MW). The shared `matpower_loader.load_pypsa()` addresses the `import_from_pypower_ppc` branch status bug that caused the original v10 G-FNM-3 failure. Solve time: 40.1s, peak memory: 16,289 MB. ([G-FNM-3](fnm_ingestion/G-FNM-3_dcpf_verification.md))
 
-**G-FNM-4 (ACPF Convergence): INFORMATIONAL** -- PyPSA's Newton-Raphson ACPF did not converge at any relaxation level (0%, 10%, 20%) on the 27,862-bus FNM. SuperLU factorization failure at all levels. Consistent with MATPOWER 8.1's failure on the same network. The FNM planning model lacks a feasible AC operating point at full load. PyPSA's ACPF solver offers fewer recovery options than MATPOWER (no continuation PF, no fast-decoupled variants). [solver-specific: SuperLU factorization on ill-conditioned admittance matrix] ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
+**G-FNM-4 (ACPF Convergence): INFORMATIONAL** -- PyPSA's Newton-Raphson ACPF did not converge at any relaxation level (0%, 10%, 20%) on the ~28,000-bus FNM. SuperLU factorization failure at all levels. Consistent with MATPOWER 8.1's failure on the same network. The FNM planning model lacks a feasible AC operating point at full load. PyPSA's ACPF solver offers fewer recovery options than MATPOWER (no continuation PF, no fast-decoupled variants). [solver-specific: SuperLU factorization on ill-conditioned admittance matrix] ([G-FNM-4](fnm_ingestion/G-FNM-4_acpf_convergence.md))
 
 ### Supplemental Data Representability
 
@@ -306,9 +306,9 @@ The supply chain gate passes. The single GPL-2.0 dependency (Levenshtein) is a c
 
 ### FNM Evidence Integration
 
-- **Expressiveness:** The G-FNM-1 failure (no PSS/E parsing) is a format gap, not an expressiveness limitation. G-FNM-3's machine-precision DCPF match confirms PyPSA's formulation correctness on large networks (27,862 buses). G-FNM-4's ACPF non-convergence is consistent with MATPOWER and reflects network characteristics, not a tool deficiency.
+- **Expressiveness:** The G-FNM-1 failure (no PSS/E parsing) is a format gap, not an expressiveness limitation. G-FNM-3's machine-precision DCPF match confirms PyPSA's formulation correctness on large networks (~28,000 buses). G-FNM-4's ACPF non-convergence is consistent with MATPOWER and reflects network characteristics, not a tool deficiency.
 - **Extensibility:** G-FNM-5's 23% extension-representable rate demonstrates that PyPSA's DataFrame-centric architecture enables supplemental data storage, though semantic interpretation requires custom code.
-- **Scalability:** G-FNM-3 demonstrates DCPF scaling to LARGE (27,862 buses) in 40s with 16 GB memory. Memory overhead is notable (16 GB for a sparse linear solve on ~28k buses).
+- **Scalability:** G-FNM-3 demonstrates DCPF scaling to LARGE (~28,000 buses) in 40s with 16 GB memory. Memory overhead is notable (16 GB for a sparse linear solve on ~28k buses).
 
 ---
 
@@ -357,7 +357,7 @@ The supply chain gate passes. The single GPL-2.0 dependency (Levenshtein) is a c
 
 - `import_from_pypower_ppc` ignores MATPOWER branch status -- shared loader patches this deterministically
 - No formulation difference from MATPOWER for DCPF when branch status is correctly handled
-- PyPSA DCPF matches MATPOWER at float64 machine precision on the 27,862-bus FNM
+- PyPSA DCPF matches MATPOWER at float64 machine precision on the ~28,000-bus FNM
 - 57% in-model supplemental CSV representability (34% N + 23% E) via DataFrame custom columns
 
 ---
