@@ -62,7 +62,7 @@ GridCal was tested against the pre-cleaned MATPOWER case files:
   producing `AttributeError: 'NoneType' object has no attribute 'buses'`. GridCal
   cannot parse MATLAB `.mat` binary format files.
 - **`fnm_main_island.m`** (MATPOWER text format): Loaded successfully in 12.86
-  seconds, producing a valid `MultiCircuit` with 27,862 buses.
+  seconds, producing a valid `MultiCircuit` with ~28,000 buses.
 
 This confirms the MATPOWER `.m` fallback path is available for G-FNM-3/4/5.
 
@@ -81,12 +81,12 @@ This confirms the MATPOWER `.m` fallback path is available for G-FNM-3/4/5.
 
 | Component | MATPOWER Ingested | Notes |
 |-----------|------------------|-------|
-| Buses | 27,862 | Main-island subset (type-4 isolated buses excluded) |
-| Generators | 5,741 | |
-| Lines (branches) | 23,125 | |
-| Transformers (2W) | 9,481 | |
-| Loads | 8,624 | MATPOWER aggregates multiple loads per bus |
-| Shunts | 3,110 | |
+| Buses | ~28,000 | Main-island subset (type-4 isolated buses excluded) |
+| Generators | ~5,800 | |
+| Lines (branches) | ~23,000 | |
+| Transformers (2W) | ~9,500 | |
+| Loads | ~8,600 | MATPOWER aggregates multiple loads per bus |
+| Shunts | ~3,100 | |
 | Areas | 0 | MATPOWER `.m` format does not preserve area data |
 | Zones | 0 | MATPOWER `.m` format does not preserve zone data |
 | HVDC lines | 0 | Not in MATPOWER `.m` format |

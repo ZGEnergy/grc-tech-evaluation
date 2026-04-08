@@ -2,7 +2,7 @@
 Test G-FNM-4: ACPF convergence -- DCPF warm-start + progressive relaxation on LARGE
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM Annual S01, 27862-bus main island)
+Network: LARGE (FNM Annual S01, 28000-bus main island)
 Pass condition: No hard pass/fail gate. All outcomes are diagnostic findings.
   Record relaxation_level_achieved: 0%, 10%, 20%, or infeasible.
   If convergence occurs at any level, record as a discriminating solver robustness strength.
@@ -249,7 +249,7 @@ def run() -> dict:
         if relaxation_achieved != "infeasible":
             results["details"]["convergence_finding"] = (
                 f"POSITIVE: PyPSA converged at {relaxation_achieved} relaxation "
-                f"on the 27,862-bus FNM main island with DC warm start, "
+                f"on the 28000-bus FNM main island with DC warm start, "
                 f"where MATPOWER 8.1 failed at ~30% load via continuation power flow."
             )
         else:

@@ -28,11 +28,11 @@ timestamp: 2026-03-24T00:00:00Z
 
 100% of buses and 100% of branches pass all tolerance thresholds. All deviations
 are at float64 machine-precision level. No hard-fail conditions triggered. Bus
-injection power balance check passes on all 27,862 buses.
+injection power balance check passes on all ~28,000 buses.
 
 ## Approach
 
-Loaded the pre-cleaned 27,862-bus FNM main island from
+Loaded the pre-cleaned ~28,000-bus FNM main island from
 `data/fnm/reference/cleaned/fnm_main_island.m` via the shared
 `matpower_loader.load_pypsa()` utility (MATPOWER fallback, since G-FNM-1 failed
 with `psse_parse_error`). The loader applies three correctness patches:
@@ -53,9 +53,9 @@ balance verification using post-solve generator dispatch values.
 
 | Metric | Value |
 |--------|-------|
-| Non-excluded buses compared | 27,862 |
+| Non-excluded buses compared | ~28,000 |
 | Tolerance | 1.0 deg |
-| Buses passing | 27,862 (100.0%) |
+| Buses passing | ~28,000 (100.0%) |
 | Required passing fraction | 95% |
 | Mean deviation | 3.316294e-09 deg |
 | Max deviation | 1.073352e-08 deg |
@@ -75,9 +75,9 @@ balance verification using post-solve generator dispatch values.
 
 | Metric | Value |
 |--------|-------|
-| Branches compared | 32,532 |
+| Branches compared | ~33,000 |
 | Tolerance | 10% (floor 1 MW) |
-| Branches passing | 32,532 (100.0%) |
+| Branches passing | ~33,000 (100.0%) |
 | Required passing fraction | 90% |
 | Mean deviation | 1.175350e-08 % |
 | Max deviation (pct) | 5.757744e-07 % |
@@ -95,7 +95,7 @@ balance verification using post-solve generator dispatch values.
 
 ### Transformer Tap Analysis
 
-- Total transformers: 9,481
+- Total transformers: ~9,500
 - Tap = 1.0: 7,123
 - Tap != 1.0: 2,358
 - Tap range: [0.7894, 1.4165]
@@ -108,9 +108,9 @@ numerical noise only).
 
 | Metric | Value |
 |--------|-------|
-| Buses checked | 27,862 |
+| Buses checked | ~28,000 |
 | Tolerance | 1.000000e-03 MW |
-| Buses balanced | 27,862 (100.0%) |
+| Buses balanced | ~28,000 (100.0%) |
 | Buses imbalanced | 0 |
 | Max mismatch | 1.317039e-07 MW |
 | Mean mismatch | 6.748134e-11 MW |
@@ -123,10 +123,10 @@ absorption of the 9,981 MW generation-load deficit).
 
 | Metric | PyPSA (pre-solve) | Reference |
 |--------|-------------------|-----------|
-| Total generation | 155,511 MW | 165,492 MW |
-| Total load | 165,492 MW | 165,492 MW |
+| Total generation | ~156,000 MW | ~165,000 MW |
+| Total load | ~165,000 MW | ~165,000 MW |
 
-The 9,981 MW generation-load imbalance (6.0%) is absorbed at the slack bus (bus 29421).
+The 9,981 MW generation-load imbalance (6.0%) is absorbed at the slack bus (bus <slack_bus>).
 
 ### Hard-Fail Conditions
 

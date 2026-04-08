@@ -2,7 +2,7 @@
 Test G-FNM-4: ACPF Convergence (DCPF warm-start + progressive relaxation)
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM main island via MATPOWER fallback, 27,862 buses)
+Network: LARGE (FNM main island via MATPOWER fallback, 28000 buses)
 Pass condition: No hard gate. All outcomes are diagnostic.
   Record relaxation_level_achieved: 0%, 10%, 20%, or infeasible.
 Tool: PowerSimulations.jl v0.30.2 (PowerSystems.jl v4.6.2, PowerFlows.jl v0.9.0)

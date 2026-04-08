@@ -1,8 +1,0 @@
-source_version: v10
-target_version: v11
-tools_available: [pypsa, pandapower, gridcal, powermodels, powersimulations, matpower]
-issues_in_scope: 0
-completed_states: [INIT, SWEEP, PROBE, AGGREGATE, GENERATE, VALIDATE]
-current_state: DONE
-timestamp: "2026-03-14T00:00:00Z"
-notes: "All evaluations on main branch — results accessed via sweep worktree at same path"

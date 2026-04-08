@@ -7,7 +7,7 @@ severity: medium
 timestamp: 2026-03-24T00:00:00Z
 ---
 
-# Observation: PyPSA ACPF hits SuperLU factorization failure on 27,862-bus FNM at all relaxation levels
+# Observation: PyPSA ACPF hits SuperLU factorization failure on ~28,000-bus FNM at all relaxation levels
 
 ## Finding
 

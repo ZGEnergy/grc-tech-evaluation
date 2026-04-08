@@ -11,10 +11,10 @@ timestamp: 2026-03-24T00:00:00Z
 
 ## Finding
 
-GridCal's MATPOWER loader correctly ingests 27,862 buses and 32,606 branches from
+GridCal's MATPOWER loader correctly ingests ~28,000 buses and ~33,000 branches from
 the cleaned FNM case file. Bus voltage angles match the reference MATPOWER DCPF
 solution within machine precision (max deviation 7.713822e-09 deg). The v11 bus
-injection power balance cross-reference confirms all 27,862 bus load values match
+injection power balance cross-reference confirms all ~28,000 bus load values match
 the reference exactly (0 mismatches, max diff 0.000000e+00 MW). However, 326
 branches (1.0%) show extreme flow deviations (up to 5.629550e+05%) concentrated
 on transformer-adjacent branches, indicating the internal data model treats
@@ -23,9 +23,9 @@ transformer tap ratios differently in the DC B-matrix construction.
 ## Context
 
 G-FNM-3 verified GridCal's DCPF solution against the MATPOWER reference on the
-27,862-bus FNM main island. The MATPOWER fallback path was used because G-FNM-1
+~28,000-bus FNM main island. The MATPOWER fallback path was used because G-FNM-1
 established that GridCal cannot ingest intermediate CSV tables. Total generation
-is 155,511 MW and total load is 165,492 MW, with the -9,981 MW imbalance absorbed
+is ~156,000 MW and total load is ~165,000 MW, with the -9,981 MW imbalance absorbed
 by the slack bus. The perfect load match confirms the injection vector is correctly
 ingested; the formulation difference is isolated to the branch flow computation.
 

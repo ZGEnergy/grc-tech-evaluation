@@ -68,14 +68,14 @@ For reference, the intermediate manifest expects:
 
 | Table | Expected Records |
 |-------|-----------------|
-| bus | 30,307 |
-| load | 15,062 |
-| generator | 5,768 |
-| branch | 24,117 |
-| transformer | 9,723 |
+| bus | ~30,000 |
+| load | ~15,000 |
+| generator | ~5,800 |
+| branch | ~24,000 |
+| transformer | ~9,700 |
 | area | 49 |
 | zone | 90 |
-| switched_shunt | 3,114 |
+| switched_shunt | ~3,100 |
 
 ## Approach
 

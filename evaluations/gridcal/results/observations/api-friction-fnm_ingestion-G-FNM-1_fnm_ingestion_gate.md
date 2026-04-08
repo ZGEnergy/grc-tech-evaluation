@@ -27,7 +27,7 @@ formats, but not CSV tables representing network elements.
 When the MATPOWER fallback was tested, the `.mat` binary format (MATLAB native)
 returned `None` from `open_file()` without raising an exception. Subsequent
 attribute access on the result (`grid.buses`) raises `AttributeError`. Only the
-`.m` text format works correctly, loading the 27,862-bus main-island case.
+`.m` text format works correctly, loading the ~28,000-bus main-island case.
 
 The MATPOWER `.m` fallback path works successfully for downstream G-FNM-3/4/5
 tests but cannot support G-FNM-1 (CSV ingestion) or G-FNM-2 (field coverage

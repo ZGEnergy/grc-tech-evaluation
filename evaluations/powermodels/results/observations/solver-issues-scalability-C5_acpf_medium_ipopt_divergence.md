@@ -15,7 +15,7 @@ PowerModels' `solve_ac_pf` formulation contains 0 inequality constraints, making
 
 ## Context
 
-C-5 tests progressive AC feasibility relaxation (0%, 10%, 20% thermal limit relaxation). The protocol assumes that thermal limits may cause ACPF convergence difficulties and that relaxing them could enable convergence. However, PowerModels' `solve_ac_pf` is a pure power balance feasibility problem with no thermal limit constraints. Ipopt reports 23,392 equality constraints and 0 inequality constraints. The same finding was observed in G-FNM-4 on the 27,862-bus FNM case.
+C-5 tests progressive AC feasibility relaxation (0%, 10%, 20% thermal limit relaxation). The protocol assumes that thermal limits may cause ACPF convergence difficulties and that relaxing them could enable convergence. However, PowerModels' `solve_ac_pf` is a pure power balance feasibility problem with no thermal limit constraints. Ipopt reports 23,392 equality constraints and 0 inequality constraints. The same finding was observed in G-FNM-4 on the ~28,000-bus FNM case.
 
 ## Implications
 

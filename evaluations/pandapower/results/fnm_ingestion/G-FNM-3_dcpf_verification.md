@@ -38,7 +38,7 @@ difference.
 
 ## Approach
 
-1. Loaded the pre-cleaned MATPOWER case (`fnm_main_island.m`, 27,862-bus main
+1. Loaded the pre-cleaned MATPOWER case (`fnm_main_island.m`, ~28,000-bus main
    island) using `matpowercaseframes.CaseFrames` + `from_ppc` (MATPOWER
    fallback since pandapower has no native CSV import).
 2. Applied zero RATE_A workaround (set to 9999 before `from_ppc`).
@@ -55,7 +55,7 @@ difference.
 
 | Metric | Value |
 |--------|-------|
-| Total non-excluded buses | 27,862 |
+| Total non-excluded buses | ~28,000 |
 | Passing (VA dev < 1.0 deg) | 27,761 (99.64%) |
 | Failing | 101 (0.36%) |
 | Threshold | >= 95% |
@@ -81,8 +81,8 @@ difference.
 
 | Metric | Value |
 |--------|-------|
-| Total in-service branches | 32,532 |
-| Matched to tool | 32,532 (100%) |
+| Total in-service branches | ~33,000 |
+| Matched to tool | ~33,000 (100%) |
 | Passing (dev < 10%) | 32,424 (99.67%) |
 | Failing | 108 (0.33%) |
 | Threshold | >= 90% |
@@ -101,7 +101,7 @@ difference.
 
 | Metric | Value |
 |--------|-------|
-| Buses checked | 27,862 |
+| Buses checked | ~28,000 |
 | Max mismatch (p.u.) | 8.602342e-11 |
 | Max mismatch (MW) | 8.602342e-09 |
 | Tolerance (p.u.) | 1.000000e-04 |

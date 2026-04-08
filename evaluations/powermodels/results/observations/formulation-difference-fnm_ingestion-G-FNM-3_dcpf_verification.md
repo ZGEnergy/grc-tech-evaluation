@@ -12,7 +12,7 @@ timestamp: "2026-03-24T12:00:00Z"
 ## Finding
 
 PowerModels' `solve_dc_pf` (which hardcodes `DCPPowerModel`) uses a simplified B-matrix
-that ignores transformer tap ratios. On the 27,862-bus FNM network with 12,501
+that ignores transformer tap ratios. On the ~28,000-bus FNM network with 12,501
 transformer-connected buses, this produces systematic angle deviations of 5.1 degrees
 mean (62.2 degrees max) compared to MATPOWER's full B-matrix reference, causing 97.6% of
 buses to fail the 1.0-degree tolerance.
