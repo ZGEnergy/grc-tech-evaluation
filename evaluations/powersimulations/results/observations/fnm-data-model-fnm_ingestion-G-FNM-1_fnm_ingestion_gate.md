@@ -21,8 +21,8 @@ information and fuel type classification.
 
 G-FNM-1 sub-check (a) failed because PowerSystems.jl has no parser for PSS/E-derived
 intermediate CSV tables and its PSS/E RAW v31 parser fails on the Case Identification
-header. The MATPOWER fallback loaded 27,862 buses (vs 30,307 in the full FNM) with
-32,606 branches. The MATPOWER format merges branches and transformers into a single
+header. The MATPOWER fallback loaded ~28,000 buses (vs ~30,000 in the full FNM) with
+~33,000 branches. The MATPOWER format merges branches and transformers into a single
 table, though PowerSystems.jl re-separates them based on tap ratio heuristics.
 
 ## Implications

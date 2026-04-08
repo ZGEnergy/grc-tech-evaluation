@@ -20,7 +20,7 @@ line shunt conductances.
 ## Context
 
 G-FNM-2 audited pandapower's data model against the field-criticality-matrix (v10)
-after importing the 30,307-bus FNM via `scipy.io.loadmat` + `from_ppc`. The PPC
+after importing the ~30,000-bus FNM via `scipy.io.loadmat` + `from_ppc`. The PPC
 format is a lossy intermediate: it flattens transformer I/O codes into impedance
 values, aggregates per-bus shunts, and drops area interchange parameters entirely.
 

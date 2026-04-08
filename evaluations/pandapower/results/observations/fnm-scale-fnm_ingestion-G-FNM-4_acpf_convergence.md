@@ -7,11 +7,11 @@ severity: medium
 timestamp: 2026-03-24T12:00:00Z
 ---
 
-# Observation: pandapower ACPF non-convergence on 27,862-bus FNM
+# Observation: pandapower ACPF non-convergence on ~28,000-bus FNM
 
 ## Finding
 
-pandapower's internal Newton-Raphson solver fails to converge on the 27,862-bus FNM main
+pandapower's internal Newton-Raphson solver fails to converge on the ~28,000-bus FNM main
 island at all three progressive relaxation levels (0%, 10%, 20%). The network is
 numerically ill-conditioned for ACPF, with DCPF angles reaching 536.9 degrees maximum
 absolute value.

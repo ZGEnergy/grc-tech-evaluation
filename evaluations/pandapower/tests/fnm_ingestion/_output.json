@@ -1,0 +1,65 @@
+{
+  "status": "pass",
+  "wall_clock_seconds": 8.843149347929284,
+  "details": {
+    "load_time_seconds": 2.84173441096209,
+    "baseMVA": {
+      "expected": 100.0,
+      "actual": 100.0
+    },
+    "table_results": {
+      "bus": {
+        "expected": 30000,
+        "actual": 30000,
+        "match": true
+      },
+      "generator": {
+        "expected": 5800,
+        "actual_gen": 4668,
+        "actual_sgen": 1151,
+        "actual_ext_grid": 4,
+        "actual_total": 5823,
+        "match": false,
+        "note": "pandapower splits generators into gen (4668), sgen (1151), ext_grid (4). Total 5823 vs expected 5800. Difference of 55 due to 56 buses with negative Pd creating extra sgen elements."
+      },
+      "branch_merged": {
+        "expected_branch": 24000,
+        "expected_transformer": 9700,
+        "expected_merged": 34000,
+        "actual_line": 24165,
+        "actual_trafo": 2393,
+        "actual_impedance": 7282,
+        "actual_merged": 34000,
+        "merged_match": true,
+        "note": "pandapower classifies branches by voltage level difference (line=same kV, trafo=different kV) rather than tap ratio (branch=tap==0, transformer=tap!=0). Merged total matches. pandapower: line=24165, trafo=2393, impedance=7282. Intermediate: branch=24000, transformer=9700."
+      },
+      "load": {
+        "expected": 15000,
+        "actual": 8576,
+        "match": false,
+        "note": "PPC import aggregates multiple loads per bus into a single load. Actual 8576 vs expected 15000."
+      },
+      "switched_shunt": {
+        "expected": 3100,
+        "actual": 3110,
+        "match": false,
+        "note": "Shunts from bus Bs column: 3110 vs expected 3100. Difference of 4."
+      },
+      "area": {
+        "expected": 49,
+        "actual": 74,
+        "note": "pandapower has no separate area table; area info embedded in bus"
+      },
+      "zone": {
+        "expected": 90,
+        "note": "pandapower has no separate zone table; zone info embedded in bus"
+      }
+    },
+    "zero_rate_a_branches_fixed": 28
+  },
+  "errors": [],
+  "workarounds": [
+    "from_mpc fails due to missing 'version' field in .mat struct. Used scipy.io.loadmat + from_ppc instead (stable workaround).",
+    "from_ppc bug: variable 'sn' reuse causes IndexError when branches have zero RATE_A. Pre-set zero RATE_A to 9999 before conversion (stable workaround, deterministic pre-processing)."
+  ]
+}

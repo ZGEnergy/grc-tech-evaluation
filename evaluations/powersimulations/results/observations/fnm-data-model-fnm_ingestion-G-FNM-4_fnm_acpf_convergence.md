@@ -20,7 +20,7 @@ quality to `binary_convergence_api` (tier 3 of 4).
 
 ## Context
 
-Discovered during G-FNM-4 ACPF convergence testing on the 27,862-bus FNM main island.
+Discovered during G-FNM-4 ACPF convergence testing on the ~28,000-bus FNM main island.
 All three relaxation levels (0%, 10%, 20%) produced non-convergence with no diagnostic
 detail beyond the boolean flag. The internal `_run_powerflow_method` function computes
 iteration count and logs it on success (as confirmed in G-FNM-1 observations and

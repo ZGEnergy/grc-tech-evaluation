@@ -30,7 +30,7 @@ timestamp: 2026-03-24T00:00:00Z
 ## Result: INFORMATIONAL
 
 PyPSA's Newton-Raphson ACPF solver did not converge at any relaxation level
-(0%, 10%, 20%) on the 27,862-bus FNM main island. This is consistent with
+(0%, 10%, 20%) on the ~28,000-bus FNM main island. This is consistent with
 MATPOWER 8.1's failure on the same network. The FNM is a planning model with no
 solved voltage profile.
 
@@ -116,10 +116,10 @@ on ill-conditioned admittance matrix]
 
 | Metric | Value |
 |--------|-------|
-| Buses | 27,862 |
+| Buses | ~28,000 |
 | Lines | 23,125 (69 inactive) |
 | Transformers | 9,481 (5 inactive) |
-| Generators | 5,741 |
+| Generators | ~5,700 |
 | Loads | 8,624 |
 | baseMVA | 100.0 |
 

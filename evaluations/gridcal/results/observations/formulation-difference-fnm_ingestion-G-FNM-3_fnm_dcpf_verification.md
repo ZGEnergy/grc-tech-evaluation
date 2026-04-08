@@ -12,8 +12,8 @@ timestamp: 2026-03-24T00:00:00Z
 ## Finding
 
 GridCal's DCPF solver produces bus voltage angles within machine precision of the
-MATPOWER reference (max deviation 7.713822e-09 deg across all 27,862 buses) but
-exhibits extreme branch flow deviations (up to 5.629550e+05%) on 326 out of 32,532
+MATPOWER reference (max deviation 7.713822e-09 deg across all ~28,000 buses) but
+exhibits extreme branch flow deviations (up to 5.629550e+05%) on 326 out of ~33,000
 branches. 88.65% of failing branches are adjacent to transformer buses. The
 deviations are systematic and signed (not random), consistent with a simplified
 B-matrix construction that computes branch susceptance as `b = -1/x` without
@@ -27,7 +27,7 @@ solver appears to use the simplified formulation. The near-zero bus angle deviat
 confirms that the power injection vector (loads, generators) and network topology
 are correctly ingested; only the branch flow computation from angle differences
 is affected by the tap ratio omission. The v11 bus injection power balance
-cross-reference confirms all 27,862 bus loads match exactly (0 mismatches).
+cross-reference confirms all ~28,000 bus loads match exactly (0 mismatches).
 
 Key characteristics of the affected branches:
 - Flow magnitudes reach hundreds of thousands of MW (vs reference flows of ~100 MW)

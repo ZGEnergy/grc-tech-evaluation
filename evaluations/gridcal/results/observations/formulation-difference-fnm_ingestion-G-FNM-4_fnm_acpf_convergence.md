@@ -11,7 +11,7 @@ timestamp: 2026-03-24T00:00:00Z
 
 ## Finding
 
-GridCal's ACPF solver fails to converge on the 27,862-bus FNM main island loaded
+GridCal's ACPF solver fails to converge on the ~28,000-bus FNM main island loaded
 via MATPOWER `.m` fallback. The MATPOWER format flattens transformer data and loses
 ACPF-critical fields (tap control modes, winding impedance detail, switched shunt
 discrete steps), which may contribute to the convergence failure. This represents a
@@ -24,7 +24,7 @@ G-FNM-4 tested ACPF convergence with DCPF warm-start and progressive branch rate
 relaxation (0%, 10%, 20%) using four solver algorithms (NR, NR+controls, LM, HELM).
 All 12 combinations failed. The best result (Levenberg-Marquardt, 200 iterations)
 achieved a residual of 1.583e+01, far from the 1e-6 tolerance. The MATPOWER
-reference ACPF solution exists (buses_acpf.csv with 27,862 entries), confirming the
+reference ACPF solution exists (buses_acpf.csv with ~28,000 entries), confirming the
 network is solvable with appropriate data fidelity.
 
 Key ACPF-critical fields lost in MATPOWER fallback:

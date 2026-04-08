@@ -169,10 +169,10 @@ def test_load_matpower_case_extracts_basemva():
 
 @pytest.mark.skipif(not _HAS_MAT, reason="requires FNM .mat file")
 def test_load_matpower_case_extracts_bus_matrix_shape():
-    # NOTE: PRD specifies 30,307 (pre-filter) but the cleaned .mat file
-    # has 27,862 buses (post island-extraction). We match the actual data.
+    # NOTE: PRD specifies 30000 (pre-filter) but the cleaned .mat file
+    # has 28000 buses (post island-extraction). We match the actual data.
     case = load_matpower_case(_MAT_PATH)
-    assert len(case.bus) == 27862
+    assert len(case.bus) == ~28, 000
     assert len(case.bus[0]) == 13
 
 
@@ -558,9 +558,9 @@ def test_run_export_pipeline_end_to_end(tmp_path: Path):
     # All validations pass
     assert result.success, f"Pipeline failed: {result.errors}"
 
-    # Bus count should be 27,862 (main island)
+    # Bus count should be 28000 (main island)
     bus_export = next(te for te in result.table_exports if te.record_type == "Bus")
-    assert bus_export.record_count == 27862
+    assert bus_export.record_count == ~28, 000
 
     # Manifest has all 17 tables
     assert result.manifest.total_tables == 17

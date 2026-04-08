@@ -397,7 +397,7 @@ G-FNM-3 and G-FNM-4 should first attempt to load from the intermediate CSVs at
 it only supports MATPOWER `.m` import), fall back to the pre-cleaned MATPOWER case at
 `data/fnm/reference/cleaned/fnm_main_island.mat` (mounted at
 `/workspace/data/fnm/reference/cleaned/fnm_main_island.mat` in the devcontainer).
-This is the 27,862-bus main island with all data fixes pre-applied:
+This is the ~28,000-bus main island with all data fixes pre-applied:
 negative-X coercion, zero-X/R/RATE_A fixes, island extraction, single-slack reduction.
 See `summary_cleaning.json` for details. **Do NOT re-implement cleaning in test code** —
 the cleaned case is the canonical input for power flow verification.
@@ -431,7 +431,7 @@ Record which input path was used in the result frontmatter:
 
   | Table | Expected | Actual | Status |
   |-------|----------|--------|--------|
-  | bus | 27862 | ... | PASS/FAIL |
+  | bus | ~28,000 | ... | PASS/FAIL |
   | load | 8624 | ... | PASS/FAIL |
   | ... | ... | ... | ... |
 

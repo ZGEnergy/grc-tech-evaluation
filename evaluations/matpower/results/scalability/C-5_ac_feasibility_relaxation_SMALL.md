@@ -45,9 +45,9 @@ start or tolerance relaxation was needed at any level.
 
 | Relaxation | VM Range (pu) | V Over | V Under | Thermal Violations |
 |------------|---------------|--------|---------|-------------------|
-| 0% | [0.9723, 1.0400] | 0 | 0 | 0 / 3206 |
-| 10% | [0.9723, 1.0400] | 0 | 0 | 0 / 3206 |
-| 20% | [0.9723, 1.0400] | 0 | 0 | 0 / 3206 |
+| 0% | [0.~9,700, 1.0400] | 0 | 0 | 0 / 3206 |
+| 10% | [0.~9,700, 1.0400] | 0 | 0 | 0 / 3206 |
+| 20% | [0.~9,700, 1.0400] | 0 | 0 | 0 / 3206 |
 
 The AC solution is well within the original voltage and thermal limits at all relaxation
 levels. The solution is identical across all three levels because the base case has no

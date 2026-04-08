@@ -11,7 +11,7 @@ timestamp: "2026-03-24T22:00:00Z"
 
 ## Finding
 
-PowerFlows.jl's Newton-Raphson ACPF solver cannot converge on the 27,862-bus FNM
+PowerFlows.jl's Newton-Raphson ACPF solver cannot converge on the ~28,000-bus FNM
 main island network with DCPF warm-start initialization and progressive branch rating
 relaxation (0%, 10%, 20%). The solver ran 100 iterations at each level without
 achieving convergence. Total ACPF wall-clock time across all three attempts was

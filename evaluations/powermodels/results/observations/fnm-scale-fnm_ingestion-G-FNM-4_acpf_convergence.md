@@ -7,11 +7,11 @@ severity: medium
 timestamp: "2026-03-24T12:30:00Z"
 ---
 
-# Observation: ACPF Diverges on 27,862-Bus FNM with ~7 GB Memory Consumption
+# Observation: ACPF Diverges on ~28,000-Bus FNM with ~7 GB Memory Consumption
 
 ## Finding
 
-PowerModels' `solve_ac_pf` with Ipopt/MUMPS diverges on the FNM 27,862-bus case,
+PowerModels' `solve_ac_pf` with Ipopt/MUMPS diverges on the FNM ~28,000-bus case,
 consuming approximately 7 GB of memory. Ipopt's MUMPS linear solver required 4 memory
 reallocation attempts (icntl[13] from 1000 to 16000) before continuing to diverge.
 The 67,206-variable NLP with 380,065 Jacobian nonzeros is tractable in terms of

@@ -19,7 +19,7 @@ import traceback
 from pathlib import Path
 
 FNM_PATH = Path("/data/fnm-source")
-PREFIX = "AUC_AN_2026_2026_S01_"
+PREFIX = "<FNM_PREFIX>_"
 
 # Empirical field classification for each supplemental CSV
 # Based on actual CSV column names (from FNM data) and PyPSA data model
