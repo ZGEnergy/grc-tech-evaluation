@@ -1,6 +1,5 @@
 # PowerModels.jl v0.21.5 — Synthesis Report
 
-**Contract:** 
 **Protocol:** v11 | **Skill:** v2 | **Scale cap:** MEDIUM | **FNM_AVAILABLE:** true
 **Date:** 2026-03-24
 

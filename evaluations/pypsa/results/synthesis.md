@@ -1,6 +1,5 @@
 # Synthesis Report: PyPSA v1.1.2
 
-**Contract:** 
 **Tool:** PyPSA (Python for Power System Analysis)
 **Version:** 1.1.2 (released 2026-02-23)
 **Evaluation date:** 2026-03-24

@@ -1,6 +1,5 @@
 # Phase 1 Tool Selection Report
 
-**Contract  | **
 **Grid Research Company LLC**
 **Date: 2026-03-26**
 

@@ -1,6 +1,5 @@
 # Synthesis Report: pandapower 3.4.0
 
-**Contract:** 
 **Tool version:** pandapower 3.4.0
 **Protocol version:** v11
 **Scale cap:** MEDIUM

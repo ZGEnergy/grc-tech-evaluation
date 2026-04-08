@@ -1,6 +1,6 @@
 # Phase 1 Technology Evaluation White Paper
 
-**Contract  — SOW Task 1.3**\
+**SOW Task 1.3**\
 **Grid Research Company LLC**\
 **April 2026**
 
@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-Under Contract  with the , Grid Research Company LLC conducted a structured evaluation of open-source power system modeling tools to identify an optimal technology stack for high-voltage transmission system modeling. The objective was to select a tool capable of supporting substation-fidelity modeling, long-term forecasting, and vulnerability identification at defense-relevant locations including Camp Pendleton, Naval Base San Diego, and the Ports of Long Beach and Los Angeles.
+Grid Research Company LLC conducted a structured evaluation of open-source power system modeling tools to identify an optimal technology stack for high-voltage transmission system modeling. The objective was to select a tool capable of supporting substation-fidelity modeling, long-term forecasting, and vulnerability identification at defense-relevant locations including Camp Pendleton, Naval Base San Diego, and the Ports of Long Beach and Los Angeles.
 
 Six tools were evaluated: PyPSA, PowerModels.jl, PowerSimulations.jl, pandapower, GridCal, and MATPOWER. Each tool was assessed against six criteria -- Expressiveness, Extensibility, Scalability, Accessibility, Maturity, and Supply Chain -- using standardized test suites executed on ACTIVSg reference networks at three scales: 39-bus, 2,000-bus, and 10,000-bus. All testing used open-source solvers exclusively (HiGHS, SCIP, Ipopt, GLPK) on a reference workstation with 128 GB RAM and 16 cores. Supply Chain served as a gate criterion: any tool receiving a Weak or Failing grade was disqualified, reflecting the program's requirement for fully inspectable, open-source software deployable in restricted environments.
 
@@ -105,4 +105,4 @@ Phase 2 follows a three-stage progression:
 
 ---
 
-*This white paper was produced under Contract , SOW Task 1.3. The [interactive report site](https://zgenergy.github.io/grc-tech-evaluation/) provides full test evidence, per-criterion analysis, and sensitivity visualizations. All evaluation code, test scripts, and raw results are in the accompanying repository.*
+*This white paper was produced under SOW Task 1.3. The [interactive report site](https://zgenergy.github.io/grc-tech-evaluation/) provides full test evidence, per-criterion analysis, and sensitivity visualizations. All evaluation code, test scripts, and raw results are in the accompanying repository.*
