@@ -382,6 +382,7 @@ The `mp.extension` abstract base class defines nine virtual methods that an exte
 - `mm_element_classes(mm_class, task_tag, mpopt)`
 
 Element class modifiers use three operations:
+
 | Operation | Syntax | Effect |
 |-----------|--------|--------|
 | Append | `@new_class` | Adds a new element type |
@@ -435,7 +436,7 @@ Built-in toggle functions use this pattern:
 
 Two approaches are documented for adding custom constraints:
 
-**Approach 1: Legacy direct specification.** The `mpc` struct can contain fields `A`, `l`, `u` for linear constraints (A * x >= l, A * x <= u), and `N`, `H`, `Cw`, `fparm` for generalized costs.
+**Approach 1: Legacy direct specification.** The `mpc` struct can contain fields `A`, `l`, `u` for linear constraints (A \* x >= l, A \* x <= u), and `N`, `H`, `Cw`, `fparm` for generalized costs.
 
 **Approach 2: Extension/element subclass (MATPOWER 8+).** Subclass a math model element (e.g., `mp.mme_gen_opf_ac`) and override `add_constraints()` to call `mm.add_nln_constraint(name, N, iseq, fcn, hess, varsets)`. The constraint function must return the constraint vector and Jacobian; the Hessian function returns second derivatives. Deploy via `mpopt.exp.mm_element_classes` or through an `mp.extension` subclass.
 
@@ -613,6 +614,8 @@ This provides named-column access similar to a DataFrame, though without filteri
 
 ## Section 3: Limitations & Ecosystem
 
+<!-- markdownlint-disable MD003 -->
+
 ---
 tool: matpower
 research_date: 2026-03-24
@@ -620,6 +623,8 @@ focus: Known limitations, open issues, ecosystem, community size, documentation 
 version_evaluated: "8.1"
 prior_research: 2026-03-13
 ---
+
+<!-- markdownlint-enable MD003 -->
 
 # MATPOWER — Limitations, Ecosystem & Community Research
 
@@ -995,6 +1000,8 @@ MOST releases are synchronized with MATPOWER major releases.
 
 ## Section 4: Version & Capability Report
 
+<!-- markdownlint-disable MD003 -->
+
 ---
 tool: matpower
 installed_version: "8.1"
@@ -1003,6 +1010,8 @@ latest_version: "8.1"
 latest_release_date: 2025-07-12
 research_date: 2026-03-24
 ---
+
+<!-- markdownlint-enable MD003 -->
 
 # matpower — Version & Capability Report
 
