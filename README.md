@@ -83,3 +83,25 @@ bash .devcontainer/validate.sh
 # Lint
 pre-commit run --all-files
 ```
+
+### Running evaluation scripts
+
+Each tool has its own virtualenv — **do not use bare `python`** from the
+container shell, as it points to the system Python which has no packages
+installed. Always `cd` into the tool directory and use `uv run` (Python tools)
+or `julia --project=.` (Julia tools):
+
+```bash
+# Python tools (pypsa, pandapower, gridcal)
+cd /workspace/evaluations/pypsa
+uv run python tests/expressiveness/test_a1_dcpf.py
+uv run pytest tests/                     # run full test suite
+
+# Julia tools (powermodels, powersimulations)
+cd /workspace/evaluations/powermodels
+julia --project=. tests/runtests.jl
+
+# MATPOWER (Octave)
+cd /workspace/evaluations/matpower
+octave tests/run_tests.m
+```
