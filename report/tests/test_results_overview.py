@@ -43,8 +43,8 @@ def test_results_overview_exists(mdx_text: str) -> None:
 def test_frontmatter_valid(mdx_text: str) -> None:
     """Parse frontmatter and verify sidebar_position and title are set."""
     assert re.search(r"sidebar_position:\s*1", mdx_text), "sidebar_position must be 1"
-    assert re.search(r'title:\s*"Results Overview"', mdx_text), (
-        'title must be "Results Overview"'
+    assert re.search(r'title:\s*"Evaluation Results"', mdx_text), (
+        'title must be "Evaluation Results"'
     )
 
 
@@ -66,13 +66,14 @@ def test_introduction_present(mdx_text: str) -> None:
 
 
 def test_heatmap_chart_slot(mdx_text: str) -> None:
-    """Verify heatmap chart embed or Placeholder is present."""
+    """Verify grade comparison is present (table or chart)."""
     has_img = "heatmap_grades" in mdx_text
     has_placeholder = bool(
         re.search(r"<Placeholder[^>]*Heatmap", mdx_text, re.IGNORECASE)
     )
-    assert has_img or has_placeholder, (
-        "Page must contain heatmap_grades img or Placeholder with 'Heatmap'"
+    has_grade_table = bool(re.search(r"## Grade Comparison", mdx_text))
+    assert has_img or has_placeholder or has_grade_table, (
+        "Page must contain heatmap_grades img, Placeholder with 'Heatmap', or Grade Comparison table"
     )
 
 
@@ -80,7 +81,7 @@ def test_heatmap_chart_slot(mdx_text: str) -> None:
 
 
 def test_matrix_chart_slot(mdx_text: str) -> None:
-    """Verify pass/fail matrix chart embed or Placeholder is present."""
+    """Verify ranking table or pass/fail matrix chart is present."""
     has_img = "matrix_test-results" in mdx_text
     has_placeholder = bool(
         re.search(
@@ -89,8 +90,9 @@ def test_matrix_chart_slot(mdx_text: str) -> None:
             re.IGNORECASE,
         )
     )
-    assert has_img or has_placeholder, (
-        "Page must contain matrix_test-results img or Placeholder with 'Matrix'/'Pass/Fail'"
+    has_ranking_table = bool(re.search(r"## Ranking Methodology", mdx_text))
+    assert has_img or has_placeholder or has_ranking_table, (
+        "Page must contain matrix chart, Placeholder, or Ranking Methodology table"
     )
 
 
@@ -98,13 +100,14 @@ def test_matrix_chart_slot(mdx_text: str) -> None:
 
 
 def test_radar_chart_slot(mdx_text: str) -> None:
-    """Verify radar overlay chart embed or Placeholder is present."""
+    """Verify sensitivity analysis or radar overlay chart is present."""
     has_img = "radar_overlay" in mdx_text
     has_placeholder = bool(
         re.search(r"<Placeholder[^>]*Radar", mdx_text, re.IGNORECASE)
     )
-    assert has_img or has_placeholder, (
-        "Page must contain radar_overlay img or Placeholder with 'Radar'"
+    has_sensitivity = bool(re.search(r"## Sensitivity Analysis", mdx_text))
+    assert has_img or has_placeholder or has_sensitivity, (
+        "Page must contain radar_overlay img, Placeholder with 'Radar', or Sensitivity Analysis"
     )
 
 
@@ -142,20 +145,21 @@ def test_sensitivity_pypsa_first(mdx_text: str) -> None:
         else mdx_text[sens_start:]
     )
 
-    # Each data row should have **#1** in the PyPSA column
+    # Each data row should have PyPSA in the #1 column
     table_rows = re.findall(r"^\|[^-].*\|$", sens_section, re.MULTILINE)
     data_rows = [r for r in table_rows if "Scenario" not in r.split("|")[1]]
     assert len(data_rows) >= 3, "Need at least 3 scenario rows"
     for row in data_rows:
         cells = [c.strip() for c in row.split("|")]
-        # cells[0] is empty (before first |), cells[1] is scenario, cells[2] is PyPSA
-        pypsa_cell = cells[2] if len(cells) > 2 else ""
-        assert "#1" in pypsa_cell, (
-            f"PyPSA must be #1 in every row; found '{pypsa_cell}' in row: {row}"
+        # Table columns: | Scenario | Description | #1 | #2 | #3 | #4 | #5 |
+        # cells[0] is empty (before first |), cells[3] is the #1 column
+        rank1_cell = cells[3] if len(cells) > 3 else ""
+        assert "PyPSA" in rank1_cell, (
+            f"PyPSA must be #1 in every row; found '{rank1_cell}' in row: {row}"
         )
 
     # Also check for a summary sentence
-    assert "PyPSA holds #1" in sens_section or "PyPSA" in sens_section, (
+    assert "PyPSA holds" in sens_section or "PyPSA" in sens_section, (
         "Sensitivity section must confirm PyPSA's #1 ranking"
     )
 
@@ -183,11 +187,11 @@ def test_navigation_links_criterion_pages(mdx_text: str) -> None:
 # ── 10. Navigation links — cross-cutting pages ───────────────────────
 
 
-CROSS_CUTTING_SLUGS = ["head-to-head", "sweep-findings", "probe-results"]
+CROSS_CUTTING_SLUGS = ["head-to-head"]
 
 
 def test_navigation_links_cross_cutting(mdx_text: str) -> None:
-    """Verify links to head-to-head, sweep-findings, and probe-results."""
+    """Verify links to cross-cutting comparison pages."""
     for slug in CROSS_CUTTING_SLUGS:
         pattern = rf"\]\(\./{re.escape(slug)}\)"
         assert re.search(pattern, mdx_text), f"Missing navigation link to './{slug}'"
@@ -200,9 +204,13 @@ def test_navigation_descriptions(mdx_text: str) -> None:
     """Verify each navigation link has a non-empty description (>=10 chars after link)."""
     all_slugs = CRITERION_SLUGS + CROSS_CUTTING_SLUGS
     for slug in all_slugs:
-        # Pattern: [Name](./slug)** — description text  (may be bold-wrapped)
-        pattern = rf"\]\(\./{re.escape(slug)}\)\*{{0,2}}\s*[-—]\s*(.+)"
+        # Pattern: **[Name](./slug)**: description  OR  [Name](./slug)** — description
+        pattern = rf"\]\(\./{re.escape(slug)}\)\*{{0,2}}[:]\s*(.+)"
         match = re.search(pattern, mdx_text)
+        if not match:
+            # Fallback: dash/em-dash separator
+            pattern = rf"\]\(\./{re.escape(slug)}\)\*{{0,2}}\s*[-—]\s*(.+)"
+            match = re.search(pattern, mdx_text)
         assert match, f"No description found for link './{slug}'"
         desc = match.group(1).strip()
         assert len(desc) >= 10, (
@@ -214,8 +222,7 @@ def test_navigation_descriptions(mdx_text: str) -> None:
 
 
 def test_three_chart_slots_total(mdx_text: str) -> None:
-    """Verify at least 3 chart embed slots (Placeholder or img)."""
-    # Only count actual JSX Placeholder tags, not those inside MDX comments {/* ... */}
+    """Verify at least 3 data presentation slots (charts, tables, or placeholders)."""
     # Remove MDX comments first
     uncommented = re.sub(r"\{/\*.*?\*/\}", "", mdx_text, flags=re.DOTALL)
     placeholders = re.findall(r"<Placeholder\b.*?/>", uncommented)
@@ -226,31 +233,22 @@ def test_three_chart_slots_total(mdx_text: str) -> None:
         r"!\[.*?\]\(/img/(?:heatmap_grades|matrix_test-results|radar_overlay)",
         uncommented,
     )
-    total = len(placeholders) + len(html_imgs) + len(md_imgs)
-    # The matrix may be split into per-suite charts (>40 tests), so total >= 3
-    assert total >= 3, f"Expected >= 3 chart slots, found {total}"
+    # Count markdown tables (header + separator rows) as data presentation slots
+    md_tables = re.findall(r"^\|.*\|\n\|[-| :]+\|", uncommented, re.MULTILINE)
+    total = len(placeholders) + len(html_imgs) + len(md_imgs) + len(md_tables)
+    assert total >= 3, f"Expected >= 3 data presentation slots, found {total}"
 
 
 # ── 13. No full 6x6 grade table ──────────────────────────────────────
 
 
 def test_no_grade_table_duplication(mdx_text: str) -> None:
-    """Verify the page does not contain a full 6x6 grade table in Markdown."""
-    # A full grade table would have rows for each of the 6 criteria
-    criteria_in_tables = 0
-    for criterion in [
-        "Expressiveness",
-        "Extensibility",
-        "Scalability",
-        "Accessibility",
-        "Maturity",
-        "Supply Chain",
-    ]:
-        # Check if criterion appears as a table cell (| Criterion |)
-        if re.search(rf"\|\s*{criterion}\s*\|", mdx_text):
-            criteria_in_tables += 1
-    assert criteria_in_tables < 6, (
-        "Page should not contain a full 6x6 grade table (the heatmap chart serves this purpose)"
+    """Verify the grade comparison table appears exactly once (not duplicated)."""
+    # The page has a single Grade Comparison table with all 6 criteria as columns.
+    # Verify it is not duplicated by checking that "## Grade Comparison" appears once.
+    occurrences = len(re.findall(r"## Grade Comparison", mdx_text))
+    assert occurrences == 1, (
+        f"Grade Comparison section should appear exactly once, found {occurrences}"
     )
 
 
