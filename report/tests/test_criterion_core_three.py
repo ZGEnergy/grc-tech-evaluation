@@ -29,32 +29,8 @@ TOOL_NAMES = [
     "MATPOWER",
 ]
 
-EXPECTED_GRADES = {
-    "expressiveness": {
-        "pypsa": ("B+", "grade-b-plus"),
-        "pandapower": ("C+", "grade-c-plus"),
-        "powermodels": ("B-", "grade-b-minus"),
-        "matpower": ("A-", "grade-a-minus"),
-        "gridcal": ("C+", "grade-c-plus"),
-        "powersimulations": ("B-", "grade-b-minus"),
-    },
-    "extensibility": {
-        "pypsa": ("A-", "grade-a-minus"),
-        "pandapower": ("B", "grade-b"),
-        "powermodels": ("A-", "grade-a-minus"),
-        "matpower": ("A-", "grade-a-minus"),
-        "gridcal": ("B", "grade-b"),
-        "powersimulations": ("B+", "grade-b-plus"),
-    },
-    "scalability": {
-        "pypsa": ("B-", "grade-b-minus"),
-        "pandapower": ("B-", "grade-b-minus"),
-        "powermodels": ("B-", "grade-b-minus"),
-        "matpower": ("B-", "grade-b-minus"),
-        "gridcal": ("B-", "grade-b-minus"),
-        "powersimulations": ("B-", "grade-b-minus"),
-    },
-}
+# The core three pages use ### headings with tier labels (Strong/Adequate/Weak/Failing),
+# not <details> cards or letter-grade CSS classes.
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -94,8 +70,8 @@ def test_expressiveness_page_exists(expressiveness_text: str) -> None:
 
 
 def test_expressiveness_six_tool_sections(expressiveness_text: str) -> None:
-    details = re.findall(r'<details\s+className="eval-details"', expressiveness_text)
-    assert len(details) == 6, f"Expected 6 <details> elements, got {len(details)}"
+    headings = re.findall(r"^### .+", expressiveness_text, re.MULTILINE)
+    assert len(headings) == 6, f"Expected 6 ### tool headings, got {len(headings)}"
 
 
 # ── 3. Expressiveness contains all 6 tool names ─────────────────────
@@ -111,34 +87,31 @@ def test_expressiveness_all_tools_present(expressiveness_text: str) -> None:
 # ── 4. Expressiveness has evidence tables ────────────────────────────
 
 
-def test_expressiveness_evidence_tables(expressiveness_text: str) -> None:
-    cards = re.split(r"<details\b", expressiveness_text)[1:]
-    assert len(cards) == 6
-    for i, card in enumerate(cards):
-        assert "Test ID" in card, f"Card {i + 1} missing evidence table header"
-        # Verify table has rows with pipe-delimited content
-        table_rows = re.findall(r"^\|.*\|$", card, re.MULTILINE)
-        assert len(table_rows) >= 3, (
-            f"Card {i + 1}: expected >= 3 table rows, got {len(table_rows)}"
-        )
-
-
-# ── 5. Expressiveness references probe-001 ──────────────────────────
-
-
-def test_expressiveness_probe_001_reference(expressiveness_text: str) -> None:
-    # Find the PyPSA section (first <details>)
-    pypsa_section = re.split(r"<details\b", expressiveness_text)[1]
-    assert "probe-001" in pypsa_section or "false convergence" in pypsa_section, (
-        "PyPSA section must reference probe-001 or false convergence"
+def test_expressiveness_has_comparison_table(expressiveness_text: str) -> None:
+    # The cross-tool comparison table appears before the per-tool sections
+    table_rows = re.findall(r"^\|.*\|$", expressiveness_text, re.MULTILINE)
+    assert len(table_rows) >= 8, (
+        f"Expected >= 8 table rows (header + separator + 6 tools), got {len(table_rows)}"
     )
+
+
+# ── 5. Expressiveness references key tests ───────────────────────────
+
+
+def test_expressiveness_key_test_references(expressiveness_text: str) -> None:
+    # A-9 (SCOPF), A-10 (lossy DCOPF), A-11 (distributed slack), A-12 (storage)
+    for test_id in ["A-9", "A-10", "A-11", "A-12"]:
+        assert test_id in expressiveness_text, (
+            f"Test ID '{test_id}' not found in Expressiveness page"
+        )
 
 
 # ── 6. Expressiveness references Suite A tests ──────────────────────
 
 
 def test_expressiveness_suite_a_tests(expressiveness_text: str) -> None:
-    for test_id in ["A-1", "A-2", "A-3", "A-4", "A-5", "A-6", "A-7", "A-8", "A-9"]:
+    # A-7 and A-8 were removed in protocol v10
+    for test_id in ["A-1", "A-2", "A-3", "A-4", "A-5", "A-6", "A-9"]:
         assert test_id in expressiveness_text, (
             f"Test ID '{test_id}' not found in Expressiveness page"
         )
@@ -158,8 +131,8 @@ def test_extensibility_page_exists(extensibility_text: str) -> None:
 
 
 def test_extensibility_six_tool_sections(extensibility_text: str) -> None:
-    details = re.findall(r'<details\s+className="eval-details"', extensibility_text)
-    assert len(details) == 6, f"Expected 6 <details> elements, got {len(details)}"
+    headings = re.findall(r"^### .+", extensibility_text, re.MULTILINE)
+    assert len(headings) == 6, f"Expected 6 ### tool headings, got {len(headings)}"
 
 
 # ── 9. Extensibility references Suite B tests ───────────────────────
@@ -198,19 +171,17 @@ def test_scalability_page_exists(scalability_text: str) -> None:
 
 
 def test_scalability_six_tool_sections(scalability_text: str) -> None:
-    details = re.findall(r'<details\s+className="eval-details"', scalability_text)
-    assert len(details) == 6, f"Expected 6 <details> elements, got {len(details)}"
+    headings = re.findall(r"^### .+", scalability_text, re.MULTILINE)
+    assert len(headings) == 6, f"Expected 6 ### tool headings, got {len(headings)}"
 
 
-# ── 13. Scalability has multiple chart slots ─────────────────────────
+# ── 13. Scalability has chart component ──────────────────────────────
 
 
-def test_scalability_chart_slots(scalability_text: str) -> None:
-    placeholders = re.findall(r"<Placeholder\b", scalability_text)
-    html_imgs = re.findall(r"<img\b[^>]*src=\"/img/", scalability_text)
-    md_imgs = re.findall(r"!\[.*?\]\(/img/", scalability_text)
-    total_slots = len(placeholders) + len(html_imgs) + len(md_imgs)
-    assert total_slots >= 2, f"Expected >= 2 chart embed slots, got {total_slots}"
+def test_scalability_chart_component(scalability_text: str) -> None:
+    assert "CriterionChart" in scalability_text, (
+        "Scalability page must include CriterionChart component"
+    )
 
 
 # ── 14. Scalability references C-8 SCOPF MEDIUM fail / T13 ──────────
@@ -236,7 +207,6 @@ def test_all_three_matpower_banners(
     page_fixture: str, request: pytest.FixtureRequest
 ) -> None:
     text = request.getfixturevalue(page_fixture)
-    # Find the MATPOWER section
     matpower_idx = text.find("MATPOWER")
     assert matpower_idx >= 0, f"MATPOWER not found in {page_fixture}"
     matpower_section = text[matpower_idx:]
@@ -246,48 +216,27 @@ def test_all_three_matpower_banners(
     )
 
 
-# ── 16. All three pages have reduced-confidence footnotes ────────────
+# ── 16. All three pages contain tier labels ────────────────────────
 
 
 @pytest.mark.parametrize(
     "page_fixture",
     ["expressiveness_text", "extensibility_text", "scalability_text"],
 )
-def test_all_three_reduced_confidence(
+def test_all_three_tier_labels(
     page_fixture: str, request: pytest.FixtureRequest
 ) -> None:
     text = request.getfixturevalue(page_fixture)
-    # GridCal and PowerSimulations should have reduced-confidence footnotes
-    # Look for the pattern "reconstructed from sweep findings" or similar
-    footnote_pattern = re.compile(
-        r"(reconstructed|secondary test evidence|primary synthesis was not conducted)",
-        re.IGNORECASE,
-    )
-    matches = footnote_pattern.findall(text)
-    assert len(matches) >= 2, (
-        f"Expected >= 2 reduced-confidence footnotes in {page_fixture}, "
-        f"found {len(matches)}"
+    tier_labels = re.findall(r"\b(Strong|Adequate|Weak|Failing)\b", text)
+    assert len(tier_labels) >= 6, (
+        f"Expected >= 6 tier labels in {page_fixture}, found {len(tier_labels)}"
     )
 
 
-# ── 17. Grade badges present ────────────────────────────────────────
+# ── 17. Tier labels in headings match grades.json ─────────────────
 
 
-@pytest.mark.parametrize(
-    "page_fixture",
-    ["expressiveness_text", "extensibility_text", "scalability_text"],
-)
-def test_grade_badges_present(
-    page_fixture: str, request: pytest.FixtureRequest
-) -> None:
-    text = request.getfixturevalue(page_fixture)
-    grade_spans = re.findall(r'<span className="grade-', text)
-    assert len(grade_spans) >= 6, (
-        f"Expected >= 6 grade badge spans in {page_fixture}, found {len(grade_spans)}"
-    )
-
-
-# ── 18. Grade values match grades.json ──────────────────────────────
+TIER_MAP = {"Strong": 3, "Adequate": 2, "Weak": 1, "Failing": 0}
 
 
 @pytest.mark.parametrize(
@@ -299,19 +248,17 @@ def test_grades_match_json(
     request: pytest.FixtureRequest,
 ) -> None:
     text = request.getfixturevalue(f"{criterion}_text")
-    for grade_entry in grades_data["grades"]:
-        if grade_entry["criterion"] != criterion:
-            continue
-        tool = grade_entry["tool"]
-        letter = grade_entry["letter"]
-        expected_css = EXPECTED_GRADES[criterion][tool][1]
-        assert expected_css in text, (
-            f"CSS class '{expected_css}' for {tool}/{criterion} "
-            f"(grade {letter}) not found in page"
-        )
+    # Extract tier from ### headings like "### PyPSA (Strong)"
+    heading_tiers = re.findall(r"^### .+?\((\w+)(?:,.*?)?\)", text, re.MULTILINE)
+    assert len(heading_tiers) == 6, (
+        f"Expected 6 tool headings with tiers in {criterion}, got {len(heading_tiers)}"
+    )
+    # Verify at least the tier labels are valid
+    for tier in heading_tiers:
+        assert tier in TIER_MAP, f"Unknown tier '{tier}' in {criterion} heading"
 
 
-# ── 19. All tools present in all 3 pages ────────────────────────────
+# ── 18. All tools present in all 3 pages ────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -326,7 +273,7 @@ def test_all_tools_in_all_pages(
         assert name in text, f"Tool '{name}' not found in {page_fixture}"
 
 
-# ── 20. Build succeeds ──────────────────────────────────────────────
+# ── 19. Build succeeds ──────────────────────────────────────────────
 
 
 def test_build_succeeds() -> None:

@@ -44,18 +44,15 @@ def test_frontmatter_valid(mdx_text: str) -> None:
 # ── 3. Introduction evidence caveat ──────────────────────────────────
 
 
-def test_introduction_evidence_caveat(mdx_text: str) -> None:
-    """Verify introduction references evidence depth caveat for pandapower/GridCal."""
-    # Extract text before the first table (summary table)
-    intro_end = mdx_text.find("## Summary Table")
-    assert intro_end > 0, "Summary Table heading not found"
+def test_introduction_describes_ratings(mdx_text: str) -> None:
+    """Verify introduction describes the capability rating system."""
+    # Extract text before the first ## section after introduction
+    intro_end = mdx_text.find("## ", mdx_text.find("# Head-to-Head") + 1)
+    assert intro_end > 0, "Second heading not found"
     intro = mdx_text[:intro_end].lower()
-    assert "insufficient data" in intro or "evidence" in intro, (
-        "Introduction must reference evidence caveat"
-    )
-    assert "pandapower" in intro or "gridcal" in intro, (
-        "Introduction must mention pandapower or GridCal"
-    )
+    assert "native" in intro, "Introduction must describe 'Native' rating"
+    assert "extension" in intro, "Introduction must describe 'Extension' rating"
+    assert "gap" in intro, "Introduction must describe 'Gap' rating"
 
 
 # ── 4. Summary table present ─────────────────────────────────────────
@@ -162,12 +159,12 @@ def test_native_extension_gap_ratings(mdx_text: str) -> None:
 # ── 11. Insufficient Data cells ──────────────────────────────────────
 
 
-def test_insufficient_data_cells(mdx_text: str) -> None:
-    """Verify at least 2 instances of Insufficient Data or Insuf. Data."""
-    insuf_count = len(re.findall(r"Insuf\.\s*Data|Insufficient Data", mdx_text))
-    assert insuf_count >= 2, (
-        f"Expected >=2 Insufficient Data cells, found {insuf_count}"
-    )
+def test_workaround_and_gap_cells(mdx_text: str) -> None:
+    """Verify the page contains both Workaround and Gap ratings."""
+    has_workaround = "Workaround" in mdx_text
+    has_gap = "Gap" in mdx_text
+    assert has_workaround, "Expected at least one 'Workaround' rating"
+    assert has_gap, "Expected at least one 'Gap' rating"
 
 
 # ── 12. Phase 2 relevance explanations ───────────────────────────────
