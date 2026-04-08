@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/generator.schema.json",
+  "title": "Generator",
+  "description": "PSS/E v31 Generator record type. Each row represents one generating unit.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ID": {
+      "type": "string",
+      "description": "Machine identifier (2 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PG": {
+      "type": "number",
+      "description": "Active power output",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "QG": {
+      "type": "number",
+      "description": "Reactive power output",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "QT": {
+      "type": "number",
+      "description": "Max reactive power",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 9999.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "QB": {
+      "type": "number",
+      "description": "Min reactive power",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": -9999.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VS": {
+      "type": "number",
+      "description": "Regulated voltage setpoint",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "IREG": {
+      "type": "integer",
+      "description": "Remote regulated bus (0=local)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MBASE": {
+      "type": "number",
+      "description": "Machine MVA base",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ZR": {
+      "type": "number",
+      "description": "Machine resistance (on MBASE)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ZX": {
+      "type": "number",
+      "description": "Machine reactance (on MBASE)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RT": {
+      "type": "number",
+      "description": "Step-up xfmr resistance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "XT": {
+      "type": "number",
+      "description": "Step-up xfmr reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "GTAP": {
+      "type": "number",
+      "description": "Step-up xfmr tap ratio",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "STAT": {
+      "type": "integer",
+      "description": "Status (1=in, 0=out)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "RMPCT": {
+      "type": "number",
+      "description": "MVAR range pct for remote reg",
+      "x-psse-unit": "%",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        100.0
+      ]
+    },
+    "PT": {
+      "type": "number",
+      "description": "Max active power",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 9999.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PB": {
+      "type": "number",
+      "description": "Min active power",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": -9999.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "O1": {
+      "type": "integer",
+      "description": "Owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F1": {
+      "type": "number",
+      "description": "Fraction owned by owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O2": {
+      "type": "integer",
+      "description": "Owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F2": {
+      "type": "number",
+      "description": "Fraction owned by owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O3": {
+      "type": "integer",
+      "description": "Owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F3": {
+      "type": "number",
+      "description": "Fraction owned by owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O4": {
+      "type": "integer",
+      "description": "Owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F4": {
+      "type": "number",
+      "description": "Fraction owned by owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "WMOD": {
+      "type": "integer",
+      "description": "Wind machine Q control mode",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "WPF": {
+      "type": "number",
+      "description": "Wind machine power factor",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "ID",
+    "PG",
+    "QG",
+    "QT",
+    "QB",
+    "VS",
+    "IREG",
+    "MBASE",
+    "STAT"
+  ],
+  "additionalProperties": false
+}

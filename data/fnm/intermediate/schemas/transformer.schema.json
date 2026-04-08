@@ -1,0 +1,883 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/transformer.schema.json",
+  "title": "Transformer",
+  "description": "PSS/E v31 Transformer record type. Multi-line records flattened into one row. 2-winding (K=0) and 3-winding (K!=0) share the same schema.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Winding 1 bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "J": {
+      "type": "integer",
+      "description": "Winding 2 bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "K": {
+      "type": "integer",
+      "description": "Winding 3 bus (0=2W)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CKT": {
+      "type": "string",
+      "description": "Circuit identifier",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CW": {
+      "type": "integer",
+      "description": "Winding data I/O code",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        3
+      ]
+    },
+    "CZ": {
+      "type": "integer",
+      "description": "Impedance data I/O code",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        3
+      ]
+    },
+    "CM": {
+      "type": "integer",
+      "description": "Mag admittance I/O code",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        2
+      ]
+    },
+    "MAG1": {
+      "type": "number",
+      "description": "Magnetizing conductance",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "MAG2": {
+      "type": "number",
+      "description": "Magnetizing susceptance",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NMETR": {
+      "type": "integer",
+      "description": "Non-metered end code",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 2,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NAME": {
+      "type": "string",
+      "description": "Transformer name",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "            ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "STAT": {
+      "type": "integer",
+      "description": "Status (0-4)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        4
+      ]
+    },
+    "O1": {
+      "type": "integer",
+      "description": "Owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F1": {
+      "type": "number",
+      "description": "Fraction by owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O2": {
+      "type": "integer",
+      "description": "Owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F2": {
+      "type": "number",
+      "description": "Fraction by owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O3": {
+      "type": "integer",
+      "description": "Owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F3": {
+      "type": "number",
+      "description": "Fraction by owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O4": {
+      "type": "integer",
+      "description": "Owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F4": {
+      "type": "number",
+      "description": "Fraction by owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "VECGRP": {
+      "type": "string",
+      "description": "Vector group (12 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "            ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "R1_2": {
+      "type": "number",
+      "description": "R winding 1-2 (CZ dep)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "X1_2": {
+      "type": "number",
+      "description": "X winding 1-2 (CZ dep)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SBASE1_2": {
+      "type": "number",
+      "description": "MVA base winding 1-2",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "R2_3": {
+      "type": "number",
+      "description": "R winding 2-3 (3W only)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "X2_3": {
+      "type": "number",
+      "description": "X winding 2-3 (3W only)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SBASE2_3": {
+      "type": "number",
+      "description": "MVA base winding 2-3",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "R3_1": {
+      "type": "number",
+      "description": "R winding 3-1 (3W only)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "X3_1": {
+      "type": "number",
+      "description": "X winding 3-1 (3W only)",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SBASE3_1": {
+      "type": "number",
+      "description": "MVA base winding 3-1",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 100.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMSTAR": {
+      "type": "number",
+      "description": "Star bus voltage mag",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "bus_kv",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ANSTAR": {
+      "type": "number",
+      "description": "Star bus voltage angle",
+      "x-psse-unit": "deg",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "WINDV1": {
+      "type": "number",
+      "description": "Winding 1 turns ratio",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NOMV1": {
+      "type": "number",
+      "description": "Winding 1 nominal kV",
+      "x-psse-unit": "kV",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ANG1": {
+      "type": "number",
+      "description": "Winding 1 phase shift",
+      "x-psse-unit": "deg",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATA1": {
+      "type": "number",
+      "description": "Winding 1 rating A",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATB1": {
+      "type": "number",
+      "description": "Winding 1 rating B",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATC1": {
+      "type": "number",
+      "description": "Winding 1 rating C",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "COD1": {
+      "type": "integer",
+      "description": "Winding 1 tap control",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CONT1": {
+      "type": "integer",
+      "description": "Winding 1 ctrl bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMA1": {
+      "type": "number",
+      "description": "Winding 1 upper tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMI1": {
+      "type": "number",
+      "description": "Winding 1 lower tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMA1": {
+      "type": "number",
+      "description": "Winding 1 upper V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMI1": {
+      "type": "number",
+      "description": "Winding 1 lower V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NTP1": {
+      "type": "integer",
+      "description": "Winding 1 tap positions",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 33,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "TAB1": {
+      "type": "integer",
+      "description": "Winding 1 impcor table",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CR1": {
+      "type": "number",
+      "description": "Winding 1 LDC resistance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CX1": {
+      "type": "number",
+      "description": "Winding 1 LDC reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CNXA1": {
+      "type": "integer",
+      "description": "Winding 1 conn angle",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "WINDV2": {
+      "type": "number",
+      "description": "Winding 2 turns ratio",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NOMV2": {
+      "type": "number",
+      "description": "Winding 2 nominal kV",
+      "x-psse-unit": "kV",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ANG2": {
+      "type": "number",
+      "description": "Winding 2 phase shift",
+      "x-psse-unit": "deg",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATA2": {
+      "type": "number",
+      "description": "Winding 2 rating A",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATB2": {
+      "type": "number",
+      "description": "Winding 2 rating B",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATC2": {
+      "type": "number",
+      "description": "Winding 2 rating C",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "COD2": {
+      "type": "integer",
+      "description": "Winding 2 tap control",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CONT2": {
+      "type": "integer",
+      "description": "Winding 2 ctrl bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMA2": {
+      "type": "number",
+      "description": "Winding 2 upper tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMI2": {
+      "type": "number",
+      "description": "Winding 2 lower tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMA2": {
+      "type": "number",
+      "description": "Winding 2 upper V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMI2": {
+      "type": "number",
+      "description": "Winding 2 lower V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NTP2": {
+      "type": "integer",
+      "description": "Winding 2 tap positions",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 33,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "TAB2": {
+      "type": "integer",
+      "description": "Winding 2 impcor table",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CR2": {
+      "type": "number",
+      "description": "Winding 2 LDC resistance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CX2": {
+      "type": "number",
+      "description": "Winding 2 LDC reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CNXA2": {
+      "type": "integer",
+      "description": "Winding 2 conn angle",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "WINDV3": {
+      "type": "number",
+      "description": "Winding 3 turns ratio",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NOMV3": {
+      "type": "number",
+      "description": "Winding 3 nominal kV",
+      "x-psse-unit": "kV",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ANG3": {
+      "type": "number",
+      "description": "Winding 3 phase shift",
+      "x-psse-unit": "deg",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATA3": {
+      "type": "number",
+      "description": "Winding 3 rating A",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": true,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATB3": {
+      "type": "number",
+      "description": "Winding 3 rating B",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATC3": {
+      "type": "number",
+      "description": "Winding 3 rating C",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "COD3": {
+      "type": "integer",
+      "description": "Winding 3 tap control",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CONT3": {
+      "type": "integer",
+      "description": "Winding 3 ctrl bus",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMA3": {
+      "type": "number",
+      "description": "Winding 3 upper tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RMI3": {
+      "type": "number",
+      "description": "Winding 3 lower tap limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMA3": {
+      "type": "number",
+      "description": "Winding 3 upper V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 1.1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "VMI3": {
+      "type": "number",
+      "description": "Winding 3 lower V limit",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "mixed",
+      "x-psse-default": 0.9,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "NTP3": {
+      "type": "integer",
+      "description": "Winding 3 tap positions",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 33,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "TAB3": {
+      "type": "integer",
+      "description": "Winding 3 impcor table",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CR3": {
+      "type": "number",
+      "description": "Winding 3 LDC resistance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CX3": {
+      "type": "number",
+      "description": "Winding 3 LDC reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CNXA3": {
+      "type": "integer",
+      "description": "Winding 3 conn angle",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "I",
+    "J",
+    "K",
+    "CKT",
+    "CW",
+    "CZ",
+    "CM",
+    "STAT",
+    "R1_2",
+    "X1_2",
+    "SBASE1_2",
+    "WINDV1",
+    "NOMV1",
+    "ANG1",
+    "RATA1",
+    "WINDV2",
+    "NOMV2"
+  ],
+  "additionalProperties": false
+}

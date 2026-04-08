@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/branch.schema.json",
+  "title": "Branch",
+  "description": "PSS/E v31 Branch record type. Each row represents a transmission line or cable.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "From bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "J": {
+      "type": "integer",
+      "description": "To bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "CKT": {
+      "type": "string",
+      "description": "Circuit identifier (2 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "R": {
+      "type": "number",
+      "description": "Branch resistance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "X": {
+      "type": "number",
+      "description": "Branch reactance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "B": {
+      "type": "number",
+      "description": "Branch charging susceptance",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATEA": {
+      "type": "number",
+      "description": "Rating A (normal)",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATEB": {
+      "type": "number",
+      "description": "Rating B (emergency)",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "RATEC": {
+      "type": "number",
+      "description": "Rating C (long-term)",
+      "x-psse-unit": "MVA",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "GI": {
+      "type": "number",
+      "description": "Shunt conductance at I",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "BI": {
+      "type": "number",
+      "description": "Shunt susceptance at I",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "GJ": {
+      "type": "number",
+      "description": "Shunt conductance at J",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "BJ": {
+      "type": "number",
+      "description": "Shunt susceptance at J",
+      "x-psse-unit": "pu",
+      "x-psse-per-unit-base": "system_mva",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ST": {
+      "type": "integer",
+      "description": "Status (1=in, 0=out)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "MET": {
+      "type": "integer",
+      "description": "Metered end (1=I, 2=J)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        1,
+        2
+      ]
+    },
+    "LEN": {
+      "type": "number",
+      "description": "Line length",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "O1": {
+      "type": "integer",
+      "description": "Owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F1": {
+      "type": "number",
+      "description": "Fraction owned by owner 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O2": {
+      "type": "integer",
+      "description": "Owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F2": {
+      "type": "number",
+      "description": "Fraction owned by owner 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O3": {
+      "type": "integer",
+      "description": "Owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F3": {
+      "type": "number",
+      "description": "Fraction owned by owner 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    },
+    "O4": {
+      "type": "integer",
+      "description": "Owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F4": {
+      "type": "number",
+      "description": "Fraction owned by owner 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "required": [
+    "I",
+    "J",
+    "CKT",
+    "R",
+    "X",
+    "B",
+    "RATEA",
+    "RATEB",
+    "RATEC",
+    "ST"
+  ],
+  "additionalProperties": false
+}

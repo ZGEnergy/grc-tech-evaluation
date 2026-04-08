@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/load.schema.json",
+  "title": "Load",
+  "description": "PSS/E v31 Load record type. Each row represents one load at a bus.",
+  "type": "object",
+  "properties": {
+    "I": {
+      "type": "integer",
+      "description": "Bus number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ID": {
+      "type": "string",
+      "description": "Load identifier (2 chars)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": "1 ",
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "STATUS": {
+      "type": "integer",
+      "description": "Load status (1=in, 0=out)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    },
+    "AREA": {
+      "type": "integer",
+      "description": "Area number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "ZONE": {
+      "type": "integer",
+      "description": "Zone number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "PL": {
+      "type": "number",
+      "description": "Constant power load (P)",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "QL": {
+      "type": "number",
+      "description": "Constant power load (Q)",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "IP": {
+      "type": "number",
+      "description": "Constant current load (P)",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "IQ": {
+      "type": "number",
+      "description": "Constant current load (Q)",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "YP": {
+      "type": "number",
+      "description": "Constant admittance load (P)",
+      "x-psse-unit": "MW",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "YQ": {
+      "type": "number",
+      "description": "Constant admittance load (Q)",
+      "x-psse-unit": "MVAR",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "OWNER": {
+      "type": "integer",
+      "description": "Owner number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "SCALE": {
+      "type": "integer",
+      "description": "Scaling flag (1=yes, 0=no)",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 1,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": [
+        0,
+        1
+      ]
+    }
+  },
+  "required": [
+    "I",
+    "ID",
+    "STATUS",
+    "AREA",
+    "ZONE",
+    "PL",
+    "QL"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schemas/impedance_correction.schema.json",
+  "title": "Impedance Correction",
+  "description": "PSS/E v31 Impedance Correction table record type.",
+  "type": "object",
+  "properties": {
+    "T": {
+      "type": "integer",
+      "description": "Correction table number",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": null,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T1": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F1": {
+      "type": "number",
+      "description": "Correction factor pair 1",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T2": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F2": {
+      "type": "number",
+      "description": "Correction factor pair 2",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T3": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F3": {
+      "type": "number",
+      "description": "Correction factor pair 3",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T4": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F4": {
+      "type": "number",
+      "description": "Correction factor pair 4",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T5": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 5",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F5": {
+      "type": "number",
+      "description": "Correction factor pair 5",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T6": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 6",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F6": {
+      "type": "number",
+      "description": "Correction factor pair 6",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T7": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 7",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F7": {
+      "type": "number",
+      "description": "Correction factor pair 7",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T8": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 8",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F8": {
+      "type": "number",
+      "description": "Correction factor pair 8",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T9": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 9",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F9": {
+      "type": "number",
+      "description": "Correction factor pair 9",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T10": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 10",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F10": {
+      "type": "number",
+      "description": "Correction factor pair 10",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "T11": {
+      "type": "number",
+      "description": "Tap ratio/angle pair 11",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    },
+    "F11": {
+      "type": "number",
+      "description": "Correction factor pair 11",
+      "x-psse-unit": "",
+      "x-psse-per-unit-base": "none",
+      "x-psse-default": 0.0,
+      "x-psse-preservation-critical": false,
+      "x-psse-present-but-inactive": false,
+      "x-psse-valid-range": null
+    }
+  },
+  "required": [
+    "T"
+  ],
+  "additionalProperties": false
+}
