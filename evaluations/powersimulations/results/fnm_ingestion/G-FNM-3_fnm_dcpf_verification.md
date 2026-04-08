@@ -36,7 +36,7 @@ that incorporates taps.
 
 ## Approach
 
-1. Loaded pre-cleaned MATPOWER case `fnm_main_island.m` (27,862-bus main island) via
+1. Loaded pre-cleaned MATPOWER case `fnm_main_island.m` (~28,000-bus main island) via
    `PowerSystems.System(path; runchecks=false)`. This is the MATPOWER fallback path
    because G-FNM-1 failed (PowerSystems.jl has no PSS/E CSV parser).
 2. Solved DCPF using `PowerFlows.solve_powerflow(PowerFlows.DCPowerFlow(), sys)`.
@@ -66,7 +66,7 @@ applying `rad2deg` to angles and multiplying flows by `baseMVA`.
 
 | Metric | Value |
 |--------|-------|
-| Non-excluded buses compared | 27,862 |
+| Non-excluded buses compared | ~28,000 |
 | Passing (< 1.0 deg) | 3,668 (13.16%) |
 | Failing | 24,194 (86.84%) |
 | Mean VA deviation | 2.658984e+00 deg |
@@ -80,7 +80,7 @@ applying `rad2deg` to angles and multiplying flows by `baseMVA`.
 
 | Metric | Value |
 |--------|-------|
-| In-service branches (rows) | 32,532 |
+| In-service branches (rows) | ~33,000 |
 | Unique (from,to) pairs | 30,912 |
 | Matched | 30,912 (100%) |
 | Passing (< 10%) | 29,835 (96.52%) |
@@ -121,7 +121,7 @@ Evidence:
   off-nominal taps. The extreme 700.4% deviation at (14333, 13343) is on a small-flow
   branch (ref ~3.22 MW) where the angle difference produces a disproportionate percentage
   error.
-- The non-trivial solution check confirms the DCPF solve was valid: 27,858 of 27,862
+- The non-trivial solution check confirms the DCPF solve was valid: 27,858 of ~28,000
   buses have nonzero angles.
 
 This is classified as `formulation-difference` [tool-specific: PowerFlows.jl simplified

@@ -41,7 +41,7 @@ parsing, which is also known to fail on this FNM's Case Identification header fo
 **(b) Record count fidelity:** Not evaluated because sub-check (a) failed.
 
 After confirming PSS/E path failure, loaded the pre-cleaned MATPOWER fallback
-(`fnm_main_island.m`, 27,862-bus main island) to verify the MATPOWER ingestion path
+(`fnm_main_island.m`, ~28,000-bus main island) to verify the MATPOWER ingestion path
 works for downstream G-FNM-3/4/5 tests.
 
 ## Output
@@ -78,20 +78,20 @@ Not evaluated because PSS/E-derived format parsing did not succeed.
 ### MATPOWER fallback -- verified
 
 The MATPOWER fallback file loaded successfully in 12.03 seconds. This is the
-pre-cleaned main island (27,862 buses), not the full 30,307-bus FNM.
+pre-cleaned main island (~28,000 buses), not the full ~30,000-bus FNM.
 
 | Component Type | MATPOWER Count | Manifest (full FNM) | Notes |
 |---|---|---|---|
-| ACBus | 27,862 | 30,307 | Main island only (2,445 isolated buses removed) |
-| Generator (all) | 5,741 | 5,768 | 27 generators on removed islands |
-| Line | 23,058 | 24,117 | Lines on removed islands excluded |
+| ACBus | ~28,000 | ~30,000 | Main island only (2,445 isolated buses removed) |
+| Generator (all) | ~5,700 | ~5,800 | 27 generators on removed islands |
+| Line | 23,058 | ~24,000 | Lines on removed islands excluded |
 | Transformer2W | 7,190 | -- | MATPOWER merges branch types |
 | TapTransformer | 2,358 | -- | MATPOWER merges branch types |
 | PhaseShiftingTransformer | 0 | -- | None in this network |
-| Total branches | 32,606 | 33,840 (merged) | Consistent with island removal |
-| ElectricLoad | 11,734 | 15,062 | Loads mapped to PowerLoad + StandardLoad |
+| Total branches | ~33,000 | ~34,000 (merged) | Consistent with island removal |
+| ElectricLoad | ~12,000 | ~15,000 | Loads mapped to PowerLoad + StandardLoad |
 | PowerLoad | 8,624 | -- | Subset of ElectricLoad |
-| FixedAdmittance | 3,110 | 3,114 | Switched shunts mapped to fixed admittance |
+| FixedAdmittance | 3,110 | ~3,100 | Switched shunts mapped to fixed admittance |
 | Area | 44 | 49 | 5 areas only on removed islands |
 | LoadZone | 74 | 90 | Zones on removed islands excluded |
 
@@ -100,10 +100,10 @@ pre-cleaned main island (27,862 buses), not the full 30,307-bus FNM.
 | Check | Result | Detail |
 |-------|--------|--------|
 | baseMVA | 100.0 | Correct (matches manifest sbase) |
-| Slack bus present | Yes | Bus 29421 (bus_type=REF) |
+| Slack bus present | Yes | Bus <slack_bus> (bus_type=REF) |
 | Tap ratio preservation | OK | 0 branches with tap=0 |
-| Bus count (internal) | 27,862 | Consistent with cleaned .m file |
-| Branch count (internal) | 32,606 | Consistent with cleaned .m file |
+| Bus count (internal) | ~28,000 | Consistent with cleaned .m file |
+| Branch count (internal) | ~33,000 | Consistent with cleaned .m file |
 
 **Component type mapping notes:**
 - PowerSystems.jl splits MATPOWER `branch` rows into `Line`, `Transformer2W`, and
@@ -124,7 +124,7 @@ pre-cleaned main island (27,862 buses), not the full 30,307-bus FNM.
   custom CSV-to-PowerSystems.jl converter, (2) upstream patch to the PTI parser's
   fixed-width tokenizer, or (3) external pre-conversion to MATPOWER format.
 - **Grade impact:** G-FNM-1 fails. G-FNM-2 (field coverage) is blocked. G-FNM-3/4/5
-  proceed via MATPOWER fallback path with reduced bus count (27,862 vs 30,307).
+  proceed via MATPOWER fallback path with reduced bus count (~28,000 vs ~30,000).
 
 ## Timing
 
@@ -148,5 +148,5 @@ Key findings:
 
 # MATPOWER fallback succeeds
 sys = PowerSystems.System("/workspace/data/fnm/reference/cleaned/fnm_main_island.m"; runchecks=false)
-# => 27,862 buses, 5,741 generators, 32,606 branches
+# => ~28,000 buses, ~5,700 generators, ~33,000 branches
 ```

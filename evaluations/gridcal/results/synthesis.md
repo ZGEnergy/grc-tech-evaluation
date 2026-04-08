@@ -188,7 +188,7 @@ GridCal scales well for power flow and single-period OPF up to MEDIUM (10k buses
 
 Suite G was executed (FNM_PATH set). The MATPOWER fallback path was used because GridCal cannot parse the intermediate CSV tables.
 
-- **Data Model Fidelity:** G-FNM-1 failed -- GridCal has no CSV network import capability [tool-specific]. G-FNM-2 was skipped (blocked by G-FNM-1). The MATPOWER `.m` fallback successfully loaded 27,862 buses, 5,741 generators, 23,125 lines, and 9,481 transformers. All bus load values match the reference exactly (0 mismatches in the power balance cross-reference). 100% DCPF-critical field coverage was not achieved via CSV path; MATPOWER format loses PSS/E-specific fields (tap control modes, switched shunt steps, area interchange).
+- **Data Model Fidelity:** G-FNM-1 failed -- GridCal has no CSV network import capability [tool-specific]. G-FNM-2 was skipped (blocked by G-FNM-1). The MATPOWER `.m` fallback successfully loaded ~28,000 buses, ~5,800 generators, ~23,000 lines, and ~9,500 transformers. All bus load values match the reference exactly (0 mismatches in the power balance cross-reference). 100% DCPF-critical field coverage was not achieved via CSV path; MATPOWER format loses PSS/E-specific fields (tap control modes, switched shunt steps, area interchange).
 
 - **Power Flow Verification:** G-FNM-3 achieved qualified_pass -- bus angles match the MATPOWER reference within machine precision (100% passing, max deviation 7.7e-09 deg). Branch flows pass the aggregate threshold (99.0% within 10% tolerance), but 326 branches show extreme deviations (up to 5.6e+05%) concentrated near transformer-connected buses (88.65% transformer-adjacent). This is classified as a formulation difference [tool-specific: simplified B-matrix in DCPF]. G-FNM-4 was informational -- ACPF failed to converge at all relaxation levels with all solver algorithms (NR, LM, HELM). Best residual was 15.83 (LM, 200 iterations). Contributing factors include MATPOWER format data loss for ACPF-critical fields and network conditioning.
 
@@ -318,7 +318,7 @@ The supply chain profile is strong. MPL-2.0 is enterprise-compatible. The pure-P
 ### FNM Data Model
 
 - **No CSV network import:** GridCal cannot ingest intermediate CSV tables; MATPOWER `.m` is the only viable fallback path. ([G-FNM-1](fnm_ingestion/G-FNM-1_fnm_ingestion_gate.md))
-- **Simplified B-matrix formulation:** 326 of 32,532 branch flows deviate from reference on the 27,862-bus FNM, concentrated near transformers (88.65% transformer-adjacent). [tool-specific] ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md))
+- **Simplified B-matrix formulation:** 326 of ~33,000 branch flows deviate from reference on the ~28,000-bus FNM, concentrated near transformers (88.65% transformer-adjacent). [tool-specific] ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md))
 - **ACPF convergence failure on FNM:** All solver algorithms fail to converge (best residual 15.83). Contributing factors: MATPOWER format data loss + network conditioning + no Ipopt. ([G-FNM-4](fnm_ingestion/G-FNM-4_fnm_acpf_convergence.md))
 - **Strong contingency model, weak interface model:** 83% native coverage on CONTINGENCY.csv, 100% external on INTERFACE.csv. No flowgate concept. ([G-FNM-5](fnm_ingestion/G-FNM-5_fnm_supplemental_csv.md))
 
@@ -335,7 +335,7 @@ The supply chain profile is strong. MPL-2.0 is enterprise-compatible. The pure-P
 - [ ] **B-4 (qualified_pass):** TapPhaseControl enum bug -- verify this is indeed a bug and not a configuration error. The workaround (sequential snapshot OPF) loses inter-temporal coupling.
 - [ ] **C-4 (qualified_pass):** SCUC at SMALL required sequential snapshots. Verify whether the loss of inter-temporal coupling (ramps, min up/down) should reduce the classification below qualified_pass.
 - [ ] **G-FNM-3 (qualified_pass):** 326 extreme branch flow deviations attributed to formulation difference. Verify the transformer-adjacency classification (88.65%) and confirm this is not a data ingestion issue.
-- [ ] **G-FNM-4 (informational):** ACPF infeasible on 27,862-bus FNM. Verify whether this should be attributed to the tool (no Ipopt, simplified data model) or the network (inherently difficult case).
+- [ ] **G-FNM-4 (informational):** ACPF infeasible on ~28,000-bus FNM. Verify whether this should be attributed to the tool (no Ipopt, simplified data model) or the network (inherently difficult case).
 - [ ] **Solver-vs-tool attribution:** The soft-constraint DCOPF (A-3) and the broken CBC/PDLP enum values (C-7) could arguably be classified either way. The current report tags both as tool-specific.
 - [ ] **E-3 maturity:** Bus factor 1 with zero code review. This is a factual finding from API data but should be confirmed for any weighting implications.
 
@@ -343,7 +343,7 @@ The supply chain profile is strong. MPL-2.0 is enterprise-compatible. The pure-P
 
 ## 6. Methodology Notes
 
-- **Scale cap:** None applied. Tests ran at MEDIUM (10,000 buses) for scalability, LARGE (27,862 buses) for FNM ingestion.
+- **Scale cap:** None applied. Tests ran at MEDIUM (10,000 buses) for scalability, LARGE (~28,000 buses) for FNM ingestion.
 - **FNM status:** Suite G executed (FNM_PATH set). MATPOWER `.m` fallback used because GridCal cannot parse intermediate CSV tables.
 - **Tests skipped:** G-FNM-2 (blocked by G-FNM-1 failure). C-10 not executed (cascaded from A-11).
 - **Solver versions:** HiGHS (bundled via highspy >= 1.8.0), SCIP (via PuLP SCIP_CMD), PuLP 3.3.0.

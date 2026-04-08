@@ -13,7 +13,7 @@ timestamp: "2026-03-24T18:30:00Z"
 
 PowerFlows.jl v0.9.0 DCPowerFlow uses a simplified B-matrix (`b = -1/x`) via
 PowerNetworkMatrices.jl that ignores transformer tap ratios and phase shift angles. On
-the 27,862-bus FNM with ~2,340 off-nominal tap transformers, this produces systematic
+the ~28,000-bus FNM with ~2,340 off-nominal tap transformers, this produces systematic
 angle deviations (mean 2.66 degrees, max 35.88 degrees) compared to MATPOWER's full
 B-matrix reference. Branch flows are less affected (96.52% within 10% tolerance) because
 flow errors depend on relative angle differences across each branch, which partially

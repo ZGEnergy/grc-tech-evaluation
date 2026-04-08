@@ -53,18 +53,18 @@ disconnected islands).
 
 | Metric | Value |
 |--------|-------|
-| Buses | 27,862 |
-| Branches | 32,606 |
-| Generators | 5,741 |
+| Buses | ~28,000 |
+| Branches | ~33,000 |
+| Generators | ~5,700 |
 | baseMVA | 100.0 |
 | Excluded buses | 2,445 |
-| Non-excluded buses | 27,862 |
+| Non-excluded buses | ~28,000 |
 
 ### Bus Angle Comparison
 
 | Metric | Value |
 |--------|-------|
-| Passing fraction | 1.0000 (27,862 / 27,862) |
+| Passing fraction | 1.0000 (~28,000 / ~28,000) |
 | Threshold | >= 0.95 required |
 | Max VA deviation | 4.999976e-09 deg |
 | Mean VA deviation | 2.493020e-09 deg |
@@ -84,7 +84,7 @@ disconnected islands).
 
 | Metric | Value |
 |--------|-------|
-| Passing fraction | 1.0000 (32,532 / 32,532) |
+| Passing fraction | 1.0000 (~33,000 / ~33,000) |
 | Threshold | >= 0.90 required |
 | Max branch deviation | 4.999400e-07 pct |
 | Mean branch deviation | 1.107121e-08 pct |
@@ -94,10 +94,10 @@ disconnected islands).
 
 | Metric | Value |
 |--------|-------|
-| Non-excluded buses checked | 27,862 |
+| Non-excluded buses checked | ~28,000 |
 | Max |mismatch| | 6.184564e-09 MW |
 | Mean |mismatch| | 5.618584e-11 MW |
-| Buses balanced (< 0.1 MW) | 27,862 / 27,862 (1.0000) |
+| Buses balanced (< 0.1 MW) | ~28,000 / ~28,000 (1.0000) |
 | Power balance | PASS |
 
 ### Pass/Fail Gates

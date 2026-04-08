@@ -17,7 +17,7 @@ import traceback
 from pathlib import Path
 
 FNM_PATH = Path("/data/fnm-source")
-PREFIX = "AUC_AN_2026_2026_S01_"
+PREFIX = "<FNM_PREFIX>_"
 
 # ── Per-field representability classifications ──────────────────────────
 # Each entry: (tier, extension_approach_or_justification)

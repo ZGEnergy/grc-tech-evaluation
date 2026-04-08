@@ -26,7 +26,7 @@ timestamp: "2026-03-24T12:00:00Z"
 ## Result: FAIL
 
 PowerModels' `solve_dc_pf` with `DCPPowerModel` produces DCPF results with systematic
-deviations from the MATPOWER reference on the 27,862-bus FNM main island. Bus angle pass
+deviations from the MATPOWER reference on the ~28,000-bus FNM main island. Bus angle pass
 rate is 2.43% (need >=95%) and branch flow pass rate is 78.88% (need >=90%). All three
 hard-fail conditions are triggered. The deviations are caused by a documented formulation
 difference: `DCPPowerModel` uses a simplified B-matrix (`b = -1/x`) that ignores
@@ -36,7 +36,7 @@ taps via `makeBdc()`. [tool-specific: DCPPowerModel formulation choice]
 ## Approach
 
 1. Loaded the cleaned FNM case (`data/fnm/reference/cleaned/fnm_main_island.m`) via
-   `PowerModels.parse_file` (27,862 buses, 32,606 branches, 5,741 generators, baseMVA=100).
+   `PowerModels.parse_file` (~28,000 buses, ~33,000 branches, ~5,700 generators, baseMVA=100).
 2. Applied zero-reactance preprocessing (0 fixes needed). No rate fixes needed.
 3. Solved DCPF using `PowerModels.solve_dc_pf(data, HiGHS.Optimizer)` which internally
    uses `DCPPowerModel`. Per the task specification, `solve_dc_pf` is used rather than
@@ -60,7 +60,7 @@ taps via `makeBdc()`. [tool-specific: DCPPowerModel formulation choice]
 | Simplex iterations | 12,904 |
 | Solve time | 8.20 s |
 | HiGHS wall time | 6.79 s |
-| Nonzero VA buses | 27,858 / 27,862 |
+| Nonzero VA buses | 27,858 / ~28,000 |
 
 ### Power Balance Check
 
@@ -82,7 +82,7 @@ internal solution is self-consistent (OPTIMAL termination, zero objective).
 
 | Metric | Value | Pass Condition |
 |--------|-------|----------------|
-| Non-excluded buses | 27,862 | -- |
+| Non-excluded buses | ~28,000 | -- |
 | Passing (\|dev\| < 1.0 deg) | 678 (2.43%) | >= 95% |
 | Failing | 27,184 | -- |
 | Mean deviation | 5.098394e+00 deg | -- |
@@ -94,7 +94,7 @@ internal solution is self-consistent (OPTIMAL termination, zero objective).
 
 | Metric | Value | Pass Condition |
 |--------|-------|----------------|
-| In-service branches | 32,532 | -- |
+| In-service branches | ~33,000 | -- |
 | Passing (dev < 10%) | 25,660 (78.88%) | >= 90% |
 | Failing | 6,872 | -- |
 | Mean deviation | 3.129475e+01% | -- |

@@ -25,7 +25,7 @@ timestamp: "2026-03-24T12:30:00Z"
 
 ## Result: INFORMATIONAL
 
-ACPF does not converge on the 27,862-bus FNM case at any relaxation level (0%, 10%, 20%).
+ACPF does not converge on the ~28,000-bus FNM case at any relaxation level (0%, 10%, 20%).
 Ipopt diverges rapidly: primal infeasibility grows from 171 to 4.17e6 by iteration 14, with
 MUMPS requiring repeated memory reallocation. The solver hangs during MUMPS workspace
 expansion after iteration 14. This outcome is consistent with the ACPF reference data,
@@ -89,7 +89,7 @@ failure because:
 | Solver | HiGHS 1.13.1 |
 | Termination | OPTIMAL |
 | Solve time | 8.75 s |
-| Nonzero VA buses | 27,858 / 27,862 |
+| Nonzero VA buses | 27,858 / ~28,000 |
 | dcpf_init_mean_deg | 214.4886 |
 | dcpf_init_max_abs_deg | 554.7958 |
 

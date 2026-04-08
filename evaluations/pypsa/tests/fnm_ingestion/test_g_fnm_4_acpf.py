@@ -1,7 +1,7 @@
 """G-FNM-4: ACPF convergence capability on FNM main island.
 
 Dimension: fnm_ingestion (Suite G)
-Network: LARGE — FNM main island (27,862 buses, 32,532 active branches)
+Network: LARGE — FNM main island (28000 buses, 33000 active branches)
 Pass condition: Informational — convergence is a positive finding, not a requirement.
   MATPOWER 8.1 cannot solve this case (voltage collapse at ~30% load).
   If PyPSA converges, that is a solver robustness strength.

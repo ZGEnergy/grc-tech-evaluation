@@ -32,12 +32,12 @@ timestamp: 2026-03-24T12:00:00Z
 
 ACPF did not converge at any relaxation level (0%, 10%, 20%). The
 `relaxation_level_achieved` is **infeasible**. pandapower's Newton-Raphson
-solver reaches 100 iterations without convergence on this 27,862-bus FNM
+solver reaches 100 iterations without convergence on this ~28,000-bus FNM
 main island network at all three relaxation levels.
 
 ## Approach
 
-1. Loaded the pre-cleaned MATPOWER case (`fnm_main_island.m`, 27,862-bus
+1. Loaded the pre-cleaned MATPOWER case (`fnm_main_island.m`, ~28,000-bus
    main island) using `matpowercaseframes.CaseFrames` + `from_ppc`
    (same MATPOWER fallback path as G-FNM-1/G-FNM-3).
 2. Solved DCPF via `pandapower.rundcpp(net)` -- converges successfully.
