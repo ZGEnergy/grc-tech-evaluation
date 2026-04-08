@@ -19,7 +19,7 @@ analysis using the DC path.
 
 ## Context
 
-Discovered during G-FNM-3 DCPF verification on the 27,862-bus FNM main island. Without
+Discovered during G-FNM-3 DCPF verification on the ~28,000-bus FNM main island. Without
 the correction, branch flows would be 100x too small (per-unit vs MW) and angles would
 be in radians instead of degrees. The initial comparison showed nonsensical deviations
 until the unit mismatch was identified empirically by comparing magnitudes against the

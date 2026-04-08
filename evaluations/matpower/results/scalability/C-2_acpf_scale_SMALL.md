@@ -46,7 +46,7 @@ set to 1e-8. No DC warm start or tolerance relaxation was needed.
 | Total load | 67,109.21 MW |
 | Total P losses | 1,631.66 MW (2.37%) |
 | Total Q losses | 10,367.86 MVAr |
-| VM range | [0.9723, 1.0400] pu |
+| VM range | [0.~9,700, 1.0400] pu |
 | VA range | [-73.95, 0.00] deg |
 | VM differs from flat start | 95.1% of buses |
 

@@ -29,7 +29,7 @@ timestamp: 2026-03-24T00:00:00Z
 
 ## Result: INFORMATIONAL
 
-ACPF does not converge on the 27,862-bus FNM main island under any solver or
+ACPF does not converge on the ~28,000-bus FNM main island under any solver or
 relaxation configuration tested. Four solver algorithms were exercised at three
 branch rate relaxation levels (0%, 10%, 20%) -- all 12 combinations failed to
 achieve genuine convergence. The best residual was 15.83 (Levenberg-Marquardt,
@@ -42,7 +42,7 @@ with no gate consequence.
 
 G-FNM-1 established that GridCal cannot ingest the intermediate CSV tables. The
 MATPOWER fallback path was used: `data/fnm/reference/cleaned/fnm_main_island.m`
-(27,862-bus main island, type-4 isolated buses removed).
+(~28,000-bus main island, type-4 isolated buses removed).
 
 ### DCPF warm-start
 
@@ -103,7 +103,7 @@ mismatches are identical across all relaxation levels.
 | Metric | Value |
 |--------|-------|
 | DCPF solve time | 2.38 seconds |
-| Nonzero-angle buses | 27,858 / 27,862 |
+| Nonzero-angle buses | 27,858 / ~28,000 |
 | Mean |VA| | 1.102609e+02 deg |
 | Max |VA| | 1.799973e+02 deg |
 
@@ -165,7 +165,7 @@ solver configuration.
 
 ## Workarounds
 
-None applicable. ACPF convergence failure on a 27,862-bus network loaded via
+None applicable. ACPF convergence failure on a ~28,000-bus network loaded via
 MATPOWER fallback is a diagnostic finding. Potential contributing factors:
 
 1. **Network conditioning:** The FNM main island is a large, complex transmission

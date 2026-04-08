@@ -21,7 +21,7 @@ than the raw source.
 G-FNM-1 tested three ingestion paths:
 1. Intermediate CSV: No CSV parser in PowerModels (not attempted)
 2. PSS/E v31 RAW: Parser fails on Case Identification header format
-3. MATPOWER `.m` fallback: Loads successfully (2.97 s, 27,862 buses)
+3. MATPOWER `.m` fallback: Loads successfully (2.97 s, ~28,000 buses)
 
 The workaround classification is `blocking` because the external conversion step
 (MATPOWER/Octave `psse2mpc()` or equivalent) is outside PowerModels' control and

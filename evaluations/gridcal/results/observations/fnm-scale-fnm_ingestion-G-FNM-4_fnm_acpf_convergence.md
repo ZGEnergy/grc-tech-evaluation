@@ -7,11 +7,11 @@ severity: medium
 timestamp: 2026-03-24T00:00:00Z
 ---
 
-# Observation: GridCal ACPF infeasible on 27,862-bus FNM -- scalability signal
+# Observation: GridCal ACPF infeasible on ~28,000-bus FNM -- scalability signal
 
 ## Finding
 
-GridCal's ACPF solver could not converge on the 27,862-bus FNM main island despite
+GridCal's ACPF solver could not converge on the ~28,000-bus FNM main island despite
 DCPF warm-start and multiple solver algorithms. This is a LARGE-tier scalability
 signal: DCPF handles the network easily (2.4s), but ACPF fails entirely.
 
@@ -24,7 +24,7 @@ to 12.8 pu). The total evaluation across all 12 solver/relaxation combinations
 took 211.0 seconds and consumed 2,042 MB of memory.
 
 For comparison, the MATPOWER reference ACPF solution exists (buses_acpf.csv with
-27,862 entries), confirming the network is solvable. The convergence failure is
+~28,000 entries), confirming the network is solvable. The convergence failure is
 GridCal-specific.
 
 ## Implications

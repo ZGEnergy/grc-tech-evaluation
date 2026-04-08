@@ -1,7 +1,7 @@
 """G-FNM-3: DCPF verification against MATPOWER reference solution.
 
 Dimension: fnm_ingestion (Suite G)
-Network: LARGE — FNM main island (27,862 buses, 32,532 active branches)
+Network: LARGE — FNM main island (28000 buses, 33000 active branches)
 Pass condition:
   - >=99% of buses within 0.1 degree voltage angle tolerance
   - >=99% of in-service branches within 1 MW absolute (or 1% relative) tolerance

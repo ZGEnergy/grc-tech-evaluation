@@ -2,7 +2,7 @@
 Test G-FNM-3: DCPF verification against reference solution on LARGE
 
 Dimension: fnm_ingestion
-Network: LARGE (FNM Annual S01, 27862-bus main island)
+Network: LARGE (FNM Annual S01, 28000-bus main island)
 Pass condition: Pass if all aggregate thresholds are met and no hard-fail condition
   is triggered, per the dcpf section of data/fnm/reference/pass_conditions.json.
   Bus injection power balance check must pass.

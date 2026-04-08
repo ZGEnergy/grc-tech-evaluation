@@ -1,139 +1,85 @@
-# GRC Tech Evaluation
+# GRC Technology Evaluation — Phase 1
 
-**[View the Phase 1 Tool Selection Report](https://zgenergy.github.io/grc-tech-evaluation/)**
+**[View the Interactive Report](https://zgenergy.github.io/grc-tech-evaluation/)**
 
-Reproducible evaluation environments for six power-system modeling packages,
-supporting the Phase 1 technology assessment.
+Phase 1 technology evaluation comparing six open-source power-system modeling
+tools against a six-criterion rubric. **PyPSA is the recommended tool for
+Phase 2 development**, earning Strong in five of six criteria and holding the
+top position across all sensitivity scenarios tested.
 
-## Tools Under Evaluation
+| Tool | Language | Expressiveness | Extensibility | Scalability | Accessibility | Maturity | Supply Chain |
+|------|----------|:-:|:-:|:-:|:-:|:-:|:-:|
+| **PyPSA** | Python | Strong | Strong | Adequate | Strong | Strong | Strong |
+| PowerModels.jl | Julia | Adequate | Strong | Adequate | Adequate | Adequate | Adequate |
+| PowerSimulations.jl | Julia | Adequate | Strong | Adequate | Weak | Adequate | Adequate |
+| GridCal | Python | Adequate | Adequate | Adequate | Weak | Weak | Strong |
+| pandapower | Python | Weak | Adequate | Weak | Adequate | Strong | Strong |
+| MATPOWER\* | MATLAB | Adequate | Strong | Weak | Adequate | Adequate | Strong |
 
-| Tool | Language | Directory |
-|------|----------|-----------|
-| [PyPSA](https://pypsa.org/) | Python | `evaluations/pypsa/` |
-| [pandapower](https://www.pandapower.org/) | Python | `evaluations/pandapower/` |
-| [GridCal](https://www.advancedgridinsights.com/gridcal) | Python | `evaluations/gridcal/` |
-| [PowerModels.jl](https://lanl-ansi.github.io/PowerModels.jl/) | Julia | `evaluations/powermodels/` |
-| [PowerSimulations.jl](https://nrel-sienna.github.io/PowerSimulations.jl/) | Julia | `evaluations/powersimulations/` |
-| [MATPOWER](https://matpower.org/) | MATLAB/Octave | `evaluations/matpower/` |
+\*Reference benchmark only; excluded from ranking (requires MATLAB runtime).
 
-## Directory Structure
+## Repository Guide
 
-```
-grc-tech-evaluation/
-├── evaluation_guides/          # Rubric and test protocol
-│   ├── Phase1_Evaluation_Rubric_v1.md
-│   └── Phase1_Test_Protocol_v2.md
-├── data/
-│   └── networks/               # Shared MATPOWER .m test cases
-├── evaluations/
-│   ├── pypsa/                  # Independent uv project
-│   ├── pandapower/             # Independent uv project
-│   ├── gridcal/                # Independent uv project
-│   ├── powermodels/            # Julia project
-│   ├── powersimulations/       # Julia project
-│   └── matpower/               # Octave + download script
-└── README.md
-```
+### For Analysts
 
-## Dev Environment
+| Directory | Contents |
+|-----------|----------|
+| [`report/`](report/) | Interactive Docusaurus report site — the primary deliverable |
+| [`deliverables/`](deliverables/) | Formal white paper (SOW Task 1.3) |
+| [`evaluations/`](evaluations/) | Per-tool evaluation evidence, test code, and results |
+| [`evaluation_guides/`](evaluation_guides/) | Rubric and test protocol defining all 39 tests |
+| [`data/`](data/) | Shared test networks (MATPOWER cases), augmented time series, FNM data |
+| [`phase2-research/`](phase2-research/) | State estimation investigation (Phase 2 groundwork) |
 
-All six tools run inside a single **devcontainer** that ships Python 3.12, uv,
-Julia 1.10, and GNU Octave with all dependencies pre-installed.
+### For Developers
 
-### Prerequisites
+| Directory | Contents |
+|-----------|----------|
+| `.devcontainer/` | Docker development environment (Python 3.12, Julia 1.10, Octave) |
+| `.github/` | CI/CD workflows |
+| `data/validation/` | Data quality scripts (schema validation, manifest generation) |
 
-| Requirement | Notes |
-|-------------|-------|
-| [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or Docker Engine |
-| [VS Code](https://code.visualstudio.com/) + [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Recommended for interactive development |
-| *or* [devcontainer CLI](https://github.com/devcontainers/cli) | `npm install -g @devcontainers/cli` — for headless/CI use |
+## Tools Evaluated
 
-### Building and Opening the Container
+Each tool has an independent environment under `evaluations/<tool>/`:
 
-**VS Code (recommended):**
-
-1. Open this repo in VS Code.
-2. When prompted, click **Reopen in Container** (or run the command
-   `Dev Containers: Reopen in Container` from the palette).
-3. The first build takes a few minutes while it installs all runtimes and
-   dependencies. Subsequent opens reuse the cached image and start in seconds.
-
-**CLI:**
-
-```bash
-# Build and start the container (first time or after Dockerfile changes)
-devcontainer up --workspace-folder .
-
-# Open an interactive shell inside the running container
-devcontainer exec --workspace-folder . bash
-
-# Or run a one-off command
-devcontainer exec --workspace-folder . uv run --project evaluations/pypsa python -c "import pypsa; print(pypsa.__version__)"
-```
-
-### What's Inside the Image
-
-The Dockerfile (`.devcontainer/Dockerfile`) installs everything at build time
-so the container is ready to use immediately:
-
-- **Python 3.12** + **uv** — each Python tool (`pypsa`, `pandapower`,
-  `gridcal`) has its own `.venv` created by `uv sync` during the build.
-- **Julia 1.10.7** (pinned LTS) — Julia packages for `powermodels` and
-  `powersimulations` are instantiated and precompiled during the build.
-- **GNU Octave** — MATPOWER 8.1 is downloaded by `setup.sh` during the build.
-### Verifying the Install
-
-Smoke-test all six tools at once:
-
-```bash
-bash .devcontainer/validate.sh
-```
-
-Or verify a single tool:
-
-```bash
-# Python tools (pypsa, pandapower, gridcal)
-cd evaluations/<tool> && uv run python verify_install.py
-
-# Julia tools (powermodels, powersimulations)
-cd evaluations/<tool> && julia --project=. verify_install.jl
-
-# MATPOWER
-cd evaluations/matpower && octave verify_install.m
-```
-
-### Day-to-Day Development
-
-All work happens inside the container. Run scripts with the tool's own runtime:
-
-```bash
-# Run a Python evaluation script
-cd evaluations/pypsa
-uv run python results/gate/ac_power_flow.py
-
-# Run a Julia evaluation script
-cd evaluations/powermodels
-julia --project=. results/gate/ac_power_flow.jl
-
-# Run an Octave evaluation script
-cd evaluations/matpower
-octave results/gate/ac_power_flow.m
-
-# Lint Python files
-pre-commit run --all-files
-```
-
-If you need to add a Python dependency to a tool, update its `pyproject.toml`
-and run `uv sync` inside that tool's directory — do not use `pip install`.
-For Julia, edit `Project.toml` and run
-`julia --project=. -e 'using Pkg; Pkg.instantiate()'`.
+| Tool | Language | Environment |
+|------|----------|-------------|
+| [PyPSA](https://pypsa.org/) | Python | `uv sync` |
+| [pandapower](https://www.pandapower.org/) | Python | `uv sync` |
+| [GridCal](https://www.advancedgridinsights.com/gridcal) | Python | `uv sync` |
+| [PowerModels.jl](https://lanl-ansi.github.io/PowerModels.jl/) | Julia | `Pkg.instantiate()` |
+| [PowerSimulations.jl](https://nrel-sienna.github.io/PowerSimulations.jl/) | Julia | `Pkg.instantiate()` |
+| [MATPOWER](https://matpower.org/) | MATLAB/Octave | `bash setup.sh` |
 
 ## Evaluation Protocol
 
-See `evaluation_guides/` for the full rubric and test protocol:
+The evaluation uses a standardized rubric and test protocol:
 
-- **Phase1_Evaluation_Rubric_v1.md** — Scoring criteria across seven dimensions
-- **Phase1_Test_Protocol_v2.md** — Specific tests and acceptance criteria
+- **[Phase1_Evaluation_Rubric.md](evaluation_guides/Phase1_Evaluation_Rubric.md)** —
+  Scoring criteria across six dimensions with tier definitions
+- **[Phase1_Test_Protocol.md](evaluation_guides/Phase1_Test_Protocol.md)** —
+  39 specific tests with acceptance criteria
 
-Results for each tool are organized into subdirectories under
-`evaluations/<tool>/results/` matching the rubric dimensions.
+Test networks: IEEE 39-bus, ACTIVSg 2,000-bus, and ACTIVSg 10,000-bus
+synthetic cases from `data/networks/`.
+
+Results for each tool are in `evaluations/<tool>/results/` organized by rubric
+dimension, with a `synthesis.md` summarizing findings.
+
+## Development Environment
+
+All tools run inside a single devcontainer. See
+[`.devcontainer/`](.devcontainer/) for setup instructions.
+
+```bash
+# Build and open
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bash
+
+# Verify all tools
+bash .devcontainer/validate.sh
+
+# Lint
+pre-commit run --all-files
+```

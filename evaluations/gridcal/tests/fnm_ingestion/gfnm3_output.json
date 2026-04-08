@@ -1,0 +1,252 @@
+{
+  "status": "qualified_pass",
+  "wall_clock_seconds": 46.859,
+  "details": {
+    "pass_conditions": {
+      "va_tolerance_deg": 1.0,
+      "min_bus_passing_fraction": 0.95,
+      "p_tolerance_pct": 10.0,
+      "p_base_floor_mw": 1.0,
+      "min_branch_passing_fraction": 0.9,
+      "formulation_difference_max_abs_deg": null
+    },
+    "veragrid_version": "unknown",
+    "input_path": "matpower",
+    "matpower_file": "/workspace/data/fnm/reference/cleaned/fnm_main_island.m",
+    "load_time_seconds": 31.704,
+    "bus_count": 28000,
+    "sbase": 100.0,
+    "solve_time_seconds": 2.412,
+    "nonzero_angle_buses": 27858,
+    "ref_bus_count": 28000,
+    "ref_branch_count": 33000,
+    "bus_angle": {
+      "total_compared": 28000,
+      "passing": 28000,
+      "failing": 0,
+      "pass_fraction": 1.0,
+      "mean_diff_deg": 0.0,
+      "median_diff_deg": 0.0,
+      "p95_diff_deg": 0.0,
+      "p99_diff_deg": 0.0,
+      "max_diff_deg": 0.0,
+      "meets_threshold": true
+    },
+    "branch_flow": {
+      "total_compared": 33000,
+      "matched": 33000,
+      "passing": 32200,
+      "failing": 326,
+      "pass_fraction": 0.989979,
+      "mean_dev_pct": 417.7521,
+      "median_dev_pct": 0.0,
+      "p95_dev_pct": 0.0,
+      "p99_dev_pct": 186.8568,
+      "max_dev_pct": 562955.0,
+      "meets_threshold": true
+    },
+    "hard_fail": {
+      "bus_fail_fraction_exceeded": false,
+      "bus_fail_fraction": 0.0,
+      "branch_fail_fraction_exceeded": false,
+      "branch_fail_fraction": 0.010021,
+      "extreme_branch_dev_exceeded": "True",
+      "max_branch_dev_pct": 562955.0,
+      "any_triggered": "True"
+    },
+    "formulation_difference": {
+      "failing_branches": 326,
+      "transformer_adjacent_count": 289,
+      "transformer_adjacent_fraction": 0.8865,
+      "threshold_fraction": 0.8,
+      "max_abs_threshold": null,
+      "qualified": true
+    },
+    "top_failing_branches": [
+      {
+        "from_bus": 10001,
+        "to_bus": 10002,
+        "gc_pf_mw": 111582.05,
+        "ref_pf_mw": -19.82,
+        "dev_pct": 562955.0,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10003,
+        "to_bus": 10004,
+        "gc_pf_mw": -68016.72,
+        "ref_pf_mw": 12.57,
+        "dev_pct": 541074.5,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10005,
+        "to_bus": 10006,
+        "gc_pf_mw": -13365.25,
+        "ref_pf_mw": 3.23,
+        "dev_pct": 413787.2,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10007,
+        "to_bus": 10008,
+        "gc_pf_mw": 5234.33,
+        "ref_pf_mw": -1.61,
+        "dev_pct": 325193.3,
+        "branch_type": "Transformer2W",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10009,
+        "to_bus": 10010,
+        "gc_pf_mw": -352878.44,
+        "ref_pf_mw": 109.5,
+        "dev_pct": 322365.0,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10009,
+        "to_bus": 10010,
+        "gc_pf_mw": -347029.63,
+        "ref_pf_mw": 107.68,
+        "dev_pct": 322365.0,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10011,
+        "to_bus": 10012,
+        "gc_pf_mw": 225916.37,
+        "ref_pf_mw": -97.49,
+        "dev_pct": 231837.8,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10013,
+        "to_bus": 10014,
+        "gc_pf_mw": -288086.29,
+        "ref_pf_mw": 133.22,
+        "dev_pct": 2100090.3,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10015,
+        "to_bus": 10013,
+        "gc_pf_mw": 69387.55,
+        "ref_pf_mw": -32.24,
+        "dev_pct": 215320.3,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10016,
+        "to_bus": 10017,
+        "gc_pf_mw": 115022.09,
+        "ref_pf_mw": -54.56,
+        "dev_pct": 210909.7,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10018,
+        "to_bus": 10028,
+        "gc_pf_mw": 27058.38,
+        "ref_pf_mw": -13.81,
+        "dev_pct": 196049.6,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10010,
+        "to_bus": 10019,
+        "gc_pf_mw": 81663.71,
+        "ref_pf_mw": -42.21,
+        "dev_pct": 193565.6,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10020,
+        "to_bus": 10021,
+        "gc_pf_mw": 25674.28,
+        "ref_pf_mw": -13.31,
+        "dev_pct": 192936.7,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10022,
+        "to_bus": 10023,
+        "gc_pf_mw": 97969.75,
+        "ref_pf_mw": -51.86,
+        "dev_pct": 189022.8,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10024,
+        "to_bus": 10019,
+        "gc_pf_mw": 89708.03,
+        "ref_pf_mw": -51.76,
+        "dev_pct": 173417.7,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10024,
+        "to_bus": 10019,
+        "gc_pf_mw": 80157.8,
+        "ref_pf_mw": -46.25,
+        "dev_pct": 173417.7,
+        "branch_type": "Line",
+        "transformer_adjacent": false
+      },
+      {
+        "from_bus": 10025,
+        "to_bus": 10026,
+        "gc_pf_mw": -2190.26,
+        "ref_pf_mw": 1.29,
+        "dev_pct": 169550.4,
+        "branch_type": "Transformer2W",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10027,
+        "to_bus": 10028,
+        "gc_pf_mw": 15506.36,
+        "ref_pf_mw": -9.21,
+        "dev_pct": 168441.6,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10029,
+        "to_bus": 10021,
+        "gc_pf_mw": 51470.41,
+        "ref_pf_mw": -31.11,
+        "dev_pct": 165557.2,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      },
+      {
+        "from_bus": 10021,
+        "to_bus": 10030,
+        "gc_pf_mw": -59519.43,
+        "ref_pf_mw": 36.83,
+        "dev_pct": 161710.2,
+        "branch_type": "Line",
+        "transformer_adjacent": true
+      }
+    ],
+    "qualification_reason": "Hard fail triggered by extreme_branch_flow_deviation (max=562955.0%), but 289/326 (88.7%) failing branches are transformer-adjacent, indicating a B-matrix formulation difference (simplified vs full treatment of transformer tap ratios), not a data ingestion error.",
+    "peak_memory_mb": 1892.8
+  },
+  "errors": [],
+  "workarounds": []
+}

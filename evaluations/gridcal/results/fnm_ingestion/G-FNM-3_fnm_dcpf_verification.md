@@ -36,7 +36,7 @@ near transformer-connected buses (88.65% transformer-adjacent), indicating a
 B-matrix formulation difference rather than a data ingestion error. Classified as
 `formulation_difference` with qualified_pass.
 
-Bus injection power balance cross-reference confirms all 27,862 bus load values
+Bus injection power balance cross-reference confirms all ~28,000 bus load values
 match the reference exactly (0 mismatches), verifying correct data ingestion
 independent of the solver formulation.
 
@@ -46,13 +46,13 @@ independent of the solver formulation.
 
 G-FNM-1 established that GridCal cannot ingest the intermediate CSV tables. The
 MATPOWER fallback path was used: `data/fnm/reference/cleaned/fnm_main_island.m`
-(27,862-bus main island, type-4 isolated buses removed). `ingestion_path: matpower_raw`.
+(~28,000-bus main island, type-4 isolated buses removed). `ingestion_path: matpower_raw`.
 
 ### Bus exclusion
 
 Loaded 2,445 excluded buses from `excluded_buses.json`. Since the cleaned MATPOWER
-file already removes these buses (the main island contains only the 27,862 connected
-buses), 0 buses were excluded from comparison. All 27,862 reference buses are present
+file already removes these buses (the main island contains only the ~28,000 connected
+buses), 0 buses were excluded from comparison. All ~28,000 reference buses are present
 in the tool's model.
 
 ### DCPF execution
@@ -84,9 +84,9 @@ results = vge.power_flow(grid, pf_options)
 
 | Metric | Value |
 |--------|-------|
-| Total compared | 27,862 |
+| Total compared | ~28,000 |
 | Excluded | 0 |
-| Passing (< 1.0 deg) | 27,862 (100.00%) |
+| Passing (< 1.0 deg) | ~28,000 (100.00%) |
 | Failing | 0 (0.00%) |
 | Mean deviation | 2.667291e-09 deg |
 | Median deviation | 2.448644e-09 deg |
@@ -99,9 +99,9 @@ results = vge.power_flow(grid, pf_options)
 
 | Metric | Value |
 |--------|-------|
-| Total compared | 32,532 |
-| Passing (< 10%) | 32,206 (98.9979%) |
-| Failing | 326 (1.0021%) |
+| Total compared | ~33,000 |
+| Passing (< 10%) | ~32,200 (98.998%) |
+| Failing | ~330 (1.002%) |
 | Mean deviation | 4.177521e+02% |
 | Median deviation | 4.875434e-10% |
 | 95th percentile | 5.874286e-08% |
@@ -121,11 +121,11 @@ results = vge.power_flow(grid, pf_options)
 
 | Metric | Value |
 |--------|-------|
-| Total generation | 155,511.04 MW |
-| Total load | 165,491.55 MW |
+| Total generation | ~156,000 MW |
+| Total load | ~165,000 MW |
 | Gen-load imbalance | -9.980509e+03 MW |
-| Load buses compared | 27,862 |
-| Load match count | 27,862 (100%) |
+| Load buses compared | ~28,000 |
+| Load match count | ~28,000 (100%) |
 | Load mismatch count | 0 |
 | Max load diff | 0.000000e+00 MW |
 
@@ -156,11 +156,11 @@ ingestion error. [tool-specific: simplified B-matrix formulation in DC power flo
 
 | From | To | Type | GridCal (MW) | Reference (MW) | Dev % |
 |------|-----|------|-------------|----------------|-------|
-| 1668 | 88630 | Line | 111,582 | -19.82 | 5.630e+05 |
-| 21476 | 84022 | Line | -68,017 | 12.57 | 5.411e+05 |
-| 72100 | 73053 | Line | -13,365 | 3.23 | 4.138e+05 |
-| 180421 | 36990 | Xfmr | 5,234 | -1.61 | 3.252e+05 |
-| 1635 | 92191 | Line | -352,878 | 109.50 | 3.224e+05 |
+| <bus_A> | <bus_B> | Line | 111,582 | -19.82 | 5.630e+05 |
+| <bus_C> | <bus_D> | Line | -68,017 | 12.57 | 5.411e+05 |
+| <bus_E> | <bus_F> | Line | -13,365 | 3.23 | 4.138e+05 |
+| <bus_G> | <bus_H> | Xfmr | 5,234 | -1.61 | 3.252e+05 |
+| <bus_I> | <bus_J> | Line | -352,878 | 109.50 | 3.224e+05 |
 
 ## Workarounds
 

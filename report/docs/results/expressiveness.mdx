@@ -30,7 +30,7 @@ reveal API limitations that would surface in production use.
 
 | Tool | Tier | Rationale |
 |------|------|-----------|
-| **PyPSA** | **Strong** | 8 of 11 tests pass natively, including SCOPF (A-9), lossy DC OPF (A-10), and multi-period storage (A-12). One blocking gap: distributed slack OPF (A-11). |
+| **PyPSA** | **Strong** | 8 of 10 tests pass natively, including SCOPF (A-9), lossy DC OPF (A-10), and multi-period storage (A-12). One blocking gap: distributed slack OPF (A-11). |
 | **pandapower** | **Weak** | 4 of 10 tests pass; 4 independent blocking failures in SCUC (A-5), lossy OPF (A-10), distributed slack (A-11), and multi-period storage (A-12). Design scope limited to single-period steady-state analysis. |
 | **GridCal** | **Adequate** | Covers core PF/OPF and SCOPF (A-9) via native LODF formulation. Two blocking formulation bugs: battery energy balance sign error (A-12) and distributed slack hardcoded off (A-11). Soft branch constraints in DC OPF (A-3) reduce formulation fidelity. |
 | **PowerModels.jl** | **Adequate** | Strong native OPF with LMP decomposition (A-10) and multi-period storage (A-12). No native SCUC (A-5) and no distributed slack (A-11). SCOPF achievable through the JuMP extension API (A-9). |
@@ -239,7 +239,7 @@ linear cost constraints.
 ## Summary
 
 PyPSA is the clear leader in expressiveness, earning a Strong tier with 8 of
-11 tests passing natively and the broadest coverage of market-operations
+10 tests passing natively and the broadest coverage of market-operations
 formulations (SCOPF, lossy OPF, multi-period storage). Its sole blocking gap,
 distributed slack OPF (A-11), is shared by every evaluated tool except
 MATPOWER (where it is achievable via post-processing).

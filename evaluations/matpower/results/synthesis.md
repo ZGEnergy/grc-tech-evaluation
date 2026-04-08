@@ -135,7 +135,7 @@ MATPOWER's extensibility is strong. The combination of native PTDF/LODF computat
 - ACPF on SMALL converges from flat start in 5 NR iterations, 0.165s ([C-2 SMALL](scalability/C-2_acpf_scale_SMALL.md))
 - DC OPF on SMALL via MIPS in 0.507s with all LMPs resolved ([C-3 SMALL](scalability/C-3_dcopf_scale_SMALL.md))
 - AC feasibility with progressive relaxation: SMALL converges at all levels with no violations ([C-5 SMALL](scalability/C-5_ac_feasibility_relaxation_SMALL.md))
-- DCPF on FNM (27,862-bus LARGE) in 0.217s via G-FNM-3 ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md))
+- DCPF on FNM (~28,000-bus LARGE) in 0.217s via G-FNM-3 ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md))
 
 #### Weaknesses
 
@@ -168,7 +168,7 @@ None applicable -- the SCUC failure is a solver integration bug, not addressable
 
 #### Findings Summary
 
-MATPOWER demonstrates strong scalability for power flow and DC OPF at SMALL scale (2000-bus): DCPF in 0.1s, ACPF in 0.17s, DC OPF in 0.5s. The FNM DCPF result (27,862-bus in 0.217s) provides additional evidence of scalability for linear solves. However, the Suite C SMALL gate failed because C-4 SCUC failed -- this is a cascaded failure from the A-5 GLPK integration bug (blocked_by: A-5), not a scalability limitation. MOST assembled and GLPK solved the 162K-variable SCUC problem in 1.1s, but the solution could not be extracted. All 9 MEDIUM-tier tests are skipped as a consequence. 1 independent failure (C-4 SMALL, but blocked_by A-5 -- effectively 0 independent scalability failures) + 9 blocked skips.
+MATPOWER demonstrates strong scalability for power flow and DC OPF at SMALL scale (2000-bus): DCPF in 0.1s, ACPF in 0.17s, DC OPF in 0.5s. The FNM DCPF result (~28,000-bus in 0.217s) provides additional evidence of scalability for linear solves. However, the Suite C SMALL gate failed because C-4 SCUC failed -- this is a cascaded failure from the A-5 GLPK integration bug (blocked_by: A-5), not a scalability limitation. MOST assembled and GLPK solved the 162K-variable SCUC problem in 1.1s, but the solution could not be extracted. All 9 MEDIUM-tier tests are skipped as a consequence. 1 independent failure (C-4 SMALL, but blocked_by A-5 -- effectively 0 independent scalability failures) + 9 blocked skips.
 
 **Scale cap: SMALL** -- applied due to C-4 SCUC failure triggering the Suite C SMALL gate. Evidence from G-FNM-3 (DCPF on 28k-bus FNM) suggests DCPF/ACPF would scale to MEDIUM/LARGE, but this cannot be verified within the gated protocol.
 
@@ -274,7 +274,7 @@ MATPOWER achieves a perfect 9/9 on supply chain tests. The self-contained distri
 
 ### Power Flow Verification
 
-**G-FNM-3: PASS** -- DCPF on the 27,862-bus FNM main island (via MATPOWER fallback `.mat` path) in 0.217s. All deviations at float64 machine noise (max VA deviation 5.0e-9 deg, max branch flow deviation 5.0e-7%). Bus injection power balance confirmed to machine precision (max mismatch 6.2e-9 MW). MATPOWER is the reference DCPF implementation for this network ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md)).
+**G-FNM-3: PASS** -- DCPF on the ~28,000-bus FNM main island (via MATPOWER fallback `.mat` path) in 0.217s. All deviations at float64 machine noise (max VA deviation 5.0e-9 deg, max branch flow deviation 5.0e-7%). Bus injection power balance confirmed to machine precision (max mismatch 6.2e-9 MW). MATPOWER is the reference DCPF implementation for this network ([G-FNM-3](fnm_ingestion/G-FNM-3_fnm_dcpf_verification.md)).
 
 **G-FNM-4: INFORMATIONAL** -- ACPF fails to converge at all relaxation levels (0%, 10%, 20%) with singular Jacobian (rcond ~1.9e-17). DCPF angles reach 537 degrees absolute maximum, indicating structurally ill-conditioned network. The ACPF reference data contains non-physical values (VM up to 379,646 pu), confirming this is a network characteristic rather than a tool limitation [solver-specific: Newton-Raphson on structurally ill-conditioned network] ([G-FNM-4](fnm_ingestion/G-FNM-4_fnm_acpf_convergence.md)).
 

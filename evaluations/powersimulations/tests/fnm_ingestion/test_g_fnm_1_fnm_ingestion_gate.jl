@@ -30,7 +30,7 @@ end
 
 function run_test(;
     intermediate_dir::String="/workspace/data/fnm/intermediate",
-    raw_file::String="/data/fnm-source/AUC_AN_2026_2026_S01_ON_NETWORK_MODEL.RAW",
+    raw_file::String="<FNM_SOURCE_PATH>",
     matpower_fallback::String="/workspace/data/fnm/reference/cleaned/fnm_main_island.m",
 )
     results = Dict(
@@ -45,17 +45,18 @@ function run_test(;
     logger = ConsoleLogger(stderr, Logging.Error)
     global_logger(logger)
 
-    # --- Expected counts from intermediate_manifest.json ---
-    manifest = Dict(
-        "bus" => 30307,
-        "load" => 15062,
-        "fixed_shunt" => 0,
-        "generator" => 5768,
-        "branch" => 24117,
-        "transformer" => 9723,
-        "area" => 49,
-        "zone" => 90,
-        "switched_shunt" => 3114,
+    # --- Expected count ranges from intermediate_manifest.json ---
+    # Exact counts redacted (NDA); range checks verify order-of-magnitude fidelity.
+    manifest_ranges = Dict(
+        "bus" => (25000, 35000),
+        "load" => (12000, 18000),
+        "fixed_shunt" => (0, 10),
+        "generator" => (4500, 7000),
+        "branch" => (20000, 28000),
+        "transformer" => (8000, 12000),
+        "area" => (30, 70),
+        "zone" => (60, 120),
+        "switched_shunt" => (2500, 4000),
     )
 
     t0 = time()
@@ -206,7 +207,7 @@ function run_test(;
             "counts" => matpower_counts,
             "base_power_mva" => base_power,
             "slack_bus_numbers" => slack_numbers,
-            "note" => "Pre-cleaned main island (27,862 buses), not full 30,307-bus FNM.",
+            "note" => "Pre-cleaned main island (28000 buses), not full 30000-bus FNM.",
         )
         results["details"]["peak_rss_mb"] = peak_rss_mb()
 

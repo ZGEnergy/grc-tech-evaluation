@@ -20,7 +20,7 @@ data_ingestion_error per the formulation difference classification protocol.
 ## Context
 
 G-FNM-3 compared pandapower's DCPF solution against the MATPOWER reference on
-27,862 buses. Aggregate performance is strong (99.64% bus pass rate, 99.67% branch
+~28,000 buses. Aggregate performance is strong (99.64% bus pass rate, 99.67% branch
 pass rate), but the hard-fail condition is triggered by a maximum branch flow
 deviation of 596.6% on a single branch (14102->48022). The affected buses form a
 radial cluster with zero load and zero generation, where small impedance handling

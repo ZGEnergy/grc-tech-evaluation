@@ -290,7 +290,7 @@ Suite G executed (FNM_PATH set). FNM ingestion used the MATPOWER fallback path b
 
 ### Data Model Fidelity
 
-**G-FNM-1 (fail):** PowerModels has no CSV parser. The PSS/E RAW parser fails on v31 headers. MATPOWER fallback loaded 27,862 buses / 32,606 branches / 5,741 generators / 8,624 loads (vs manifest: 30,307 / 33,840 / 5,768 / 15,062). Count deltas are attributable to the pre-cleaned main-island subset, not ingestion errors. [tool-specific: no CSV ingestion path] ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_ingestion.md))
+**G-FNM-1 (fail):** PowerModels has no CSV parser. The PSS/E RAW parser fails on v31 headers. MATPOWER fallback loaded ~28,000 buses / ~33,000 branches / ~5,700 generators / 8,624 loads (vs manifest: ~30,000 / ~34,000 / ~5,800 / ~15,000). Count deltas are attributable to the pre-cleaned main-island subset, not ingestion errors. [tool-specific: no CSV ingestion path] ([G-FNM-1](fnm_ingestion/G-FNM-1_intermediate_ingestion.md))
 
 **G-FNM-2 (skip):** Field coverage audit skipped because G-FNM-1 failed (no CSV ingestion). Cannot assess field-level coverage against the intermediate schema. ([G-FNM-2](fnm_ingestion/G-FNM-2_field_coverage_audit.md))
 

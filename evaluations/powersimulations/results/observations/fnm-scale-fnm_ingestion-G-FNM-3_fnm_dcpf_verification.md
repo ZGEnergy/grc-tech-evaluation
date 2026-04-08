@@ -7,13 +7,13 @@ severity: low
 timestamp: "2026-03-24T18:30:00Z"
 ---
 
-# Observation: PowerFlows.jl DCPF successfully handles 27,862-bus network
+# Observation: PowerFlows.jl DCPF successfully handles ~28,000-bus network
 
 ## Finding
 
-PowerFlows.jl DCPowerFlow solve completed in 10.70 seconds on the 27,862-bus FNM main
-island network with 32,532 branches. Peak memory was 1,139.8 MB. The solve produced a
-non-trivial solution (27,858 of 27,862 buses with nonzero angles). Network loading via
+PowerFlows.jl DCPowerFlow solve completed in 10.70 seconds on the ~28,000-bus FNM main
+island network with ~33,000 branches. Peak memory was 1,139.8 MB. The solve produced a
+non-trivial solution (27,858 of ~28,000 buses with nonzero angles). Network loading via
 PowerSystems.System took 38.11 seconds (includes JIT compilation overhead on cold start).
 
 ## Context

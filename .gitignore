@@ -29,13 +29,14 @@ htmlcov/
 # direnv
 .direnv/
 
-# Plans
-plans/
-
 # OS
 .DS_Store
 Thumbs.db
-.claude/worktrees/
 
-# Whitepapers
-*whitepaper*.md
+# Internal tooling (not part of deliverable)
+.claude/
+plans/
+sweep-data/
+sweep-reports/
+tutorials/
+data/whitepaper_proposal.md

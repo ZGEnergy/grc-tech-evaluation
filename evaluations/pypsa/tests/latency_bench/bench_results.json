@@ -1,0 +1,350 @@
+{
+  "b1_baseline_decomposition": {
+    "status": "pass",
+    "details": {
+      "n_buses": 10000,
+      "n_lines": 9726,
+      "dcpf": {
+        "run_times": [
+          20.243536527000288,
+          19.846716786999878,
+          19.981075255000178
+        ],
+        "median_s": 19.981075255000178,
+        "min_s": 19.846716786999878,
+        "max_s": 20.243536527000288,
+        "peak_memory_mb": 2098.688674926758
+      },
+      "dcopf": {
+        "run_times": [
+          206.30118028300012,
+          258.907689313,
+          208.33953027799953
+        ],
+        "median_s": 208.33953027799953,
+        "min_s": 206.30118028300012,
+        "max_s": 258.907689313,
+        "peak_memory_mb": 4402.734807014465
+      }
+    },
+    "errors": [],
+    "wall_clock_seconds": 736.486807929
+  },
+  "b2_linopy_build_vs_solve": {
+    "status": "pass",
+    "details": {
+      "case39": {
+        "n_buses": 39,
+        "build": {
+          "run_times": [
+            0.7670494239991967,
+            0.7637086499998986,
+            0.7626787899998817
+          ],
+          "median_s": 0.7637086499998986,
+          "min_s": 0.7626787899998817,
+          "max_s": 0.7670494239991967,
+          "peak_memory_mb": 0.9084663391113281
+        },
+        "solve": {
+          "run_times": [
+            0.25386789000003773,
+            0.2516089849996206,
+            0.25066682699980447
+          ],
+          "median_s": 0.2516089849996206,
+          "min_s": 0.25066682699980447,
+          "max_s": 0.25386789000003773,
+          "peak_memory_mb": 0.30121326446533203
+        },
+        "solve_direct": {
+          "run_times": [
+            0.296785534999799,
+            0.2966432379998878,
+            0.2955673239994212
+          ],
+          "median_s": 0.2966432379998878,
+          "min_s": 0.2955673239994212,
+          "max_s": 0.296785534999799,
+          "peak_memory_mb": 0.35964488983154297
+        }
+      },
+      "case2000": {
+        "n_buses": 2000,
+        "build": {
+          "run_times": [
+            4.574094190000324,
+            4.582622500999605,
+            4.616188062999754
+          ],
+          "median_s": 4.582622500999605,
+          "min_s": 4.574094190000324,
+          "max_s": 4.616188062999754,
+          "peak_memory_mb": 191.18137454986572
+        },
+        "solve": {
+          "run_times": [
+            1.404422911000438,
+            1.3331499070000064,
+            1.3149934140001278
+          ],
+          "median_s": 1.3331499070000064,
+          "min_s": 1.3149934140001278,
+          "max_s": 1.404422911000438,
+          "peak_memory_mb": 214.49903392791748
+        },
+        "solve_direct": {
+          "run_times": [
+            1.366278002999934,
+            1.3395256479998352,
+            1.351738106999619
+          ],
+          "median_s": 1.351738106999619,
+          "min_s": 1.3395256479998352,
+          "max_s": 1.366278002999934,
+          "peak_memory_mb": 217.63275051116943
+        }
+      },
+      "case10000": {
+        "n_buses": 10000,
+        "build": {
+          "run_times": [
+            21.839490798000043
+          ],
+          "median_s": 21.839490798000043,
+          "min_s": 21.839490798000043,
+          "max_s": 21.839490798000043,
+          "peak_memory_mb": 2109.7349882125854
+        },
+        "solve": {
+          "run_times": [
+            187.57658142199944
+          ],
+          "median_s": 187.57658142199944,
+          "min_s": 187.57658142199944,
+          "max_s": 187.57658142199944,
+          "peak_memory_mb": 4351.03408908844
+        },
+        "solve_direct": {
+          "run_times": [
+            187.1955889180008
+          ],
+          "median_s": 187.1955889180008,
+          "min_s": 187.1955889180008,
+          "max_s": 187.1955889180008,
+          "peak_memory_mb": 4365.304967880249
+        }
+      }
+    },
+    "errors": [],
+    "wall_clock_seconds": 448.3516682919999
+  },
+  "b3_incremental_resolv": {
+    "status": "pass",
+    "details": {
+      "outage_lines": [
+        "L1904",
+        "L972",
+        "L1089",
+        "L1058",
+        "L1481"
+      ],
+      "strategy_a_full_rebuild": {
+        "total_times": [
+          28.82197279399861,
+          28.593475912999565,
+          28.644862785999976
+        ],
+        "median_total_s": 28.644862785999976,
+        "median_per_outage_s": 5.728972557199995
+      },
+      "strategy_b_model_mod": {
+        "total_times": [
+          6.411676282998997,
+          6.420535719001236,
+          6.717397985000389
+        ],
+        "median_total_s": 6.420535719001236,
+        "median_per_outage_s": 1.2841071438002474,
+        "note": "Re-solve only (no model rebuild), but constraint bounds unchanged \u2014 Linopy constraints are immutable so this measures solve_model() reuse"
+      },
+      "strategy_c_warm_start": {
+        "total_times": [
+          36.37367311700018,
+          28.989366076000806,
+          28.630816728000354
+        ],
+        "median_total_s": 28.989366076000806,
+        "median_per_outage_s": 5.797873215200161
+      }
+    },
+    "errors": [],
+    "wall_clock_seconds": 220.5284649109999
+  },
+  "b4_scaling_curve": {
+    "status": "pass",
+    "details": {
+      "raw_networks": {
+        "case39": {
+          "n_buses": 39,
+          "dcpf_median_s": 0.18109021399959602,
+          "dcopf_median_s": 1.006524053999783,
+          "dcpf_times": [
+            0.18214093299957312,
+            0.1789842679991125,
+            0.18109021399959602
+          ],
+          "dcopf_times": [
+            1.006524053999783,
+            1.0019840199993268,
+            1.0100220779995652
+          ]
+        },
+        "case2000": {
+          "n_buses": 2000,
+          "dcpf_median_s": 3.9469289160006156,
+          "dcopf_median_s": 5.893824574000064,
+          "dcpf_times": [
+            3.9469289160006156,
+            3.9505185639991396,
+            3.904667306000192
+          ],
+          "dcopf_times": [
+            5.893824574000064,
+            5.9828909970001405,
+            5.883564677999857
+          ]
+        },
+        "case10000": {
+          "n_buses": 10000,
+          "dcpf_median_s": 20.08870312900035,
+          "dcopf_median_s": 206.57085705099962,
+          "dcpf_times": [
+            20.08870312900035,
+            20.041710145999787,
+            20.266506617000232
+          ],
+          "dcopf_times": [
+            215.6477424019995,
+            205.85439438699996,
+            206.57085705099962
+          ]
+        }
+      },
+      "clustered_networks": {
+        "cluster_1000": {
+          "error": "Optional dependency 'sklearn' not found.Install via 'conda install -c conda-forge scikit-learn' or 'pip install scikit-learn'"
+        },
+        "cluster_500": {
+          "error": "Optional dependency 'sklearn' not found.Install via 'conda install -c conda-forge scikit-learn' or 'pip install scikit-learn'"
+        },
+        "cluster_200": {
+          "error": "Optional dependency 'sklearn' not found.Install via 'conda install -c conda-forge scikit-learn' or 'pip install scikit-learn'"
+        },
+        "cluster_100": {
+          "error": "Optional dependency 'sklearn' not found.Install via 'conda install -c conda-forge scikit-learn' or 'pip install scikit-learn'"
+        }
+      },
+      "scaling_table": [
+        {
+          "source": "case39",
+          "n_buses": 39,
+          "dcpf_s": 0.18109021399959602,
+          "dcopf_s": 1.006524053999783
+        },
+        {
+          "source": "case2000",
+          "n_buses": 2000,
+          "dcpf_s": 3.9469289160006156,
+          "dcopf_s": 5.893824574000064
+        },
+        {
+          "source": "case10000",
+          "n_buses": 10000,
+          "dcpf_s": 20.08870312900035,
+          "dcopf_s": 206.57085705099962
+        }
+      ]
+    },
+    "errors": [],
+    "wall_clock_seconds": 724.6861316600007
+  },
+  "b5_contingency_throughput": {
+    "status": "pass",
+    "details": {
+      "bodf_precompute": {
+        "case39": {
+          "n_buses": 39,
+          "bodf_shape": [
+            46,
+            46
+          ],
+          "compute_seconds": 0.12657858100010344,
+          "peak_memory_mb": 0.2194833755493164
+        },
+        "case2000": {
+          "n_buses": 2000,
+          "bodf_shape": [
+            3206,
+            3206
+          ],
+          "compute_seconds": 1.3171714130003238,
+          "peak_memory_mb": 249.003098487854
+        },
+        "case10000": {
+          "n_buses": 10000,
+          "bodf_shape": [
+            12706,
+            12706
+          ],
+          "compute_seconds": 17.099238961000083,
+          "peak_memory_mb": 5935.944363594055
+        }
+      },
+      "vectorized_n1_2000": {
+        "n_branches": 3206,
+        "elapsed_ms": 19.387384999390633,
+        "matrix_shape": [
+          3206,
+          3206
+        ]
+      },
+      "single_contingency_2000": {
+        "n_samples": 100,
+        "median_us": 2.94050050797523,
+        "mean_us": 3.2535100217501167,
+        "max_us": 28.64399993995903
+      },
+      "violation_detection_2000": {
+        "elapsed_ms": 14.075312000386475,
+        "total_violations": 21754,
+        "contingencies_with_violations": 45
+      },
+      "resolv_baseline_39": {
+        "n_contingencies": 35,
+        "total_s": 1.9882263399986186,
+        "per_contingency_ms": 54.381644999921264
+      },
+      "bodf_n1_39": {
+        "n_branches": 46,
+        "elapsed_us": 9.907999810820911,
+        "speedup_vs_resolv": 200668.79067026218
+      },
+      "vectorized_n1_10k": {
+        "n_branches": 12706,
+        "bodf_compute_s": 15.690467585999613,
+        "bodf_memory_mb": 5935.947803497314,
+        "all_n1_ms": 235.79022000012628,
+        "single_contingency_median_us": 8.792000244284282
+      },
+      "n2_woodbury_2000": {
+        "n_pairs": 100,
+        "total_ms": 0.6488039998657769,
+        "per_pair_us": 6.488039998657769,
+        "note": "First-order superposition (not exact Woodbury inverse update)"
+      }
+    },
+    "errors": [],
+    "wall_clock_seconds": 61.05912988300042
+  }
+}

@@ -5,10 +5,10 @@ Count ingested components and compare against expected counts from the
 intermediate manifest.
 
 Pass condition: All non-empty table counts match the manifest expectations.
-  - Buses: 30307 total in RAW, minus 2370 type-4 (isolated) = 27937 importable
-  - Generators: 5768
-  - Branches + Transformers: 33840 merged in MATPOWER; PyPSA splits by tap ratio
-  - Loads: 15062 (PyPSA aggregates loads per bus from PPC, so expect bus count with nonzero load)
+  - Buses: 30000 total in RAW, minus type-4 (isolated) = importable subset
+  - Generators: 5800
+  - Branches + Transformers: 34000 merged in MATPOWER; PyPSA splits by tap ratio
+  - Loads: 15000 (PyPSA aggregates loads per bus from PPC, so expect bus count with nonzero load)
 
 Tool: PyPSA
 API: import_from_pypower_ppc(ppc)
@@ -159,7 +159,7 @@ def run() -> dict:
         exp_gen = expected["generator"]["expected_record_count"]
         exp_branch = expected["branch"]["expected_record_count"]
         exp_xfmr = expected["transformer"]["expected_record_count"]
-        exp_branch_total = exp_branch + exp_xfmr  # 33840 merged in MATPOWER
+        exp_branch_total = exp_branch + exp_xfmr  # merged in MATPOWER
         exp_load = expected["load"]["expected_record_count"]
         exp_switched_shunt = expected["switched_shunt"]["expected_record_count"]
 
@@ -174,7 +174,7 @@ def run() -> dict:
             "expected": exp_bus_after_filter,
             "actual": n_buses,
             "match": n_buses == exp_bus_after_filter,
-            "note": f"30307 total - {type4_count} type-4 = {exp_bus_after_filter}",
+            "note": f"{exp_bus} total - {type4_count} type-4 = {exp_bus_after_filter}",
         }
 
         # Generator count: gens on non-type-4 buses
