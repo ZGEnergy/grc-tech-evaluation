@@ -136,36 +136,6 @@ and navigation correctness.
 - [ ] Prose is coherent and free of TODO/FIXME markers
 - [ ] Page title and sidebar label are correct
 
-### Grid Primer (`/grid-primer/`)
-
-- [ ] No `<Placeholder />` components remaining
-- [ ] All collapsible `<details>` sections expand and collapse correctly
-- [ ] Grade color-coding renders correctly (green/blue/yellow per grade range)
-- [ ] All embedded charts display and are legible
-- [ ] All internal links navigate to the correct target
-- [ ] Prose is coherent and free of TODO/FIXME markers
-- [ ] Page title and sidebar label are correct
-
-### Grid Primer — Transmission (`/grid-primer/transmission/`)
-
-- [ ] No `<Placeholder />` components remaining
-- [ ] All collapsible `<details>` sections expand and collapse correctly
-- [ ] Grade color-coding renders correctly (green/blue/yellow per grade range)
-- [ ] All embedded charts display and are legible
-- [ ] All internal links navigate to the correct target
-- [ ] Prose is coherent and free of TODO/FIXME markers
-- [ ] Page title and sidebar label are correct
-
-### Grid Primer — Modeling (`/grid-primer/modeling/`)
-
-- [ ] No `<Placeholder />` components remaining
-- [ ] All collapsible `<details>` sections expand and collapse correctly
-- [ ] Grade color-coding renders correctly (green/blue/yellow per grade range)
-- [ ] All embedded charts display and are legible
-- [ ] All internal links navigate to the correct target
-- [ ] Prose is coherent and free of TODO/FIXME markers
-- [ ] Page title and sidebar label are correct
-
 ---
 
 ## Reviewer Sign-Off

@@ -2,7 +2,6 @@
 const sidebars = {
   reportSidebar: [
     'index',
-    'grid-primer',
     'use-cases-criteria',
     'tools-evaluated',
     'contract-traceability',
