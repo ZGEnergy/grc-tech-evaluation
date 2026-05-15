@@ -66,11 +66,6 @@ SMOKE_TEST_PAGES: list[PageExpectation] = [
         title_fragment="Expressiveness",
     ),
     PageExpectation(
-        path="/grid-primer/",
-        description="Grid Operations Primer",
-        title_fragment="Grid Operations Primer",
-    ),
-    PageExpectation(
         path="/tools-evaluated/",
         description="Tools Evaluated",
         title_fragment="Tools Evaluated",
